@@ -9,57 +9,58 @@ const supabase = createClient(
 export default function TripForm() {
   const [formData, setFormData] = useState({
     route: '',
-    mode: '',
     agency: '',
-    vehicle: '',
+    mode: '',
     direction: '',
     stop: '',
+    vehicle: '',
     notes: '',
     flags: ''
-  });
+  })
 
   const [status, setStatus] = useState('')
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault()
     const { error } = await supabase.from('trips').insert({
       created_at: new Date().toISOString(),
       ...formData
-    });
+    })
 
     if (error) {
-      setStatus(`❌ Error: ${error.message}`);
+      setStatus(`❌ Error: ${error.message}`)
     } else {
-      setStatus('✅ Trip added successfully!');
+      setStatus('✅ Trip added successfully!')
       setFormData({
         route: '',
-        mode: '',
         agency: '',
-        vehicle: '',
+        mode: '',
         direction: '',
         stop: '',
+        vehicle: '',
         notes: '',
         flags: ''
-      });
+      })
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-w-md mx-auto mt-8">
-      {Object.keys(formData).map((field) => (
-        <div key={field}>
-          <label className="block mb-1 font-semibold">
-            {field.charAt(0).toUpperCase() + field.slice(1)}
+      {Object.entries(formData).map(([key, value]) => (
+        <div key={key}>
+          <label className="block mb-1 font-semibold capitalize">
+            {key}
           </label>
           <input
-            name={field}
+            name={key}
             type="text"
-            value={formData[field]}
+            value={value}
             onChange={handleChange}
+            placeholder={`Enter ${key}`}
             className="border px-3 py-2 w-full rounded"
           />
         </div>
