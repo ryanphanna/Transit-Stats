@@ -7,52 +7,70 @@ const supabase = createClient(
 )
 
 export default function TripForm() {
-  const [date, setDate] = useState('')
-  const [route, setRoute] = useState('')
-  const [message, setMessage] = useState('')
+  const [formData, setFormData] = useState({
+    route: '',
+    mode: '',
+    agency: '',
+    vehicle: '',
+    direction: '',
+    stop: '',
+    notes: '',
+    flags: ''
+  });
+
+  const [status, setStatus] = useState('')
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    const { error } = await supabase.from('trips').insert([{ date, route }])
+    e.preventDefault();
+    const { error } = await supabase.from('trips').insert({
+      created_at: new Date().toISOString(),
+      ...formData
+    });
+
     if (error) {
-      setMessage('❌ Error: ' + error.message)
+      setStatus(`❌ Error: ${error.message}`);
     } else {
-      setMessage('✅ Trip logged!')
-      setDate('')
-      setRoute('')
+      setStatus('✅ Trip added successfully!');
+      setFormData({
+        route: '',
+        mode: '',
+        agency: '',
+        vehicle: '',
+        direction: '',
+        stop: '',
+        notes: '',
+        flags: ''
+      });
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-w-md mx-auto mt-8">
-      <div>
-        <label className="block mb-1 font-semibold">Date</label>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          required
-          className="border px-3 py-2 w-full rounded"
-        />
-      </div>
-      <div>
-        <label className="block mb-1 font-semibold">Route</label>
-        <input
-          type="text"
-          value={route}
-          onChange={(e) => setRoute(e.target.value)}
-          placeholder="e.g. 501 Queen"
-          required
-          className="border px-3 py-2 w-full rounded"
-        />
-      </div>
+      {Object.keys(formData).map((field) => (
+        <div key={field}>
+          <label className="block mb-1 font-semibold">
+            {field.charAt(0).toUpperCase() + field.slice(1)}
+          </label>
+          <input
+            name={field}
+            type="text"
+            value={formData[field]}
+            onChange={handleChange}
+            className="border px-3 py-2 w-full rounded"
+          />
+        </div>
+      ))}
       <button
         type="submit"
         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
       >
         Submit
       </button>
-      {message && <p className="text-sm mt-2">{message}</p>}
+      {status && <p className="text-sm mt-2">{status}</p>}
     </form>
   )
 }
