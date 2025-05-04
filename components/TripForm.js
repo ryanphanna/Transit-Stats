@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://YOUR_SUPABASE_URL.supabase.co';
-const supabaseKey = 'YOUR_SUPABASE_ANON_KEY';
+const supabaseUrl = 'https://fwbmqmaqefwhiwzkcjyv.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3Ym1xbWFxZWZ3aGl3emtjanl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYzMDE1OTEsImV4cCI6MjA2MTg3NzU5MX0.ujJI7jOrpw2Usiw56Z_Sdrjp7q8xu_o6bMXVeDAgP5Y';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function TripForm() {
