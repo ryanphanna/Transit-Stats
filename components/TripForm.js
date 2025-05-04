@@ -1,13 +1,14 @@
-import { useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
+// components/TripForm.js
+'use client';
+import { useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-)
+const supabaseUrl = 'https://<YOUR-SUPABASE-PROJECT>.supabase.co';
+const supabaseAnonKey = '<YOUR-ANON-KEY>';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function TripForm() {
-  const [formData, setFormData] = useState({
+  const [form, setForm] = useState({
     route: '',
     agency: '',
     mode: '',
@@ -15,27 +16,35 @@ export default function TripForm() {
     stop: '',
     vehicle: '',
     notes: '',
-    flags: ''
-  })
+    flags: '',
+  });
 
-  const [status, setStatus] = useState('')
+  const [message, setMessage] = useState('');
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
-  }
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
+
+    const now = new Date();
+    const localTime = now.toLocaleTimeString('en-CA', { hour12: false });
+    const localMonth = now.toLocaleString('en-CA', { month: 'long' });
+    const localYear = now.getFullYear();
+
     const { error } = await supabase.from('trips').insert({
-      created_at: new Date().toISOString(),
-      ...formData
-    })
+      ...form,
+      time: localTime,
+      month: localMonth,
+      year: localYear,
+    });
 
     if (error) {
-      setStatus(`❌ Error: ${error.message}`)
+      setMessage(`❌ Error: ${error.message}`);
     } else {
-      setStatus('✅ Trip added successfully!')
-      setFormData({
+      setMessage('✅ Trip logged!');
+      setForm({
         route: '',
         agency: '',
         mode: '',
@@ -43,35 +52,38 @@ export default function TripForm() {
         stop: '',
         vehicle: '',
         notes: '',
-        flags: ''
-      })
+        flags: '',
+      });
     }
-  }
+  };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-w-md mx-auto mt-8">
-      {Object.entries(formData).map(([key, value]) => (
-        <div key={key}>
-          <label className="block mb-1 font-semibold capitalize">
-            {key}
-          </label>
+    <form onSubmit={handleSubmit}>
+      <h1><strong>Transit.Stats</strong></h1>
+
+      {[
+        ['route', 'e.g. 501 Queen'],
+        ['agency', 'e.g. TTC'],
+        ['mode', 'e.g. Bus / Subway / Streetcar'],
+        ['direction', 'e.g. Eastbound'],
+        ['stop', 'e.g. Broadview Station'],
+        ['vehicle', 'e.g. 4444'],
+        ['notes', 'Optional notes'],
+        ['flags', 'e.g. Late / Crowded']
+      ].map(([name, placeholder]) => (
+        <div key={name}>
+          <label>{name.charAt(0).toUpperCase() + name.slice(1)}: </label>
           <input
-            name={key}
-            type="text"
-            value={value}
+            name={name}
+            value={form[name]}
             onChange={handleChange}
-            placeholder={`Enter ${key}`}
-            className="border px-3 py-2 w-full rounded"
+            placeholder={placeholder}
           />
         </div>
       ))}
-      <button
-        type="submit"
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-      >
-        Submit
-      </button>
-      {status && <p className="text-sm mt-2">{status}</p>}
+
+      <button type="submit">Submit</button>
+      {message && <p>{message}</p>}
     </form>
-  )
+  );
 }
