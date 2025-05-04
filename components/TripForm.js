@@ -1,14 +1,13 @@
-// components/TripForm.js
-'use client';
 import { useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://<YOUR-SUPABASE-PROJECT>.supabase.co';
-const supabaseAnonKey = '<YOUR-ANON-KEY>';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 export default function TripForm() {
-  const [form, setForm] = useState({
+  const [formData, setFormData] = useState({
     route: '',
     agency: '',
     mode: '',
@@ -17,34 +16,47 @@ export default function TripForm() {
     vehicle: '',
     notes: '',
     flags: '',
+    time: '',
+    month: '',
+    year: ''
   });
 
   const [message, setMessage] = useState('');
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const now = new Date();
-    const localTime = now.toLocaleTimeString('en-CA', { hour12: false });
-    const localMonth = now.toLocaleString('en-CA', { month: 'long' });
-    const localYear = now.getFullYear();
+    const time = now.toTimeString().split(' ')[0]; // HH:MM:SS
+    const month = now.toLocaleString('default', { month: 'long' });
+    const year = now.getFullYear();
 
-    const { error } = await supabase.from('trips').insert({
-      ...form,
-      time: localTime,
-      month: localMonth,
-      year: localYear,
-    });
+    const { error } = await supabase.from('trips').insert([
+      {
+        route: formData.route,
+        agency: formData.agency,
+        mode: formData.mode,
+        direction: formData.direction,
+        stop: formData.stop,
+        vehicle: formData.vehicle,
+        notes: formData.notes,
+        flags: formData.flags,
+        time,
+        month,
+        year
+      }
+    ]);
 
     if (error) {
       setMessage(`❌ Error: ${error.message}`);
     } else {
-      setMessage('✅ Trip logged!');
-      setForm({
+      setMessage('✅ Trip added successfully!');
+      setFormData({
         route: '',
         agency: '',
         mode: '',
@@ -53,37 +65,32 @@ export default function TripForm() {
         vehicle: '',
         notes: '',
         flags: '',
+        time: '',
+        month: '',
+        year: ''
       });
     }
   };
 
   return (
     <form onSubmit={handleSubmit}>
-      <h1><strong>Transit.Stats</strong></h1>
-
-      {[
-        ['route', 'e.g. 501 Queen'],
-        ['agency', 'e.g. TTC'],
-        ['mode', 'e.g. Bus / Subway / Streetcar'],
-        ['direction', 'e.g. Eastbound'],
-        ['stop', 'e.g. Broadview Station'],
-        ['vehicle', 'e.g. 4444'],
-        ['notes', 'Optional notes'],
-        ['flags', 'e.g. Late / Crowded']
-      ].map(([name, placeholder]) => (
-        <div key={name}>
-          <label>{name.charAt(0).toUpperCase() + name.slice(1)}: </label>
-          <input
-            name={name}
-            value={form[name]}
-            onChange={handleChange}
-            placeholder={placeholder}
-          />
+      <h1>Transit.Stats</h1>
+      {['route', 'agency', 'mode', 'direction', 'stop', 'vehicle', 'notes', 'flags'].map((field) => (
+        <div key={field}>
+          <label>
+            {field.charAt(0).toUpperCase() + field.slice(1)}:{' '}
+            <input
+              type="text"
+              name={field}
+              value={formData[field]}
+              onChange={handleChange}
+              placeholder={`e.g. ${field === 'route' ? '501 Queen' : ''}`}
+            />
+          </label>
         </div>
       ))}
-
       <button type="submit">Submit</button>
-      {message && <p>{message}</p>}
+      <p>{message}</p>
     </form>
   );
 }
