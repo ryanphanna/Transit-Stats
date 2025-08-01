@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTC Transit Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 100%;
+            padding: 15px;
+        }
+
+        .main-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .start-trip-form {
+            text-align: center;
+        }
+
+        .start-trip-form h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .active-trip {
+            text-align: center;
+            display: none;
+        }
+
+        .trip-status {
+            background: #e8f5e8;
+            border: 2px solid #2ed573;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .trip-status h2 {
+            color: #2d7738;
+            margin-bottom: 10px;
+        }
+
+        .trip-details {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+        }
+
+        .trip-time {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .stop-preview {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 8px;
+            font-size: 0.9em;
+        }
+
+        .stop-preview.new {
+            background: #e8f5e8;
+            border-color: #2ed573;
+        }
+
+        .stop-preview.existing {
+            background: #fff3cd;
+            border-color: #ffc107;
+        }
+
+        .btn {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 5px;
+        }
+
+        .btn-large {
+            padding: 18px 30px;
+            font-size: 1.2em;
+            width: 100%;
+            max-width: 280px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-danger {
+            background: #ff4757;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ff3838;
+        }
+
+        .btn-success {
+            background: #2ed573;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #26d466;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #666;
+            border: 2px solid #ddd;
+        }
+
+        .btn-outline:hover {
+            background: #f8f8f8;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .button-group .btn {
+            flex: 1;
+            margin: 0;
+        }
+
+        .section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .trip-item {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-left: 4px solid #ff0000;
+        }
+
+        .trip-item.subway {
+            border-left-color: #d5c82b;
+        }
+
+        .trip-route {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: white;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-bottom: 8px;
+            background: #ff0000;
+        }
+
+        .trip-route.subway {
+            background: #d5c82b;
+            color: #000;
+        }
+
+        .trip-details {
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .trip-meta {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+            font-style: italic;
+        }
+
+        .location-status {
+            background: #e8f5e8;
+            color: #2d7738;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            text-align: center;
+        }
+
+        .location-status.error {
+            background: #ffe6e6;
+            color: #d63031;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header {
+                padding: 12px;
+            }
+            
+            .main-section, .section {
+                padding: 15px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚇 Transit Stats</h1>
+    </div>
+
+    <div class="container">
+        <!-- Main Trip Section -->
+        <div class="main-section">
+            <!-- Location Permission Section -->
+            <div id="locationPermissionSection" style="display: none; text-align: center; margin-bottom: 20px;">
+                <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 15px; margin-bottom: 15px;">
+                    📍 Location access needed for GPS tracking
+                </div>
+                <button class="btn btn-primary" onclick="requestLocationPermission()">Enable Location</button>
+            </div>
+            <!-- Start Trip Form -->
+            <div id="startTripSection" class="start-trip-form">
+                <h2>Start a New Trip</h2>
+                <div id="locationStatus" class="location-status" style="display: none;"></div>
+                
+                <div class="form-group">
+                    <label>Boarding Stop</label>
+                    <input type="text" id="boardingStopInput" placeholder="e.g., 6638 or King & Yonge" autocomplete="off">
+                    <div id="boardingStopPreview" class="stop-preview" style="display: none;"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Route/Line</label>
+                    <input type="text" id="routeInput" placeholder="e.g., Line 1, 65 Parliament, 504 King">
+                    <div id="routePreview" class="stop-preview" style="display: none;"></div>
+                </div>
+
+                <button id="startTripBtn" class="btn btn-primary btn-large" disabled onclick="startTrip()">
+                    🚌 Board Vehicle
+                </button>
+            </div>
+
+            <!-- Active Trip Display -->
+            <div id="activeTripSection" class="active-trip">
+                <div class="trip-status">
+                    <h2>🚌 Currently Riding</h2>
+                    <div class="trip-details">
+                        <div id="currentRoute" class="trip-route"></div>
+                        <div id="currentBoardingStop"></div>
+                    </div>
+                    <div class="trip-time">
+                        Started: <span id="tripStartTime"></span>
+                    </div>
+                </div>
+
+                <button class="btn btn-danger btn-large" onclick="openEndTripModal()">
+                    🛑 End Trip
+                </button>
+            </div>
+        </div>
+
+        <!-- Recent Trips -->
+        <div class="section">
+            <div class="section-title">📋 Recent Trips (<span id="tripCount">0</span>)</div>
+            <div id="tripsList"></div>
+        </div>
+
+        <!-- My Stops -->
+        <div class="section">
+            <div class="section-title">🏁 My Stops (<span id="stopCount">0</span>)</div>
+            <div id="stopsList"></div>
+        </div>
+    </div>
+
+    <!-- End Trip Modal -->
+    <div id="endTripModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">🛑 End Trip</div>
+            <form id="endTripForm">
+                <div class="form-group">
+                    <label>Exit Stop</label>
+                    <input type="text" id="exitStopInput" placeholder="e.g., 1234 or Union Station" autocomplete="off">
+                    <div id="exitStopPreview" class="stop-preview" style="display: none;"></div>
+                </div>
+
+                <div class="button-group">
+                    <button type="button" class="btn btn-success" id="endTripBtn" onclick="endTrip(event)">Save Trip</button>
+                    <button type="button" class="btn btn-outline" onclick="closeEndTripModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Data Storage
+        let myStops = JSON.parse(localStorage.getItem('myTTCStops')) || [];
+        let myTrips = JSON.parse(localStorage.getItem('myTTCTrips')) || [];
+        let currentLocation = null;
+        let activeTrip = null;
+        let boardingStopData = null;
+        let exitStopData = null;
+
+        // Initialize
+        function init() {
+            getCurrentLocation();
+            updateTripsList();
+            updateStopsList();
+            updateCounts();
+
+            // Add input listeners
+            document.getElementById('boardingStopInput').addEventListener('input', handleBoardingStopInput);
+            document.getElementById('routeInput').addEventListener('input', updateStartTripButton);
+            document.getElementById('exitStopInput').addEventListener('input', handleExitStopInput);
+
+            // Check if there's an active trip
+            activeTrip = JSON.parse(localStorage.getItem('activeTTCTrip'));
+            if (activeTrip) {
+                showActiveTrip();
+            }
+        }
+
+        // Location Functions
+        function getCurrentLocation() {
+            const statusDiv = document.getElementById('locationStatus');
+            
+            if (!navigator.geolocation) {
+                statusDiv.innerHTML = '📍 Geolocation not supported on this device';
+                statusDiv.className = 'location-status error';
+                statusDiv.style.display = 'block';
+                document.getElementById('locationPermissionSection').style.display = 'none';
+                return;
+            }
+
+            statusDiv.innerHTML = '📍 Checking location permissions...';
+            statusDiv.className = 'location-status';
+            statusDiv.style.display = 'block';
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    currentLocation = {
+                        lat: position.coords.latitude,
+                        lon: position.coords.longitude,
+                        accuracy: position.coords.accuracy,
+                        timestamp: new Date()
+                    };
+                    
+                    statusDiv.innerHTML = `📍 Location ready (±${Math.round(currentLocation.accuracy)}m)`;
+                    statusDiv.className = 'location-status';
+                    document.getElementById('locationPermissionSection').style.display = 'none';
+                },
+                (error) => {
+                    console.log('Location error:', error);
+                    handleLocationError(error);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 300000
+                }
+            );
+        }
+
+        function handleLocationError(error) {
+            const statusDiv = document.getElementById('locationStatus');
+            const permissionSection = document.getElementById('locationPermissionSection');
+            
+            console.log('Location error details:', {
+                code: error.code,
+                message: error.message,
+                PERMISSION_DENIED: error.PERMISSION_DENIED,
+                POSITION_UNAVAILABLE: error.POSITION_UNAVAILABLE,
+                TIMEOUT: error.TIMEOUT
+            });
+            
+            let errorMessage = '';
+            
+            switch(error.code) {
+                case 1: // PERMISSION_DENIED
+                    errorMessage = '📍 Location blocked (may be due to running in Claude)';
+                    break;
+                case 2: // POSITION_UNAVAILABLE
+                    errorMessage = '📍 GPS unavailable - try outdoors or enable location services';
+                    break;
+                case 3: // TIMEOUT
+                    errorMessage = '📍 Location request timed out';
+                    break;
+                default:
+                    errorMessage = `📍 Location error (code: ${error.code})`;
+                    break;
+            }
+            
+            statusDiv.innerHTML = errorMessage + '<br><small>App works without GPS - coordinates will be missing</small>';
+            statusDiv.className = 'location-status error';
+            permissionSection.style.display = 'none'; // Hide the button since it won't work
+        }
+
+        function requestLocationPermission() {
+            const statusDiv = document.getElementById('locationStatus');
+            statusDiv.innerHTML = '📍 Requesting location access...';
+            statusDiv.className = 'location-status';
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    currentLocation = {
+                        lat: position.coords.latitude,
+                        lon: position.coords.longitude,
+                        accuracy: position.coords.accuracy,
+                        timestamp: new Date()
+                    };
+                    
+                    statusDiv.innerHTML = `📍 Location enabled! (±${Math.round(currentLocation.accuracy)}m)`;
+                    statusDiv.className = 'location-status';
+                    document.getElementById('locationPermissionSection').style.display = 'none';
+                },
+                (error) => {
+                    console.log('Permission request error:', error);
+                    statusDiv.innerHTML = '📍 Still no location access. You can still use the app without GPS.';
+                    statusDiv.className = 'location-status error';
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 0 // Force fresh location
+                }
+            );
+        }
+
+        // Stop Management
+        function findOrCreateStop(input, previewId) {
+            const preview = document.getElementById(previewId);
+            
+            if (!input.trim()) {
+                preview.style.display = 'none';
+                return null;
+            }
+
+            // Only search if input is at least 3 characters to avoid premature matches
+            if (input.trim().length < 3) {
+                preview.style.display = 'none';
+                return null;
+            }
+
+            // Try to find existing stop - exact match only for numbers
+            const existingStop = myStops.find(stop => {
+                if (/^\d+$/.test(input.trim())) {
+                    // For numbers, require exact match
+                    return stop.number === input.trim();
+                } else {
+                    // For text, allow partial match
+                    return stop.name.toLowerCase().includes(input.toLowerCase().trim());
+                }
+            });
+
+            if (existingStop) {
+                // Don't duplicate the number in display
+                const displayName = existingStop.displayName || 
+                    (existingStop.number ? `Stop #${existingStop.number}` : existingStop.name);
+                preview.innerHTML = `✅ Found: ${displayName}`;
+                preview.className = 'stop-preview existing';
+                preview.style.display = 'block';
+                return existingStop;
+            } else {
+                const isNumber = /^\d+$/.test(input.trim());
+                const stopName = isNumber ? `Stop #${input.trim()}` : input.trim();
+                
+                preview.innerHTML = `🎉 You're the first person to board at ${stopName}!${currentLocation ? ' (with GPS)' : ''}`;
+                preview.className = 'stop-preview new';
+                preview.style.display = 'block';
+                
+                return {
+                    id: null,
+                    number: isNumber ? input.trim() : null,
+                    name: stopName,
+                    displayName: null,
+                    location: currentLocation ? {
+                        lat: currentLocation.lat,
+                        lon: currentLocation.lon,
+                        accuracy: currentLocation.accuracy
+                    } : null,
+                    isNew: true
+                };
+            }
+        }
+
+        function createStopIfNeeded(stopData) {
+            if (!stopData.isNew) return stopData;
+
+            const newStop = {
+                id: Date.now() + Math.random(),
+                number: stopData.number,
+                name: stopData.name,
+                location: stopData.location,
+                dateAdded: new Date().toISOString()
+            };
+
+            myStops.push(newStop);
+            localStorage.setItem('myTTCStops', JSON.stringify(myStops));
+            
+            return newStop;
+        }
+
+        // Input Handlers
+        function handleBoardingStopInput(event) {
+            boardingStopData = findOrCreateStop(event.target.value, 'boardingStopPreview');
+            updateStartTripButton();
+        }
+
+        function handleExitStopInput(event) {
+            console.log('Exit stop input:', event.target.value);
+            exitStopData = findOrCreateStop(event.target.value, 'exitStopPreview');
+            console.log('Exit stop data:', JSON.stringify(exitStopData, null, 2));
+            updateEndTripButton();
+        }
+
+        function updateStartTripButton() {
+            const btn = document.getElementById('startTripBtn');
+            const route = document.getElementById('routeInput').value.trim();
+            btn.disabled = !boardingStopData || !route;
+            
+            // Route preview
+            const routePreview = document.getElementById('routePreview');
+            if (route && !isExistingRoute(route)) {
+                routePreview.innerHTML = `🎉 You're the first person to use this route: ${route}!`;
+                routePreview.className = 'stop-preview new';
+                routePreview.style.display = 'block';
+            } else if (route && isExistingRoute(route)) {
+                routePreview.innerHTML = `✅ Found existing route: ${route}`;
+                routePreview.className = 'stop-preview existing';
+                routePreview.style.display = 'block';
+            } else {
+                routePreview.style.display = 'none';
+            }
+        }
+
+        function isExistingRoute(route) {
+            return myTrips.some(trip => trip.route && trip.route.toLowerCase() === route.toLowerCase());
+        }
+
+        function updateEndTripButton() {
+            const btn = document.getElementById('endTripBtn');
+            btn.disabled = false; // Just enable it always for now
+            
+            console.log('End button enabled');
+        }
+
+        // Trip Management
+        function startTrip() {
+            console.log('Starting trip with:', { boardingStopData, route: document.getElementById('routeInput').value });
+            
+            if (!boardingStopData) {
+                alert('Please enter a boarding stop');
+                return;
+            }
+
+            const route = document.getElementById('routeInput').value.trim();
+            if (!route) {
+                alert('Please enter a route/line');
+                return;
+            }
+
+            // Capture fresh location for boarding
+            getCurrentLocationForBoarding((boardingLocation) => {
+                const boardingStop = createStopIfNeeded(boardingStopData, boardingLocation);
+                console.log('Created boarding stop:', boardingStop);
+
+                activeTrip = {
+                    id: Date.now(),
+                    boardingStopId: boardingStop.id,
+                    boardingStopName: boardingStop.name,
+                    boardingStopNumber: boardingStop.number,
+                    boardingLocation: boardingLocation,
+                    route: route,
+                    startTime: new Date().toISOString()
+                };
+
+                console.log('Active trip created:', activeTrip);
+                localStorage.setItem('activeTTCTrip', JSON.stringify(activeTrip));
+                
+                showActiveTrip();
+                updateStopsList();
+                updateCounts();
+            });
+        }
+
+        function getCurrentLocationForBoarding(callback) {
+            if (!navigator.geolocation) {
+                callback(null);
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const location = {
+                        lat: position.coords.latitude,
+                        lon: position.coords.longitude,
+                        accuracy: position.coords.accuracy,
+                        timestamp: new Date().toISOString()
+                    };
+                    console.log('Captured boarding location:', location);
+                    callback(location);
+                },
+                (error) => {
+                    console.log('Location error:', error);
+                    callback(null);
+                },
+                { enableHighAccuracy: true, timeout: 5000 }
+            );
+        }
+
+        function showActiveTrip() {
+            document.getElementById('startTripSection').style.display = 'none';
+            document.getElementById('activeTripSection').style.display = 'block';
+            
+            const isSubway = activeTrip.route.toLowerCase().includes('line') || 
+                           activeTrip.route.toLowerCase().includes('subway');
+            
+            document.getElementById('currentRoute').textContent = activeTrip.route;
+            document.getElementById('currentRoute').className = `trip-route ${isSubway ? 'subway' : ''}`;
+            
+            const stopText = activeTrip.boardingStopName + 
+                           (activeTrip.boardingStopNumber ? ` (#${activeTrip.boardingStopNumber})` : '');
+            document.getElementById('currentBoardingStop').textContent = `From: ${stopText}`;
+            
+            document.getElementById('tripStartTime').textContent = 
+                new Date(activeTrip.startTime).toLocaleTimeString();
+        }
+
+        function openEndTripModal() {
+            document.getElementById('endTripModal').style.display = 'block';
+            getCurrentLocation(); // Refresh location for exit stop
+        }
+
+        function closeEndTripModal() {
+            document.getElementById('endTripModal').style.display = 'none';
+            document.getElementById('endTripForm').reset();
+            document.getElementById('exitStopPreview').style.display = 'none';
+            exitStopData = null;
+            updateEndTripButton();
+        }
+
+        function endTrip(event) {
+            event.preventDefault();
+            console.log('END TRIP FUNCTION CALLED!!!');
+            
+            const exitStopInput = document.getElementById('exitStopInput').value.trim();
+            console.log('Exit stop input value:', exitStopInput);
+            
+            if (!exitStopInput) {
+                alert('Please enter an exit stop');
+                return;
+            }
+            
+            if (!activeTrip) {
+                alert('No active trip found');
+                return;
+            }
+
+            // Capture fresh location for exit
+            getCurrentLocationForExit((exitLocation) => {
+                // Create the exit stop data
+                const isNumber = /^\d+$/.test(exitStopInput);
+                const stopName = isNumber ? `Stop #${exitStopInput}` : exitStopInput;
+                
+                const exitStop = {
+                    id: Date.now() + Math.random(),
+                    number: isNumber ? exitStopInput : null,
+                    name: stopName,
+                    displayName: null,
+                    location: exitLocation,
+                    dateAdded: new Date().toISOString()
+                };
+                
+                // Add to stops
+                myStops.push(exitStop);
+                localStorage.setItem('myTTCStops', JSON.stringify(myStops));
+                
+                const endTime = new Date();
+                const duration = (endTime - new Date(activeTrip.startTime)) / 1000 / 60;
+
+                const completedTrip = {
+                    id: activeTrip.id,
+                    fromStopId: activeTrip.boardingStopId,
+                    toStopId: exitStop.id,
+                    fromStopName: activeTrip.boardingStopName,
+                    toStopName: exitStop.name,
+                    fromStopNumber: activeTrip.boardingStopNumber,
+                    toStopNumber: exitStop.number,
+                    route: activeTrip.route,
+                    startTime: activeTrip.startTime,
+                    endTime: endTime.toISOString(),
+                    duration: Math.round(duration),
+                    date: new Date().toISOString().split('T')[0],
+                    boardingLocation: activeTrip.boardingLocation,
+                    exitLocation: exitLocation
+                };
+
+                console.log('Saving trip:', completedTrip);
+                
+                myTrips.unshift(completedTrip);
+                localStorage.setItem('myTTCTrips', JSON.stringify(myTrips));
+                
+                // Clear active trip
+                activeTrip = null;
+                localStorage.removeItem('activeTTCTrip');
+                
+                // Reset UI
+                document.getElementById('startTripSection').style.display = 'block';
+                document.getElementById('activeTripSection').style.display = 'none';
+                
+                closeEndTripModal();
+                updateTripsList();
+                updateStopsList();
+                updateCounts();
+                
+                alert(`Trip saved! Boarding: ${completedTrip.boardingLocation ? 'GPS ✓' : 'No GPS'}, Exit: ${exitLocation ? 'GPS ✓' : 'No GPS'}`);
+            });
+        }
+
+        function getCurrentLocationForExit(callback) {
+            if (!navigator.geolocation) {
+                callback(null);
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const location = {
+                        lat: position.coords.latitude,
+                        lon: position.coords.longitude,
+                        accuracy: position.coords.accuracy,
+                        timestamp: new Date().toISOString()
+                    };
+                    console.log('Captured exit location:', location);
+                    callback(location);
+                },
+                (error) => {
+                    console.log('Location error:', error);
+                    callback(null);
+                },
+                { enableHighAccuracy: true, timeout: 5000 }
+            );
+        }
+
+        function deleteTrip(tripId) {
+            if (confirm('Delete this trip?')) {
+                myTrips = myTrips.filter(trip => trip.id !== tripId);
+                localStorage.setItem('myTTCTrips', JSON.stringify(myTrips));
+                updateTripsList();
+                updateCounts();
+            }
+        }
+
+        function deleteStop(stopId) {
+            if (confirm('Delete this stop? This will also remove any trips using this stop.')) {
+                myStops = myStops.filter(stop => stop.id !== stopId);
+                myTrips = myTrips.filter(trip => trip.fromStopId !== stopId && trip.toStopId !== stopId);
+                
+                localStorage.setItem('myTTCStops', JSON.stringify(myStops));
+                localStorage.setItem('myTTCTrips', JSON.stringify(myTrips));
+                
+                updateStopsList();
+                updateTripsList();
+                updateCounts();
+            }
+        }
+
+        // Display Functions
+        function updateTripsList() {
+            const container = document.getElementById('tripsList');
+            
+            if (myTrips.length === 0) {
+                container.innerHTML = '<div class="empty-state">No trips completed yet.<br>Start your first trip above!</div>';
+                return;
+            }
+
+            container.innerHTML = myTrips.slice(0, 20).map(trip => {
+                const isSubway = trip.route && (trip.route.toLowerCase().includes('line') || 
+                                              trip.route.toLowerCase().includes('subway'));
+                const routeClass = isSubway ? 'subway' : '';
+                const tripClass = isSubway ? 'trip-item subway' : 'trip-item';
+                
+                // Format stop names without duplication
+                const fromDisplay = formatStopDisplay(trip.fromStopName, trip.fromStopNumber);
+                const toDisplay = formatStopDisplay(trip.toStopName, trip.toStopNumber);
+                
+                return `
+                    <div class="${tripClass}">
+                        <div class="trip-route ${routeClass}">${trip.route}</div>
+                        <div class="trip-details">
+                            ${fromDisplay} → ${toDisplay}
+                        </div>
+                        <div class="trip-meta">
+                            ${trip.duration} min • ${new Date(trip.date).toLocaleDateString()}
+                            <button onclick="deleteTrip(${trip.id})" style="float: right; background: #ff4757; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em;">✕</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function formatStopDisplay(stopName, stopNumber) {
+            // If stopName already contains the number, don't duplicate it
+            if (stopName.includes(`#${stopNumber}`) || stopName.includes(`Stop ${stopNumber}`)) {
+                return stopName;
+            }
+            // If we have both name and number, show: "Name (#1234)"
+            if (stopNumber && !stopName.startsWith('Stop #')) {
+                return `${stopName} (#${stopNumber})`;
+            }
+            // Otherwise just show the name
+            return stopName;
+        }
+
+        function updateStopsList() {
+            const container = document.getElementById('stopsList');
+            
+            if (myStops.length === 0) {
+                container.innerHTML = '<div class="empty-state">No stops saved yet.<br>Stops will be automatically added when you start trips!</div>';
+                return;
+            }
+
+            const sortedStops = [...myStops].sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
+
+            container.innerHTML = sortedStops.slice(0, 10).map(stop => {
+                const locationText = stop.location ? 
+                    `📍 ${stop.location.lat.toFixed(4)}, ${stop.location.lon.toFixed(4)}` : 
+                    '📍 No coordinates';
+                
+                return `
+                    <div style="background: #f9f9f9; border-radius: 6px; padding: 12px; margin-bottom: 8px; border-left: 3px solid #ddd;">
+                        <div style="font-weight: 600; margin-bottom: 4px;">
+                            ${stop.name}${stop.number ? ` (#${stop.number})` : ''}
+                        </div>
+                        <div style="font-size: 0.85em; color: #666;">
+                            ${locationText} • Added ${new Date(stop.dateAdded).toLocaleDateString()}
+                            <button onclick="deleteStop(${stop.id})" style="float: right; background: #ff4757; color: white; border: none; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 0.8em;">✕</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateCounts() {
+            document.getElementById('stopCount').textContent = myStops.length;
+            document.getElementById('tripCount').textContent = myTrips.length;
+        }
+
+        // Event Listeners
+        document.getElementById('endTripForm').addEventListener('submit', endTrip);
+
+        // Start the app
+        init();
+    </script>
+</body>
+</html>
