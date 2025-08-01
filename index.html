@@ -242,8 +242,8 @@
         <div class="header-row">
             <h1>🚇 Transit Stats</h1>
             <div id="userInfo" class="user-info" style="display: none;">
-                <span id="userEmail"></span>
-                <button id="signOutBtn" class="sign-out-btn">Sign Out</button>
+                <span id="userAvatar" style="font-size: 1.2em; margin-right: 8px;">🚌</span>
+                <button id="profileBtn" class="sign-out-btn">Profile</button>
             </div>
         </div>
     </div>
@@ -258,13 +258,67 @@
                 <input type="email" id="emailInput" placeholder="Enter your email address">
             </div>
             
-            <button id="signInBtn" class="btn btn-primary">Send Magic Link</button>
+            <div class="form-group">
+                <input type="password" id="passwordInput" placeholder="Password (leave blank for magic link)">
+            </div>
+            
+            <button id="signInBtn" class="btn btn-primary">Sign In</button>
             
             <div id="authStatus" class="auth-status" style="display: none;"></div>
         </div>
 
         <!-- App Content (hidden until signed in) -->
         <div id="appContent" style="display: none;">
+            <!-- Profile Section -->
+            <div id="profileSection" class="section" style="display: none;">
+                <h2>Profile</h2>
+                
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="font-size: 3em; margin-bottom: 10px;">
+                        <span id="profileAvatar">🚌</span>
+                    </div>
+                    <input type="text" id="nameInput" placeholder="Your name (e.g., Ryan)" style="text-align: center; font-size: 1.1em; font-weight: 600; margin-bottom: 10px;">
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 10px; font-weight: 500;">Choose your transit emoji:</label>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+                        <button class="emoji-btn" onclick="selectEmoji('🚌')">🚌</button>
+                        <button class="emoji-btn" onclick="selectEmoji('🚇')">🚇</button>
+                        <button class="emoji-btn" onclick="selectEmoji('🚊')">🚊</button>
+                        <button class="emoji-btn" onclick="selectEmoji('🚋')">🚋</button>
+                        <button class="emoji-btn" onclick="selectEmoji('🚞')">🚞</button>
+                        <button class="emoji-btn" onclick="selectEmoji('🚝')">🚝</button>
+                        <button class="emoji-btn" onclick="selectEmoji('🚄')">🚄</button>
+                        <button class="emoji-btn" onclick="selectEmoji('✈️')">✈️</button>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalTrips">0</div>
+                        <div class="stat-label">Total Trips</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="uniqueRoutes">0</div>
+                        <div class="stat-label">Routes Used</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalTime">0</div>
+                        <div class="stat-label">Hours Traveled</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="uniqueStops">0</div>
+                        <div class="stat-label">Stops Visited</div>
+                    </div>
+                </div>
+
+                <div class="button-group" style="margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="saveProfile()">Save Profile</button>
+                    <button class="btn btn-outline" onclick="hideProfile()">Back</button>
+                    <button class="btn" style="background: #ff4757; color: white;" onclick="signOut()">Sign Out</button>
+                </div>
+            </div>
             <!-- Start Trip Section -->
             <div id="startSection" class="section">
                 <h2>Start New Trip</h2>
@@ -345,6 +399,7 @@
         const authSection = document.getElementById('authSection');
         const appContent = document.getElementById('appContent');
         const emailInput = document.getElementById('emailInput');
+        const passwordInput = document.getElementById('passwordInput');
         const signInBtn = document.getElementById('signInBtn');
         const authStatus = document.getElementById('authStatus');
         const userInfo = document.getElementById('userInfo');
@@ -391,28 +446,55 @@
             initializeApp();
         }
 
-        // Sign in with email link
+        // Sign in with email/password or magic link
         signInBtn.addEventListener('click', () => {
             const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+            
             if (!email) {
                 alert('Please enter your email');
                 return;
             }
 
-            const actionCodeSettings = {
-                url: window.location.href,
-                handleCodeInApp: true,
-            };
+            if (password) {
+                // Sign in with email/password
+                auth.signInWithEmailAndPassword(email, password)
+                    .then(() => {
+                        showAuthStatus('Signed in successfully!', 'success');
+                    })
+                    .catch((error) => {
+                        if (error.code === 'auth/user-not-found') {
+                            // Create new account
+                            auth.createUserWithEmailAndPassword(email, password)
+                                .then(() => {
+                                    showAuthStatus('Account created and signed in!', 'success');
+                                })
+                                .catch((error) => {
+                                    console.error('Error creating account:', error);
+                                    showAuthStatus('Error creating account. Please try again.', 'error');
+                                });
+                        } else {
+                            console.error('Error signing in:', error);
+                            showAuthStatus('Invalid email or password.', 'error');
+                        }
+                    });
+            } else {
+                // Send magic link
+                const actionCodeSettings = {
+                    url: window.location.href,
+                    handleCodeInApp: true,
+                };
 
-            auth.sendSignInLinkToEmail(email, actionCodeSettings)
-                .then(() => {
-                    localStorage.setItem('emailForSignIn', email);
-                    showAuthStatus('Check your email for a magic link!', 'success');
-                })
-                .catch((error) => {
-                    console.error('Error sending email:', error);
-                    showAuthStatus('Error sending email. Please try again.', 'error');
-                });
+                auth.sendSignInLinkToEmail(email, actionCodeSettings)
+                    .then(() => {
+                        localStorage.setItem('emailForSignIn', email);
+                        showAuthStatus('Check your email for a magic link!', 'success');
+                    })
+                    .catch((error) => {
+                        console.error('Error sending email:', error);
+                        showAuthStatus('Magic link failed. Try with a password instead.', 'error');
+                    });
+            }
         });
 
         // Check if returning from email link
