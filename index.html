@@ -405,12 +405,7 @@
                     </div>
                 </div>
 
-                <div id="recentTripsSection" class="section">
-                    <h2>Recent Trips (<span id="tripCount">0</span>)</h2>
-                    <div id="tripsList">
-                        <div class="loading">Loading trips...</div>
-                    </div>
-                </div>
+
             </div>
             </div>
 
@@ -719,20 +714,29 @@
             if (!currentUser) return;
 
             const now = new Date();
-            let dateFilter = null;
+            let query = db.collection('trips').where('userId', '==', currentUser.uid);
+            
             if (currentStatsView === '30days') {
-                dateFilter = new Date();
+                const dateFilter = new Date();
                 dateFilter.setDate(dateFilter.getDate() - 30);
+                console.log('Filtering trips after:', dateFilter);
+                query = query.where('startTime', '>=', firebase.firestore.Timestamp.fromDate(dateFilter));
             }
 
-            const query = db.collection('trips').where('userId', '==', currentUser.uid);
-            const finalQuery = dateFilter ? query.where('startTime', '>=', firebase.firestore.Timestamp.fromDate(dateFilter)) : query;
-
-            finalQuery.get()
+            query.orderBy('startTime', 'desc').get()
                 .then((snapshot) => {
+                    console.log(`Found ${snapshot.size} trips for ${currentStatsView}`);
+                    
                     const trips = [];
                     snapshot.forEach((doc) => {
-                        trips.push(doc.data());
+                        const trip = doc.data();
+                        trips.push(trip);
+                        
+                        // Debug log for first few trips
+                        if (trips.length <= 3) {
+                            const tripDate = trip.startTime?.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
+                            console.log(`Trip on ${tripDate.toLocaleDateString()}: ${trip.route}`);
+                        }
                     });
 
                     const totalTrips = trips.length;
@@ -757,6 +761,48 @@
                 })
                 .catch((error) => {
                     console.error('Error updating stats:', error);
+                    // Try without orderBy if it fails
+                    const fallbackQuery = currentStatsView === '30days' ? 
+                        db.collection('trips').where('userId', '==', currentUser.uid) : 
+                        db.collection('trips').where('userId', '==', currentUser.uid);
+                        
+                    fallbackQuery.get().then((snapshot) => {
+                        const trips = [];
+                        snapshot.forEach((doc) => {
+                            const trip = doc.data();
+                            if (currentStatsView === '30days') {
+                                const tripDate = trip.startTime?.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
+                                const thirtyDaysAgo = new Date();
+                                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                                if (tripDate >= thirtyDaysAgo) {
+                                    trips.push(trip);
+                                }
+                            } else {
+                                trips.push(trip);
+                            }
+                        });
+                        
+                        // Update stats with filtered trips
+                        const totalTrips = trips.length;
+                        const uniqueRoutes = new Set(trips.map(t => t.route)).size;
+                        const totalMinutes = trips.reduce((sum, t) => sum + (t.duration || 0), 0);
+                        const totalHours = Math.round(totalMinutes / 60 * 10) / 10;
+                        
+                        const stops = new Set();
+                        trips.forEach(t => {
+                            if (t.startStop) stops.add(t.startStop);
+                            if (t.endStop) stops.add(t.endStop);
+                        });
+                        const uniqueStops = stops.size;
+
+                        document.getElementById('statsTotalTrips').textContent = totalTrips;
+                        document.getElementById('statsUniqueRoutes').textContent = uniqueRoutes;
+                        document.getElementById('statsTotalTime').textContent = totalHours;
+                        document.getElementById('statsUniqueStops').textContent = uniqueStops;
+
+                        generateTopRoutes(trips);
+                        generateTopStops(trips);
+                    });
                 });
         }
 
@@ -1372,52 +1418,20 @@
         function showStartSection() {
             startSection.style.display = 'block';
             activeSection.style.display = 'none';
-            document.getElementById('recentTripsSection').style.display = 'block';
         }
 
         function showActiveSection() {
             startSection.style.display = 'none';
             activeSection.style.display = 'block';
-            document.getElementById('recentTripsSection').style.display = 'none';
         }
 
         function displayTrips(trips) {
-            tripCount.textContent = trips.length;
-            
             if (trips.length > 0) {
                 const streakData = calculateStreaks(trips);
                 updateStreakStatus(streakData);
             } else {
                 streakStatus.style.display = 'none';
             }
-            
-            if (trips.length === 0) {
-                const emptyMessage = '<div class="empty-state">No trips yet. Start your first trip above!</div>';
-                tripsList.innerHTML = emptyMessage;
-                return;
-            }
-
-            const tripsHtml = trips.slice(0, 20).map(trip => {
-                let startTime;
-                if (trip.startTime?.toDate) {
-                    startTime = trip.startTime.toDate();
-                } else if (trip.startTime) {
-                    startTime = new Date(trip.startTime);
-                } else {
-                    startTime = new Date();
-                }
-                
-                return `
-                    <div class="trip-item">
-                        <button class="delete-trip" onclick="deleteTrip('${trip.id}')">Delete</button>
-                        <div><strong>${trip.route || 'Unknown Route'}</strong></div>
-                        <div>${trip.startStop || 'Unknown'} → ${trip.endStop || 'Unknown'}</div>
-                        <div>${trip.duration || 0} min • ${startTime.toLocaleDateString()}</div>
-                    </div>
-                `;
-            }).join('');
-
-            tripsList.innerHTML = tripsHtml;
         }
 
         function updateStreakStatus(streakData) {
