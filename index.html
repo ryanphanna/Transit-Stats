@@ -5,234 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transit Stats</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
-            color: #333;
-            line-height: 1.4;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .user-info {
-            font-size: 0.9em;
-            opacity: 0.9;
-        }
-
-        .sign-out-btn {
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.8em;
-        }
-
-        .container {
-            max-width: 100%;
-            padding: 15px;
-        }
-
-        .section {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .auth-section {
-            text-align: center;
-            padding: 40px 20px;
-        }
-
-        .auth-section h2 {
-            margin-bottom: 20px;
-            color: #333;
-        }
-
-        .auth-section p {
-            margin-bottom: 20px;
-            color: #666;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            font-size: 1em;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .preview-box {
-            margin-top: 8px;
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 0.9em;
-            border: 1px solid transparent;
-        }
-
-        .preview-box.new {
-            background: #e8f5e8;
-            border-color: #2ed573;
-            color: #2d7738;
-        }
-
-        .preview-box.existing {
-            background: #fff3cd;
-            border-color: #ffc107;
-            color: #856404;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 6px;
-            font-size: 1.1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin: 10px 0;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-danger {
-            background: #ff4757;
-            color: white;
-        }
-
-        .trip-status {
-            background: #e8f5e8;
-            border: 2px solid #2ed573;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .trip-item {
-            background: #f9f9f9;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-left: 4px solid #667eea;
-        }
-
-        .empty-state {
-            text-align: center;
-            color: #999;
-            padding: 20px;
-            font-style: italic;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .location-box {
-            background: #f0f0f0;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 15px;
-            font-size: 0.9em;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .location-box.excellent {
-            background: #d4edda;
-            border-color: #2ed573;
-            color: #155724;
-        }
-
-        .location-box.good {
-            background: #fff3cd;
-            border-color: #ffc107;
-            color: #856404;
-        }
-
-        .location-box.poor {
-            background: #f8d7da;
-            border-color: #dc3545;
-            color: #721c24;
-        }
-
-        .location-box.loading {
-            background: #e3f2fd;
-            border-color: #2196f3;
-            color: #1976d2;
-        }
-
-        .auth-status {
-            background: #e3f2fd;
-            border: 1px solid #2196f3;
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 15px;
-            font-size: 0.9em;
-            color: #1976d2;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; line-height: 1.4; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header-row { display: flex; justify-content: space-between; align-items: center; }
+        .user-info { font-size: 0.9em; opacity: 0.9; }
+        .sign-out-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8em; }
+        .container { max-width: 100%; padding: 15px; }
+        .section { background: white; border-radius: 8px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .auth-section { text-align: center; padding: 40px 20px; }
+        .auth-section h2 { margin-bottom: 20px; color: #333; }
+        .auth-section p { margin-bottom: 20px; color: #666; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+        .form-group input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 1em; }
+        .form-group input:focus { outline: none; border-color: #667eea; }
+        .location-box { background: #f0f0f0; border: 1px solid #ddd; border-radius: 6px; padding: 12px; margin-bottom: 15px; font-size: 0.9em; text-align: center; transition: all 0.3s ease; }
+        .location-box.excellent { background: #d4edda; border-color: #2ed573; color: #155724; }
+        .location-box.good { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .location-box.poor { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+        .location-box.loading { background: #e3f2fd; border-color: #2196f3; color: #1976d2; }
+        .preview-box { margin-top: 8px; padding: 10px; border-radius: 6px; font-size: 0.9em; border: 1px solid transparent; }
+        .preview-box.new { background: #e8f5e8; border-color: #2ed573; color: #2d7738; }
+        .preview-box.existing { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .btn { width: 100%; padding: 15px; border: none; border-radius: 6px; font-size: 1.1em; font-weight: 600; cursor: pointer; transition: all 0.2s ease; margin: 10px 0; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary:hover { background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-danger { background: #ff4757; color: white; }
+        .btn-outline { background: transparent; color: #666; border: 2px solid #ddd; }
+        .trip-status { background: #e8f5e8; border: 2px solid #2ed573; border-radius: 8px; padding: 20px; margin-bottom: 15px; text-align: center; }
+        .trip-item { background: #f9f9f9; border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 4px solid #667eea; }
+        .empty-state { text-align: center; color: #999; padding: 20px; font-style: italic; }
+        .auth-status { background: #e3f2fd; border: 1px solid #2196f3; border-radius: 6px; padding: 10px; margin-bottom: 15px; font-size: 0.9em; color: #1976d2; }
+        .loading { text-align: center; padding: 20px; color: #666; }
+        .emoji-btn { background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 8px; padding: 12px; font-size: 1.5em; cursor: pointer; transition: all 0.2s ease; }
+        .emoji-btn:hover { background: #e9ecef; transform: scale(1.1); }
+        .emoji-btn.selected { background: #667eea; border-color: #667eea; transform: scale(1.1); }
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
+        .stat-card { background: #f8f9fa; border-radius: 8px; padding: 20px; text-align: center; }
+        .stat-number { font-size: 2em; font-weight: bold; color: #667eea; margin-bottom: 5px; }
+        .stat-label { font-size: 0.9em; color: #666; font-weight: 500; }
+        .button-group { display: flex; gap: 10px; flex-direction: column; }
     </style>
-    
-    <!-- Firebase CDN -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -249,37 +64,28 @@
     </div>
 
     <div class="container">
-        <!-- Authentication Section -->
         <div id="authSection" class="section auth-section">
             <h2>Welcome to Transit Stats</h2>
             <p>Sign in to sync your trips across all devices</p>
-            
             <div class="form-group">
                 <input type="email" id="emailInput" placeholder="Enter your email address">
             </div>
-            
             <div class="form-group">
                 <input type="password" id="passwordInput" placeholder="Password (leave blank for magic link)">
             </div>
-            
             <button id="signInBtn" class="btn btn-primary">Sign In</button>
-            
             <div id="authStatus" class="auth-status" style="display: none;"></div>
         </div>
 
-        <!-- App Content (hidden until signed in) -->
         <div id="appContent" style="display: none;">
-            <!-- Profile Section -->
             <div id="profileSection" class="section" style="display: none;">
                 <h2>Profile</h2>
-                
                 <div style="text-align: center; margin-bottom: 20px;">
                     <div style="font-size: 3em; margin-bottom: 10px;">
                         <span id="profileAvatar">🚌</span>
                     </div>
                     <input type="text" id="nameInput" placeholder="Your name (e.g., Ryan)" style="text-align: center; font-size: 1.1em; font-weight: 600; margin-bottom: 10px;">
                 </div>
-
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 10px; font-weight: 500;">Choose your transit emoji:</label>
                     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
@@ -293,7 +99,6 @@
                         <button class="emoji-btn" onclick="selectEmoji('✈️')">✈️</button>
                     </div>
                 </div>
-
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-number" id="totalTrips">0</div>
@@ -312,37 +117,31 @@
                         <div class="stat-label">Stops Visited</div>
                     </div>
                 </div>
-
                 <div class="button-group" style="margin-top: 20px;">
                     <button class="btn btn-primary" onclick="saveProfile()">Save Profile</button>
                     <button class="btn btn-outline" onclick="hideProfile()">Back</button>
                     <button class="btn" style="background: #ff4757; color: white;" onclick="signOut()">Sign Out</button>
                 </div>
             </div>
-            <!-- Start Trip Section -->
+
             <div id="startSection" class="section">
                 <h2>Start New Trip</h2>
-                
                 <div id="locationBox" class="location-box" style="display: none;">
                     <span id="locationText">Getting location...</span>
                 </div>
-                
                 <div class="form-group">
                     <label>Boarding Stop</label>
                     <input type="text" id="stopInput" placeholder="e.g., 6638 or Union Station">
                     <div id="stopPreview" class="preview-box" style="display: none;"></div>
                 </div>
-
                 <div class="form-group">
                     <label>Route/Line</label>
                     <input type="text" id="routeInput" placeholder="e.g., 65, Line 1, 504 King">
                     <div id="routePreview" class="preview-box" style="display: none;"></div>
                 </div>
-
                 <button id="startBtn" class="btn btn-primary" disabled>🚌 Board Vehicle</button>
             </div>
 
-            <!-- Active Trip Section -->
             <div id="activeSection" class="section" style="display: none;">
                 <div class="trip-status">
                     <h2>🚌 Currently Riding</h2>
@@ -351,7 +150,6 @@
                 <button id="endBtn" class="btn btn-danger">🛑 End Trip</button>
             </div>
 
-            <!-- Recent Trips -->
             <div class="section">
                 <h2>Recent Trips (<span id="tripCount">0</span>)</h2>
                 <div id="tripsList">
@@ -360,7 +158,6 @@
             </div>
         </div>
 
-        <!-- End Trip Modal -->
         <div id="endModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
             <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 400px;">
                 <h3>End Trip</h3>
@@ -375,7 +172,6 @@
     </div>
 
     <script>
-        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBgY37b_aUorxdEW6DnocFoo8ekbTTFpao",
             authDomain: "transitstats-21ba4.firebaseapp.com",
@@ -385,26 +181,24 @@
             appId: "1:756203797723:web:2e5aab94a6de20cf06a0fe"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // App state
         let currentUser = null;
         let activeTrip = null;
         let currentLocation = null;
 
-        // Elements
         const authSection = document.getElementById('authSection');
         const appContent = document.getElementById('appContent');
+        const profileSection = document.getElementById('profileSection');
         const emailInput = document.getElementById('emailInput');
         const passwordInput = document.getElementById('passwordInput');
         const signInBtn = document.getElementById('signInBtn');
         const authStatus = document.getElementById('authStatus');
         const userInfo = document.getElementById('userInfo');
-        const userEmail = document.getElementById('userEmail');
-        const signOutBtn = document.getElementById('signOutBtn');
+        const userAvatar = document.getElementById('userAvatar');
+        const profileBtn = document.getElementById('profileBtn');
         const stopInput = document.getElementById('stopInput');
         const routeInput = document.getElementById('routeInput');
         const startBtn = document.getElementById('startBtn');
@@ -421,7 +215,6 @@
         const locationBox = document.getElementById('locationBox');
         const locationText = document.getElementById('locationText');
 
-        // Authentication
         auth.onAuthStateChanged((user) => {
             currentUser = user;
             if (user) {
@@ -441,12 +234,106 @@
             authSection.style.display = 'none';
             appContent.style.display = 'block';
             userInfo.style.display = 'block';
-            userEmail.textContent = currentUser.email;
-            
+            loadUserProfile();
             initializeApp();
         }
 
-        // Sign in with email/password or magic link
+        function loadUserProfile() {
+            db.collection('profiles').doc(currentUser.uid).get()
+                .then((doc) => {
+                    if (doc.exists) {
+                        const profile = doc.data();
+                        userAvatar.textContent = profile.emoji || '🚌';
+                        document.getElementById('profileAvatar').textContent = profile.emoji || '🚌';
+                        document.getElementById('nameInput').value = profile.name || '';
+                    }
+                })
+                .catch((error) => {
+                    console.log('No profile found, using defaults');
+                });
+        }
+
+        function showProfile() {
+            profileSection.style.display = 'block';
+            startSection.style.display = 'none';
+            activeSection.style.display = 'none';
+            updateProfileStats();
+        }
+
+        function hideProfile() {
+            profileSection.style.display = 'none';
+            startSection.style.display = 'block';
+        }
+
+        function selectEmoji(emoji) {
+            document.querySelectorAll('.emoji-btn').forEach(btn => btn.classList.remove('selected'));
+            event.target.classList.add('selected');
+            document.getElementById('profileAvatar').textContent = emoji;
+            userAvatar.textContent = emoji;
+        }
+
+        function saveProfile() {
+            const name = document.getElementById('nameInput').value.trim();
+            const emoji = document.getElementById('profileAvatar').textContent;
+            
+            if (!name) {
+                alert('Please enter your name');
+                return;
+            }
+
+            const profileData = {
+                name: name,
+                emoji: emoji,
+                userId: currentUser.uid,
+                updatedAt: firebase.firestore.Timestamp.now()
+            };
+
+            db.collection('profiles').doc(currentUser.uid).set(profileData)
+                .then(() => {
+                    alert('Profile saved!');
+                    hideProfile();
+                })
+                .catch((error) => {
+                    console.error('Error saving profile:', error);
+                    alert('Error saving profile. Please try again.');
+                });
+        }
+
+        function updateProfileStats() {
+            if (!currentUser) return;
+
+            db.collection('trips')
+                .where('userId', '==', currentUser.uid)
+                .get()
+                .then((snapshot) => {
+                    const trips = [];
+                    snapshot.forEach((doc) => {
+                        trips.push(doc.data());
+                    });
+
+                    const totalTrips = trips.length;
+                    const uniqueRoutes = new Set(trips.map(t => t.route)).size;
+                    const totalMinutes = trips.reduce((sum, t) => sum + (t.duration || 0), 0);
+                    const totalHours = Math.round(totalMinutes / 60 * 10) / 10;
+                    
+                    const stops = new Set();
+                    trips.forEach(t => {
+                        stops.add(t.startStop);
+                        stops.add(t.endStop);
+                    });
+                    const uniqueStops = stops.size;
+
+                    document.getElementById('totalTrips').textContent = totalTrips;
+                    document.getElementById('uniqueRoutes').textContent = uniqueRoutes;
+                    document.getElementById('totalTime').textContent = totalHours;
+                    document.getElementById('uniqueStops').textContent = uniqueStops;
+                });
+        }
+
+        function signOut() {
+            auth.signOut();
+        }
+
         signInBtn.addEventListener('click', () => {
             const email = emailInput.value.trim();
             const password = passwordInput.value.trim();
@@ -457,14 +344,12 @@
             }
 
             if (password) {
-                // Sign in with email/password
                 auth.signInWithEmailAndPassword(email, password)
                     .then(() => {
                         showAuthStatus('Signed in successfully!', 'success');
                     })
                     .catch((error) => {
                         if (error.code === 'auth/user-not-found') {
-                            // Create new account
                             auth.createUserWithEmailAndPassword(email, password)
                                 .then(() => {
                                     showAuthStatus('Account created and signed in!', 'success');
@@ -479,7 +364,6 @@
                         }
                     });
             } else {
-                // Send magic link
                 const actionCodeSettings = {
                     url: window.location.href,
                     handleCodeInApp: true,
@@ -497,7 +381,6 @@
             }
         });
 
-        // Check if returning from email link
         if (auth.isSignInWithEmailLink(window.location.href)) {
             let email = localStorage.getItem('emailForSignIn');
             if (!email) {
@@ -519,21 +402,14 @@
             authStatus.style.display = 'block';
         }
 
-        signOutBtn.addEventListener('click', () => {
-            auth.signOut();
-        });
-
-        // App initialization
         function initializeApp() {
-            // Event listeners
             stopInput.addEventListener('input', updateStartButton);
             routeInput.addEventListener('input', updateStartButton);
             startBtn.addEventListener('click', startTrip);
             endBtn.addEventListener('click', showEndModal);
             saveBtn.addEventListener('click', saveTrip);
             cancelBtn.addEventListener('click', hideEndModal);
-
-            // Load data
+            profileBtn.addEventListener('click', showProfile);
             loadTrips();
             getCurrentLocation(() => {});
         }
@@ -542,8 +418,6 @@
             const hasStop = stopInput.value.trim().length > 0;
             const hasRoute = routeInput.value.trim().length > 0;
             startBtn.disabled = !(hasStop && hasRoute);
-            
-            // Update previews
             updateStopPreview();
             updateRoutePreview();
         }
@@ -580,8 +454,6 @@
         }
 
         function startTrip() {
-            console.log('Starting trip...');
-            
             const stop = stopInput.value.trim();
             const route = routeInput.value.trim();
             
@@ -599,12 +471,10 @@
                     userId: currentUser.uid
                 };
 
-                // Save to Firestore
                 db.collection('activeTrips').doc(currentUser.uid).set(tripData)
                     .then(() => {
                         activeTrip = { id: currentUser.uid, ...tripData };
                         
-                        // Update UI
                         const locationText = boardingLocation ? 
                             `📍 GPS: ${boardingLocation.lat.toFixed(4)}, ${boardingLocation.lon.toFixed(4)}` : 
                             '📍 No GPS data';
@@ -619,14 +489,11 @@
                         startSection.style.display = 'none';
                         activeSection.style.display = 'block';
                         
-                        // Clear form
                         stopInput.value = '';
                         routeInput.value = '';
                         document.getElementById('stopPreview').style.display = 'none';
                         document.getElementById('routePreview').style.display = 'none';
                         updateStartButton();
-                        
-                        console.log('Trip started and saved to cloud');
                     })
                     .catch((error) => {
                         console.error('Error saving trip:', error);
@@ -669,30 +536,22 @@
                     userId: currentUser.uid
                 };
 
-                // Calculate duration
                 const startMs = activeTrip.startTime.toDate().getTime();
                 const endMs = completedTrip.endTime.toDate().getTime();
                 completedTrip.duration = Math.round((endMs - startMs) / 1000 / 60);
 
-                // Save completed trip
                 db.collection('trips').add(completedTrip)
                     .then(() => {
-                        // Remove active trip
                         return db.collection('activeTrips').doc(currentUser.uid).delete();
                     })
                     .then(() => {
-                        // Reset UI
                         activeTrip = null;
                         startSection.style.display = 'block';
                         activeSection.style.display = 'none';
                         hideEndModal();
-                        
-                        loadTrips(); // Refresh trip list
-                        
+                        loadTrips();
                         const locationMsg = exitLocation ? '📍 GPS captured' : '📍 No GPS';
                         alert(`Trip saved! ${locationMsg}`);
-                        
-                        console.log('Trip completed and saved to cloud');
                     })
                     .catch((error) => {
                         console.error('Error saving completed trip:', error);
@@ -704,7 +563,6 @@
         function loadTrips() {
             if (!currentUser) return;
 
-            // Load recent trips
             db.collection('trips')
                 .where('userId', '==', currentUser.uid)
                 .orderBy('startTime', 'desc')
@@ -714,11 +572,9 @@
                     snapshot.forEach((doc) => {
                         trips.push({ id: doc.id, ...doc.data() });
                     });
-                    
                     displayTrips(trips);
                 });
 
-            // Check for active trip
             db.collection('activeTrips').doc(currentUser.uid)
                 .onSnapshot((doc) => {
                     if (doc.exists) {
@@ -771,10 +627,8 @@
             }).join('');
         }
 
-        // Location functions
         function getCurrentLocation(callback) {
             if (!navigator.geolocation) {
-                console.log('Geolocation not supported');
                 updateLocationBox('📍 Location not supported', 'poor');
                 callback(null);
                 return;
@@ -790,19 +644,15 @@
                         accuracy: position.coords.accuracy,
                         timestamp: new Date().toISOString()
                     };
-                    console.log('Location captured:', location);
                     
                     const accuracy = Math.round(location.accuracy);
-                    let status, className;
+                    let className;
                     
                     if (accuracy <= 10) {
-                        status = 'excellent';
                         className = 'excellent';
                     } else if (accuracy <= 25) {
-                        status = 'good';
                         className = 'good';
                     } else {
-                        status = 'poor';
                         className = 'poor';
                     }
                     
