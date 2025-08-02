@@ -1,4 +1,4 @@
-.button-group { display: flex; gap: 10px; flex-direction: column; }        console.log('App initialized with Firebase!');<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -25,7 +25,6 @@
             justify-content: center;
             transition: all 0.2s ease;
         }
-
         .emoji-profile-btn:hover {
             background: rgba(255,255,255,0.3);
             transform: scale(1.1);
@@ -53,6 +52,7 @@
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-danger { background: #ff4757; color: white; }
         .btn-outline { background: transparent; color: #666; border: 2px solid #ddd; }
+        .button-group { display: flex; gap: 10px; flex-direction: column; }
         .trip-status { background: #e8f5e8; border: 2px solid #2ed573; border-radius: 8px; padding: 20px; margin-bottom: 15px; text-align: center; }
         .trip-item { background: #f9f9f9; border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 4px solid #667eea; }
         .empty-state { text-align: center; color: #999; padding: 20px; font-style: italic; }
@@ -73,13 +73,12 @@
             margin-bottom: 15px;
             font-weight: 500;
             text-align: center;
+            display: none;
         }
-
         .streak-status.hot-streak {
             background: linear-gradient(135deg, #ff6b6b 0%, #ff8e6b 100%);
             animation: pulse 2s infinite;
         }
-
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.02); }
@@ -115,6 +114,8 @@
         </div>
 
         <div id="appContent" style="display: none;">
+            <div id="streakStatus" class="streak-status"></div>
+            
             <div id="profileSection" class="section" style="display: none;">
                 <h2>Profile</h2>
                 <div style="text-align: center; margin-bottom: 20px;">
@@ -278,6 +279,8 @@
         const skipBtn = document.getElementById('skipBtn');
         const streakStatus = document.getElementById('streakStatus');
 
+        console.log('App initialized with Firebase!');
+
         auth.onAuthStateChanged((user) => {
             currentUser = user;
             if (user) {
@@ -311,7 +314,6 @@
                         document.getElementById('profileAvatar').textContent = emoji;
                         document.getElementById('nameInput').value = profile.name || '';
                     } else {
-                        // Default to person emoji if no profile yet
                         profileBtn.textContent = '👤';
                     }
                 })
@@ -337,7 +339,7 @@
             document.querySelectorAll('.emoji-btn').forEach(btn => btn.classList.remove('selected'));
             event.target.classList.add('selected');
             document.getElementById('profileAvatar').textContent = emoji;
-            profileBtn.textContent = emoji; // Update header button
+            profileBtn.textContent = emoji;
         }
 
         function saveProfile() {
@@ -359,7 +361,7 @@
             db.collection('profiles').doc(currentUser.uid).set(profileData)
                 .then(() => {
                     alert('Profile saved!');
-                    profileBtn.textContent = emoji; // Update header button
+                    profileBtn.textContent = emoji;
                     hideProfile();
                 })
                 .catch((error) => {
@@ -392,11 +394,79 @@
                     });
                     const uniqueStops = stops.size;
 
+                    // Calculate streaks
+                    const streakData = calculateStreaks(trips);
+
                     document.getElementById('totalTrips').textContent = totalTrips;
                     document.getElementById('uniqueRoutes').textContent = uniqueRoutes;
                     document.getElementById('totalTime').textContent = totalHours;
                     document.getElementById('uniqueStops').textContent = uniqueStops;
+                    document.getElementById('currentStreak').textContent = streakData.current;
+                    document.getElementById('bestStreak').textContent = streakData.best;
                 });
+        }
+
+        function calculateStreaks(trips) {
+            if (trips.length === 0) return { current: 0, best: 0 };
+
+            // Sort trips by date
+            const sortedTrips = trips.sort((a, b) => {
+                const dateA = a.startTime?.toDate ? a.startTime.toDate() : new Date(a.startTime);
+                const dateB = b.startTime?.toDate ? b.startTime.toDate() : new Date(b.startTime);
+                return dateB - dateA;
+            });
+
+            // Get unique days with trips
+            const tripDays = new Set();
+            sortedTrips.forEach(trip => {
+                const date = trip.startTime?.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
+                const dayString = date.toDateString();
+                tripDays.add(dayString);
+            });
+
+            const uniqueDays = Array.from(tripDays).sort((a, b) => new Date(b) - new Date(a));
+
+            let currentStreak = 0;
+            let bestStreak = 0;
+            let tempStreak = 0;
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            for (let i = 0; i < uniqueDays.length; i++) {
+                const currentDay = new Date(uniqueDays[i]);
+                currentDay.setHours(0, 0, 0, 0);
+
+                if (i === 0) {
+                    // Check if streak is current (today or yesterday)
+                    const diffDays = Math.floor((today - currentDay) / (1000 * 60 * 60 * 24));
+                    if (diffDays <= 1) {
+                        currentStreak = 1;
+                        tempStreak = 1;
+                    }
+                } else {
+                    const prevDay = new Date(uniqueDays[i - 1]);
+                    prevDay.setHours(0, 0, 0, 0);
+                    const diffDays = Math.floor((prevDay - currentDay) / (1000 * 60 * 60 * 24));
+
+                    if (diffDays === 1) {
+                        tempStreak++;
+                        if (i < currentStreak || currentStreak === 0) {
+                            currentStreak = tempStreak;
+                        }
+                    } else {
+                        bestStreak = Math.max(bestStreak, tempStreak);
+                        tempStreak = 1;
+                        if (currentStreak === tempStreak - 1) {
+                            currentStreak = 0; // Streak broken
+                        }
+                    }
+                }
+            }
+
+            bestStreak = Math.max(bestStreak, tempStreak, currentStreak);
+
+            return { current: currentStreak, best: bestStreak };
         }
 
         function signOut() {
@@ -622,7 +692,7 @@
                         activeTrip = null;
                         startSection.style.display = 'block';
                         activeSection.style.display = 'none';
-                        progressiveQuestion.style.display = 'none'; // Hide any active questions
+                        progressiveQuestion.style.display = 'none';
                         hideEndModal();
                         loadTrips();
                         const locationMsg = exitLocation ? '📍 GPS captured' : '📍 No GPS';
@@ -643,7 +713,6 @@
 
             console.log('Loading trips for user:', currentUser.uid);
 
-            // Now we can use orderBy with the index!
             db.collection('trips')
                 .where('userId', '==', currentUser.uid)
                 .orderBy('startTime', 'desc')
@@ -782,7 +851,7 @@
                         useLocation = true;
                     } else {
                         className = 'poor';
-                        useLocation = false; // Don't log inaccurate GPS
+                        useLocation = false;
                     }
                     
                     const statusMessage = useLocation ? 
