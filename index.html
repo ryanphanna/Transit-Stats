@@ -3,31 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transit Stats</title>
+    <title>TransitStats</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; line-height: 1.4; }
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .header-row { display: flex; justify-content: space-between; align-items: center; }
-        .user-info { font-size: 0.9em; opacity: 0.9; }
-        .emoji-profile-btn {
+        .header-title { font-size: 1.3em; font-weight: 600; cursor: pointer; }
+        .user-info { display: flex; gap: 10px; }
+        .header-btn {
             background: rgba(255,255,255,0.2);
             border: 2px solid rgba(255,255,255,0.3);
             color: white;
             padding: 8px;
-            border-radius: 50%;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 1.2em;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-size: 0.9em;
             transition: all 0.2s ease;
+            min-width: 70px;
         }
-        .emoji-profile-btn:hover {
+        .header-btn:hover {
             background: rgba(255,255,255,0.3);
-            transform: scale(1.1);
+            transform: scale(1.05);
         }
         .container { max-width: 100%; padding: 15px; }
         .section { background: white; border-radius: 8px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
@@ -92,16 +89,17 @@
 <body>
     <div class="header">
         <div class="header-row">
-            <h1>🚇 Transit Stats</h1>
+            <h1 class="header-title" onclick="goHome()">TransitStats</h1>
             <div id="userInfo" class="user-info" style="display: none;">
-                <button id="profileBtn" class="emoji-profile-btn">👤</button>
+                <button id="profileBtn" class="header-btn">👤 Profile</button>
+                <button id="statsBtn" class="header-btn">📊 Stats</button>
             </div>
         </div>
     </div>
 
     <div class="container">
         <div id="authSection" class="section auth-section">
-            <h2>Welcome to Transit Stats</h2>
+            <h2>Welcome to TransitStats</h2>
             <p>Sign in to sync your trips across all devices</p>
             <div class="form-group">
                 <input type="email" id="emailInput" placeholder="Enter your email address">
@@ -117,7 +115,7 @@
             <div id="streakStatus" class="streak-status"></div>
             
             <div id="profileSection" class="section" style="display: none;">
-                <h2>Profile</h2>
+                <h2>👤 Profile</h2>
                 <div style="text-align: center; margin-bottom: 20px;">
                     <div style="font-size: 3em; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;">
                         <span id="profileAvatar">🚌</span>
@@ -139,16 +137,26 @@
                     </div>
                 </div>
                 
+                <div class="button-group" style="margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="saveProfile()">Save Profile</button>
+                    <button class="btn btn-outline" onclick="hideProfile()">Back</button>
+                    <button class="btn" style="background: #ff4757; color: white;" onclick="signOut()">Sign Out</button>
+                </div>
+            </div>
+
+            <div id="statsSection" class="section" style="display: none;">
+                <h2>📊 Your Stats</h2>
+                
                 <!-- Streak Stats Section -->
                 <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8e6b 100%); border-radius: 12px; padding: 20px; margin-bottom: 20px; color: white; text-align: center;">
                     <h3 style="margin-bottom: 15px; font-size: 1.2em;">🔥 Streak Stats</h3>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                         <div>
-                            <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="currentStreak">0</div>
+                            <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="statsCurrentStreak">0</div>
                             <div style="font-size: 0.9em; opacity: 0.9;">Current Streak</div>
                         </div>
                         <div>
-                            <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="bestStreak">0</div>
+                            <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="statsBestStreak">0</div>
                             <div style="font-size: 0.9em; opacity: 0.9;">🏆 Best Streak</div>
                         </div>
                     </div>
@@ -157,26 +165,49 @@
                 <!-- General Stats Section -->
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-number" id="totalTrips">0</div>
+                        <div class="stat-number" id="statsTotalTrips">0</div>
                         <div class="stat-label">Total Trips</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number" id="uniqueRoutes">0</div>
+                        <div class="stat-number" id="statsUniqueRoutes">0</div>
                         <div class="stat-label">Routes Used</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number" id="totalTime">0</div>
+                        <div class="stat-number" id="statsTotalTime">0</div>
                         <div class="stat-label">Hours Traveled</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number" id="uniqueStops">0</div>
+                        <div class="stat-number" id="statsUniqueStops">0</div>
                         <div class="stat-label">Stops Visited</div>
                     </div>
                 </div>
+
+                <!-- Community Comparison -->
+                <div style="background: #f8f9fa; border-radius: 12px; padding: 20px; margin-top: 20px;">
+                    <h3 style="margin-bottom: 15px; color: #333;">🌍 Community Comparison</h3>
+                    <div id="communityStats">
+                        <div class="loading">Loading community data...</div>
+                    </div>
+                </div>
+
+                <!-- Top Routes & Stops -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                    <div style="background: white; border-radius: 8px; padding: 15px; border: 1px solid #ddd;">
+                        <h4 style="margin-bottom: 10px; color: #667eea;">🚌 Top Routes</h4>
+                        <div id="topRoutes">
+                            <div class="loading">Loading...</div>
+                        </div>
+                    </div>
+                    <div style="background: white; border-radius: 8px; padding: 15px; border: 1px solid #ddd;">
+                        <h4 style="margin-bottom: 10px; color: #667eea;">🚏 Top Stops</h4>
+                        <div id="topStops">
+                            <div class="loading">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="button-group" style="margin-top: 20px;">
-                    <button class="btn btn-primary" onclick="saveProfile()">Save Profile</button>
-                    <button class="btn btn-outline" onclick="hideProfile()">Back</button>
-                    <button class="btn" style="background: #ff4757; color: white;" onclick="signOut()">Sign Out</button>
+                    <button class="btn btn-outline" onclick="hideStats()">Back</button>
                 </div>
             </div>
 
@@ -242,7 +273,7 @@
     </div>
 
     <script>
-        console.log('🚀 Transit Stats Loading...');
+        console.log('🚀 TransitStats Loading...');
         
         const firebaseConfig = {
             apiKey: "AIzaSyBgY37b_aUorxdEW6DnocFoo8ekbTTFpao",
@@ -264,12 +295,14 @@
         const authSection = document.getElementById('authSection');
         const appContent = document.getElementById('appContent');
         const profileSection = document.getElementById('profileSection');
+        const statsSection = document.getElementById('statsSection');
         const emailInput = document.getElementById('emailInput');
         const passwordInput = document.getElementById('passwordInput');
         const signInBtn = document.getElementById('signInBtn');
         const authStatus = document.getElementById('authStatus');
         const userInfo = document.getElementById('userInfo');
         const profileBtn = document.getElementById('profileBtn');
+        const statsBtn = document.getElementById('statsBtn');
         const stopInput = document.getElementById('stopInput');
         const routeInput = document.getElementById('routeInput');
         const startBtn = document.getElementById('startBtn');
@@ -323,7 +356,6 @@
                     if (doc.exists) {
                         const profile = doc.data();
                         const emoji = profile.emoji || '🚌';
-                        profileBtn.textContent = emoji;
                         document.getElementById('profileAvatar').textContent = emoji;
                         document.getElementById('nameInput').value = profile.name || '';
                         
@@ -332,33 +364,44 @@
                             document.getElementById('emojiSelector').style.display = 'none';
                             document.getElementById('shuffleEmojiBtn').style.display = 'block';
                         }
-                    } else {
-                        profileBtn.textContent = '👤';
                     }
                 })
                 .catch((error) => {
                     console.log('Profile load error (using defaults):', error.message);
-                    profileBtn.textContent = '👤';
                 });
         }
 
         function showProfile() {
+            hideAllSections();
             profileSection.style.display = 'block';
-            startSection.style.display = 'none';
-            activeSection.style.display = 'none';
-            updateProfileStats();
         }
 
         function hideProfile() {
             profileSection.style.display = 'none';
-            startSection.style.display = 'block';
+            goHome();
+        }
+
+        function showStats() {
+            hideAllSections();
+            statsSection.style.display = 'block';
+            updateStatsSection();
+            loadCommunityData();
+        }
+
+        function hideStats() {
+            statsSection.style.display = 'none';
+            goHome();
+        }
+
+        function hideAllSections() {
+            profileSection.style.display = 'none';
+            statsSection.style.display = 'none';
         }
 
         function selectEmoji(emoji) {
             document.querySelectorAll('.emoji-btn').forEach(btn => btn.classList.remove('selected'));
             event.target.classList.add('selected');
             document.getElementById('profileAvatar').textContent = emoji;
-            profileBtn.textContent = emoji;
         }
 
         function saveProfile() {
@@ -380,7 +423,6 @@
             db.collection('profiles').doc(currentUser.uid).set(profileData)
                 .then(() => {
                     alert('Profile saved!');
-                    profileBtn.textContent = emoji;
                     hideProfile();
                 })
                 .catch((error) => {
@@ -389,7 +431,7 @@
                 });
         }
 
-        function updateProfileStats() {
+        function updateStatsSection() {
             if (!currentUser) return;
 
             db.collection('trips')
@@ -415,13 +457,129 @@
 
                     const streakData = calculateStreaks(trips);
 
-                    document.getElementById('totalTrips').textContent = totalTrips;
-                    document.getElementById('uniqueRoutes').textContent = uniqueRoutes;
-                    document.getElementById('totalTime').textContent = totalHours;
-                    document.getElementById('uniqueStops').textContent = uniqueStops;
-                    document.getElementById('currentStreak').textContent = streakData.current;
-                    document.getElementById('bestStreak').textContent = streakData.best;
+                    document.getElementById('statsTotalTrips').textContent = totalTrips;
+                    document.getElementById('statsUniqueRoutes').textContent = uniqueRoutes;
+                    document.getElementById('statsTotalTime').textContent = totalHours;
+                    document.getElementById('statsUniqueStops').textContent = uniqueStops;
+                    document.getElementById('statsCurrentStreak').textContent = streakData.current;
+                    document.getElementById('statsBestStreak').textContent = streakData.best;
+
+                    // Generate top routes and stops
+                    generateTopRoutes(trips);
+                    generateTopStops(trips);
                 });
+        }
+
+        function generateTopRoutes(trips) {
+            const routeCounts = {};
+            trips.forEach(trip => {
+                const route = trip.route || 'Unknown';
+                routeCounts[route] = (routeCounts[route] || 0) + 1;
+            });
+
+            const sortedRoutes = Object.entries(routeCounts)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 5);
+
+            const topRoutesHtml = sortedRoutes.length > 0 ? 
+                sortedRoutes.map(([route, count], index) => 
+                    `<div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee;">
+                        <span>${index + 1}. ${route}</span>
+                        <span style="color: #667eea; font-weight: 600;">${count} trips</span>
+                    </div>`
+                ).join('') : 
+                '<div style="color: #999; font-style: italic;">No trips yet</div>';
+
+            document.getElementById('topRoutes').innerHTML = topRoutesHtml;
+        }
+
+        function generateTopStops(trips) {
+            const stopCounts = {};
+            trips.forEach(trip => {
+                const startStop = trip.startStop || 'Unknown';
+                const endStop = trip.endStop || 'Unknown';
+                stopCounts[startStop] = (stopCounts[startStop] || 0) + 1;
+                stopCounts[endStop] = (stopCounts[endStop] || 0) + 1;
+            });
+
+            const sortedStops = Object.entries(stopCounts)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 5);
+
+            const topStopsHtml = sortedStops.length > 0 ? 
+                sortedStops.map(([stop, count], index) => 
+                    `<div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee;">
+                        <span>${index + 1}. ${stop}</span>
+                        <span style="color: #667eea; font-weight: 600;">${count} uses</span>
+                    </div>`
+                ).join('') : 
+                '<div style="color: #999; font-style: italic;">No trips yet</div>';
+
+            document.getElementById('topStops').innerHTML = topStopsHtml;
+        }
+
+        function loadCommunityData() {
+            // Get aggregated community stats for last 30 days
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            db.collection('trips')
+                .where('startTime', '>=', firebase.firestore.Timestamp.fromDate(thirtyDaysAgo))
+                .get()
+                .then((snapshot) => {
+                    const allTrips = [];
+                    const userTrips = [];
+                    
+                    snapshot.forEach((doc) => {
+                        const trip = doc.data();
+                        allTrips.push(trip);
+                        if (trip.userId === currentUser.uid) {
+                            userTrips.push(trip);
+                        }
+                    });
+
+                    const totalUsers = new Set(allTrips.map(t => t.userId)).size;
+                    const userRank = calculateUserRank(userTrips.length, allTrips);
+                    const avgTripsPerUser = totalUsers > 0 ? Math.round(allTrips.length / totalUsers * 10) / 10 : 0;
+
+                    const communityHtml = `
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                            <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+                                <div style="font-size: 1.8em; font-weight: bold; color: #667eea;">${userTrips.length}</div>
+                                <div style="font-size: 0.9em; color: #666;">Your trips (30 days)</div>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+                                <div style="font-size: 1.8em; font-weight: bold; color: #667eea;">#${userRank}</div>
+                                <div style="font-size: 0.9em; color: #666;">Your rank</div>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+                                <div style="font-size: 1.8em; font-weight: bold; color: #667eea;">${totalUsers}</div>
+                                <div style="font-size: 0.9em; color: #666;">Active riders</div>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+                                <div style="font-size: 1.8em; font-weight: bold; color: #667eea;">${avgTripsPerUser}</div>
+                                <div style="font-size: 0.9em; color: #666;">Avg trips/rider</div>
+                            </div>
+                        </div>
+                    `;
+
+                    document.getElementById('communityStats').innerHTML = communityHtml;
+                })
+                .catch((error) => {
+                    console.error('Error loading community data:', error);
+                    document.getElementById('communityStats').innerHTML = '<div style="color: #999; font-style: italic;">Unable to load community data</div>';
+                });
+        }
+
+        function calculateUserRank(userTripCount, allTrips) {
+            const userCounts = {};
+            allTrips.forEach(trip => {
+                userCounts[trip.userId] = (userCounts[trip.userId] || 0) + 1;
+            });
+
+            const sortedCounts = Object.values(userCounts).sort((a, b) => b - a);
+            const rank = sortedCounts.findIndex(count => count <= userTripCount) + 1;
+            return rank || sortedCounts.length + 1;
         }
 
         function calculateStreaks(trips) {
@@ -564,6 +722,7 @@
             saveBtn.addEventListener('click', saveTrip);
             cancelBtn.addEventListener('click', hideEndModal);
             profileBtn.addEventListener('click', showProfile);
+            statsBtn.addEventListener('click', showStats);
             document.getElementById('shuffleEmojiBtn').addEventListener('click', shuffleEmoji);
             answerBtn.addEventListener('click', submitAnswer);
             skipBtn.addEventListener('click', skipQuestion);
@@ -659,8 +818,7 @@
                             <div style="font-size: 0.8em; color: #666;">${locationText}</div>
                         `;
                         
-                        startSection.style.display = 'none';
-                        activeSection.style.display = 'block';
+                        showActiveSection();
                         
                         stopInput.value = '';
                         routeInput.value = '';
@@ -721,10 +879,9 @@
                     })
                     .then(() => {
                         activeTrip = null;
-                        startSection.style.display = 'block';
-                        activeSection.style.display = 'none';
                         progressiveQuestion.style.display = 'none';
                         hideEndModal();
+                        showStartSection();
                         loadTrips();
                         const locationMsg = exitLocation ? '📍 GPS captured' : '📍 No GPS';
                         alert(`Trip saved! ${locationMsg}`);
@@ -744,7 +901,6 @@
 
             console.log('Loading trips for user:', currentUser.uid);
 
-            // Use .get() instead of .onSnapshot() and remove orderBy to avoid index requirement
             db.collection('trips')
                 .where('userId', '==', currentUser.uid)
                 .limit(50)
@@ -757,7 +913,6 @@
                         trips.push({ id: doc.id, ...doc.data() });
                     });
                     
-                    // Sort on client side by date (newest first)
                     trips.sort((a, b) => {
                         const timeA = a.startTime?.toDate ? a.startTime.toDate() : new Date(a.startTime);
                         const timeB = b.startTime?.toDate ? b.startTime.toDate() : new Date(b.startTime);
@@ -814,7 +969,7 @@
         }
 
         function goHome() {
-            profileSection.style.display = 'none';
+            hideAllSections();
             if (activeTrip) {
                 showActiveSection();
             } else {
@@ -831,7 +986,6 @@
             } while (newEmoji === currentEmoji);
             
             document.getElementById('profileAvatar').textContent = newEmoji;
-            profileBtn.textContent = newEmoji;
         }
 
         function displayTrips(trips) {
@@ -1034,7 +1188,7 @@
             }, 30000);
         }
 
-        console.log('🎉 Transit Stats fully loaded and ready!');
+        console.log('🎉 TransitStats fully loaded and ready!');
     </script>
 </body>
 </html>
