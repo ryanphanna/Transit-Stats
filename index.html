@@ -8,82 +8,14 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; line-height: 1.4; }
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header-row { display: flex; justify-content: space-between; align-items: center; }
-        .user-info { font-size: 0.9em; opacity: 0.9; }
-        .emoji-profile-btn {
-            background: rgba(255,255,255,0.2);
-            border: 2px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 8px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 1.2em;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-        }
-        .emoji-profile-btn:hover {
-            background: rgba(255,255,255,0.3);
-            transform: scale(1.1);
-        }
         .container { max-width: 100%; padding: 15px; }
         .section { background: white; border-radius: 8px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .auth-section { text-align: center; padding: 40px 20px; }
-        .auth-section h2 { margin-bottom: 20px; color: #333; }
-        .auth-section p { margin-bottom: 20px; color: #666; }
         .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
         .form-group input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 1em; }
-        .form-group input:focus { outline: none; border-color: #667eea; }
-        .location-box { background: #f0f0f0; border: 1px solid #ddd; border-radius: 6px; padding: 12px; margin-bottom: 15px; font-size: 0.9em; text-align: center; transition: all 0.3s ease; }
-        .location-box.excellent { background: #d4edda; border-color: #2ed573; color: #155724; }
-        .location-box.good { background: #fff3cd; border-color: #ffc107; color: #856404; }
-        .location-box.poor { background: #f8d7da; border-color: #dc3545; color: #721c24; }
-        .location-box.loading { background: #e3f2fd; border-color: #2196f3; color: #1976d2; }
-        .preview-box { margin-top: 8px; padding: 10px; border-radius: 6px; font-size: 0.9em; border: 1px solid transparent; }
-        .preview-box.new { background: #e8f5e8; border-color: #2ed573; color: #2d7738; }
-        .preview-box.existing { background: #fff3cd; border-color: #ffc107; color: #856404; }
         .btn { width: 100%; padding: 15px; border: none; border-radius: 6px; font-size: 1.1em; font-weight: 600; cursor: pointer; transition: all 0.2s ease; margin: 10px 0; }
         .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .btn-primary:hover { background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%); }
-        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-danger { background: #ff4757; color: white; }
-        .btn-outline { background: transparent; color: #666; border: 2px solid #ddd; }
-        .button-group { display: flex; gap: 10px; flex-direction: column; }
-        .trip-status { background: #e8f5e8; border: 2px solid #2ed573; border-radius: 8px; padding: 20px; margin-bottom: 15px; text-align: center; }
-        .trip-item { background: #f9f9f9; border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 4px solid #667eea; }
-        .empty-state { text-align: center; color: #999; padding: 20px; font-style: italic; }
-        .auth-status { background: #e3f2fd; border: 1px solid #2196f3; border-radius: 6px; padding: 10px; margin-bottom: 15px; font-size: 0.9em; color: #1976d2; }
         .loading { text-align: center; padding: 20px; color: #666; }
-        .emoji-btn { background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 8px; padding: 12px; font-size: 1.5em; cursor: pointer; transition: all 0.2s ease; }
-        .emoji-btn:hover { background: #e9ecef; transform: scale(1.1); }
-        .emoji-btn.selected { background: #667eea; border-color: #667eea; transform: scale(1.1); }
-        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
-        .stat-card { background: #f8f9fa; border-radius: 8px; padding: 20px; text-align: center; }
-        .stat-number { font-size: 2em; font-weight: bold; color: #667eea; margin-bottom: 5px; }
-        .stat-label { font-size: 0.9em; color: #666; font-weight: 500; }
-        .streak-status {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            font-weight: 500;
-            text-align: center;
-            display: none;
-        }
-        .streak-status.hot-streak {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ff8e6b 100%);
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); }
-        }
     </style>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -91,12 +23,7 @@
 </head>
 <body>
     <div class="header">
-        <div class="header-row">
-            <h1>🚇 Transit Stats</h1>
-            <div id="userInfo" class="user-info" style="display: none;">
-                <button id="profileBtn" class="emoji-profile-btn">👤</button>
-            </div>
-        </div>
+        <h1>🚇 Transit Stats</h1>
     </div>
 
     <div class="container">
@@ -110,127 +37,19 @@
                 <input type="password" id="passwordInput" placeholder="Password (leave blank for magic link)">
             </div>
             <button id="signInBtn" class="btn btn-primary">Sign In</button>
-            <div id="authStatus" class="auth-status" style="display: none;"></div>
         </div>
 
         <div id="appContent" style="display: none;">
-            <div id="streakStatus" class="streak-status"></div>
-            
-            <div id="profileSection" class="section" style="display: none;">
-                <h2>Profile</h2>
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <div style="font-size: 3em; margin-bottom: 10px;">
-                        <span id="profileAvatar">🚌</span>
-                    </div>
-                    <input type="text" id="nameInput" placeholder="Your name (e.g., Ryan)" style="text-align: center; font-size: 1.1em; font-weight: 600; margin-bottom: 10px;">
-                </div>
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 10px; font-weight: 500;">Choose your transit emoji:</label>
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
-                        <button class="emoji-btn" onclick="selectEmoji('🚌')">🚌</button>
-                        <button class="emoji-btn" onclick="selectEmoji('🚇')">🚇</button>
-                        <button class="emoji-btn" onclick="selectEmoji('🚊')">🚊</button>
-                        <button class="emoji-btn" onclick="selectEmoji('🚋')">🚋</button>
-                        <button class="emoji-btn" onclick="selectEmoji('🚞')">🚞</button>
-                        <button class="emoji-btn" onclick="selectEmoji('🚝')">🚝</button>
-                        <button class="emoji-btn" onclick="selectEmoji('🚄')">🚄</button>
-                        <button class="emoji-btn" onclick="selectEmoji('✈️')">✈️</button>
-                    </div>
-                </div>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalTrips">0</div>
-                        <div class="stat-label">Total Trips</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="currentStreak">0</div>
-                        <div class="stat-label">🔥 Current Streak</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="uniqueRoutes">0</div>
-                        <div class="stat-label">Routes Used</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="bestStreak">0</div>
-                        <div class="stat-label">🏆 Best Streak</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalTime">0</div>
-                        <div class="stat-label">Hours Traveled</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="uniqueStops">0</div>
-                        <div class="stat-label">Stops Visited</div>
-                    </div>
-                </div>
-                <div class="button-group" style="margin-top: 20px;">
-                    <button class="btn btn-primary" onclick="saveProfile()">Save Profile</button>
-                    <button class="btn btn-outline" onclick="hideProfile()">Back</button>
-                    <button class="btn" style="background: #ff4757; color: white;" onclick="signOut()">Sign Out</button>
-                </div>
-            </div>
-
-            <div id="startSection" class="section">
-                <h2>Start New Trip</h2>
-                <div id="locationBox" class="location-box" style="display: none;">
-                    <span id="locationText">Getting location...</span>
-                </div>
-                <div class="form-group">
-                    <label>Boarding Stop</label>
-                    <input type="text" id="stopInput" placeholder="e.g., 6638 or Union Station">
-                    <div id="stopPreview" class="preview-box" style="display: none;"></div>
-                </div>
-                <div class="form-group">
-                    <label>Route/Line</label>
-                    <input type="text" id="routeInput" placeholder="e.g., 65, Line 1, 504 King">
-                    <div id="routePreview" class="preview-box" style="display: none;"></div>
-                </div>
-                <button id="startBtn" class="btn btn-primary" disabled>🚌 Board Vehicle</button>
-            </div>
-
-            <div id="activeSection" class="section" style="display: none;">
-                <div class="trip-status">
-                    <h2>🚌 Currently Riding</h2>
-                    <div id="currentTrip"></div>
-                </div>
-                
-                <!-- Progressive Questions -->
-                <div id="progressiveQuestion" class="section" style="display: none; background: #f8f9fa; border: 2px solid #667eea;">
-                    <div id="questionText" style="font-weight: 500; margin-bottom: 15px; color: #333;"></div>
-                    <div class="form-group">
-                        <input type="text" id="questionInput" placeholder="" style="margin-bottom: 10px;">
-                    </div>
-                    <div style="display: flex; gap: 10px;">
-                        <button id="answerBtn" class="btn" style="background: #667eea; color: white; flex: 1;">Answer</button>
-                        <button id="skipBtn" class="btn btn-outline" style="flex: 1;">Skip</button>
-                    </div>
-                </div>
-
-                <button id="endBtn" class="btn btn-danger">🛑 End Trip</button>
-            </div>
-
             <div class="section">
-                <h2>Recent Trips (<span id="tripCount">0</span>)</h2>
-                <div id="tripsList">
-                    <div class="loading">Loading trips...</div>
-                </div>
-            </div>
-        </div>
-
-        <div id="endModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 400px;">
-                <h3>End Trip</h3>
-                <div class="form-group">
-                    <label>Exit Stop</label>
-                    <input type="text" id="exitInput" placeholder="e.g., 1234 or King Station">
-                </div>
-                <button id="saveBtn" class="btn btn-primary">Save Trip</button>
-                <button id="cancelBtn" class="btn" style="background: #ddd;">Cancel</button>
+                <h2>App is working!</h2>
+                <p>The basic site is restored. We can add features back step by step.</p>
             </div>
         </div>
     </div>
 
     <script>
+        console.log('🔥 JavaScript is loading!');
+        
         const firebaseConfig = {
             apiKey: "AIzaSyBgY37b_aUorxdEW6DnocFoo8ekbTTFpao",
             authDomain: "transitstats-21ba4.firebaseapp.com",
@@ -241,237 +60,29 @@
         };
 
         firebase.initializeApp(firebaseConfig);
+        console.log('🔥 Firebase initialized!');
+        
         const auth = firebase.auth();
         const db = firebase.firestore();
-
-        let currentUser = null;
-        let activeTrip = null;
-        let currentLocation = null;
+        console.log('🔥 Firebase services ready!');
 
         const authSection = document.getElementById('authSection');
         const appContent = document.getElementById('appContent');
-        const profileSection = document.getElementById('profileSection');
         const emailInput = document.getElementById('emailInput');
         const passwordInput = document.getElementById('passwordInput');
         const signInBtn = document.getElementById('signInBtn');
-        const authStatus = document.getElementById('authStatus');
-        const userInfo = document.getElementById('userInfo');
-        const profileBtn = document.getElementById('profileBtn');
-        const stopInput = document.getElementById('stopInput');
-        const routeInput = document.getElementById('routeInput');
-        const startBtn = document.getElementById('startBtn');
-        const startSection = document.getElementById('startSection');
-        const activeSection = document.getElementById('activeSection');
-        const currentTripDiv = document.getElementById('currentTrip');
-        const endBtn = document.getElementById('endBtn');
-        const endModal = document.getElementById('endModal');
-        const exitInput = document.getElementById('exitInput');
-        const saveBtn = document.getElementById('saveBtn');
-        const cancelBtn = document.getElementById('cancelBtn');
-        const tripsList = document.getElementById('tripsList');
-        const tripCount = document.getElementById('tripCount');
-        const locationBox = document.getElementById('locationBox');
-        const locationText = document.getElementById('locationText');
-        const progressiveQuestion = document.getElementById('progressiveQuestion');
-        const questionText = document.getElementById('questionText');
-        const questionInput = document.getElementById('questionInput');
-        const answerBtn = document.getElementById('answerBtn');
-        const skipBtn = document.getElementById('skipBtn');
-        const streakStatus = document.getElementById('streakStatus');
-
-        console.log('App initialized with Firebase!');
 
         auth.onAuthStateChanged((user) => {
-            currentUser = user;
             if (user) {
-                showApp();
+                console.log('✅ User signed in:', user.email);
+                authSection.style.display = 'none';
+                appContent.style.display = 'block';
             } else {
-                showAuth();
+                console.log('❌ No user signed in');
+                authSection.style.display = 'block';
+                appContent.style.display = 'none';
             }
         });
-
-        function showAuth() {
-            authSection.style.display = 'block';
-            appContent.style.display = 'none';
-            userInfo.style.display = 'none';
-        }
-
-        function showApp() {
-            authSection.style.display = 'none';
-            appContent.style.display = 'block';
-            userInfo.style.display = 'block';
-            loadUserProfile();
-            initializeApp();
-        }
-
-        function loadUserProfile() {
-            db.collection('profiles').doc(currentUser.uid).get()
-                .then((doc) => {
-                    if (doc.exists) {
-                        const profile = doc.data();
-                        const emoji = profile.emoji || '🚌';
-                        profileBtn.textContent = emoji;
-                        document.getElementById('profileAvatar').textContent = emoji;
-                        document.getElementById('nameInput').value = profile.name || '';
-                    } else {
-                        profileBtn.textContent = '👤';
-                    }
-                })
-                .catch((error) => {
-                    console.log('No profile found, using defaults');
-                    profileBtn.textContent = '👤';
-                });
-        }
-
-        function showProfile() {
-            profileSection.style.display = 'block';
-            startSection.style.display = 'none';
-            activeSection.style.display = 'none';
-            updateProfileStats();
-        }
-
-        function hideProfile() {
-            profileSection.style.display = 'none';
-            startSection.style.display = 'block';
-        }
-
-        function selectEmoji(emoji) {
-            document.querySelectorAll('.emoji-btn').forEach(btn => btn.classList.remove('selected'));
-            event.target.classList.add('selected');
-            document.getElementById('profileAvatar').textContent = emoji;
-            profileBtn.textContent = emoji;
-        }
-
-        function saveProfile() {
-            const name = document.getElementById('nameInput').value.trim();
-            const emoji = document.getElementById('profileAvatar').textContent;
-            
-            if (!name) {
-                alert('Please enter your name');
-                return;
-            }
-
-            const profileData = {
-                name: name,
-                emoji: emoji,
-                userId: currentUser.uid,
-                updatedAt: firebase.firestore.Timestamp.now()
-            };
-
-            db.collection('profiles').doc(currentUser.uid).set(profileData)
-                .then(() => {
-                    alert('Profile saved!');
-                    profileBtn.textContent = emoji;
-                    hideProfile();
-                })
-                .catch((error) => {
-                    console.error('Error saving profile:', error);
-                    alert('Error saving profile. Please try again.');
-                });
-        }
-
-        function updateProfileStats() {
-            if (!currentUser) return;
-
-            db.collection('trips')
-                .where('userId', '==', currentUser.uid)
-                .get()
-                .then((snapshot) => {
-                    const trips = [];
-                    snapshot.forEach((doc) => {
-                        trips.push(doc.data());
-                    });
-
-                    const totalTrips = trips.length;
-                    const uniqueRoutes = new Set(trips.map(t => t.route)).size;
-                    const totalMinutes = trips.reduce((sum, t) => sum + (t.duration || 0), 0);
-                    const totalHours = Math.round(totalMinutes / 60 * 10) / 10;
-                    
-                    const stops = new Set();
-                    trips.forEach(t => {
-                        stops.add(t.startStop);
-                        stops.add(t.endStop);
-                    });
-                    const uniqueStops = stops.size;
-
-                    // Calculate streaks
-                    const streakData = calculateStreaks(trips);
-
-                    document.getElementById('totalTrips').textContent = totalTrips;
-                    document.getElementById('uniqueRoutes').textContent = uniqueRoutes;
-                    document.getElementById('totalTime').textContent = totalHours;
-                    document.getElementById('uniqueStops').textContent = uniqueStops;
-                    document.getElementById('currentStreak').textContent = streakData.current;
-                    document.getElementById('bestStreak').textContent = streakData.best;
-                });
-        }
-
-        function calculateStreaks(trips) {
-            if (trips.length === 0) return { current: 0, best: 0 };
-
-            // Sort trips by date
-            const sortedTrips = trips.sort((a, b) => {
-                const dateA = a.startTime?.toDate ? a.startTime.toDate() : new Date(a.startTime);
-                const dateB = b.startTime?.toDate ? b.startTime.toDate() : new Date(b.startTime);
-                return dateB - dateA;
-            });
-
-            // Get unique days with trips
-            const tripDays = new Set();
-            sortedTrips.forEach(trip => {
-                const date = trip.startTime?.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
-                const dayString = date.toDateString();
-                tripDays.add(dayString);
-            });
-
-            const uniqueDays = Array.from(tripDays).sort((a, b) => new Date(b) - new Date(a));
-
-            let currentStreak = 0;
-            let bestStreak = 0;
-            let tempStreak = 0;
-
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            for (let i = 0; i < uniqueDays.length; i++) {
-                const currentDay = new Date(uniqueDays[i]);
-                currentDay.setHours(0, 0, 0, 0);
-
-                if (i === 0) {
-                    // Check if streak is current (today or yesterday)
-                    const diffDays = Math.floor((today - currentDay) / (1000 * 60 * 60 * 24));
-                    if (diffDays <= 1) {
-                        currentStreak = 1;
-                        tempStreak = 1;
-                    }
-                } else {
-                    const prevDay = new Date(uniqueDays[i - 1]);
-                    prevDay.setHours(0, 0, 0, 0);
-                    const diffDays = Math.floor((prevDay - currentDay) / (1000 * 60 * 60 * 24));
-
-                    if (diffDays === 1) {
-                        tempStreak++;
-                        if (i < currentStreak || currentStreak === 0) {
-                            currentStreak = tempStreak;
-                        }
-                    } else {
-                        bestStreak = Math.max(bestStreak, tempStreak);
-                        tempStreak = 1;
-                        if (currentStreak === tempStreak - 1) {
-                            currentStreak = 0; // Streak broken
-                        }
-                    }
-                }
-            }
-
-            bestStreak = Math.max(bestStreak, tempStreak, currentStreak);
-
-            return { current: currentStreak, best: bestStreak };
-        }
-
-        function signOut() {
-            auth.signOut();
-        }
 
         signInBtn.addEventListener('click', () => {
             const email = emailInput.value.trim();
@@ -482,25 +93,16 @@
                 return;
             }
 
+            console.log('🔑 Attempting sign in...');
+
             if (password) {
                 auth.signInWithEmailAndPassword(email, password)
                     .then(() => {
-                        showAuthStatus('Signed in successfully!', 'success');
+                        console.log('✅ Sign in successful');
                     })
                     .catch((error) => {
-                        if (error.code === 'auth/user-not-found') {
-                            auth.createUserWithEmailAndPassword(email, password)
-                                .then(() => {
-                                    showAuthStatus('Account created and signed in!', 'success');
-                                })
-                                .catch((error) => {
-                                    console.error('Error creating account:', error);
-                                    showAuthStatus('Error creating account. Please try again.', 'error');
-                                });
-                        } else {
-                            console.error('Error signing in:', error);
-                            showAuthStatus('Invalid email or password.', 'error');
-                        }
+                        console.log('❌ Sign in error:', error.message);
+                        alert('Sign in failed: ' + error.message);
                     });
             } else {
                 const actionCodeSettings = {
@@ -511,500 +113,16 @@
                 auth.sendSignInLinkToEmail(email, actionCodeSettings)
                     .then(() => {
                         localStorage.setItem('emailForSignIn', email);
-                        showAuthStatus('Check your email for a magic link!', 'success');
+                        alert('Check your email for a magic link!');
                     })
                     .catch((error) => {
-                        console.error('Error sending email:', error);
-                        showAuthStatus('Magic link failed. Try with a password instead.', 'error');
+                        console.log('❌ Magic link error:', error.message);
+                        alert('Magic link failed: ' + error.message);
                     });
             }
         });
 
-        if (auth.isSignInWithEmailLink(window.location.href)) {
-            let email = localStorage.getItem('emailForSignIn');
-            if (!email) {
-                email = window.prompt('Please provide your email for confirmation');
-            }
-
-            auth.signInWithEmailLink(email, window.location.href)
-                .then(() => {
-                    localStorage.removeItem('emailForSignIn');
-                })
-                .catch((error) => {
-                    console.error('Error signing in:', error);
-                });
-        }
-
-        function showAuthStatus(message, type) {
-            authStatus.textContent = message;
-            authStatus.className = type === 'success' ? 'auth-status' : 'auth-status error';
-            authStatus.style.display = 'block';
-        }
-
-        function initializeApp() {
-            stopInput.addEventListener('input', updateStartButton);
-            routeInput.addEventListener('input', updateStartButton);
-            startBtn.addEventListener('click', startTrip);
-            endBtn.addEventListener('click', showEndModal);
-            saveBtn.addEventListener('click', saveTrip);
-            cancelBtn.addEventListener('click', hideEndModal);
-            profileBtn.addEventListener('click', showProfile);
-            answerBtn.addEventListener('click', submitAnswer);
-            skipBtn.addEventListener('click', skipQuestion);
-            loadTrips();
-            getCurrentLocation(() => {});
-        }
-
-        function updateStartButton() {
-            const hasStop = stopInput.value.trim().length > 0;
-            const hasRoute = routeInput.value.trim().length > 0;
-            startBtn.disabled = !(hasStop && hasRoute);
-            updateStopPreview();
-            updateRoutePreview();
-        }
-
-        function updateStopPreview() {
-            const stopValue = stopInput.value.trim();
-            const preview = document.getElementById('stopPreview');
-            
-            if (!stopValue) {
-                preview.style.display = 'none';
-                return;
-            }
-
-            const isNumber = /^\d+$/.test(stopValue);
-            const stopName = isNumber ? `Stop #${stopValue}` : stopValue;
-            
-            preview.innerHTML = `🎉 You're the first person to board at ${stopName}! (with GPS)`;
-            preview.className = 'preview-box new';
-            preview.style.display = 'block';
-        }
-
-        function updateRoutePreview() {
-            const routeValue = routeInput.value.trim();
-            const preview = document.getElementById('routePreview');
-            
-            if (!routeValue) {
-                preview.style.display = 'none';
-                return;
-            }
-
-            preview.innerHTML = `✅ Found existing route: ${routeValue}`;
-            preview.className = 'preview-box existing';
-            preview.style.display = 'block';
-        }
-
-        function startTrip() {
-            const stop = stopInput.value.trim();
-            const route = routeInput.value.trim();
-            
-            if (!stop || !route) {
-                alert('Please enter both stop and route');
-                return;
-            }
-
-            getCurrentLocation((boardingLocation) => {
-                const tripData = {
-                    startStop: stop,
-                    route: route,
-                    startTime: firebase.firestore.Timestamp.now(),
-                    boardingLocation: boardingLocation,
-                    userId: currentUser.uid
-                };
-
-                db.collection('activeTrips').doc(currentUser.uid).set(tripData)
-                    .then(() => {
-                        activeTrip = { id: currentUser.uid, ...tripData };
-                        
-                        const locationText = boardingLocation ? 
-                            `📍 GPS: ${boardingLocation.lat.toFixed(4)}, ${boardingLocation.lon.toFixed(4)}` : 
-                            '📍 No GPS data';
-                        
-                        currentTripDiv.innerHTML = `
-                            <div><strong>${route}</strong></div>
-                            <div>From: ${stop}</div>
-                            <div>Started: ${new Date().toLocaleTimeString()}</div>
-                            <div style="font-size: 0.8em; color: #666;">${locationText}</div>
-                        `;
-                        
-                        startSection.style.display = 'none';
-                        activeSection.style.display = 'block';
-                        
-                        stopInput.value = '';
-                        routeInput.value = '';
-                        document.getElementById('stopPreview').style.display = 'none';
-                        document.getElementById('routePreview').style.display = 'none';
-                        updateStartButton();
-                        
-                        // Start progressive questions
-                        startProgressiveQuestions();
-                    })
-                    .catch((error) => {
-                        console.error('Error saving trip:', error);
-                        alert('Error starting trip. Please try again.');
-                    });
-            });
-        }
-
-        function showEndModal() {
-            endModal.style.display = 'block';
-        }
-
-        function hideEndModal() {
-            endModal.style.display = 'none';
-            exitInput.value = '';
-        }
-
-        function saveTrip() {
-            const exitStop = exitInput.value.trim();
-            
-            if (!exitStop) {
-                alert('Please enter exit stop');
-                return;
-            }
-
-            if (!activeTrip) {
-                alert('No active trip');
-                return;
-            }
-
-            getCurrentLocation((exitLocation) => {
-                const completedTrip = {
-                    startStop: activeTrip.startStop,
-                    endStop: exitStop,
-                    route: activeTrip.route,
-                    startTime: activeTrip.startTime,
-                    endTime: firebase.firestore.Timestamp.now(),
-                    boardingLocation: activeTrip.boardingLocation,
-                    exitLocation: exitLocation,
-                    userId: currentUser.uid
-                };
-
-                const startMs = activeTrip.startTime.toDate().getTime();
-                const endMs = completedTrip.endTime.toDate().getTime();
-                completedTrip.duration = Math.round((endMs - startMs) / 1000 / 60);
-
-                db.collection('trips').add(completedTrip)
-                    .then(() => {
-                        return db.collection('activeTrips').doc(currentUser.uid).delete();
-                    })
-                    .then(() => {
-                        activeTrip = null;
-                        startSection.style.display = 'block';
-                        activeSection.style.display = 'none';
-                        progressiveQuestion.style.display = 'none';
-                        hideEndModal();
-                        loadTrips();
-                        const locationMsg = exitLocation ? '📍 GPS captured' : '📍 No GPS';
-                        alert(`Trip saved! ${locationMsg}`);
-                    })
-                    .catch((error) => {
-                        console.error('Error saving completed trip:', error);
-                        alert('Error saving trip. Please try again.');
-                    });
-            });
-        }
-
-        function loadTrips() {
-            if (!currentUser) {
-                console.log('No user logged in');
-                return;
-            }
-
-            console.log('Loading trips for user:', currentUser.uid);
-
-            console.log('Starting to load trips for user:', currentUser.uid);
-
-            db.collection('trips')
-                .where('userId', '==', currentUser.uid)
-                .orderBy('startTime', 'desc')
-                .limit(20)
-                .onSnapshot((snapshot) => {
-                    console.log('✅ Trips query successful! Loaded:', snapshot.size, 'trips');
-                    
-                    const trips = [];
-                    snapshot.forEach((doc) => {
-                        trips.push({ id: doc.id, ...doc.data() });
-                    });
-                    
-                    console.log('✅ Displaying', trips.length, 'trips');
-                    displayTrips(trips);
-                }, (error) => {
-                    console.error('❌ Firestore query error:', error);
-                    console.error('Error code:', error.code);
-                    console.error('Error message:', error.message);
-                    
-                    // Fallback: try without orderBy if index fails
-                    console.log('🔄 Trying fallback query without orderBy...');
-                    db.collection('trips')
-                        .where('userId', '==', currentUser.uid)
-                        .limit(20)
-                        .onSnapshot((snapshot) => {
-                            console.log('📦 Fallback query successful:', snapshot.size, 'trips');
-                            const trips = [];
-                            snapshot.forEach((doc) => {
-                                trips.push({ id: doc.id, ...doc.data() });
-                            });
-                            
-                            // Sort on client side as backup
-                            trips.sort((a, b) => {
-                                const timeA = a.startTime?.toDate ? a.startTime.toDate() : new Date(a.startTime);
-                                const timeB = b.startTime?.toDate ? b.startTime.toDate() : new Date(b.startTime);
-                                return timeB - timeA;
-                            });
-                            
-                            displayTrips(trips);
-                        });
-                });
-
-            // Check for active trip
-            db.collection('activeTrips').doc(currentUser.uid)
-                .onSnapshot((doc) => {
-                    if (doc.exists) {
-                        console.log('Active trip found');
-                        activeTrip = { id: doc.id, ...doc.data() };
-                        showActiveTrip();
-                    } else {
-                        activeTrip = null;
-                        startSection.style.display = 'block';
-                        activeSection.style.display = 'none';
-                    }
-                });
-        }
-
-        function showActiveTrip() {
-            if (!activeTrip) return;
-
-            const startTime = activeTrip.startTime.toDate();
-            const locationText = activeTrip.boardingLocation ? 
-                `📍 GPS: ${activeTrip.boardingLocation.lat.toFixed(4)}, ${activeTrip.boardingLocation.lon.toFixed(4)}` : 
-                '📍 No GPS data';
-            
-            currentTripDiv.innerHTML = `
-                <div><strong>${activeTrip.route}</strong></div>
-                <div>From: ${activeTrip.startStop}</div>
-                <div>Started: ${startTime.toLocaleTimeString()}</div>
-                <div style="font-size: 0.8em; color: #666;">${locationText}</div>
-            `;
-            
-            startSection.style.display = 'none';
-            activeSection.style.display = 'block';
-        }
-
-        function displayTrips(trips) {
-            console.log('Displaying trips:', trips.length, 'trips');
-            tripCount.textContent = trips.length;
-            
-            // Update streak status
-            if (trips.length > 0) {
-                const streakData = calculateStreaks(trips);
-                updateStreakStatus(streakData);
-            }
-            
-            if (trips.length === 0) {
-                tripsList.innerHTML = '<div class="empty-state">No trips yet. Start your first trip above!</div>';
-                return;
-            }
-
-            try {
-                tripsList.innerHTML = trips.slice(0, 20).map(trip => {
-                    console.log('Processing trip:', trip);
-                    
-                    // Handle different time formats
-                    let startTime;
-                    if (trip.startTime?.toDate) {
-                        startTime = trip.startTime.toDate();
-                    } else if (trip.startTime) {
-                        startTime = new Date(trip.startTime);
-                    } else {
-                        startTime = new Date();
-                    }
-                    
-                    return `
-                        <div class="trip-item">
-                            <div><strong>${trip.route || 'Unknown Route'}</strong></div>
-                            <div>${trip.startStop || 'Unknown'} → ${trip.endStop || 'Unknown'}</div>
-                            <div>${trip.duration || 0} min • ${startTime.toLocaleDateString()}</div>
-                        </div>
-                    `;
-                }).join('');
-            } catch (error) {
-                console.error('Error displaying trips:', error);
-                tripsList.innerHTML = '<div class="empty-state">Error displaying trips. Check console.</div>';
-            }
-        }
-
-        function updateStreakStatus(streakData) {
-            if (streakData.current === 0) {
-                streakStatus.style.display = 'none';
-                return;
-            }
-
-            streakStatus.style.display = 'block';
-            
-            if (streakData.current >= 7) {
-                streakStatus.innerHTML = `🔥 AMAZING! ${streakData.current} day streak! You're a transit champion!`;
-                streakStatus.className = 'streak-status hot-streak';
-            } else if (streakData.current >= 3) {
-                streakStatus.innerHTML = `🔥 Hot streak! ${streakData.current} days in a row!`;
-                streakStatus.className = 'streak-status hot-streak';
-            } else {
-                streakStatus.innerHTML = `⚡ ${streakData.current} day streak! Keep it going!`;
-                streakStatus.className = 'streak-status';
-            }
-        }
-
-        function getCurrentLocation(callback) {
-            if (!navigator.geolocation) {
-                updateLocationBox('📍 Location not supported', 'poor');
-                callback(null);
-                return;
-            }
-
-            updateLocationBox('📍 Getting location...', 'loading');
-
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const accuracy = Math.round(position.coords.accuracy);
-                    let className, useLocation = false;
-                    
-                    if (accuracy <= 10) {
-                        className = 'excellent';
-                        useLocation = true;
-                    } else if (accuracy <= 20) {
-                        className = 'good';
-                        useLocation = true;
-                    } else {
-                        className = 'poor';
-                        useLocation = false;
-                    }
-                    
-                    const statusMessage = useLocation ? 
-                        `📍 Location ready (±${accuracy}m)` : 
-                        `📍 Location too inaccurate (±${accuracy}m) - not saving GPS`;
-                    
-                    updateLocationBox(statusMessage, className);
-                    
-                    if (useLocation) {
-                        const location = {
-                            lat: position.coords.latitude,
-                            lon: position.coords.longitude,
-                            accuracy: position.coords.accuracy,
-                            timestamp: new Date().toISOString()
-                        };
-                        console.log(`GPS logged: ±${accuracy}m accuracy`);
-                        callback(location);
-                    } else {
-                        console.log(`GPS too inaccurate (±${accuracy}m), not logging location`);
-                        callback(null);
-                    }
-                },
-                (error) => {
-                    console.log('Location error:', error);
-                    updateLocationBox('📍 Location unavailable', 'poor');
-                    callback(null);
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 5000,
-                    maximumAge: 60000
-                }
-            );
-        }
-
-        function updateLocationBox(message, type) {
-            locationText.textContent = message;
-            locationBox.className = `location-box ${type}`;
-            locationBox.style.display = 'block';
-        }
-
-        // Progressive question system
-        let currentQuestionIndex = 0;
-        let tripEnrichmentData = {};
-        
-        const questions = [
-            {
-                text: "📱 See the vehicle number?",
-                placeholder: "e.g., 8234, 1156",
-                field: "vehicleNumber"
-            },
-            {
-                text: "🧭 Which direction is this vehicle headed?",
-                placeholder: "e.g., Northbound, Downtown, Union Station",
-                field: "direction"
-            },
-            {
-                text: "👥 How crowded is it right now?",
-                placeholder: "e.g., Empty, Half full, Packed",
-                field: "crowdLevel"
-            }
-        ];
-
-        function startProgressiveQuestions() {
-            currentQuestionIndex = 0;
-            tripEnrichmentData = {};
-            
-            // Start first question after a brief delay
-            setTimeout(() => {
-                showNextQuestion();
-            }, 10000); // 10 seconds after trip starts
-        }
-
-        function showNextQuestion() {
-            if (currentQuestionIndex >= questions.length || !activeTrip) {
-                progressiveQuestion.style.display = 'none';
-                return;
-            }
-
-            const question = questions[currentQuestionIndex];
-            questionText.textContent = question.text;
-            questionInput.placeholder = question.placeholder;
-            questionInput.value = '';
-            progressiveQuestion.style.display = 'block';
-            
-            // Auto-focus input for easy typing
-            questionInput.focus();
-        }
-
-        function submitAnswer() {
-            const answer = questionInput.value.trim();
-            if (answer) {
-                const question = questions[currentQuestionIndex];
-                tripEnrichmentData[question.field] = answer;
-                
-                // Save to active trip in database
-                if (activeTrip) {
-                    const updateData = {};
-                    updateData[question.field] = answer;
-                    
-                    db.collection('activeTrips').doc(currentUser.uid).update(updateData)
-                        .then(() => {
-                            console.log(`Saved ${question.field}: ${answer}`);
-                        })
-                        .catch((error) => {
-                            console.error('Error updating trip:', error);
-                        });
-                }
-            }
-            
-            progressiveQuestion.style.display = 'none';
-            currentQuestionIndex++;
-            
-            // Show next question after delay
-            setTimeout(() => {
-                showNextQuestion();
-            }, 30000); // 30 seconds between questions
-        }
-
-        function skipQuestion() {
-            progressiveQuestion.style.display = 'none';
-            currentQuestionIndex++;
-            
-            // Show next question after delay
-            setTimeout(() => {
-                showNextQuestion();
-            }, 30000); // 30 seconds between questions
-        }
+        console.log('🚀 App initialization complete!');
     </script>
 </body>
 </html>
