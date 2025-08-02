@@ -26,15 +26,11 @@
             background: rgba(255,255,255,0.3);
             transform: scale(1.05);
         }
-        .container { max-width: 100%; padding: 15px 15px 80px 15px; }
+        .container { max-width: 100%; padding: 15px; }
         .section { background: white; border-radius: 8px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         
-        /* Footer status bar */
+        /* Footer status bar - NOT sticky */
         .status-footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
             background: white;
             border-top: 1px solid #ddd;
             padding: 10px 15px;
@@ -42,7 +38,7 @@
             justify-content: space-between;
             align-items: center;
             font-size: 0.9em;
-            z-index: 100;
+            margin-top: 20px;
         }
         .status-indicator {
             display: flex;
@@ -166,9 +162,43 @@
                     <button class="btn btn-primary" onclick="saveProfile()" style="flex: 1;">Save Profile</button>
                 </div>
 
+                <!-- Streak Stats Section -->
+                <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8e6b 100%); border-radius: 12px; padding: 20px; margin-bottom: 15px; color: white; text-align: center;">
+                    <h3 style="margin-bottom: 15px; font-size: 1.2em;">🔥 Streak Stats</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="profileCurrentStreak">0</div>
+                            <div style="font-size: 0.9em; opacity: 0.9;">Current Streak</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="profileBestStreak">0</div>
+                            <div style="font-size: 0.9em; opacity: 0.9;">🏆 Best Streak</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Founder Stats Section -->
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px; margin-bottom: 15px; color: white; text-align: center;">
+                    <h3 style="margin-bottom: 15px; font-size: 1.2em;">🚀 Founder Stats</h3>
+                    <div style="margin-bottom: 10px;">
+                        <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="profileFounderTotal">0</div>
+                        <div style="font-size: 0.9em; opacity: 0.9;">Total Founded</div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.3);">
+                        <div>
+                            <div style="font-size: 1.8em; font-weight: bold; margin-bottom: 5px;" id="profileFounderRoutes">0</div>
+                            <div style="font-size: 0.9em; opacity: 0.9;">Routes</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 1.8em; font-weight: bold; margin-bottom: 5px;" id="profileFounderStops">0</div>
+                            <div style="font-size: 0.9em; opacity: 0.9;">Stops</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Recent Trips on Profile Page -->
                 <div style="border-top: 1px solid #eee; padding-top: 20px;">
-                    <h3 style="margin-bottom: 15px; color: #333;">Recent Trips (<span id="profileTripCount">0</span>)</h3>
+                    <h3 style="margin-bottom: 15px; color: #333;">Recent Trips</h3>
                     <div id="profileTripsList">
                         <div class="loading">Loading trips...</div>
                     </div>
@@ -185,21 +215,6 @@
                     <div style="background: #f8f9fa; border-radius: 20px; padding: 4px; display: flex;">
                         <button id="statsToggle30" class="btn" style="background: #667eea; color: white; padding: 8px 16px; margin: 0; border-radius: 16px; font-size: 0.9em;">Last 30 Days</button>
                         <button id="statsToggleAll" class="btn btn-outline" style="padding: 8px 16px; margin: 0; border: none; font-size: 0.9em;">All Time</button>
-                    </div>
-                </div>
-                
-                <!-- Streak Stats Section -->
-                <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8e6b 100%); border-radius: 12px; padding: 20px; margin-bottom: 20px; color: white; text-align: center;">
-                    <h3 style="margin-bottom: 15px; font-size: 1.2em;">🔥 Streak Stats</h3>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div>
-                            <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="statsCurrentStreak">0</div>
-                            <div style="font-size: 0.9em; opacity: 0.9;">Current Streak</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="statsBestStreak">0</div>
-                            <div style="font-size: 0.9em; opacity: 0.9;">🏆 Best Streak</div>
-                        </div>
                     </div>
                 </div>
                 
@@ -272,7 +287,10 @@
                 <!-- Progressive Questions -->
                 <div id="progressiveQuestion" class="section" style="display: none; background: #f8f9fa; border: 2px solid #667eea;">
                     <div id="questionText" style="font-weight: 500; margin-bottom: 15px; color: #333;"></div>
-                    <div class="form-group">
+                    <div id="questionOptions" style="display: none; margin-bottom: 15px;">
+                        <!-- Options will be populated by JavaScript -->
+                    </div>
+                    <div class="form-group" id="questionInputGroup">
                         <input type="text" id="questionInput" placeholder="" style="margin-bottom: 10px;">
                     </div>
                     <div style="display: flex; gap: 10px;">
@@ -281,8 +299,10 @@
                     </div>
                 </div>
 
-                <button id="endBtn" class="btn btn-danger">🛑 End Trip</button>
-                <button id="abandonBtn" class="btn btn-outline" style="background: #ffc107; color: #856404; border-color: #ffc107;">⚠️ Cancel/Abandon Trip</button>
+                <div style="display: flex; gap: 10px;">
+                    <button id="endBtn" class="btn btn-danger" style="flex: 1;">🛑 End Trip</button>
+                    <button id="abandonBtn" class="btn btn-outline" style="background: #ffc107; color: #856404; border-color: #ffc107; flex: 1;">⚠️ Cancel Trip</button>
+                </div>
             </div>
 
             <div id="recentTripsSection" class="section">
@@ -291,6 +311,7 @@
                     <div class="loading">Loading trips...</div>
                 </div>
             </div>
+        </div>
         </div>
 
         <div id="endModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
@@ -306,15 +327,15 @@
         </div>
     </div>
 
-    <!-- Status Footer -->
-    <div class="status-footer">
-        <div id="locationStatus" class="status-indicator loading">
-            📍 Getting location...
+        <!-- Status Footer -->
+        <div class="status-footer">
+            <div id="locationStatus" class="status-indicator loading">
+                📍 Getting location...
+            </div>
+            <div id="connectionStatus" class="status-indicator connected">
+                🔗 Logged In
+            </div>
         </div>
-        <div id="connectionStatus" class="status-indicator connected">
-            🔗 Connected
-        </div>
-    </div>
 
     <script>
         console.log('🚀 TransitStats Loading...');
@@ -421,11 +442,16 @@
         function showProfile() {
             hideAllSections();
             profileSection.style.display = 'block';
+            document.getElementById('startSection').style.display = 'none';
+            document.getElementById('recentTripsSection').style.display = 'none';
+            updateProfileStats();
         }
 
         function showStats() {
             hideAllSections();
             statsSection.style.display = 'block';
+            document.getElementById('startSection').style.display = 'none';
+            document.getElementById('recentTripsSection').style.display = 'none';
             initializeStatsToggle();
             updateStatsSection();
             loadCommunityData();
@@ -555,18 +581,75 @@
                     });
                     const uniqueStops = stops.size;
 
-                    const streakData = calculateStreaks(trips);
-
                     document.getElementById('statsTotalTrips').textContent = totalTrips;
                     document.getElementById('statsUniqueRoutes').textContent = uniqueRoutes;
                     document.getElementById('statsTotalTime').textContent = totalHours;
                     document.getElementById('statsUniqueStops').textContent = uniqueStops;
-                    document.getElementById('statsCurrentStreak').textContent = streakData.current;
-                    document.getElementById('statsBestStreak').textContent = streakData.best;
 
                     generateTopRoutes(trips);
                     generateTopStops(trips);
                 });
+        }
+
+        function updateProfileStats() {
+            if (!currentUser) return;
+
+            db.collection('trips')
+                .where('userId', '==', currentUser.uid)
+                .get()
+                .then((snapshot) => {
+                    const trips = [];
+                    snapshot.forEach((doc) => {
+                        trips.push(doc.data());
+                    });
+
+                    // Calculate streaks for profile
+                    const streakData = calculateStreaks(trips);
+                    document.getElementById('profileCurrentStreak').textContent = streakData.current;
+                    document.getElementById('profileBestStreak').textContent = streakData.best;
+
+                    // Calculate founder stats
+                    calculateFounderStats(trips);
+                });
+        }
+
+        function calculateFounderStats(trips) {
+            // Get all routes and stops to check if user was first
+            Promise.all([
+                db.collection('routes').get(),
+                db.collection('stops').get()
+            ]).then(([routesSnapshot, stopsSnapshot]) => {
+                let founderRoutes = 0;
+                let founderStops = 0;
+
+                // Check routes founded by this user
+                routesSnapshot.forEach((doc) => {
+                    const route = doc.data();
+                    if (route.founderId === currentUser.uid) {
+                        founderRoutes++;
+                    }
+                });
+
+                // Check stops founded by this user  
+                stopsSnapshot.forEach((doc) => {
+                    const stop = doc.data();
+                    if (stop.founderId === currentUser.uid) {
+                        founderStops++;
+                    }
+                });
+
+                const totalFounded = founderRoutes + founderStops;
+                
+                document.getElementById('profileFounderTotal').textContent = totalFounded;
+                document.getElementById('profileFounderRoutes').textContent = founderRoutes;
+                document.getElementById('profileFounderStops').textContent = founderStops;
+            }).catch((error) => {
+                console.error('Error calculating founder stats:', error);
+                // Show 0s if there's an error
+                document.getElementById('profileFounderTotal').textContent = '0';
+                document.getElementById('profileFounderRoutes').textContent = '0';
+                document.getElementById('profileFounderStops').textContent = '0';
+            });
         }
 
         function generateTopRoutes(trips) {
@@ -1055,7 +1138,6 @@
 
         function displayTrips(trips) {
             tripCount.textContent = trips.length;
-            document.getElementById('profileTripCount').textContent = trips.length;
             
             if (trips.length > 0) {
                 const streakData = calculateStreaks(trips);
@@ -1178,7 +1260,7 @@
 
         function updateConnectionStatus(connected) {
             if (connected) {
-                connectionStatus.textContent = '🔗 Connected';
+                connectionStatus.textContent = '🔗 Logged In';
                 connectionStatus.className = 'status-indicator connected';
             } else {
                 connectionStatus.textContent = '⚠️ Offline';
@@ -1193,20 +1275,54 @@
         const questions = [
             {
                 text: "📱 See the vehicle number?",
+                type: "input",
                 placeholder: "e.g., 8234, 1156",
                 field: "vehicleNumber"
             },
             {
+                text: "🚌 What type of transit is this?",
+                type: "options",
+                options: ["Bus", "Subway", "Streetcar", "Light Rail", "Train", "Ferry"],
+                field: "routeType"
+            },
+            {
                 text: "🧭 Which direction is this vehicle headed?",
-                placeholder: "e.g., Northbound, Downtown, Union Station",
+                type: "options",
+                options: ["Northbound", "Southbound", "Eastbound", "Westbound", "Downtown", "Uptown", "Inbound", "Outbound"],
                 field: "direction"
             },
             {
                 text: "👥 How crowded is it right now?",
-                placeholder: "e.g., Empty, Half full, Packed",
+                type: "options", 
+                options: ["Empty", "Few passengers", "Half full", "Mostly full", "Packed", "Standing room only"],
                 field: "crowdLevel"
             }
         ];
+
+        // Conditional vehicle type questions based on route type
+        const vehicleTypeQuestions = {
+            "Bus": {
+                text: "🚌 What type of bus is this?",
+                options: ["Regular bus", "Articulated bus", "Double decker", "Express bus", "Shuttle bus", "School bus"]
+            },
+            "Subway": {
+                text: "🚇 What type of subway car?",
+                options: ["Single car", "2-car train", "4-car train", "6-car train", "8+ car train", "Older model", "Newer model"]
+            },
+            "Train": {
+                text: "🚄 What type of train?",
+                options: ["Commuter train", "High-speed rail", "Regional train", "Intercity train", "Freight train"]
+            },
+            "Light Rail": {
+                text: "🚝 What type of light rail vehicle?",
+                options: ["Single car", "2-car train", "3-car train", "Low-floor", "High-floor"]
+            },
+            "Ferry": {
+                text: "⛴️ What type of ferry?",
+                options: ["Passenger ferry", "Car ferry", "High-speed ferry", "Catamaran", "Traditional ferry"]
+            }
+            // Streetcar doesn't get vehicle type question since they're pretty standard
+        };
 
         function startProgressiveQuestions() {
             currentQuestionIndex = 0;
@@ -1219,45 +1335,116 @@
 
         function showNextQuestion() {
             if (currentQuestionIndex >= questions.length || !activeTrip) {
+                // Check if we need to ask conditional vehicle type question
+                if (currentQuestionIndex === questions.length && tripEnrichmentData.routeType) {
+                    const routeType = tripEnrichmentData.routeType;
+                    if (vehicleTypeQuestions[routeType]) {
+                        showVehicleTypeQuestion(routeType);
+                        return;
+                    }
+                }
                 progressiveQuestion.style.display = 'none';
                 return;
             }
 
             const question = questions[currentQuestionIndex];
             questionText.textContent = question.text;
-            questionInput.placeholder = question.placeholder;
-            questionInput.value = '';
-            progressiveQuestion.style.display = 'block';
             
-            questionInput.focus();
+            if (question.type === "options") {
+                // Show option buttons
+                document.getElementById('questionInputGroup').style.display = 'none';
+                document.getElementById('questionOptions').style.display = 'block';
+                
+                const optionsHtml = question.options.map(option => 
+                    `<button class="btn btn-outline" style="margin: 5px; padding: 10px 15px; width: auto; font-size: 0.9em;" onclick="selectQuestionOption('${option}')">${option}</button>`
+                ).join('');
+                
+                document.getElementById('questionOptions').innerHTML = optionsHtml;
+            } else {
+                // Show input field
+                document.getElementById('questionOptions').style.display = 'none';
+                document.getElementById('questionInputGroup').style.display = 'block';
+                questionInput.placeholder = question.placeholder;
+                questionInput.value = '';
+                questionInput.focus();
+            }
+            
+            progressiveQuestion.style.display = 'block';
         }
 
-        function submitAnswer() {
-            const answer = questionInput.value.trim();
-            if (answer) {
-                const question = questions[currentQuestionIndex];
-                tripEnrichmentData[question.field] = answer;
+        function showVehicleTypeQuestion(routeType) {
+            const vehicleQuestion = vehicleTypeQuestions[routeType];
+            questionText.textContent = vehicleQuestion.text;
+            
+            document.getElementById('questionInputGroup').style.display = 'none';
+            document.getElementById('questionOptions').style.display = 'block';
+            
+            const optionsHtml = vehicleQuestion.options.map(option => 
+                `<button class="btn btn-outline" style="margin: 5px; padding: 10px 15px; width: auto; font-size: 0.9em;" onclick="selectVehicleType('${option}')">${option}</button>`
+            ).join('');
+            
+            document.getElementById('questionOptions').innerHTML = optionsHtml;
+            progressiveQuestion.style.display = 'block';
+        }
+
+        function selectVehicleType(vehicleType) {
+            // Highlight selected option
+            document.querySelectorAll('#questionOptions button').forEach(btn => {
+                btn.style.background = btn.textContent === vehicleType ? '#667eea' : 'transparent';
+                btn.style.color = btn.textContent === vehicleType ? 'white' : '#666';
+            });
+            
+            // Auto-submit after selection
+            setTimeout(() => {
+                tripEnrichmentData.vehicleType = vehicleType;
                 
                 if (activeTrip) {
-                    const updateData = {};
-                    updateData[question.field] = answer;
-                    
-                    db.collection('activeTrips').doc(currentUser.uid).update(updateData)
+                    db.collection('activeTrips').doc(currentUser.uid).update({vehicleType: vehicleType})
                         .then(() => {
-                            console.log(`Saved ${question.field}: ${answer}`);
+                            console.log(`Saved vehicleType: ${vehicleType}`);
                         })
                         .catch((error) => {
                             console.error('Error updating trip:', error);
                         });
                 }
-            }
+                
+                progressiveQuestion.style.display = 'none';
+                // End of questions
+            }, 500);
+        }
+
+        function selectQuestionOption(option) {
+            // Highlight selected option
+            document.querySelectorAll('#questionOptions button').forEach(btn => {
+                btn.style.background = btn.textContent === option ? '#667eea' : 'transparent';
+                btn.style.color = btn.textContent === option ? 'white' : '#666';
+            });
             
-            progressiveQuestion.style.display = 'none';
-            currentQuestionIndex++;
-            
+            // Auto-submit after selection
             setTimeout(() => {
-                showNextQuestion();
-            }, 30000);
+                const question = questions[currentQuestionIndex];
+                tripEnrichmentData[question.field] = option;
+                
+                if (activeTrip) {
+                    const updateData = {};
+                    updateData[question.field] = option;
+                    
+                    db.collection('activeTrips').doc(currentUser.uid).update(updateData)
+                        .then(() => {
+                            console.log(`Saved ${question.field}: ${option}`);
+                        })
+                        .catch((error) => {
+                            console.error('Error updating trip:', error);
+                        });
+                }
+                
+                progressiveQuestion.style.display = 'none';
+                currentQuestionIndex++;
+                
+                setTimeout(() => {
+                    showNextQuestion();
+                }, 30000);
+            }, 500);
         }
 
         function skipQuestion() {
