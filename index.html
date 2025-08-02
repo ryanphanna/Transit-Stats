@@ -713,23 +713,48 @@
 
             console.log('Loading trips for user:', currentUser.uid);
 
+            console.log('Starting to load trips for user:', currentUser.uid);
+
             db.collection('trips')
                 .where('userId', '==', currentUser.uid)
                 .orderBy('startTime', 'desc')
                 .limit(20)
                 .onSnapshot((snapshot) => {
-                    console.log('Trips loaded:', snapshot.size);
+                    console.log('✅ Trips query successful! Loaded:', snapshot.size, 'trips');
                     
                     const trips = [];
                     snapshot.forEach((doc) => {
                         trips.push({ id: doc.id, ...doc.data() });
                     });
                     
-                    console.log('Displaying', trips.length, 'trips');
+                    console.log('✅ Displaying', trips.length, 'trips');
                     displayTrips(trips);
                 }, (error) => {
-                    console.error('Error loading trips:', error);
-                    tripsList.innerHTML = '<div class="empty-state">Error loading trips: ' + error.message + '</div>';
+                    console.error('❌ Firestore query error:', error);
+                    console.error('Error code:', error.code);
+                    console.error('Error message:', error.message);
+                    
+                    // Fallback: try without orderBy if index fails
+                    console.log('🔄 Trying fallback query without orderBy...');
+                    db.collection('trips')
+                        .where('userId', '==', currentUser.uid)
+                        .limit(20)
+                        .onSnapshot((snapshot) => {
+                            console.log('📦 Fallback query successful:', snapshot.size, 'trips');
+                            const trips = [];
+                            snapshot.forEach((doc) => {
+                                trips.push({ id: doc.id, ...doc.data() });
+                            });
+                            
+                            // Sort on client side as backup
+                            trips.sort((a, b) => {
+                                const timeA = a.startTime?.toDate ? a.startTime.toDate() : new Date(a.startTime);
+                                const timeB = b.startTime?.toDate ? b.startTime.toDate() : new Date(b.startTime);
+                                return timeB - timeA;
+                            });
+                            
+                            displayTrips(trips);
+                        });
                 });
 
             // Check for active trip
