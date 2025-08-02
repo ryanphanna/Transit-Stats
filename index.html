@@ -26,8 +26,39 @@
             background: rgba(255,255,255,0.3);
             transform: scale(1.05);
         }
-        .container { max-width: 100%; padding: 15px; }
+        .container { max-width: 100%; padding: 15px 15px 80px 15px; }
         .section { background: white; border-radius: 8px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        
+        /* Footer status bar */
+        .status-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #ddd;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
+            z-index: 100;
+        }
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        .status-indicator.excellent { background: #d4edda; color: #155724; }
+        .status-indicator.good { background: #fff3cd; color: #856404; }
+        .status-indicator.poor { background: #f8d7da; color: #721c24; }
+        .status-indicator.loading { background: #e3f2fd; color: #1976d2; }
+        .status-indicator.connected { background: #d4edda; color: #155724; }
+        .status-indicator.disconnected { background: #f8d7da; color: #721c24; }
+        
         .auth-section { text-align: center; padding: 40px 20px; }
         .auth-section h2 { margin-bottom: 20px; color: #333; }
         .auth-section p { margin-bottom: 20px; color: #666; }
@@ -35,11 +66,6 @@
         .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
         .form-group input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 1em; }
         .form-group input:focus { outline: none; border-color: #667eea; }
-        .location-box { background: #f0f0f0; border: 1px solid #ddd; border-radius: 6px; padding: 12px; margin-bottom: 15px; font-size: 0.9em; text-align: center; transition: all 0.3s ease; }
-        .location-box.excellent { background: #d4edda; border-color: #2ed573; color: #155724; }
-        .location-box.good { background: #fff3cd; border-color: #ffc107; color: #856404; }
-        .location-box.poor { background: #f8d7da; border-color: #dc3545; color: #721c24; }
-        .location-box.loading { background: #e3f2fd; border-color: #2196f3; color: #1976d2; }
         .preview-box { margin-top: 8px; padding: 10px; border-radius: 6px; font-size: 0.9em; border: 1px solid transparent; }
         .preview-box.new { background: #e8f5e8; border-color: #2ed573; color: #2d7738; }
         .preview-box.existing { background: #fff3cd; border-color: #ffc107; color: #856404; }
@@ -49,7 +75,6 @@
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-danger { background: #ff4757; color: white; }
         .btn-outline { background: transparent; color: #666; border: 2px solid #ddd; }
-        .button-group { display: flex; gap: 10px; flex-direction: column; }
         .trip-status { background: #e8f5e8; border: 2px solid #2ed573; border-radius: 8px; padding: 20px; margin-bottom: 15px; text-align: center; }
         .trip-item { background: #f9f9f9; border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 4px solid #667eea; }
         .empty-state { text-align: center; color: #999; padding: 20px; font-style: italic; }
@@ -136,16 +161,32 @@
                         <button class="emoji-btn" onclick="selectEmoji('✈️')">✈️</button>
                     </div>
                 </div>
-                
-                <div class="button-group" style="margin-top: 20px;">
-                    <button class="btn btn-primary" onclick="saveProfile()">Save Profile</button>
-                    <button class="btn btn-outline" onclick="hideProfile()">Back</button>
+
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="saveProfile()" style="flex: 1;">Save Profile</button>
+                </div>
+
+                <!-- Recent Trips on Profile Page -->
+                <div style="border-top: 1px solid #eee; padding-top: 20px;">
+                    <h3 style="margin-bottom: 15px; color: #333;">Recent Trips (<span id="profileTripCount">0</span>)</h3>
+                    <div id="profileTripsList">
+                        <div class="loading">Loading trips...</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
                     <button class="btn" style="background: #ff4757; color: white;" onclick="signOut()">Sign Out</button>
                 </div>
             </div>
 
             <div id="statsSection" class="section" style="display: none;">
-                <h2>📊 Your Stats</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>📊 Your Stats</h2>
+                    <div style="background: #f8f9fa; border-radius: 20px; padding: 4px; display: flex;">
+                        <button id="statsToggle30" class="btn" style="background: #667eea; color: white; padding: 8px 16px; margin: 0; border-radius: 16px; font-size: 0.9em;">Last 30 Days</button>
+                        <button id="statsToggleAll" class="btn btn-outline" style="padding: 8px 16px; margin: 0; border: none; font-size: 0.9em;">All Time</button>
+                    </div>
+                </div>
                 
                 <!-- Streak Stats Section -->
                 <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8e6b 100%); border-radius: 12px; padding: 20px; margin-bottom: 20px; color: white; text-align: center;">
@@ -205,17 +246,10 @@
                         </div>
                     </div>
                 </div>
-
-                <div class="button-group" style="margin-top: 20px;">
-                    <button class="btn btn-outline" onclick="hideStats()">Back</button>
-                </div>
             </div>
 
             <div id="startSection" class="section">
                 <h2>Start New Trip</h2>
-                <div id="locationBox" class="location-box" style="display: none;">
-                    <span id="locationText">Getting location...</span>
-                </div>
                 <div class="form-group">
                     <label>Boarding Stop</label>
                     <input type="text" id="stopInput" placeholder="e.g., 6638 or Union Station">
@@ -272,6 +306,16 @@
         </div>
     </div>
 
+    <!-- Status Footer -->
+    <div class="status-footer">
+        <div id="locationStatus" class="status-indicator loading">
+            📍 Getting location...
+        </div>
+        <div id="connectionStatus" class="status-indicator connected">
+            🔗 Connected
+        </div>
+    </div>
+
     <script>
         console.log('🚀 TransitStats Loading...');
         
@@ -291,7 +335,9 @@
 
         let currentUser = null;
         let activeTrip = null;
+        let currentStatsView = '30days';
 
+        // DOM Elements
         const authSection = document.getElementById('authSection');
         const appContent = document.getElementById('appContent');
         const profileSection = document.getElementById('profileSection');
@@ -316,15 +362,16 @@
         const cancelBtn = document.getElementById('cancelBtn');
         const tripsList = document.getElementById('tripsList');
         const tripCount = document.getElementById('tripCount');
-        const locationBox = document.getElementById('locationBox');
-        const locationText = document.getElementById('locationText');
         const progressiveQuestion = document.getElementById('progressiveQuestion');
         const questionText = document.getElementById('questionText');
         const questionInput = document.getElementById('questionInput');
         const answerBtn = document.getElementById('answerBtn');
         const skipBtn = document.getElementById('skipBtn');
         const streakStatus = document.getElementById('streakStatus');
+        const locationStatus = document.getElementById('locationStatus');
+        const connectionStatus = document.getElementById('connectionStatus');
 
+        // Authentication State Management
         auth.onAuthStateChanged((user) => {
             currentUser = user;
             if (user) {
@@ -350,6 +397,7 @@
             initializeApp();
         }
 
+        // Profile Management
         function loadUserProfile() {
             db.collection('profiles').doc(currentUser.uid).get()
                 .then((doc) => {
@@ -359,7 +407,6 @@
                         document.getElementById('profileAvatar').textContent = emoji;
                         document.getElementById('nameInput').value = profile.name || '';
                         
-                        // Hide emoji selector and show shuffle button if user has chosen an emoji
                         if (profile.emoji) {
                             document.getElementById('emojiSelector').style.display = 'none';
                             document.getElementById('shuffleEmojiBtn').style.display = 'block';
@@ -376,21 +423,12 @@
             profileSection.style.display = 'block';
         }
 
-        function hideProfile() {
-            profileSection.style.display = 'none';
-            goHome();
-        }
-
         function showStats() {
             hideAllSections();
             statsSection.style.display = 'block';
+            initializeStatsToggle();
             updateStatsSection();
             loadCommunityData();
-        }
-
-        function hideStats() {
-            statsSection.style.display = 'none';
-            goHome();
         }
 
         function hideAllSections() {
@@ -398,10 +436,30 @@
             statsSection.style.display = 'none';
         }
 
+        function goHome() {
+            hideAllSections();
+            if (activeTrip) {
+                showActiveSection();
+            } else {
+                showStartSection();
+            }
+        }
+
         function selectEmoji(emoji) {
             document.querySelectorAll('.emoji-btn').forEach(btn => btn.classList.remove('selected'));
             event.target.classList.add('selected');
             document.getElementById('profileAvatar').textContent = emoji;
+        }
+
+        function shuffleEmoji() {
+            const emojis = ['🚌', '🚇', '🚊', '🚋', '🚞', '🚝', '🚄', '✈️'];
+            const currentEmoji = document.getElementById('profileAvatar').textContent;
+            let newEmoji;
+            do {
+                newEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+            } while (newEmoji === currentEmoji);
+            
+            document.getElementById('profileAvatar').textContent = newEmoji;
         }
 
         function saveProfile() {
@@ -423,7 +481,7 @@
             db.collection('profiles').doc(currentUser.uid).set(profileData)
                 .then(() => {
                     alert('Profile saved!');
-                    hideProfile();
+                    goHome();
                 })
                 .catch((error) => {
                     console.error('Error saving profile:', error);
@@ -431,12 +489,54 @@
                 });
         }
 
+        function signOut() {
+            auth.signOut();
+        }
+
+        // Stats Management
+        function initializeStatsToggle() {
+            const toggle30 = document.getElementById('statsToggle30');
+            const toggleAll = document.getElementById('statsToggleAll');
+            
+            toggle30.addEventListener('click', () => {
+                if (currentStatsView !== '30days') {
+                    currentStatsView = '30days';
+                    toggle30.style.background = '#667eea';
+                    toggle30.style.color = 'white';
+                    toggleAll.style.background = 'transparent';
+                    toggleAll.style.color = '#666';
+                    updateStatsSection();
+                    loadCommunityData();
+                }
+            });
+            
+            toggleAll.addEventListener('click', () => {
+                if (currentStatsView !== 'alltime') {
+                    currentStatsView = 'alltime';
+                    toggleAll.style.background = '#667eea';
+                    toggleAll.style.color = 'white';
+                    toggle30.style.background = 'transparent';
+                    toggle30.style.color = '#666';
+                    updateStatsSection();
+                    loadCommunityData();
+                }
+            });
+        }
+
         function updateStatsSection() {
             if (!currentUser) return;
 
-            db.collection('trips')
-                .where('userId', '==', currentUser.uid)
-                .get()
+            const now = new Date();
+            let dateFilter = null;
+            if (currentStatsView === '30days') {
+                dateFilter = new Date();
+                dateFilter.setDate(dateFilter.getDate() - 30);
+            }
+
+            const query = db.collection('trips').where('userId', '==', currentUser.uid);
+            const finalQuery = dateFilter ? query.where('startTime', '>=', firebase.firestore.Timestamp.fromDate(dateFilter)) : query;
+
+            finalQuery.get()
                 .then((snapshot) => {
                     const trips = [];
                     snapshot.forEach((doc) => {
@@ -464,7 +564,6 @@
                     document.getElementById('statsCurrentStreak').textContent = streakData.current;
                     document.getElementById('statsBestStreak').textContent = streakData.best;
 
-                    // Generate top routes and stops
                     generateTopRoutes(trips);
                     generateTopStops(trips);
                 });
@@ -519,12 +618,15 @@
         }
 
         function loadCommunityData() {
-            // Get aggregated community stats for last 30 days
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const dateFilter = new Date();
+            if (currentStatsView === '30days') {
+                dateFilter.setDate(dateFilter.getDate() - 30);
+            } else {
+                dateFilter.setFullYear(dateFilter.getFullYear() - 10);
+            }
 
             db.collection('trips')
-                .where('startTime', '>=', firebase.firestore.Timestamp.fromDate(thirtyDaysAgo))
+                .where('startTime', '>=', firebase.firestore.Timestamp.fromDate(dateFilter))
                 .get()
                 .then((snapshot) => {
                     const allTrips = [];
@@ -541,12 +643,14 @@
                     const totalUsers = new Set(allTrips.map(t => t.userId)).size;
                     const userRank = calculateUserRank(userTrips.length, allTrips);
                     const avgTripsPerUser = totalUsers > 0 ? Math.round(allTrips.length / totalUsers * 10) / 10 : 0;
+                    
+                    const timeLabel = currentStatsView === '30days' ? '30 days' : 'all time';
 
                     const communityHtml = `
                         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
                             <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
                                 <div style="font-size: 1.8em; font-weight: bold; color: #667eea;">${userTrips.length}</div>
-                                <div style="font-size: 0.9em; color: #666;">Your trips (30 days)</div>
+                                <div style="font-size: 0.9em; color: #666;">Your trips (${timeLabel})</div>
                             </div>
                             <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
                                 <div style="font-size: 1.8em; font-weight: bold; color: #667eea;">#${userRank}</div>
@@ -641,10 +745,7 @@
             return { current: currentStreak, best: bestStreak };
         }
 
-        function signOut() {
-            auth.signOut();
-        }
-
+        // Authentication Event Handlers
         signInBtn.addEventListener('click', () => {
             const email = emailInput.value.trim();
             const password = passwordInput.value.trim();
@@ -713,39 +814,7 @@
             authStatus.style.display = 'block';
         }
 
-        function initializeApp() {
-            stopInput.addEventListener('input', updateStartButton);
-            routeInput.addEventListener('input', updateStartButton);
-            startBtn.addEventListener('click', startTrip);
-            endBtn.addEventListener('click', showEndModal);
-            document.getElementById('abandonBtn').addEventListener('click', abandonTrip);
-            saveBtn.addEventListener('click', saveTrip);
-            cancelBtn.addEventListener('click', hideEndModal);
-            profileBtn.addEventListener('click', showProfile);
-            statsBtn.addEventListener('click', showStats);
-            document.getElementById('shuffleEmojiBtn').addEventListener('click', shuffleEmoji);
-            answerBtn.addEventListener('click', submitAnswer);
-            skipBtn.addEventListener('click', skipQuestion);
-            loadTrips();
-            getCurrentLocation(() => {});
-        }
-
-        function abandonTrip() {
-            if (confirm('Are you sure you want to abandon this trip? This cannot be undone.')) {
-                db.collection('activeTrips').doc(currentUser.uid).delete()
-                    .then(() => {
-                        activeTrip = null;
-                        progressiveQuestion.style.display = 'none';
-                        showStartSection();
-                        alert('Trip abandoned');
-                    })
-                    .catch((error) => {
-                        console.error('Error abandoning trip:', error);
-                        alert('Error abandoning trip. Please try again.');
-                    });
-            }
-        }
-
+        // Trip Management
         function updateStartButton() {
             const hasStop = stopInput.value.trim().length > 0;
             const hasRoute = routeInput.value.trim().length > 0;
@@ -893,6 +962,22 @@
             });
         }
 
+        function abandonTrip() {
+            if (confirm('Are you sure you want to abandon this trip? This cannot be undone.')) {
+                db.collection('activeTrips').doc(currentUser.uid).delete()
+                    .then(() => {
+                        activeTrip = null;
+                        progressiveQuestion.style.display = 'none';
+                        showStartSection();
+                        alert('Trip abandoned');
+                    })
+                    .catch((error) => {
+                        console.error('Error abandoning trip:', error);
+                        alert('Error abandoning trip. Please try again.');
+                    });
+            }
+        }
+
         function loadTrips() {
             if (!currentUser) {
                 console.log('No user logged in');
@@ -968,28 +1053,9 @@
             document.getElementById('recentTripsSection').style.display = 'none';
         }
 
-        function goHome() {
-            hideAllSections();
-            if (activeTrip) {
-                showActiveSection();
-            } else {
-                showStartSection();
-            }
-        }
-
-        function shuffleEmoji() {
-            const emojis = ['🚌', '🚇', '🚊', '🚋', '🚞', '🚝', '🚄', '✈️'];
-            const currentEmoji = document.getElementById('profileAvatar').textContent;
-            let newEmoji;
-            do {
-                newEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-            } while (newEmoji === currentEmoji);
-            
-            document.getElementById('profileAvatar').textContent = newEmoji;
-        }
-
         function displayTrips(trips) {
             tripCount.textContent = trips.length;
+            document.getElementById('profileTripCount').textContent = trips.length;
             
             if (trips.length > 0) {
                 const streakData = calculateStreaks(trips);
@@ -997,11 +1063,13 @@
             }
             
             if (trips.length === 0) {
-                tripsList.innerHTML = '<div class="empty-state">No trips yet. Start your first trip above!</div>';
+                const emptyMessage = '<div class="empty-state">No trips yet. Start your first trip above!</div>';
+                tripsList.innerHTML = emptyMessage;
+                document.getElementById('profileTripsList').innerHTML = emptyMessage;
                 return;
             }
 
-            tripsList.innerHTML = trips.slice(0, 20).map(trip => {
+            const tripsHtml = trips.slice(0, 20).map(trip => {
                 let startTime;
                 if (trip.startTime?.toDate) {
                     startTime = trip.startTime.toDate();
@@ -1019,6 +1087,9 @@
                     </div>
                 `;
             }).join('');
+
+            tripsList.innerHTML = tripsHtml;
+            document.getElementById('profileTripsList').innerHTML = tripsHtml;
         }
 
         function updateStreakStatus(streakData) {
@@ -1041,14 +1112,15 @@
             }
         }
 
+        // Location and Status Management
         function getCurrentLocation(callback) {
             if (!navigator.geolocation) {
-                updateLocationBox('📍 Location not supported', 'poor');
+                updateLocationStatus('📍 Location not supported', 'poor');
                 callback(null);
                 return;
             }
 
-            updateLocationBox('📍 Getting location...', 'loading');
+            updateLocationStatus('📍 Getting location...', 'loading');
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -1068,9 +1140,9 @@
                     
                     const statusMessage = useLocation ? 
                         `📍 Location ready (±${accuracy}m)` : 
-                        `📍 Location too inaccurate (±${accuracy}m) - not saving GPS`;
+                        `📍 Location inaccurate (±${accuracy}m)`;
                     
-                    updateLocationBox(statusMessage, className);
+                    updateLocationStatus(statusMessage, className);
                     
                     if (useLocation) {
                         const location = {
@@ -1088,7 +1160,7 @@
                 },
                 (error) => {
                     console.log('Location error:', error);
-                    updateLocationBox('📍 Location unavailable', 'poor');
+                    updateLocationStatus('📍 Location unavailable', 'poor');
                     callback(null);
                 },
                 {
@@ -1099,13 +1171,22 @@
             );
         }
 
-        function updateLocationBox(message, type) {
-            locationText.textContent = message;
-            locationBox.className = `location-box ${type}`;
-            locationBox.style.display = 'block';
+        function updateLocationStatus(message, type) {
+            locationStatus.textContent = message;
+            locationStatus.className = `status-indicator ${type}`;
         }
 
-        // Progressive question system
+        function updateConnectionStatus(connected) {
+            if (connected) {
+                connectionStatus.textContent = '🔗 Connected';
+                connectionStatus.className = 'status-indicator connected';
+            } else {
+                connectionStatus.textContent = '⚠️ Offline';
+                connectionStatus.className = 'status-indicator disconnected';
+            }
+        }
+
+        // Progressive Question System
         let currentQuestionIndex = 0;
         let tripEnrichmentData = {};
         
@@ -1186,6 +1267,29 @@
             setTimeout(() => {
                 showNextQuestion();
             }, 30000);
+        }
+
+        // App Initialization
+        function initializeApp() {
+            stopInput.addEventListener('input', updateStartButton);
+            routeInput.addEventListener('input', updateStartButton);
+            startBtn.addEventListener('click', startTrip);
+            endBtn.addEventListener('click', showEndModal);
+            document.getElementById('abandonBtn').addEventListener('click', abandonTrip);
+            saveBtn.addEventListener('click', saveTrip);
+            cancelBtn.addEventListener('click', hideEndModal);
+            profileBtn.addEventListener('click', showProfile);
+            statsBtn.addEventListener('click', showStats);
+            document.getElementById('shuffleEmojiBtn').addEventListener('click', shuffleEmoji);
+            answerBtn.addEventListener('click', submitAnswer);
+            skipBtn.addEventListener('click', skipQuestion);
+            loadTrips();
+            getCurrentLocation(() => {});
+            
+            // Monitor connection status
+            window.addEventListener('online', () => updateConnectionStatus(true));
+            window.addEventListener('offline', () => updateConnectionStatus(false));
+            updateConnectionStatus(navigator.onLine);
         }
 
         console.log('🎉 TransitStats fully loaded and ready!');
