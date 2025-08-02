@@ -588,22 +588,29 @@
         }
 
         function updateTripIndicator() {
+            const streakVisible = streakStatus.style.display === 'block';
+            
             if (activeTrip) {
                 activeTripBanner.innerHTML = `🚌 Currently riding ${activeTrip.route} • Tap to view`;
                 activeTripBanner.style.display = 'block';
-                bannersContainer.className = 'banner-container'; // Side by side
                 
-                // Make streak banner text shorter when sharing space
-                const currentText = streakStatus.textContent;
-                if (currentText && currentText.includes('Keep it going!')) {
-                    streakStatus.textContent = currentText.replace(' Keep it going!', '').replace(' You\'re a transit champion!', '');
+                // Only use side-by-side layout if BOTH banners are visible
+                if (streakVisible) {
+                    bannersContainer.className = 'banner-container'; // Side by side
+                    // Make streak banner text shorter when sharing space
+                    const currentText = streakStatus.textContent;
+                    if (currentText && currentText.includes('Keep it going!')) {
+                        streakStatus.textContent = currentText.replace(' Keep it going!', '').replace(' You\'re a transit champion!', '');
+                    }
+                } else {
+                    bannersContainer.className = 'banner-container full-width'; // Full width for single banner
                 }
             } else {
                 activeTripBanner.style.display = 'none';
                 bannersContainer.className = 'banner-container full-width'; // Full width
                 
                 // Restore full streak text when banner is full width
-                if (streakStatus.style.display === 'block') {
+                if (streakVisible) {
                     // Re-calculate to get proper text
                     loadTrips();
                 }
@@ -1216,44 +1223,70 @@
                 return;
             }
 
+            // Disable the save button to prevent double-clicks
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+
             getCurrentLocation((exitLocation) => {
+                // Handle the startTime whether it's a Firestore Timestamp or already a Date
+                let startTime;
+                if (activeTrip.startTime && activeTrip.startTime.toDate) {
+                    startTime = activeTrip.startTime.toDate();
+                } else if (activeTrip.startTime) {
+                    startTime = new Date(activeTrip.startTime);
+                } else {
+                    startTime = new Date();
+                }
+
+                const endTime = new Date();
+                const duration = Math.round((endTime - startTime) / 1000 / 60);
+
                 const completedTrip = {
                     startStop: activeTrip.startStop,
                     endStop: exitStop,
                     route: activeTrip.route,
-                    startTime: activeTrip.startTime,
-                    endTime: firebase.firestore.Timestamp.now(),
-                    boardingLocation: activeTrip.boardingLocation,
+                    startTime: activeTrip.startTime || firebase.firestore.Timestamp.fromDate(startTime),
+                    endTime: firebase.firestore.Timestamp.fromDate(endTime),
+                    boardingLocation: activeTrip.boardingLocation || null,
                     exitLocation: exitLocation,
                     userId: currentUser.uid,
+                    duration: duration,
                     // Include any additional data collected during the trip
-                    vehicleNumber: activeTrip.vehicleNumber,
-                    routeType: activeTrip.routeType,
-                    direction: activeTrip.direction,
-                    crowdLevel: activeTrip.crowdLevel,
-                    vehicleType: activeTrip.vehicleType
+                    vehicleNumber: activeTrip.vehicleNumber || null,
+                    routeType: activeTrip.routeType || null,
+                    direction: activeTrip.direction || null,
+                    crowdLevel: activeTrip.crowdLevel || null,
+                    vehicleType: activeTrip.vehicleType || null
                 };
 
-                const startMs = activeTrip.startTime.toDate().getTime();
-                const endMs = completedTrip.endTime.toDate().getTime();
-                completedTrip.duration = Math.round((endMs - startMs) / 1000 / 60);
+                console.log('Saving trip:', completedTrip);
 
                 db.collection('trips').add(completedTrip)
                     .then(() => {
+                        console.log('Trip saved to database');
                         return db.collection('activeTrips').doc(currentUser.uid).delete();
                     })
                     .then(() => {
+                        console.log('Active trip deleted');
                         activeTrip = null;
                         progressiveQuestion.style.display = 'none';
                         hideEndModal();
                         showStartSection();
                         updateTripIndicator();
                         loadTrips();
+                        
+                        // Re-enable the save button
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = 'Save Trip';
+                        
                         const locationMsg = exitLocation ? '📍 GPS captured' : '📍 No GPS';
                         alert(`Trip saved! ${locationMsg}`);
                     })
                     .catch((error) => {
                         console.error('Error saving trip:', error);
+                        // Re-enable the save button on error
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = 'Save Trip';
                         alert('Error saving trip. Please try again.');
                     });
             });
@@ -1390,6 +1423,8 @@
         function updateStreakStatus(streakData) {
             if (streakData.current === 0) {
                 streakStatus.style.display = 'none';
+                // Update banner layout since streak is hidden
+                updateTripIndicator();
                 return;
             }
 
@@ -1410,6 +1445,9 @@
             }
             
             streakStatus.innerHTML = `<span class="current-streak-text">${text}</span>`;
+            
+            // Update banner layout after showing streak
+            updateTripIndicator();
         }
 
         // Location and Status Management
