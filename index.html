@@ -40,6 +40,25 @@
             font-size: 0.9em;
             margin-top: 20px;
         }
+        
+        /* Sticky trip indicator */
+        .trip-indicator {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 15px;
+            font-weight: 500;
+            cursor: pointer;
+            z-index: 100;
+            border-top: 2px solid rgba(255,255,255,0.3);
+            transition: all 0.2s ease;
+        }
+        .trip-indicator:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
         .status-indicator {
             display: flex;
             align-items: center;
@@ -180,17 +199,13 @@
                 <!-- Founder Stats Section -->
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px; margin-bottom: 15px; color: white; text-align: center;">
                     <h3 style="margin-bottom: 15px; font-size: 1.2em;">🚀 Founder Stats</h3>
-                    <div style="margin-bottom: 10px;">
-                        <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="profileFounderTotal">0</div>
-                        <div style="font-size: 0.9em; opacity: 0.9;">Total Founded</div>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.3);">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                         <div>
-                            <div style="font-size: 1.8em; font-weight: bold; margin-bottom: 5px;" id="profileFounderRoutes">0</div>
+                            <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="profileFounderRoutes">0</div>
                             <div style="font-size: 0.9em; opacity: 0.9;">Routes</div>
                         </div>
                         <div>
-                            <div style="font-size: 1.8em; font-weight: bold; margin-bottom: 5px;" id="profileFounderStops">0</div>
+                            <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="profileFounderStops">0</div>
                             <div style="font-size: 0.9em; opacity: 0.9;">Stops</div>
                         </div>
                     </div>
@@ -325,7 +340,12 @@
                 <button id="cancelBtn" class="btn" style="background: #ddd;">Cancel</button>
             </div>
         </div>
-    </div>
+            </div>
+
+        <!-- Trip Indicator (shown when actively riding) -->
+        <div id="tripIndicator" class="trip-indicator" style="display: none;" onclick="goToActiveTrip()">
+            🚌 Currently riding • Tap to view
+        </div>
 
         <!-- Status Footer -->
         <div class="status-footer">
@@ -391,6 +411,7 @@
         const streakStatus = document.getElementById('streakStatus');
         const locationStatus = document.getElementById('locationStatus');
         const connectionStatus = document.getElementById('connectionStatus');
+        const tripIndicator = document.getElementById('tripIndicator');
 
         // Authentication State Management
         auth.onAuthStateChanged((user) => {
@@ -444,6 +465,7 @@
             profileSection.style.display = 'block';
             document.getElementById('startSection').style.display = 'none';
             document.getElementById('recentTripsSection').style.display = 'none';
+            updateTripIndicator();
             updateProfileStats();
         }
 
@@ -452,6 +474,7 @@
             statsSection.style.display = 'block';
             document.getElementById('startSection').style.display = 'none';
             document.getElementById('recentTripsSection').style.display = 'none';
+            updateTripIndicator();
             initializeStatsToggle();
             updateStatsSection();
             loadCommunityData();
@@ -468,6 +491,15 @@
                 showActiveSection();
             } else {
                 showStartSection();
+            }
+        }
+
+        function updateTripIndicator() {
+            if (activeTrip) {
+                tripIndicator.innerHTML = `🚌 Currently riding ${activeTrip.route} • Tap to view`;
+                tripIndicator.style.display = 'block';
+            } else {
+                tripIndicator.style.display = 'none';
             }
         }
 
@@ -614,42 +646,10 @@
         }
 
         function calculateFounderStats(trips) {
-            // Get all routes and stops to check if user was first
-            Promise.all([
-                db.collection('routes').get(),
-                db.collection('stops').get()
-            ]).then(([routesSnapshot, stopsSnapshot]) => {
-                let founderRoutes = 0;
-                let founderStops = 0;
-
-                // Check routes founded by this user
-                routesSnapshot.forEach((doc) => {
-                    const route = doc.data();
-                    if (route.founderId === currentUser.uid) {
-                        founderRoutes++;
-                    }
-                });
-
-                // Check stops founded by this user  
-                stopsSnapshot.forEach((doc) => {
-                    const stop = doc.data();
-                    if (stop.founderId === currentUser.uid) {
-                        founderStops++;
-                    }
-                });
-
-                const totalFounded = founderRoutes + founderStops;
-                
-                document.getElementById('profileFounderTotal').textContent = totalFounded;
-                document.getElementById('profileFounderRoutes').textContent = founderRoutes;
-                document.getElementById('profileFounderStops').textContent = founderStops;
-            }).catch((error) => {
-                console.error('Error calculating founder stats:', error);
-                // Show 0s if there's an error
-                document.getElementById('profileFounderTotal').textContent = '0';
-                document.getElementById('profileFounderRoutes').textContent = '0';
-                document.getElementById('profileFounderStops').textContent = '0';
-            });
+            // For now, show 0s until we implement route/stop founding
+            // This will be updated when trips start tracking new routes/stops
+            document.getElementById('profileFounderRoutes').textContent = '0';
+            document.getElementById('profileFounderStops').textContent = '0';
         }
 
         function generateTopRoutes(trips) {
@@ -741,11 +741,11 @@
                             </div>
                             <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
                                 <div style="font-size: 1.8em; font-weight: bold; color: #667eea;">${totalUsers}</div>
-                                <div style="font-size: 0.9em; color: #666;">Active riders</div>
+                                <div style="font-size: 0.9em; color: #666;">Total users</div>
                             </div>
                             <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
                                 <div style="font-size: 1.8em; font-weight: bold; color: #667eea;">${avgTripsPerUser}</div>
-                                <div style="font-size: 0.9em; color: #666;">Avg trips/rider</div>
+                                <div style="font-size: 0.9em; color: #666;">Avg trips/user</div>
                             </div>
                         </div>
                     `;
@@ -971,6 +971,7 @@
                         `;
                         
                         showActiveSection();
+                        updateTripIndicator();
                         
                         stopInput.value = '';
                         routeInput.value = '';
@@ -1034,6 +1035,7 @@
                         progressiveQuestion.style.display = 'none';
                         hideEndModal();
                         showStartSection();
+                        updateTripIndicator();
                         loadTrips();
                         const locationMsg = exitLocation ? '📍 GPS captured' : '📍 No GPS';
                         alert(`Trip saved! ${locationMsg}`);
@@ -1052,6 +1054,7 @@
                         activeTrip = null;
                         progressiveQuestion.style.display = 'none';
                         showStartSection();
+                        updateTripIndicator();
                         alert('Trip abandoned');
                     })
                     .catch((error) => {
@@ -1099,9 +1102,11 @@
                     if (doc.exists) {
                         activeTrip = { id: doc.id, ...doc.data() };
                         showActiveTrip();
+                        updateTripIndicator();
                     } else {
                         activeTrip = null;
                         showStartSection();
+                        updateTripIndicator();
                     }
                 });
         }
@@ -1454,6 +1459,11 @@
             setTimeout(() => {
                 showNextQuestion();
             }, 30000);
+        }
+
+        function goToActiveTrip() {
+            hideAllSections();
+            showActiveSection();
         }
 
         // App Initialization
