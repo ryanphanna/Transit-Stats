@@ -119,12 +119,13 @@
             <div id="profileSection" class="section" style="display: none;">
                 <h2>Profile</h2>
                 <div style="text-align: center; margin-bottom: 20px;">
-                    <div style="font-size: 3em; margin-bottom: 10px;">
+                    <div style="font-size: 3em; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;">
                         <span id="profileAvatar">🚌</span>
+                        <button id="shuffleEmojiBtn" style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 50%; padding: 8px; font-size: 0.5em; cursor: pointer; width: 30px; height: 30px; display: none;">🎲</button>
                     </div>
                     <input type="text" id="nameInput" placeholder="Your name (e.g., Ryan)" style="text-align: center; font-size: 1.1em; font-weight: 600; margin-bottom: 10px;">
                 </div>
-                <div style="margin-bottom: 20px;">
+                <div id="emojiSelector" style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 10px; font-weight: 500;">Choose your transit emoji:</label>
                     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
                         <button class="emoji-btn" onclick="selectEmoji('🚌')">🚌</button>
@@ -137,22 +138,31 @@
                         <button class="emoji-btn" onclick="selectEmoji('✈️')">✈️</button>
                     </div>
                 </div>
+                
+                <!-- Streak Stats Section -->
+                <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8e6b 100%); border-radius: 12px; padding: 20px; margin-bottom: 20px; color: white; text-align: center;">
+                    <h3 style="margin-bottom: 15px; font-size: 1.2em;">🔥 Streak Stats</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="currentStreak">0</div>
+                            <div style="font-size: 0.9em; opacity: 0.9;">Current Streak</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="bestStreak">0</div>
+                            <div style="font-size: 0.9em; opacity: 0.9;">🏆 Best Streak</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- General Stats Section -->
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-number" id="totalTrips">0</div>
                         <div class="stat-label">Total Trips</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number" id="currentStreak">0</div>
-                        <div class="stat-label">🔥 Current Streak</div>
-                    </div>
-                    <div class="stat-card">
                         <div class="stat-number" id="uniqueRoutes">0</div>
                         <div class="stat-label">Routes Used</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="bestStreak">0</div>
-                        <div class="stat-label">🏆 Best Streak</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-number" id="totalTime">0</div>
@@ -207,9 +217,10 @@
                 </div>
 
                 <button id="endBtn" class="btn btn-danger">🛑 End Trip</button>
+                <button id="abandonBtn" class="btn btn-outline" style="background: #ffc107; color: #856404; border-color: #ffc107;">⚠️ Cancel/Abandon Trip</button>
             </div>
 
-            <div class="section">
+            <div id="recentTripsSection" class="section">
                 <h2>Recent Trips (<span id="tripCount">0</span>)</h2>
                 <div id="tripsList">
                     <div class="loading">Loading trips...</div>
@@ -315,6 +326,12 @@
                         profileBtn.textContent = emoji;
                         document.getElementById('profileAvatar').textContent = emoji;
                         document.getElementById('nameInput').value = profile.name || '';
+                        
+                        // Hide emoji selector and show shuffle button if user has chosen an emoji
+                        if (profile.emoji) {
+                            document.getElementById('emojiSelector').style.display = 'none';
+                            document.getElementById('shuffleEmojiBtn').style.display = 'block';
+                        }
                     } else {
                         profileBtn.textContent = '👤';
                     }
@@ -543,13 +560,31 @@
             routeInput.addEventListener('input', updateStartButton);
             startBtn.addEventListener('click', startTrip);
             endBtn.addEventListener('click', showEndModal);
+            document.getElementById('abandonBtn').addEventListener('click', abandonTrip);
             saveBtn.addEventListener('click', saveTrip);
             cancelBtn.addEventListener('click', hideEndModal);
             profileBtn.addEventListener('click', showProfile);
+            document.getElementById('shuffleEmojiBtn').addEventListener('click', shuffleEmoji);
             answerBtn.addEventListener('click', submitAnswer);
             skipBtn.addEventListener('click', skipQuestion);
             loadTrips();
             getCurrentLocation(() => {});
+        }
+
+        function abandonTrip() {
+            if (confirm('Are you sure you want to abandon this trip? This cannot be undone.')) {
+                db.collection('activeTrips').doc(currentUser.uid).delete()
+                    .then(() => {
+                        activeTrip = null;
+                        progressiveQuestion.style.display = 'none';
+                        showStartSection();
+                        alert('Trip abandoned');
+                    })
+                    .catch((error) => {
+                        console.error('Error abandoning trip:', error);
+                        alert('Error abandoning trip. Please try again.');
+                    });
+            }
         }
 
         function updateStartButton() {
@@ -709,11 +744,12 @@
 
             console.log('Loading trips for user:', currentUser.uid);
 
+            // Use .get() instead of .onSnapshot() and remove orderBy to avoid index requirement
             db.collection('trips')
                 .where('userId', '==', currentUser.uid)
-                .orderBy('startTime', 'desc')
-                .limit(20)
-                .onSnapshot((snapshot) => {
+                .limit(50)
+                .get()
+                .then((snapshot) => {
                     console.log('✅ Trips loaded:', snapshot.size);
                     
                     const trips = [];
@@ -721,10 +757,18 @@
                         trips.push({ id: doc.id, ...doc.data() });
                     });
                     
+                    // Sort on client side by date (newest first)
+                    trips.sort((a, b) => {
+                        const timeA = a.startTime?.toDate ? a.startTime.toDate() : new Date(a.startTime);
+                        const timeB = b.startTime?.toDate ? b.startTime.toDate() : new Date(b.startTime);
+                        return timeB - timeA;
+                    });
+                    
                     displayTrips(trips);
-                }, (error) => {
+                })
+                .catch((error) => {
                     console.error('Error loading trips:', error);
-                    tripsList.innerHTML = '<div class="empty-state">Error loading trips: ' + error.message + '</div>';
+                    tripsList.innerHTML = '<div class="empty-state">Error loading trips. Please try again.</div>';
                 });
 
             db.collection('activeTrips').doc(currentUser.uid)
@@ -734,8 +778,7 @@
                         showActiveTrip();
                     } else {
                         activeTrip = null;
-                        startSection.style.display = 'block';
-                        activeSection.style.display = 'none';
+                        showStartSection();
                     }
                 });
         }
@@ -755,8 +798,40 @@
                 <div style="font-size: 0.8em; color: #666;">${locationText}</div>
             `;
             
+            showActiveSection();
+        }
+
+        function showStartSection() {
+            startSection.style.display = 'block';
+            activeSection.style.display = 'none';
+            document.getElementById('recentTripsSection').style.display = 'block';
+        }
+
+        function showActiveSection() {
             startSection.style.display = 'none';
             activeSection.style.display = 'block';
+            document.getElementById('recentTripsSection').style.display = 'none';
+        }
+
+        function goHome() {
+            profileSection.style.display = 'none';
+            if (activeTrip) {
+                showActiveSection();
+            } else {
+                showStartSection();
+            }
+        }
+
+        function shuffleEmoji() {
+            const emojis = ['🚌', '🚇', '🚊', '🚋', '🚞', '🚝', '🚄', '✈️'];
+            const currentEmoji = document.getElementById('profileAvatar').textContent;
+            let newEmoji;
+            do {
+                newEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+            } while (newEmoji === currentEmoji);
+            
+            document.getElementById('profileAvatar').textContent = newEmoji;
+            profileBtn.textContent = newEmoji;
         }
 
         function displayTrips(trips) {
