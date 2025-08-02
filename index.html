@@ -1456,6 +1456,17 @@
             progressiveQuestion.style.display = 'none';
             currentQuestionIndex++;
             
+            // Check if we need to ask conditional vehicle type question after skipping
+            if (currentQuestionIndex >= questions.length && tripEnrichmentData.routeType) {
+                const routeType = tripEnrichmentData.routeType;
+                if (vehicleTypeQuestions[routeType]) {
+                    setTimeout(() => {
+                        showVehicleTypeQuestion(routeType);
+                    }, 30000);
+                    return;
+                }
+            }
+            
             setTimeout(() => {
                 showNextQuestion();
             }, 30000);
@@ -1478,8 +1489,20 @@
             profileBtn.addEventListener('click', showProfile);
             statsBtn.addEventListener('click', showStats);
             document.getElementById('shuffleEmojiBtn').addEventListener('click', shuffleEmoji);
-            answerBtn.addEventListener('click', submitAnswer);
-            skipBtn.addEventListener('click', skipQuestion);
+            
+            // Progressive question event listeners
+            answerBtn.addEventListener('click', (e) => {
+                console.log('Answer button clicked!');
+                e.preventDefault();
+                submitAnswer();
+            });
+            
+            skipBtn.addEventListener('click', (e) => {
+                console.log('Skip button clicked!');
+                e.preventDefault();
+                skipQuestion();
+            });
+            
             loadTrips();
             getCurrentLocation(() => {});
             
