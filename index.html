@@ -6,7 +6,23 @@
     <title>TransitStats</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; line-height: 1.4; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: #f5f5f5; 
+            color: #333; 
+            line-height: 1.4; 
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .content-wrapper {
+            flex: 1;
+        }
         .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .header-row { display: flex; justify-content: space-between; align-items: center; }
         .header-title { font-size: 1.3em; font-weight: 600; cursor: pointer; }
@@ -29,35 +45,44 @@
         .container { max-width: 100%; padding: 15px; }
         .section { background: white; border-radius: 8px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         
-        /* Footer status bar - NOT sticky */
+        /* Footer status bar - bottom justified */
         .status-footer {
             background: white;
             border-top: 1px solid #ddd;
             padding: 10px 15px;
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-start;
             align-items: center;
+            gap: 20px;
             font-size: 0.9em;
-            margin-top: 20px;
         }
         
-        /* Sticky trip indicator */
-        .trip-indicator {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
+        /* Active trip banner */
+        .active-trip-banner {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 12px 15px;
+            padding: 12px 16px;
+            border-radius: 8px;
             font-weight: 500;
+            text-align: center;
             cursor: pointer;
-            z-index: 100;
-            border-top: 2px solid rgba(255,255,255,0.3);
             transition: all 0.2s ease;
         }
-        .trip-indicator:hover {
+        .active-trip-banner:hover {
             background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+        
+        /* When there's an active trip, streak and trip banners are side by side */
+        .banner-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        /* When no active trip, streak banner is full width */
+        .banner-container.full-width {
+            grid-template-columns: 1fr;
         }
         .status-indicator {
             display: flex;
@@ -71,7 +96,20 @@
         .status-indicator.good { background: #fff3cd; color: #856404; }
         .status-indicator.poor { background: #f8d7da; color: #721c24; }
         .status-indicator.loading { background: #e3f2fd; color: #1976d2; }
-        .status-indicator.connected { background: #d4edda; color: #155724; }
+        .status-indicator.connected { 
+            background: #d4edda; 
+            color: #155724; 
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .status-indicator.connected:hover {
+            background: #ff4757;
+            color: white;
+        }
+        .status-indicator.connected.logout-mode {
+            background: #ff4757;
+            color: white;
+        }
         .status-indicator.disconnected { background: #f8d7da; color: #721c24; }
         
         .auth-section { text-align: center; padding: 40px 20px; }
@@ -90,8 +128,33 @@
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-danger { background: #ff4757; color: white; }
         .btn-outline { background: transparent; color: #666; border: 2px solid #ddd; }
+        .btn-sm { padding: 8px 12px; font-size: 0.9em; width: auto; }
         .trip-status { background: #e8f5e8; border: 2px solid #2ed573; border-radius: 8px; padding: 20px; margin-bottom: 15px; text-align: center; }
-        .trip-item { background: #f9f9f9; border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 4px solid #667eea; }
+        .trip-item { 
+            background: #f9f9f9; 
+            border-radius: 8px; 
+            padding: 15px; 
+            margin-bottom: 10px; 
+            border-left: 4px solid #667eea; 
+            position: relative;
+        }
+        .trip-item:hover .delete-trip {
+            opacity: 1;
+        }
+        .delete-trip {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 0.8em;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
         .empty-state { text-align: center; color: #999; padding: 20px; font-style: italic; }
         .auth-status { background: #e3f2fd; border: 1px solid #2196f3; border-radius: 6px; padding: 10px; margin-bottom: 15px; font-size: 0.9em; color: #1976d2; }
         .loading { text-align: center; padding: 20px; color: #666; }
@@ -107,7 +170,6 @@
             color: white;
             padding: 12px 16px;
             border-radius: 8px;
-            margin-bottom: 15px;
             font-weight: 500;
             text-align: center;
             display: none;
@@ -121,230 +183,249 @@
             50% { transform: scale(1.02); }
             100% { transform: scale(1); }
         }
+        .question-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .question-options.main-options {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .more-btn {
+            grid-column: span 2;
+            background: #f8f9fa !important;
+            color: #666 !important;
+            border: 2px solid #dee2e6 !important;
+        }
     </style>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
-    <div class="header">
-        <div class="header-row">
-            <h1 class="header-title" onclick="goHome()">TransitStats</h1>
-            <div id="userInfo" class="user-info" style="display: none;">
-                <button id="profileBtn" class="header-btn">👤 Profile</button>
-                <button id="statsBtn" class="header-btn">📊 Stats</button>
+    <div class="main-content">
+        <div class="header">
+            <div class="header-row">
+                <h1 class="header-title" onclick="goHome()">TransitStats</h1>
+                <div id="userInfo" class="user-info" style="display: none;">
+                    <button id="profileBtn" class="header-btn">👤 Profile</button>
+                    <button id="statsBtn" class="header-btn">📊 Stats</button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="container">
-        <div id="authSection" class="section auth-section">
-            <h2>Welcome to TransitStats</h2>
-            <p>Sign in to sync your trips across all devices</p>
-            <div class="form-group">
-                <input type="email" id="emailInput" placeholder="Enter your email address">
-            </div>
-            <div class="form-group">
-                <input type="password" id="passwordInput" placeholder="Password (leave blank for magic link)">
-            </div>
-            <button id="signInBtn" class="btn btn-primary">Sign In</button>
-            <div id="authStatus" class="auth-status" style="display: none;"></div>
-        </div>
-
-        <div id="appContent" style="display: none;">
-            <div id="streakStatus" class="streak-status"></div>
-            
-            <div id="profileSection" class="section" style="display: none;">
-                <h2>👤 Profile</h2>
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <div style="font-size: 3em; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                        <span id="profileAvatar">🚌</span>
-                        <button id="shuffleEmojiBtn" style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 50%; padding: 8px; font-size: 0.5em; cursor: pointer; width: 30px; height: 30px; display: none;">🎲</button>
+        <div class="content-wrapper">
+            <div class="container">
+                <div id="authSection" class="section auth-section">
+                    <h2>Welcome to TransitStats</h2>
+                    <p>Sign in to sync your trips across all devices</p>
+                    <div class="form-group">
+                        <input type="email" id="emailInput" placeholder="Enter your email address">
                     </div>
-                    <input type="text" id="nameInput" placeholder="Your name (e.g., Ryan)" style="text-align: center; font-size: 1.1em; font-weight: 600; margin-bottom: 10px;">
-                </div>
-                <div id="emojiSelector" style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 10px; font-weight: 500;">Choose your transit emoji:</label>
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
-                        <button class="emoji-btn" onclick="selectEmoji('🚌')">🚌</button>
-                        <button class="emoji-btn" onclick="selectEmoji('🚇')">🚇</button>
-                        <button class="emoji-btn" onclick="selectEmoji('🚊')">🚊</button>
-                        <button class="emoji-btn" onclick="selectEmoji('🚋')">🚋</button>
-                        <button class="emoji-btn" onclick="selectEmoji('🚞')">🚞</button>
-                        <button class="emoji-btn" onclick="selectEmoji('🚝')">🚝</button>
-                        <button class="emoji-btn" onclick="selectEmoji('🚄')">🚄</button>
-                        <button class="emoji-btn" onclick="selectEmoji('✈️')">✈️</button>
+                    <div class="form-group">
+                        <input type="password" id="passwordInput" placeholder="Password (leave blank for magic link)">
                     </div>
+                    <button id="signInBtn" class="btn btn-primary">Sign In</button>
+                    <div id="authStatus" class="auth-status" style="display: none;"></div>
                 </div>
 
-                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                    <button class="btn btn-primary" onclick="saveProfile()" style="flex: 1;">Save Profile</button>
-                </div>
-
-                <!-- Streak Stats Section -->
-                <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8e6b 100%); border-radius: 12px; padding: 20px; margin-bottom: 15px; color: white; text-align: center;">
-                    <h3 style="margin-bottom: 15px; font-size: 1.2em;">🔥 Streak Stats</h3>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div>
-                            <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="profileCurrentStreak">0</div>
-                            <div style="font-size: 0.9em; opacity: 0.9;">Current Streak</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="profileBestStreak">0</div>
-                            <div style="font-size: 0.9em; opacity: 0.9;">🏆 Best Streak</div>
+                <div id="appContent" style="display: none;">
+                    <!-- Banners Container -->
+                    <div id="bannersContainer" class="banner-container full-width">
+                        <div id="streakStatus" class="streak-status"></div>
+                        <div id="activeTripBanner" class="active-trip-banner" style="display: none;" onclick="goToActiveTrip()">
+                            🚌 Currently riding • Tap to view
                         </div>
                     </div>
+                
+                <div id="profileSection" class="section" style="display: none;">
+                    <h2>👤 Profile</h2>
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div style="font-size: 3em; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            <span id="profileAvatar">🚌</span>
+                            <button id="shuffleEmojiBtn" style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 50%; padding: 8px; font-size: 0.5em; cursor: pointer; width: 30px; height: 30px; display: none;">🎲</button>
+                        </div>
+                        <input type="text" id="nameInput" placeholder="Your name (e.g., Ryan)" style="text-align: center; font-size: 1.1em; font-weight: 600; margin-bottom: 10px;">
+                    </div>
+                    <div id="emojiSelector" style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 10px; font-weight: 500;">Choose your transit emoji:</label>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+                            <button class="emoji-btn" onclick="selectEmoji('🚌')">🚌</button>
+                            <button class="emoji-btn" onclick="selectEmoji('🚇')">🚇</button>
+                            <button class="emoji-btn" onclick="selectEmoji('🚊')">🚊</button>
+                            <button class="emoji-btn" onclick="selectEmoji('🚋')">🚋</button>
+                            <button class="emoji-btn" onclick="selectEmoji('🚞')">🚞</button>
+                            <button class="emoji-btn" onclick="selectEmoji('🚝')">🚝</button>
+                            <button class="emoji-btn" onclick="selectEmoji('🚄')">🚄</button>
+                            <button class="emoji-btn" onclick="selectEmoji('✈️')">✈️</button>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <button class="btn btn-primary" onclick="saveProfile()" style="flex: 1;">Save Profile</button>
+                    </div>
+
+                    <!-- Streak Stats Section -->
+                    <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8e6b 100%); border-radius: 12px; padding: 20px; margin-bottom: 15px; color: white; text-align: center;">
+                        <h3 style="margin-bottom: 15px; font-size: 1.2em;">🔥 Streak Stats</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="profileCurrentStreak">0</div>
+                                <div style="font-size: 0.9em; opacity: 0.9;">Current Streak</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="profileBestStreak">0</div>
+                                <div style="font-size: 0.9em; opacity: 0.9;">🏆 Best Streak</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Founder Stats Section -->
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px; margin-bottom: 15px; color: white; text-align: center;">
+                        <h3 style="margin-bottom: 15px; font-size: 1.2em;">🚀 Founder Stats</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="profileFounderRoutes">0</div>
+                                <div style="font-size: 0.9em; opacity: 0.9;">Routes</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="profileFounderStops">0</div>
+                                <div style="font-size: 0.9em; opacity: 0.9;">Stops</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Trips on Profile Page -->
+                    <div style="border-top: 1px solid #eee; padding-top: 20px;">
+                        <h3 style="margin-bottom: 15px; color: #333;">Recent Trips</h3>
+                        <div id="profileTripsList">
+                            <div class="loading">Loading trips...</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                        <button class="btn" style="background: #ff4757; color: white;" onclick="signOut()">Sign Out</button>
+                    </div>
                 </div>
 
-                <!-- Founder Stats Section -->
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px; margin-bottom: 15px; color: white; text-align: center;">
-                    <h3 style="margin-bottom: 15px; font-size: 1.2em;">🚀 Founder Stats</h3>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div>
-                            <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="profileFounderRoutes">0</div>
-                            <div style="font-size: 0.9em; opacity: 0.9;">Routes</div>
+                <div id="statsSection" class="section" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2>📊 Your Stats</h2>
+                        <div style="background: #f8f9fa; border-radius: 20px; padding: 4px; display: flex;">
+                            <button id="statsToggle30" class="btn" style="background: #667eea; color: white; padding: 8px 16px; margin: 0; border-radius: 16px; font-size: 0.9em;">30 Days</button>
+                            <button id="statsToggleAll" class="btn btn-outline" style="padding: 8px 16px; margin: 0; border: none; font-size: 0.9em;">All Time</button>
                         </div>
-                        <div>
-                            <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="profileFounderStops">0</div>
-                            <div style="font-size: 0.9em; opacity: 0.9;">Stops</div>
+                    </div>
+                    
+                    <!-- General Stats Section -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="statsTotalTrips">0</div>
+                            <div class="stat-label">Trips</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="statsUniqueRoutes">0</div>
+                            <div class="stat-label">Routes</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="statsTotalTime">0</div>
+                            <div class="stat-label">Hours Traveled</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="statsUniqueStops">0</div>
+                            <div class="stat-label">Stops Visited</div>
+                        </div>
+                    </div>
+
+                    <!-- Community Comparison -->
+                    <div style="background: #f8f9fa; border-radius: 12px; padding: 20px; margin-top: 20px;">
+                        <h3 style="margin-bottom: 15px; color: #333;">🌍 Community Comparison</h3>
+                        <div id="communityStats">
+                            <div class="loading">Loading community data...</div>
+                        </div>
+                    </div>
+
+                    <!-- Top Routes & Stops -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                        <div style="background: white; border-radius: 8px; padding: 15px; border: 1px solid #ddd;">
+                            <h4 style="margin-bottom: 10px; color: #667eea;">🚌 Top Routes</h4>
+                            <div id="topRoutes">
+                                <div class="loading">Loading...</div>
+                            </div>
+                        </div>
+                        <div style="background: white; border-radius: 8px; padding: 15px; border: 1px solid #ddd;">
+                            <h4 style="margin-bottom: 10px; color: #667eea;">🚏 Top Stops</h4>
+                            <div id="topStops">
+                                <div class="loading">Loading...</div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Recent Trips on Profile Page -->
-                <div style="border-top: 1px solid #eee; padding-top: 20px;">
-                    <h3 style="margin-bottom: 15px; color: #333;">Recent Trips</h3>
-                    <div id="profileTripsList">
+                <div id="startSection" class="section">
+                    <h2>Start New Trip</h2>
+                    <div class="form-group">
+                        <label>Boarding Stop</label>
+                        <input type="text" id="stopInput" placeholder="e.g., 6638 or Union Station">
+                        <div id="stopPreview" class="preview-box" style="display: none;"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Route/Line</label>
+                        <input type="text" id="routeInput" placeholder="e.g., 65, Line 1, 504 King">
+                        <div id="routePreview" class="preview-box" style="display: none;"></div>
+                    </div>
+                    <button id="startBtn" class="btn btn-primary" disabled>🚌 Board Vehicle</button>
+                </div>
+
+                <div id="activeSection" class="section" style="display: none;">
+                    <div class="trip-status">
+                        <h2>🚌 Currently Riding</h2>
+                        <div id="currentTrip"></div>
+                    </div>
+                    
+                    <!-- Progressive Questions -->
+                    <div id="progressiveQuestion" class="section" style="display: none; background: #f8f9fa; border: 2px solid #667eea;">
+                        <div id="questionText" style="font-weight: 500; margin-bottom: 15px; color: #333;"></div>
+                        <div id="questionOptions" class="question-options" style="display: none;">
+                            <!-- Options will be populated by JavaScript -->
+                        </div>
+                        <div class="form-group" id="questionInputGroup">
+                            <input type="text" id="questionInput" placeholder="" style="margin-bottom: 10px;">
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button id="answerBtn" class="btn" style="background: #667eea; color: white; flex: 1;">Answer</button>
+                            <button id="skipBtn" class="btn btn-outline" style="flex: 1;">Skip</button>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button id="endBtn" class="btn btn-danger" style="flex: 1;">🛑 End Trip</button>
+                        <button id="abandonBtn" class="btn btn-outline" style="background: #ffc107; color: #856404; border-color: #ffc107; flex: 1;">⚠️ Cancel Trip</button>
+                    </div>
+                </div>
+
+                <div id="recentTripsSection" class="section">
+                    <h2>Recent Trips (<span id="tripCount">0</span>)</h2>
+                    <div id="tripsList">
                         <div class="loading">Loading trips...</div>
                     </div>
                 </div>
-
-                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-                    <button class="btn" style="background: #ff4757; color: white;" onclick="signOut()">Sign Out</button>
-                </div>
+            </div>
             </div>
 
-            <div id="statsSection" class="section" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2>📊 Your Stats</h2>
-                    <div style="background: #f8f9fa; border-radius: 20px; padding: 4px; display: flex;">
-                        <button id="statsToggle30" class="btn" style="background: #667eea; color: white; padding: 8px 16px; margin: 0; border-radius: 16px; font-size: 0.9em;">Last 30 Days</button>
-                        <button id="statsToggleAll" class="btn btn-outline" style="padding: 8px 16px; margin: 0; border: none; font-size: 0.9em;">All Time</button>
+            <div id="endModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 400px;">
+                    <h3>End Trip</h3>
+                    <div class="form-group">
+                        <label>Exit Stop</label>
+                        <input type="text" id="exitInput" placeholder="e.g., 1234 or King Station">
                     </div>
-                </div>
-                
-                <!-- General Stats Section -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-number" id="statsTotalTrips">0</div>
-                        <div class="stat-label">Total Trips</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="statsUniqueRoutes">0</div>
-                        <div class="stat-label">Routes Used</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="statsTotalTime">0</div>
-                        <div class="stat-label">Hours Traveled</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="statsUniqueStops">0</div>
-                        <div class="stat-label">Stops Visited</div>
-                    </div>
-                </div>
-
-                <!-- Community Comparison -->
-                <div style="background: #f8f9fa; border-radius: 12px; padding: 20px; margin-top: 20px;">
-                    <h3 style="margin-bottom: 15px; color: #333;">🌍 Community Comparison</h3>
-                    <div id="communityStats">
-                        <div class="loading">Loading community data...</div>
-                    </div>
-                </div>
-
-                <!-- Top Routes & Stops -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
-                    <div style="background: white; border-radius: 8px; padding: 15px; border: 1px solid #ddd;">
-                        <h4 style="margin-bottom: 10px; color: #667eea;">🚌 Top Routes</h4>
-                        <div id="topRoutes">
-                            <div class="loading">Loading...</div>
-                        </div>
-                    </div>
-                    <div style="background: white; border-radius: 8px; padding: 15px; border: 1px solid #ddd;">
-                        <h4 style="margin-bottom: 10px; color: #667eea;">🚏 Top Stops</h4>
-                        <div id="topStops">
-                            <div class="loading">Loading...</div>
-                        </div>
-                    </div>
+                    <button id="saveBtn" class="btn btn-primary">Save Trip</button>
+                    <button id="cancelBtn" class="btn" style="background: #ddd;">Cancel</button>
                 </div>
             </div>
-
-            <div id="startSection" class="section">
-                <h2>Start New Trip</h2>
-                <div class="form-group">
-                    <label>Boarding Stop</label>
-                    <input type="text" id="stopInput" placeholder="e.g., 6638 or Union Station">
-                    <div id="stopPreview" class="preview-box" style="display: none;"></div>
                 </div>
-                <div class="form-group">
-                    <label>Route/Line</label>
-                    <input type="text" id="routeInput" placeholder="e.g., 65, Line 1, 504 King">
-                    <div id="routePreview" class="preview-box" style="display: none;"></div>
-                </div>
-                <button id="startBtn" class="btn btn-primary" disabled>🚌 Board Vehicle</button>
-            </div>
-
-            <div id="activeSection" class="section" style="display: none;">
-                <div class="trip-status">
-                    <h2>🚌 Currently Riding</h2>
-                    <div id="currentTrip"></div>
-                </div>
-                
-                <!-- Progressive Questions -->
-                <div id="progressiveQuestion" class="section" style="display: none; background: #f8f9fa; border: 2px solid #667eea;">
-                    <div id="questionText" style="font-weight: 500; margin-bottom: 15px; color: #333;"></div>
-                    <div id="questionOptions" style="display: none; margin-bottom: 15px;">
-                        <!-- Options will be populated by JavaScript -->
-                    </div>
-                    <div class="form-group" id="questionInputGroup">
-                        <input type="text" id="questionInput" placeholder="" style="margin-bottom: 10px;">
-                    </div>
-                    <div style="display: flex; gap: 10px;">
-                        <button id="answerBtn" class="btn" style="background: #667eea; color: white; flex: 1;">Answer</button>
-                        <button id="skipBtn" class="btn btn-outline" style="flex: 1;">Skip</button>
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 10px;">
-                    <button id="endBtn" class="btn btn-danger" style="flex: 1;">🛑 End Trip</button>
-                    <button id="abandonBtn" class="btn btn-outline" style="background: #ffc107; color: #856404; border-color: #ffc107; flex: 1;">⚠️ Cancel Trip</button>
-                </div>
-            </div>
-
-            <div id="recentTripsSection" class="section">
-                <h2>Recent Trips (<span id="tripCount">0</span>)</h2>
-                <div id="tripsList">
-                    <div class="loading">Loading trips...</div>
-                </div>
-            </div>
-        </div>
-        </div>
-
-        <div id="endModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 400px;">
-                <h3>End Trip</h3>
-                <div class="form-group">
-                    <label>Exit Stop</label>
-                    <input type="text" id="exitInput" placeholder="e.g., 1234 or King Station">
-                </div>
-                <button id="saveBtn" class="btn btn-primary">Save Trip</button>
-                <button id="cancelBtn" class="btn" style="background: #ddd;">Cancel</button>
-            </div>
-        </div>
-            </div>
-
-        <!-- Trip Indicator (shown when actively riding) -->
-        <div id="tripIndicator" class="trip-indicator" style="display: none;" onclick="goToActiveTrip()">
-            🚌 Currently riding • Tap to view
         </div>
 
         <!-- Status Footer -->
@@ -352,8 +433,8 @@
             <div id="locationStatus" class="status-indicator loading">
                 📍 Getting location...
             </div>
-            <div id="connectionStatus" class="status-indicator connected">
-                🔗 Logged In
+            <div id="connectionStatus" class="status-indicator connected" onclick="toggleLogout()">
+                Logged In
             </div>
         </div>
 
@@ -377,6 +458,8 @@
         let currentUser = null;
         let activeTrip = null;
         let currentStatsView = '30days';
+        let logoutModeActive = false;
+        let statsInitialized = false;
 
         // DOM Elements
         const authSection = document.getElementById('authSection');
@@ -411,7 +494,8 @@
         const streakStatus = document.getElementById('streakStatus');
         const locationStatus = document.getElementById('locationStatus');
         const connectionStatus = document.getElementById('connectionStatus');
-        const tripIndicator = document.getElementById('tripIndicator');
+        const activeTripBanner = document.getElementById('activeTripBanner');
+        const bannersContainer = document.getElementById('bannersContainer');
 
         // Authentication State Management
         auth.onAuthStateChanged((user) => {
@@ -467,6 +551,8 @@
             document.getElementById('recentTripsSection').style.display = 'none';
             updateTripIndicator();
             updateProfileStats();
+            // Load profile trips separately to avoid caching issues
+            loadProfileTrips();
         }
 
         function showStats() {
@@ -475,7 +561,14 @@
             document.getElementById('startSection').style.display = 'none';
             document.getElementById('recentTripsSection').style.display = 'none';
             updateTripIndicator();
-            initializeStatsToggle();
+            
+            // Initialize stats toggle only once
+            if (!statsInitialized) {
+                initializeStatsToggle();
+                statsInitialized = true;
+            }
+            
+            // Force refresh stats on page load
             updateStatsSection();
             loadCommunityData();
         }
@@ -496,10 +589,44 @@
 
         function updateTripIndicator() {
             if (activeTrip) {
-                tripIndicator.innerHTML = `🚌 Currently riding ${activeTrip.route} • Tap to view`;
-                tripIndicator.style.display = 'block';
+                activeTripBanner.innerHTML = `🚌 Currently riding ${activeTrip.route} • Tap to view`;
+                activeTripBanner.style.display = 'block';
+                bannersContainer.className = 'banner-container'; // Side by side
+                
+                // Make streak banner text shorter when sharing space
+                const currentText = streakStatus.textContent;
+                if (currentText && currentText.includes('Keep it going!')) {
+                    streakStatus.textContent = currentText.replace(' Keep it going!', '').replace(' You\'re a transit champion!', '');
+                }
             } else {
-                tripIndicator.style.display = 'none';
+                activeTripBanner.style.display = 'none';
+                bannersContainer.className = 'banner-container full-width'; // Full width
+                
+                // Restore full streak text when banner is full width
+                if (streakStatus.style.display === 'block') {
+                    // Re-calculate to get proper text
+                    loadTrips();
+                }
+            }
+        }
+
+        function toggleLogout() {
+            if (!logoutModeActive) {
+                connectionStatus.textContent = 'Log Out';
+                connectionStatus.classList.add('logout-mode');
+                logoutModeActive = true;
+                
+                // Reset after 3 seconds if not clicked
+                setTimeout(() => {
+                    if (logoutModeActive) {
+                        connectionStatus.textContent = 'Logged In';
+                        connectionStatus.classList.remove('logout-mode');
+                        logoutModeActive = false;
+                    }
+                }, 3000);
+            } else {
+                // Actually log out
+                signOut();
             }
         }
 
@@ -608,8 +735,8 @@
                     
                     const stops = new Set();
                     trips.forEach(t => {
-                        stops.add(t.startStop);
-                        stops.add(t.endStop);
+                        if (t.startStop) stops.add(t.startStop);
+                        if (t.endStop) stops.add(t.endStop);
                     });
                     const uniqueStops = stops.size;
 
@@ -620,6 +747,9 @@
 
                     generateTopRoutes(trips);
                     generateTopStops(trips);
+                })
+                .catch((error) => {
+                    console.error('Error updating stats:', error);
                 });
         }
 
@@ -643,6 +773,58 @@
                     // Calculate founder stats
                     calculateFounderStats(trips);
                 });
+        }
+
+        function loadProfileTrips() {
+            if (!currentUser) return;
+
+            db.collection('trips')
+                .where('userId', '==', currentUser.uid)
+                .orderBy('startTime', 'desc')
+                .limit(20)
+                .get()
+                .then((snapshot) => {
+                    const trips = [];
+                    snapshot.forEach((doc) => {
+                        trips.push({ id: doc.id, ...doc.data() });
+                    });
+                    
+                    displayProfileTrips(trips);
+                })
+                .catch((error) => {
+                    console.error('Error loading profile trips:', error);
+                });
+        }
+
+        function displayProfileTrips(trips) {
+            const profileTripsList = document.getElementById('profileTripsList');
+            
+            if (trips.length === 0) {
+                profileTripsList.innerHTML = '<div class="empty-state">No trips yet. Start your first trip!</div>';
+                return;
+            }
+
+            const tripsHtml = trips.map(trip => {
+                let startTime;
+                if (trip.startTime?.toDate) {
+                    startTime = trip.startTime.toDate();
+                } else if (trip.startTime) {
+                    startTime = new Date(trip.startTime);
+                } else {
+                    startTime = new Date();
+                }
+                
+                return `
+                    <div class="trip-item">
+                        <button class="delete-trip" onclick="deleteTrip('${trip.id}')">Delete</button>
+                        <div><strong>${trip.route || 'Unknown Route'}</strong></div>
+                        <div>${trip.startStop || 'Unknown'} → ${trip.endStop || 'Unknown'}</div>
+                        <div>${trip.duration || 0} min • ${startTime.toLocaleDateString()}</div>
+                    </div>
+                `;
+            }).join('');
+
+            profileTripsList.innerHTML = tripsHtml;
         }
 
         function calculateFounderStats(trips) {
@@ -787,12 +969,19 @@
 
             const uniqueDays = Array.from(tripDays).sort((a, b) => new Date(b) - new Date(a));
 
+            // Check if today is the only day with trips
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayString = today.toDateString();
+            
+            if (uniqueDays.length === 1 && uniqueDays[0] === todayString) {
+                // First day of usage - no streak yet
+                return { current: 0, best: 0 };
+            }
+
             let currentStreak = 0;
             let bestStreak = 0;
             let tempStreak = 0;
-
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
 
             for (let i = 0; i < uniqueDays.length; i++) {
                 const currentDay = new Date(uniqueDays[i]);
@@ -811,13 +1000,13 @@
 
                     if (diffDays === 1) {
                         tempStreak++;
-                        if (i < currentStreak || currentStreak === 0) {
+                        if (i === 0 || currentStreak > 0) {
                             currentStreak = tempStreak;
                         }
                     } else {
                         bestStreak = Math.max(bestStreak, tempStreak);
                         tempStreak = 1;
-                        if (currentStreak === tempStreak - 1) {
+                        if (currentStreak > 0 && i > 0) {
                             currentStreak = 0;
                         }
                     }
@@ -826,6 +1015,23 @@
 
             bestStreak = Math.max(bestStreak, tempStreak, currentStreak);
             return { current: currentStreak, best: bestStreak };
+        }
+
+        // Delete Trip Function
+        function deleteTrip(tripId) {
+            if (confirm('Are you sure you want to delete this trip?')) {
+                db.collection('trips').doc(tripId).delete()
+                    .then(() => {
+                        alert('Trip deleted');
+                        loadTrips();
+                        loadProfileTrips();
+                        updateProfileStats();
+                    })
+                    .catch((error) => {
+                        console.error('Error deleting trip:', error);
+                        alert('Error deleting trip');
+                    });
+            }
         }
 
         // Authentication Event Handlers
@@ -1019,7 +1225,13 @@
                     endTime: firebase.firestore.Timestamp.now(),
                     boardingLocation: activeTrip.boardingLocation,
                     exitLocation: exitLocation,
-                    userId: currentUser.uid
+                    userId: currentUser.uid,
+                    // Include any additional data collected during the trip
+                    vehicleNumber: activeTrip.vehicleNumber,
+                    routeType: activeTrip.routeType,
+                    direction: activeTrip.direction,
+                    crowdLevel: activeTrip.crowdLevel,
+                    vehicleType: activeTrip.vehicleType
                 };
 
                 const startMs = activeTrip.startTime.toDate().getTime();
@@ -1048,18 +1260,18 @@
         }
 
         function abandonTrip() {
-            if (confirm('Are you sure you want to abandon this trip? This cannot be undone.')) {
+            if (confirm('Are you sure you want to cancel this trip? This cannot be undone.')) {
                 db.collection('activeTrips').doc(currentUser.uid).delete()
                     .then(() => {
                         activeTrip = null;
                         progressiveQuestion.style.display = 'none';
                         showStartSection();
                         updateTripIndicator();
-                        alert('Trip abandoned');
+                        alert('Trip cancelled');
                     })
                     .catch((error) => {
-                        console.error('Error abandoning trip:', error);
-                        alert('Error abandoning trip. Please try again.');
+                        console.error('Error cancelling trip:', error);
+                        alert('Error cancelling trip. Please try again.');
                     });
             }
         }
@@ -1074,6 +1286,7 @@
 
             db.collection('trips')
                 .where('userId', '==', currentUser.uid)
+                .orderBy('startTime', 'desc')
                 .limit(50)
                 .get()
                 .then((snapshot) => {
@@ -1082,12 +1295,6 @@
                     const trips = [];
                     snapshot.forEach((doc) => {
                         trips.push({ id: doc.id, ...doc.data() });
-                    });
-                    
-                    trips.sort((a, b) => {
-                        const timeA = a.startTime?.toDate ? a.startTime.toDate() : new Date(a.startTime);
-                        const timeB = b.startTime?.toDate ? b.startTime.toDate() : new Date(b.startTime);
-                        return timeB - timeA;
                     });
                     
                     displayTrips(trips);
@@ -1147,12 +1354,13 @@
             if (trips.length > 0) {
                 const streakData = calculateStreaks(trips);
                 updateStreakStatus(streakData);
+            } else {
+                streakStatus.style.display = 'none';
             }
             
             if (trips.length === 0) {
                 const emptyMessage = '<div class="empty-state">No trips yet. Start your first trip above!</div>';
                 tripsList.innerHTML = emptyMessage;
-                document.getElementById('profileTripsList').innerHTML = emptyMessage;
                 return;
             }
 
@@ -1168,6 +1376,7 @@
                 
                 return `
                     <div class="trip-item">
+                        <button class="delete-trip" onclick="deleteTrip('${trip.id}')">Delete</button>
                         <div><strong>${trip.route || 'Unknown Route'}</strong></div>
                         <div>${trip.startStop || 'Unknown'} → ${trip.endStop || 'Unknown'}</div>
                         <div>${trip.duration || 0} min • ${startTime.toLocaleDateString()}</div>
@@ -1176,7 +1385,6 @@
             }).join('');
 
             tripsList.innerHTML = tripsHtml;
-            document.getElementById('profileTripsList').innerHTML = tripsHtml;
         }
 
         function updateStreakStatus(streakData) {
@@ -1187,37 +1395,42 @@
 
             streakStatus.style.display = 'block';
             
+            let text = '';
+            const isNarrow = activeTripBanner.style.display === 'block';
+            
             if (streakData.current >= 7) {
-                streakStatus.innerHTML = `🔥 AMAZING! ${streakData.current} day streak! You're a transit champion!`;
+                text = isNarrow ? `🔥 ${streakData.current} day streak!` : `🔥 AMAZING! ${streakData.current} day streak! You're a transit champion!`;
                 streakStatus.className = 'streak-status hot-streak';
             } else if (streakData.current >= 3) {
-                streakStatus.innerHTML = `🔥 Hot streak! ${streakData.current} days in a row!`;
+                text = isNarrow ? `🔥 ${streakData.current} days!` : `🔥 Hot streak! ${streakData.current} days in a row!`;
                 streakStatus.className = 'streak-status hot-streak';
             } else {
-                streakStatus.innerHTML = `⚡ ${streakData.current} day streak! Keep it going!`;
+                text = isNarrow ? `⚡ ${streakData.current} day streak` : `⚡ ${streakData.current} day streak! Keep it going!`;
                 streakStatus.className = 'streak-status';
             }
+            
+            streakStatus.innerHTML = `<span class="current-streak-text">${text}</span>`;
         }
 
         // Location and Status Management
         function getCurrentLocation(callback) {
             if (!navigator.geolocation) {
-                updateLocationStatus('📍 Location not supported', 'poor');
+                updateLocationStatus('Location not supported', 'poor');
                 callback(null);
                 return;
             }
 
-            updateLocationStatus('📍 Getting location...', 'loading');
+            updateLocationStatus('Getting location...', 'loading');
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     const accuracy = Math.round(position.coords.accuracy);
                     let className, useLocation = false;
                     
-                    if (accuracy <= 10) {
+                    if (accuracy <= 7.5) {
                         className = 'excellent';
                         useLocation = true;
-                    } else if (accuracy <= 20) {
+                    } else if (accuracy <= 15) {
                         className = 'good';
                         useLocation = true;
                     } else {
@@ -1226,8 +1439,8 @@
                     }
                     
                     const statusMessage = useLocation ? 
-                        `📍 Location ready (±${accuracy}m)` : 
-                        `📍 Location inaccurate (±${accuracy}m)`;
+                        `Location ${accuracy}m` : 
+                        `Location inaccurate ${accuracy}m`;
                     
                     updateLocationStatus(statusMessage, className);
                     
@@ -1247,7 +1460,7 @@
                 },
                 (error) => {
                     console.log('Location error:', error);
-                    updateLocationStatus('📍 Location unavailable', 'poor');
+                    updateLocationStatus('Location unavailable', 'poor');
                     callback(null);
                 },
                 {
@@ -1259,23 +1472,26 @@
         }
 
         function updateLocationStatus(message, type) {
-            locationStatus.textContent = message;
+            locationStatus.textContent = `📍 ${message}`;
             locationStatus.className = `status-indicator ${type}`;
         }
 
         function updateConnectionStatus(connected) {
-            if (connected) {
-                connectionStatus.textContent = '🔗 Logged In';
-                connectionStatus.className = 'status-indicator connected';
-            } else {
-                connectionStatus.textContent = '⚠️ Offline';
-                connectionStatus.className = 'status-indicator disconnected';
+            if (!logoutModeActive) {
+                if (connected) {
+                    connectionStatus.textContent = 'Logged In';
+                    connectionStatus.className = 'status-indicator connected';
+                } else {
+                    connectionStatus.textContent = '⚠️ Offline';
+                    connectionStatus.className = 'status-indicator disconnected';
+                }
             }
         }
 
         // Progressive Question System
         let currentQuestionIndex = 0;
         let tripEnrichmentData = {};
+        let showingMoreOptions = false;
         
         const questions = [
             {
@@ -1293,7 +1509,8 @@
             {
                 text: "🧭 Which direction is this vehicle headed?",
                 type: "options",
-                options: ["Northbound", "Southbound", "Eastbound", "Westbound", "Downtown", "Uptown", "Inbound", "Outbound"],
+                mainOptions: ["Northbound", "Southbound", "Eastbound", "Westbound"],
+                moreOptions: ["Downtown", "Uptown", "Inbound", "Outbound", "Clockwise", "Counterclockwise", "Uphill", "Downhill"],
                 field: "direction"
             },
             {
@@ -1332,6 +1549,7 @@
         function startProgressiveQuestions() {
             currentQuestionIndex = 0;
             tripEnrichmentData = {};
+            showingMoreOptions = false;
             
             setTimeout(() => {
                 showNextQuestion();
@@ -1354,17 +1572,32 @@
 
             const question = questions[currentQuestionIndex];
             questionText.textContent = question.text;
+            showingMoreOptions = false;
             
             if (question.type === "options") {
                 // Show option buttons
                 document.getElementById('questionInputGroup').style.display = 'none';
-                document.getElementById('questionOptions').style.display = 'block';
+                const questionOptionsDiv = document.getElementById('questionOptions');
+                questionOptionsDiv.style.display = 'grid';
                 
-                const optionsHtml = question.options.map(option => 
-                    `<button class="btn btn-outline" style="margin: 5px; padding: 10px 15px; width: auto; font-size: 0.9em;" onclick="selectQuestionOption('${option}')">${option}</button>`
-                ).join('');
+                let optionsHtml = '';
                 
-                document.getElementById('questionOptions').innerHTML = optionsHtml;
+                if (question.mainOptions) {
+                    // Show main options with "More" button
+                    questionOptionsDiv.className = 'question-options main-options';
+                    optionsHtml = question.mainOptions.map(option => 
+                        `<button class="btn btn-outline btn-sm" onclick="selectQuestionOption('${option}')">${option}</button>`
+                    ).join('');
+                    optionsHtml += `<button class="btn btn-outline btn-sm more-btn" onclick="showMoreOptions()">More Options...</button>`;
+                } else {
+                    // Show all options
+                    questionOptionsDiv.className = 'question-options';
+                    optionsHtml = question.options.map(option => 
+                        `<button class="btn btn-outline btn-sm" onclick="selectQuestionOption('${option}')">${option}</button>`
+                    ).join('');
+                }
+                
+                questionOptionsDiv.innerHTML = optionsHtml;
             } else {
                 // Show input field
                 document.getElementById('questionOptions').style.display = 'none';
@@ -1377,18 +1610,36 @@
             progressiveQuestion.style.display = 'block';
         }
 
+        function showMoreOptions() {
+            const question = questions[currentQuestionIndex];
+            if (!question.moreOptions) return;
+            
+            showingMoreOptions = true;
+            const questionOptionsDiv = document.getElementById('questionOptions');
+            questionOptionsDiv.className = 'question-options';
+            
+            const allOptions = [...question.mainOptions, ...question.moreOptions];
+            const optionsHtml = allOptions.map(option => 
+                `<button class="btn btn-outline btn-sm" onclick="selectQuestionOption('${option}')">${option}</button>`
+            ).join('');
+            
+            questionOptionsDiv.innerHTML = optionsHtml;
+        }
+
         function showVehicleTypeQuestion(routeType) {
             const vehicleQuestion = vehicleTypeQuestions[routeType];
             questionText.textContent = vehicleQuestion.text;
             
             document.getElementById('questionInputGroup').style.display = 'none';
-            document.getElementById('questionOptions').style.display = 'block';
+            const questionOptionsDiv = document.getElementById('questionOptions');
+            questionOptionsDiv.style.display = 'grid';
+            questionOptionsDiv.className = 'question-options';
             
             const optionsHtml = vehicleQuestion.options.map(option => 
-                `<button class="btn btn-outline" style="margin: 5px; padding: 10px 15px; width: auto; font-size: 0.9em;" onclick="selectVehicleType('${option}')">${option}</button>`
+                `<button class="btn btn-outline btn-sm" onclick="selectVehicleType('${option}')">${option}</button>`
             ).join('');
             
-            document.getElementById('questionOptions').innerHTML = optionsHtml;
+            questionOptionsDiv.innerHTML = optionsHtml;
             progressiveQuestion.style.display = 'block';
         }
 
@@ -1407,6 +1658,7 @@
                     db.collection('activeTrips').doc(currentUser.uid).update({vehicleType: vehicleType})
                         .then(() => {
                             console.log(`Saved vehicleType: ${vehicleType}`);
+                            activeTrip.vehicleType = vehicleType;
                         })
                         .catch((error) => {
                             console.error('Error updating trip:', error);
@@ -1437,6 +1689,7 @@
                     db.collection('activeTrips').doc(currentUser.uid).update(updateData)
                         .then(() => {
                             console.log(`Saved ${question.field}: ${option}`);
+                            activeTrip[question.field] = option;
                         })
                         .catch((error) => {
                             console.error('Error updating trip:', error);
@@ -1450,6 +1703,37 @@
                     showNextQuestion();
                 }, 30000);
             }, 500);
+        }
+
+        function submitAnswer() {
+            const question = questions[currentQuestionIndex];
+            if (question.type === "input") {
+                const answer = questionInput.value.trim();
+                if (answer) {
+                    tripEnrichmentData[question.field] = answer;
+                    
+                    if (activeTrip) {
+                        const updateData = {};
+                        updateData[question.field] = answer;
+                        
+                        db.collection('activeTrips').doc(currentUser.uid).update(updateData)
+                            .then(() => {
+                                console.log(`Saved ${question.field}: ${answer}`);
+                                activeTrip[question.field] = answer;
+                            })
+                            .catch((error) => {
+                                console.error('Error updating trip:', error);
+                            });
+                    }
+                    
+                    progressiveQuestion.style.display = 'none';
+                    currentQuestionIndex++;
+                    
+                    setTimeout(() => {
+                        showNextQuestion();
+                    }, 30000);
+                }
+            }
         }
 
         function skipQuestion() {
@@ -1492,15 +1776,21 @@
             
             // Progressive question event listeners
             answerBtn.addEventListener('click', (e) => {
-                console.log('Answer button clicked!');
                 e.preventDefault();
                 submitAnswer();
             });
             
             skipBtn.addEventListener('click', (e) => {
-                console.log('Skip button clicked!');
                 e.preventDefault();
                 skipQuestion();
+            });
+            
+            // Add enter key support for question input
+            questionInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    submitAnswer();
+                }
             });
             
             loadTrips();
