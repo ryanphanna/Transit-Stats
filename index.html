@@ -62,30 +62,31 @@
         .map-controls {
             background: #f8f9fa;
             border-radius: 8px;
-            padding: 15px;
+            padding: 20px;
             margin-bottom: 15px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
+            flex-direction: column;
+            gap: 15px;
         }
         
         .map-toggle {
             display: flex;
             background: white;
-            border-radius: 20px;
-            padding: 3px;
+            border-radius: 25px;
+            padding: 4px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            align-self: center;
         }
         
         .toggle-btn {
             background: transparent;
             border: none;
-            padding: 8px 16px;
-            border-radius: 16px;
-            font-size: 0.9em;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.95em;
             cursor: pointer;
             transition: all 0.2s ease;
+            white-space: nowrap;
         }
         
         .toggle-btn.active {
@@ -95,7 +96,9 @@
         
         .map-legend {
             display: flex;
-            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
             font-size: 0.9em;
         }
         
@@ -109,6 +112,31 @@
             width: 12px;
             height: 12px;
             border-radius: 50%;
+        }
+        
+        /* Progress bar for heatmap unlock */
+        .heatmap-progress {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .progress-bar {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            height: 8px;
+            margin: 10px 0 5px 0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            background: white;
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
         }
         
         /* Footer status bar - bottom justified */
@@ -407,7 +435,7 @@
                     </div>
                 
                 <div id="profileSection" class="section" style="display: none;">
-                    <h2>👤 Profile</h2>
+                    <h2 style="white-space: nowrap;">👤 Profile</h2>
                     <div style="text-align: center; margin-bottom: 20px;">
                         <div style="font-size: 3em; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;">
                             <span id="profileAvatar">🚌</span>
@@ -538,7 +566,16 @@
 
                 <!-- Maps Section -->
                 <div id="mapsSection" class="section" style="display: none;">
-                    <h2>🗺️ Transit Heatmap</h2>
+                    <h2>🗺️ Heatmap</h2>
+                    
+                    <!-- Progress bar for heatmap unlock -->
+                    <div id="heatmapProgress" class="heatmap-progress" style="display: none;">
+                        <div id="progressText">🗺️ Unlock your transit heatmap!</div>
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill" style="width: 0%;"></div>
+                        </div>
+                        <div id="progressCount" style="font-size: 0.9em; opacity: 0.9;">0 / 50 trips with GPS</div>
+                    </div>
                     
                     <div class="map-controls">
                         <div class="map-toggle">
@@ -816,6 +853,7 @@
         function showMaps() {
             hideAllSections();
             mapsSection.style.display = 'block';
+            startSection.style.display = 'none'; // Hide start section on maps page
             updateTripIndicator();
             
             // Initialize map if not already done
@@ -866,7 +904,13 @@
                         }
                     });
 
-                    if (trips.length === 0) {
+                    const totalTrips = trips.length;
+                    const progressBar = document.getElementById('heatmapProgress');
+                    const progressFill = document.getElementById('progressFill');
+                    const progressCount = document.getElementById('progressCount');
+                    const progressText = document.getElementById('progressText');
+
+                    if (totalTrips === 0) {
                         document.getElementById('mapContainer').innerHTML = `
                             <div style="text-align: center;">
                                 <div style="font-size: 2em; margin-bottom: 10px;">🗺️</div>
@@ -874,7 +918,26 @@
                                 <div style="font-size: 0.9em; color: #999; margin-top: 10px;">Take some trips with GPS enabled to see your transit patterns</div>
                             </div>
                         `;
+                        progressBar.style.display = 'none';
                         return;
+                    }
+
+                    // Update progress bar
+                    const progress = Math.min((totalTrips / 50) * 100, 100);
+                    progressFill.style.width = `${progress}%`;
+                    progressCount.textContent = `${totalTrips} / 50 trips with GPS`;
+                    
+                    if (totalTrips < 50) {
+                        progressBar.style.display = 'block';
+                        if (totalTrips < 10) {
+                            progressText.textContent = '🗺️ Keep taking trips to unlock your heatmap!';
+                        } else if (totalTrips < 25) {
+                            progressText.textContent = '🗺️ Great progress! More trips = better heatmap!';
+                        } else {
+                            progressText.textContent = '🗺️ Almost there! Heatmap unlocking soon!';
+                        }
+                    } else {
+                        progressBar.style.display = 'none';
                     }
 
                     // Check if we have enough trips for meaningful heatmap (50+ recommended)
@@ -909,6 +972,7 @@
                             <div>Error loading map data</div>
                         </div>
                     `;
+                    document.getElementById('heatmapProgress').style.display = 'none';
                 });
         }
 
@@ -1396,6 +1460,8 @@
                 })
                 .catch((error) => {
                     console.error('Error loading profile trips:', error);
+                    // Set empty state
+                    displayProfileTrips([]);
                 });
         }
 
@@ -1632,7 +1698,6 @@
             db.collection('templates')
                 .where('userId', '==', currentUser.uid)
                 .orderBy('createdAt', 'desc')
-                .limit(3)
                 .get()
                 .then((snapshot) => {
                     const templates = [];
@@ -1645,6 +1710,9 @@
                 })
                 .catch((error) => {
                     console.error('Error loading templates:', error);
+                    // Set empty state for both displays
+                    displayTemplates([]);
+                    displayProfileTemplates([]);
                 });
         }
 
@@ -1659,6 +1727,7 @@
             
             templatesSection.style.display = 'block';
             
+            // Only show first 3 templates on home page
             const templatesHtml = templates.slice(0, 3).map(template => `
                 <div class="template-card" onclick="startFromTemplate('${template.route}', '${template.startStop}')">
                     <span class="template-icon">⭐</span>
@@ -2209,22 +2278,25 @@
                 const streakData = calculateStreaks(trips);
                 updateStreakStatus(streakData);
             } else {
-                streakStatus.style.display = 'none';
+                // Show encouragement even with no trips
+                streakStatus.style.display = 'block';
+                streakStatus.className = 'streak-status';
+                streakStatus.innerHTML = '⚡ Take your first trip to start tracking!';
+                updateTripIndicator();
             }
         }
 
         function updateStreakStatus(streakData) {
+            streakStatus.style.display = 'block';
+            
             if (streakData.current === 0) {
-                // Show motivation message instead of hiding
-                streakStatus.style.display = 'block';
+                // Show motivation message
                 streakStatus.className = 'streak-status';
                 streakStatus.innerHTML = '⚡ Take a trip today to start a streak!';
                 updateTripIndicator();
                 return;
             }
 
-            streakStatus.style.display = 'block';
-            
             let text = '';
             const isNarrow = activeTripBanner.style.display === 'block';
             
@@ -2271,9 +2343,7 @@
                         useLocation = false;
                     }
                     
-                    const statusMessage = useLocation ? 
-                        `Location ${accuracy}m` : 
-                        `Location inaccurate ${accuracy}m`;
+                    const statusMessage = `Location ±${accuracy}m`;
                     
                     updateLocationStatus(statusMessage, className);
                     
