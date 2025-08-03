@@ -203,23 +203,26 @@
             margin-bottom: 10px; 
             border-left: 4px solid #667eea; 
             position: relative;
+            transition: transform 0.2s ease;
+            touch-action: pan-y;
         }
-        .trip-item:hover .delete-trip {
-            opacity: 1;
+        .trip-item.swiping {
+            transform: translateX(-80px);
         }
-        .delete-trip {
+        .trip-item .delete-overlay {
             position: absolute;
-            right: 10px;
-            top: 10px;
+            right: -80px;
+            top: 0;
+            bottom: 0;
+            width: 80px;
             background: #ff4757;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 5px 10px;
-            font-size: 0.8em;
-            cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.2s ease;
+            font-weight: 600;
+            font-size: 0.9em;
+            border-radius: 0 8px 8px 0;
         }
         .empty-state { text-align: center; color: #999; padding: 20px; font-style: italic; }
         .auth-status { background: #e3f2fd; border: 1px solid #2196f3; border-radius: 6px; padding: 10px; margin-bottom: 15px; font-size: 0.9em; color: #1976d2; }
@@ -464,7 +467,7 @@
                             <div class="loading">Loading templates...</div>
                         </div>
                         <div style="margin-top: 15px; font-size: 0.9em; color: #666; font-style: italic;">
-                            Save templates when ending a trip for quick access on the home page
+                            Templates save your Route + Starting Stop for quick trip starts
                         </div>
                     </div>
 
@@ -646,7 +649,7 @@
                     </div>
                     <div class="save-template-checkbox">
                         <input type="checkbox" id="saveAsTemplate">
-                        <label for="saveAsTemplate">⭐ Save as template for quick start</label>
+                        <label for="saveAsTemplate">⭐ Save route + start stop as template</label>
                     </div>
                     <button id="saveBtn" class="btn btn-primary">Save Trip</button>
                     <button id="cancelBtn" class="btn" style="background: #ddd;">Cancel</button>
@@ -1256,7 +1259,7 @@
                 query = query.where('startTime', '>=', firebase.firestore.Timestamp.fromDate(dateFilter));
             }
 
-            query.orderBy('startTime', 'desc').get()
+            query.get()
                 .then((snapshot) => {
                     console.log(`Found ${snapshot.size} trips for ${currentStatsView}`);
                     
@@ -1294,12 +1297,8 @@
                 })
                 .catch((error) => {
                     console.error('Error updating stats:', error);
-                    // Try without orderBy if it fails
-                    const fallbackQuery = currentStatsView === '30days' ? 
-                        db.collection('trips').where('userId', '==', currentUser.uid) : 
-                        db.collection('trips').where('userId', '==', currentUser.uid);
-                        
-                    fallbackQuery.get().then((snapshot) => {
+                    // Try fallback approach without query constraints
+                    db.collection('trips').where('userId', '==', currentUser.uid).get().then((snapshot) => {
                         const trips = [];
                         snapshot.forEach((doc) => {
                             const trip = doc.data();
@@ -1401,8 +1400,8 @@
                 }
                 
                 return `
-                    <div class="trip-item">
-                        <button class="delete-trip" onclick="deleteTrip('${trip.id}')">Delete</button>
+                    <div class="trip-item" data-trip-id="${trip.id}">
+                        <div class="delete-overlay">Delete</div>
                         <div><strong>${trip.route || 'Unknown Route'}</strong></div>
                         <div>${trip.startStop || 'Unknown'} → ${trip.endStop || 'Unknown'}</div>
                         <div>${trip.duration || 0} min • ${startTime.toLocaleDateString()}</div>
@@ -1411,6 +1410,11 @@
             }).join('');
 
             profileTripsList.innerHTML = tripsHtml;
+            
+            // Add swipe functionality to trip items
+            profileTripsList.querySelectorAll('.trip-item').forEach(item => {
+                addSwipeToDelete(item);
+            });
         }
 
         function calculateFounderStats(trips) {
@@ -1657,8 +1661,8 @@
             }
             
             const templatesHtml = templates.map(template => `
-                <div class="trip-item">
-                    <button class="delete-trip" onclick="deleteTemplate('${template.id}')">Delete</button>
+                <div class="trip-item" data-template-id="${template.id}">
+                    <div class="delete-overlay">Delete</div>
                     <div><strong>${template.route}</strong></div>
                     <div>From ${template.startStop}</div>
                     <div style="font-size: 0.9em; color: #666;">⭐ Quick start template</div>
@@ -1666,6 +1670,12 @@
             `).join('');
             
             profileTemplatesList.innerHTML = templatesHtml;
+            
+            // Add swipe functionality to template items
+            profileTemplatesList.querySelectorAll('.trip-item').forEach(item => {
+                const isTemplate = item.hasAttribute('data-template-id');
+                addSwipeToDelete(item, isTemplate);
+            });
         }
 
         function startFromTemplate(route, startStop) {
@@ -2162,8 +2172,10 @@
 
         function updateStreakStatus(streakData) {
             if (streakData.current === 0) {
-                streakStatus.style.display = 'none';
-                // Update banner layout since streak is hidden
+                // Show motivation message instead of hiding
+                streakStatus.style.display = 'block';
+                streakStatus.className = 'streak-status';
+                streakStatus.innerHTML = '⚡ Take a trip today to start a streak!';
                 updateTripIndicator();
                 return;
             }
@@ -2534,9 +2546,71 @@
             }, 30000);
         }
 
-        function goToActiveTrip() {
-            hideAllSections();
-            showActiveSection();
+        // Swipe to delete functionality
+        function addSwipeToDelete(item, isTemplate = false) {
+            let startX = 0;
+            let currentX = 0;
+            let isSwiping = false;
+            let swipeThreshold = 60; // Minimum swipe distance to trigger delete
+            
+            item.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+                isSwiping = true;
+            }, { passive: true });
+            
+            item.addEventListener('touchmove', (e) => {
+                if (!isSwiping) return;
+                
+                currentX = e.touches[0].clientX;
+                const diffX = startX - currentX;
+                
+                // Only allow left swipe and limit the distance
+                if (diffX > 0) {
+                    const swipeDistance = Math.min(diffX, 80);
+                    item.style.transform = `translateX(-${swipeDistance}px)`;
+                    
+                    if (swipeDistance > 30) {
+                        item.classList.add('swiping');
+                    }
+                }
+            }, { passive: true });
+            
+            item.addEventListener('touchend', (e) => {
+                if (!isSwiping) return;
+                isSwiping = false;
+                
+                const diffX = startX - currentX;
+                
+                if (diffX > swipeThreshold) {
+                    // Trigger delete
+                    if (isTemplate) {
+                        const templateId = item.getAttribute('data-template-id');
+                        deleteTemplate(templateId);
+                    } else {
+                        const tripId = item.getAttribute('data-trip-id');
+                        deleteTrip(tripId);
+                    }
+                } else {
+                    // Snap back
+                    item.style.transform = 'translateX(0)';
+                    item.classList.remove('swiping');
+                }
+            }, { passive: true });
+            
+            // Handle click on delete overlay
+            const deleteOverlay = item.querySelector('.delete-overlay');
+            if (deleteOverlay) {
+                deleteOverlay.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (isTemplate) {
+                        const templateId = item.getAttribute('data-template-id');
+                        deleteTemplate(templateId);
+                    } else {
+                        const tripId = item.getAttribute('data-trip-id');
+                        deleteTrip(tripId);
+                    }
+                });
+            }
         }
 
         // App Initialization
