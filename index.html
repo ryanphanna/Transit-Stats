@@ -740,9 +740,11 @@
             currentUser = user;
             if (user) {
                 console.log('✅ User authenticated:', user.email);
+                updateConnectionStatus(true);
                 showApp();
             } else {
                 console.log('❌ No user authenticated');
+                updateConnectionStatus(false);
                 showAuth();
             }
         });
@@ -751,12 +753,14 @@
             authSection.style.display = 'block';
             appContent.style.display = 'none';
             userInfo.style.display = 'none';
+            updateConnectionStatus(false);
         }
 
         function showApp() {
             authSection.style.display = 'none';
             appContent.style.display = 'block';
             userInfo.style.display = 'block';
+            updateConnectionStatus(true);
             loadUserProfile();
             initializeApp();
         }
@@ -1719,6 +1723,10 @@
             }, 100);
         }
 
+        function goToActiveTrip() {
+            hideAllSections();
+            showActiveSection();
+        }
         // Delete Trip Function
         function deleteTrip(tripId) {
             if (confirm('Are you sure you want to delete this trip?')) {
@@ -2268,11 +2276,14 @@
 
         function updateConnectionStatus(connected) {
             if (!logoutModeActive) {
-                if (connected) {
+                if (connected && currentUser) {
                     connectionStatus.textContent = 'Logged In';
                     connectionStatus.className = 'status-indicator connected';
-                } else {
+                } else if (!connected && navigator.onLine === false) {
                     connectionStatus.textContent = '⚠️ Offline';
+                    connectionStatus.className = 'status-indicator disconnected';
+                } else {
+                    connectionStatus.textContent = 'Not Logged In';
                     connectionStatus.className = 'status-indicator disconnected';
                 }
             }
