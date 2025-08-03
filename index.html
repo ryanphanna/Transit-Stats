@@ -873,17 +873,22 @@
                     }
 
                     // Check if we have enough trips for meaningful heatmap (50+ recommended)
-                    if (trips.length >= 50) {
+                    if (trips.length >= 50 && (mapMode === 'boarding' || mapMode === 'alighting')) {
+                        createMap(trips);
+                        updateMapStats(trips);
+                    } else if (mapMode === 'markers') {
+                        // Always allow individual trips view regardless of trip count
                         createMap(trips);
                         updateMapStats(trips);
                     } else {
+                        // Not enough for heatmap, show encouragement
                         document.getElementById('mapContainer').innerHTML = `
                             <div style="text-align: center;">
                                 <div style="font-size: 2em; margin-bottom: 10px;">🗺️</div>
                                 <div>Need more trips for heatmap (${trips.length}/50)</div>
                                 <div style="font-size: 0.9em; color: #999; margin-top: 10px;">Keep taking trips with GPS to unlock your transit heatmap!</div>
                                 <div style="margin-top: 15px;">
-                                    <button class="btn" style="background: #667eea; color: white; padding: 10px 20px; font-size: 0.9em;" onclick="setMapMode('markers'); loadMapData();">
+                                    <button class="btn" style="background: #667eea; color: white; padding: 10px 20px; font-size: 0.9em;" onclick="setMapMode('markers');">
                                         View individual trips (${trips.length} available)
                                     </button>
                                 </div>
