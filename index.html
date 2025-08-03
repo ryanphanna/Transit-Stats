@@ -341,70 +341,9 @@
             color: #333;
         }
     </style>
-    <!-- Try multiple CDN sources with fallbacks -->
-    <script>
-        // Try to load Firebase from multiple sources
-        function loadFirebaseScript(src, callback) {
-            const script = document.createElement('script');
-            script.src = src;
-            script.onload = callback;
-            script.onerror = () => {
-                console.log('Failed to load from:', src);
-                callback(false);
-            };
-            document.head.appendChild(script);
-        }
-
-        let scriptsLoaded = 0;
-        const totalScripts = 3;
-        let loadSuccess = true;
-
-        function checkAllLoaded() {
-            scriptsLoaded++;
-            if (scriptsLoaded === totalScripts) {
-                if (loadSuccess && typeof firebase !== 'undefined') {
-                    initializeApp();
-                } else {
-                    showOfflineMode();
-                }
-            }
-        }
-
-        function trackLoad(success) {
-            if (!success) loadSuccess = false;
-            checkAllLoaded();
-        }
-
-        // Try Google CDN first, then jsDelivr as fallback
-        loadFirebaseScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js', trackLoad);
-        loadFirebaseScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js', trackLoad);
-        loadFirebaseScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js', trackLoad);
-
-        function showOfflineMode() {
-            document.body.innerHTML = `
-                <div style="text-align: center; padding: 50px; font-family: Arial; max-width: 500px; margin: 0 auto;">
-                    <h2>🚌 TransitStats</h2>
-                    <h3>Offline Mode</h3>
-                    <p>Unable to connect to cloud services. This might be due to:</p>
-                    <ul style="text-align: left; margin: 20px 0;">
-                        <li>Network connectivity issues</li>
-                        <li>Firewall/proxy blocking</li>
-                        <li>Browser extensions</li>
-                        <li>Corporate network restrictions</li>
-                    </ul>
-                    <p style="margin-top: 30px;"><strong>Suggestions:</strong></p>
-                    <ul style="text-align: left; margin: 20px 0;">
-                        <li>Try a different network (mobile data)</li>
-                        <li>Disable browser extensions temporarily</li>
-                        <li>Contact your IT administrator</li>
-                    </ul>
-                    <button onclick="location.reload()" style="background: #667eea; color: white; border: none; padding: 15px 30px; border-radius: 6px; cursor: pointer; font-size: 1.1em; margin-top: 20px;">
-                        Try Again
-                    </button>
-                </div>
-            `;
-        }
-    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 </head>
@@ -728,62 +667,21 @@
         </div>
 
     <script>
-        // Wait for Firebase to load before initializing
-        function initializeApp() {
-            // Check if Firebase loaded
-            if (typeof firebase === 'undefined') {
-                console.error('❌ Firebase failed to load');
-                document.body.innerHTML = `
-                    <div style="text-align: center; padding: 50px; font-family: Arial; max-width: 400px; margin: 0 auto;">
-                        <h2>Loading Error</h2>
-                        <p>Firebase scripts failed to load. This might be due to:</p>
-                        <ul style="text-align: left; margin: 20px 0;">
-                            <li>Network connectivity issues</li>
-                            <li>CDN blocking</li>
-                            <li>Browser extensions</li>
-                        </ul>
-                        <button onclick="location.reload()" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
-                            Try Again
-                        </button>
-                    </div>
-                `;
-                return;
-            }
+        console.log('🚀 TransitStats Loading...');
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyBgY37b_aUorxdEW6DnocFoo8ekbTTFpao",
+            authDomain: "transitstats-21ba4.firebaseapp.com",
+            projectId: "transitstats-21ba4",
+            storageBucket: "transitstats-21ba4.firebasestorage.app",
+            messagingSenderId: "756203797723",
+            appId: "1:756203797723:web:2e5aab94a6de20cf06a0fe"
+        };
 
-            console.log('🚀 TransitStats Loading...');
-            
-            const firebaseConfig = {
-                apiKey: "AIzaSyBgY37b_aUorxdEW6DnocFoo8ekbTTFpao",
-                authDomain: "transitstats-21ba4.firebaseapp.com",
-                projectId: "transitstats-21ba4",
-                storageBucket: "transitstats-21ba4.firebasestorage.app",
-                messagingSenderId: "756203797723",
-                appId: "1:756203797723:web:2e5aab94a6de20cf06a0fe"
-            };
-
-            try {
-                firebase.initializeApp(firebaseConfig);
-                const auth = firebase.auth();
-                const db = firebase.firestore();
-                console.log('✅ Firebase initialized successfully!');
-                
-                // Continue with app initialization...
-                startApp();
-            } catch (error) {
-                console.error('❌ Firebase initialization failed:', error);
-                document.body.innerHTML = `
-                    <div style="text-align: center; padding: 50px; font-family: Arial;">
-                        <h2>Initialization Error</h2>
-                        <p>Failed to connect to Firebase services</p>
-                        <button onclick="location.reload()" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">
-                            Retry
-                        </button>
-                    </div>
-                `;
-            }
-        }
-
-        function startApp() {
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        console.log('✅ Firebase initialized successfully!');
 
         let currentUser = null;
         let activeTrip = null;
@@ -2807,15 +2705,6 @@
         }
 
         console.log('🎉 TransitStats fully loaded and ready!');
-        } // End of startApp
-
-        // Try to initialize immediately, or wait for DOM
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeApp);
-        } else {
-            // DOM already loaded, but give Firebase scripts a moment
-            setTimeout(initializeApp, 100);
-        }
     </script>
 </body>
 </html>
