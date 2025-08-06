@@ -1442,29 +1442,64 @@
                 });
         }
 
-        function loadProfileTrips() {
-            if (!currentUser) return;
+function loadProfileTrips() {
+    if (!currentUser) return;
+    
+    console.log('🔍 Loading profile trips for user:', currentUser.uid);
 
-            db.collection('trips')
-                .where('userId', '==', currentUser.uid)
-                .orderBy('startTime', 'desc')
-                .limit(20)
-                .get()
-                .then((snapshot) => {
-                    const trips = [];
-                    snapshot.forEach((doc) => {
-                        trips.push({ id: doc.id, ...doc.data() });
-                    });
-                    
-                    displayProfileTrips(trips);
-                })
-                .catch((error) => {
-                    console.error('Error loading profile trips:', error);
-                    // Set empty state
-                    displayProfileTrips([]);
+    // First try without orderBy to see if we have trips at all
+    db.collection('trips')
+        .where('userId', '==', currentUser.uid)
+        .get()
+        .then((snapshot) => {
+            console.log('📊 Total trips found:', snapshot.size);
+            
+            if (snapshot.size === 0) {
+                console.log('❌ No trips found for user');
+                displayProfileTrips([]);
+                return;
+            }
+            
+            // Convert to array and sort in JavaScript instead of Firestore
+            const trips = [];
+            snapshot.forEach((doc) => {
+                const trip = doc.data();
+                // Convert Firestore timestamp to JS Date for sorting
+                let startTime;
+                if (trip.startTime?.toDate) {
+                    startTime = trip.startTime.toDate();
+                } else if (trip.startTime) {
+                    startTime = new Date(trip.startTime);
+                } else {
+                    startTime = new Date();
+                }
+                
+                trips.push({ 
+                    id: doc.id, 
+                    ...trip,
+                    sortableStartTime: startTime
                 });
-        }
-
+            });
+            
+            // Sort by startTime descending (newest first)
+            trips.sort((a, b) => b.sortableStartTime - a.sortableStartTime);
+            
+            // Take only first 20
+            const recentTrips = trips.slice(0, 20);
+            
+            console.log('✅ Displaying', recentTrips.length, 'recent trips');
+            displayProfileTrips(recentTrips);
+        })
+        .catch((error) => {
+            console.error('❌ Error loading profile trips:', error);
+            console.error('Error code:', error.code);
+            console.error('Error message:', error.message);
+            
+            // Show empty state on error
+            displayProfileTrips([]);
+        });
+}
+        
         function displayProfileTrips(trips) {
             const profileTripsList = document.getElementById('profileTripsList');
             
