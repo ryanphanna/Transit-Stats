@@ -5,15 +5,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TransitStats</title>
     <style>
+        :root {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: white;
+            --bg-tertiary: #f8f9fa;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --text-muted: #999;
+            --border-color: #ddd;
+            --border-light: #eee;
+            --accent-primary: #667eea;
+            --accent-secondary: #764ba2;
+            --success-bg: #d4edda;
+            --success-text: #155724;
+            --warning-bg: #fff3cd;
+            --warning-text: #856404;
+            --danger-bg: #f8d7da;
+            --danger-text: #721c24;
+            --info-bg: #e3f2fd;
+            --info-text: #1976d2;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-tertiary: #242424;
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --text-muted: #888888;
+            --border-color: #404040;
+            --border-light: #333333;
+            --accent-primary: #7c93f0;
+            --accent-secondary: #8a5fb8;
+            --success-bg: #1e4620;
+            --success-text: #90ee90;
+            --warning-bg: #4a4017;
+            --warning-text: #ffd700;
+            --danger-bg: #4a1e1e;
+            --danger-text: #ff6b6b;
+            --info-bg: #1a365d;
+            --info-text: #66b3ff;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-            background: #f5f5f5; 
-            color: #333; 
+            background: var(--bg-primary);
+            color: var(--text-primary);
             line-height: 1.4; 
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
         .main-content {
             flex: 1;
@@ -23,11 +66,17 @@
         .content-wrapper {
             flex: 1;
         }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header { 
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%); 
+            color: white; 
+            padding: 12px; 
+            text-align: center; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+        }
         .header-row { display: flex; justify-content: space-between; align-items: center; }
         .header-title { font-size: 1.2em; font-weight: 600; cursor: pointer; }
-        .user-info { display: flex; gap: 8px; }
-        .header-btn {
+        .user-info { display: flex; gap: 8px; align-items: center; }
+        .header-btn, .theme-toggle {
             background: rgba(255,255,255,0.2);
             border: 2px solid rgba(255,255,255,0.3);
             color: white;
@@ -36,61 +85,76 @@
             cursor: pointer;
             font-size: 0.8em;
             transition: all 0.2s ease;
-            min-width: 60px;
+            min-width: 40px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .header-btn:hover {
+        .header-btn:hover, .theme-toggle:hover {
             background: rgba(255,255,255,0.3);
             transform: scale(1.05);
         }
         .container { max-width: 100%; padding: 15px; }
-        .section { background: white; border-radius: 8px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .section { 
+            background: var(--bg-secondary); 
+            border-radius: 8px; 
+            padding: 20px; 
+            margin-bottom: 15px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+            border: 1px solid var(--border-light);
+        }
         
-        /* Maps specific styles */
+        /* Maps specific styles - Clean Datawrapper Style */
         #mapContainer {
             height: 400px;
             width: 100%;
-            border-radius: 8px;
+            border-radius: 6px;
             overflow: hidden;
-            background: #f0f0f0;
+            background: var(--bg-tertiary);
             position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #666;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
         }
         
         .map-controls {
-            background: #f8f9fa;
-            border-radius: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
             padding: 20px;
             margin-bottom: 15px;
             display: flex;
             flex-direction: column;
             gap: 15px;
+            border: 1px solid var(--border-color);
         }
         
         .map-toggle {
             display: flex;
-            background: white;
-            border-radius: 25px;
-            padding: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            padding: 2px;
             align-self: center;
+            border: 1px solid var(--border-color);
         }
         
         .toggle-btn {
             background: transparent;
             border: none;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 0.95em;
+            padding: 8px 16px;
+            border-radius: 2px;
+            font-size: 0.9em;
             cursor: pointer;
             transition: all 0.2s ease;
             white-space: nowrap;
+            color: var(--text-secondary);
+            font-weight: 500;
         }
         
         .toggle-btn.active {
-            background: #667eea;
+            background: var(--accent-primary);
             color: white;
         }
         
@@ -99,35 +163,36 @@
             justify-content: center;
             flex-wrap: wrap;
             gap: 20px;
-            font-size: 0.9em;
+            font-size: 0.85em;
+            font-weight: 500;
         }
         
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
         }
         
         .legend-color {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
         }
         
         /* Progress bar for heatmap unlock */
         .heatmap-progress {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
             color: white;
             padding: 15px 20px;
-            border-radius: 8px;
+            border-radius: 6px;
             margin-bottom: 15px;
             text-align: center;
         }
         
         .progress-bar {
             background: rgba(255,255,255,0.2);
-            border-radius: 10px;
-            height: 8px;
+            border-radius: 3px;
+            height: 6px;
             margin: 10px 0 5px 0;
             overflow: hidden;
         }
@@ -135,14 +200,14 @@
         .progress-fill {
             background: white;
             height: 100%;
-            border-radius: 10px;
+            border-radius: 3px;
             transition: width 0.3s ease;
         }
         
-        /* Footer status bar - bottom justified */
+        /* Footer status bar */
         .status-footer {
-            background: white;
-            border-top: 1px solid #ddd;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
             padding: 10px 15px;
             display: flex;
             justify-content: flex-start;
@@ -153,7 +218,7 @@
         
         /* Active trip banner */
         .active-trip-banner {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
             color: white;
             padding: 12px 16px;
             border-radius: 8px;
@@ -163,10 +228,9 @@
             transition: all 0.2s ease;
         }
         .active-trip-banner:hover {
-            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            opacity: 0.9;
         }
         
-        /* When there's an active trip, streak and trip banners are side by side */
         .banner-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -174,7 +238,6 @@
             margin-bottom: 15px;
         }
         
-        /* When no active trip, streak banner is full width */
         .banner-container.full-width {
             grid-template-columns: 1fr;
         }
@@ -186,13 +249,13 @@
             border-radius: 20px;
             font-weight: 500;
         }
-        .status-indicator.excellent { background: #d4edda; color: #155724; }
-        .status-indicator.good { background: #fff3cd; color: #856404; }
-        .status-indicator.poor { background: #f8d7da; color: #721c24; }
-        .status-indicator.loading { background: #e3f2fd; color: #1976d2; }
+        .status-indicator.excellent { background: var(--success-bg); color: var(--success-text); }
+        .status-indicator.good { background: var(--warning-bg); color: var(--warning-text); }
+        .status-indicator.poor { background: var(--danger-bg); color: var(--danger-text); }
+        .status-indicator.loading { background: var(--info-bg); color: var(--info-text); }
         .status-indicator.connected { 
-            background: #d4edda; 
-            color: #155724; 
+            background: var(--success-bg); 
+            color: var(--success-text); 
             cursor: pointer;
             transition: all 0.2s ease;
         }
@@ -204,32 +267,61 @@
             background: #ff4757;
             color: white;
         }
-        .status-indicator.disconnected { background: #f8d7da; color: #721c24; }
+        .status-indicator.disconnected { background: var(--danger-bg); color: var(--danger-text); }
         
         .auth-section { text-align: center; padding: 40px 20px; }
-        .auth-section h2 { margin-bottom: 20px; color: #333; }
-        .auth-section p { margin-bottom: 20px; color: #666; }
+        .auth-section h2 { margin-bottom: 20px; color: var(--text-primary); }
+        .auth-section p { margin-bottom: 20px; color: var(--text-secondary); }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
-        .form-group input { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-size: 1em; }
-        .form-group input:focus { outline: none; border-color: #667eea; }
+        .form-group input { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid var(--border-color); 
+            border-radius: 6px; 
+            font-size: 1em; 
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+        .form-group input:focus { outline: none; border-color: var(--accent-primary); }
         .preview-box { margin-top: 8px; padding: 10px; border-radius: 6px; font-size: 0.9em; border: 1px solid transparent; }
-        .preview-box.new { background: #e8f5e8; border-color: #2ed573; color: #2d7738; }
-        .preview-box.existing { background: #fff3cd; border-color: #ffc107; color: #856404; }
-        .btn { width: 100%; padding: 15px; border: none; border-radius: 6px; font-size: 1.1em; font-weight: 600; cursor: pointer; transition: all 0.2s ease; margin: 10px 0; }
-        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .btn-primary:hover { background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%); }
+        .preview-box.new { background: var(--success-bg); border-color: #2ed573; color: var(--success-text); }
+        .preview-box.existing { background: var(--warning-bg); border-color: #ffc107; color: var(--warning-text); }
+        .btn { 
+            width: 100%; 
+            padding: 15px; 
+            border: none; 
+            border-radius: 6px; 
+            font-size: 1.1em; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: all 0.2s ease; 
+            margin: 10px 0; 
+        }
+        .btn-primary { background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%); color: white; }
+        .btn-primary:hover { opacity: 0.9; }
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-danger { background: #ff4757; color: white; }
-        .btn-outline { background: transparent; color: #666; border: 2px solid #ddd; }
+        .btn-outline { 
+            background: transparent; 
+            color: var(--text-secondary); 
+            border: 2px solid var(--border-color); 
+        }
         .btn-sm { padding: 8px 12px; font-size: 0.9em; width: auto; }
-        .trip-status { background: #e8f5e8; border: 2px solid #2ed573; border-radius: 8px; padding: 20px; margin-bottom: 15px; text-align: center; }
+        .trip-status { 
+            background: var(--success-bg); 
+            border: 2px solid #2ed573; 
+            border-radius: 8px; 
+            padding: 20px; 
+            margin-bottom: 15px; 
+            text-align: center; 
+        }
         .trip-item { 
-            background: #f9f9f9; 
+            background: var(--bg-tertiary); 
             border-radius: 8px; 
             padding: 15px; 
             margin-bottom: 10px; 
-            border-left: 4px solid #667eea; 
+            border-left: 4px solid var(--accent-primary); 
             position: relative;
             transition: transform 0.2s ease;
             touch-action: pan-y;
@@ -252,24 +344,40 @@
             font-size: 0.9em;
             border-radius: 0 8px 8px 0;
         }
-        .empty-state { text-align: center; color: #999; padding: 20px; font-style: italic; }
-        .auth-status { background: #e3f2fd; border: 1px solid #2196f3; border-radius: 6px; padding: 10px; margin-bottom: 15px; font-size: 0.9em; color: #1976d2; }
-        .loading { text-align: center; padding: 20px; color: #666; }
-        .emoji-btn { background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 8px; padding: 12px; font-size: 1.5em; cursor: pointer; transition: all 0.2s ease; }
-        .emoji-btn:hover { background: #e9ecef; transform: scale(1.1); }
-        .emoji-btn.selected { background: #667eea; border-color: #667eea; transform: scale(1.1); }
+        .empty-state { text-align: center; color: var(--text-muted); padding: 20px; font-style: italic; }
+        .auth-status { 
+            background: var(--info-bg); 
+            border: 1px solid #2196f3; 
+            border-radius: 6px; 
+            padding: 10px; 
+            margin-bottom: 15px; 
+            font-size: 0.9em; 
+            color: var(--info-text); 
+        }
+        .loading { text-align: center; padding: 20px; color: var(--text-secondary); }
+        .emoji-btn { 
+            background: var(--bg-tertiary); 
+            border: 2px solid var(--border-color); 
+            border-radius: 8px; 
+            padding: 12px; 
+            font-size: 1.5em; 
+            cursor: pointer; 
+            transition: all 0.2s ease; 
+        }
+        .emoji-btn:hover { background: var(--border-light); transform: scale(1.1); }
+        .emoji-btn.selected { background: var(--accent-primary); border-color: var(--accent-primary); transform: scale(1.1); }
         .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
-        .stat-card { background: #f8f9fa; border-radius: 8px; padding: 20px; text-align: center; }
-        .stat-number { font-size: 2em; font-weight: bold; color: #667eea; margin-bottom: 5px; }
-        .stat-label { font-size: 0.9em; color: #666; font-weight: 500; }
+        .stat-card { background: var(--bg-tertiary); border-radius: 8px; padding: 20px; text-align: center; }
+        .stat-number { font-size: 2em; font-weight: bold; color: var(--accent-primary); margin-bottom: 5px; }
+        .stat-label { font-size: 0.9em; color: var(--text-secondary); font-weight: 500; }
         .streak-status {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
             color: white;
             padding: 12px 16px;
             border-radius: 8px;
             font-weight: 500;
             text-align: center;
-            display: none;
+            display: block;
         }
         .streak-status.hot-streak {
             background: linear-gradient(135deg, #ff6b6b 0%, #ff8e6b 100%);
@@ -291,13 +399,13 @@
         }
         .more-btn {
             grid-column: span 2;
-            background: #f8f9fa !important;
-            color: #666 !important;
-            border: 2px solid #dee2e6 !important;
+            background: var(--bg-tertiary) !important;
+            color: var(--text-secondary) !important;
+            border: 2px solid var(--border-color) !important;
         }
         .template-card {
-            background: #f8f9fa;
-            border: 2px solid #e9ecef;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-light);
             border-radius: 8px;
             padding: 15px;
             margin-bottom: 10px;
@@ -306,8 +414,8 @@
             position: relative;
         }
         .template-card:hover {
-            background: #e9ecef;
-            border-color: #667eea;
+            background: var(--border-light);
+            border-color: var(--accent-primary);
             transform: translateY(-2px);
         }
         .template-card .template-icon {
@@ -319,11 +427,11 @@
         .template-card .route-name {
             font-size: 1.1em;
             font-weight: 600;
-            color: #333;
+            color: var(--text-primary);
             margin-bottom: 5px;
         }
         .template-card .stop-name {
-            color: #666;
+            color: var(--text-secondary);
             font-size: 0.9em;
         }
         .templates-section {
@@ -337,13 +445,13 @@
         }
         .templates-header h3 {
             margin: 0;
-            color: #333;
+            color: var(--text-primary);
             font-size: 1.1em;
         }
         .manage-templates-btn {
             background: transparent;
-            border: 1px solid #ddd;
-            color: #666;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
             padding: 5px 12px;
             border-radius: 6px;
             font-size: 0.8em;
@@ -355,7 +463,7 @@
             gap: 8px;
             margin: 15px 0;
             padding: 10px;
-            background: #f8f9fa;
+            background: var(--bg-tertiary);
             border-radius: 6px;
         }
         .save-template-checkbox input[type="checkbox"] {
@@ -366,7 +474,7 @@
         .save-template-checkbox label {
             cursor: pointer;
             font-size: 0.95em;
-            color: #333;
+            color: var(--text-primary);
         }
     </style>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -381,6 +489,7 @@
             <div class="header-row">
                 <h1 class="header-title" onclick="goHome()">TransitStats</h1>
                 <div id="userInfo" class="user-info" style="display: none;">
+                    <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
                     <button id="profileBtn" class="header-btn">👤</button>
                     <button id="statsBtn" class="header-btn">📊</button>
                     <button id="mapsBtn" class="header-btn">🗺️</button>
@@ -403,14 +512,14 @@
                     
                     <div id="authMethodStep" style="display: none;">
                         <div style="text-align: center; margin-bottom: 20px;">
-                            <div style="font-size: 1.1em; color: #333; margin-bottom: 5px;" id="emailDisplay"></div>
-                            <button style="background: none; border: none; color: #667eea; font-size: 0.9em; cursor: pointer; text-decoration: underline;" onclick="goBackToEmail()">Change email</button>
+                            <div style="font-size: 1.1em; color: var(--text-primary); margin-bottom: 5px;" id="emailDisplay"></div>
+                            <button style="background: none; border: none; color: var(--accent-primary); font-size: 0.9em; cursor: pointer; text-decoration: underline;" onclick="goBackToEmail()">Change email</button>
                         </div>
                         
                         <div class="form-group" id="passwordGroup" style="display: none;">
                             <input type="password" id="passwordInput" placeholder="Enter your password">
                             <div style="text-align: center; margin-top: 10px;">
-                                <button style="background: none; border: none; color: #667eea; font-size: 0.9em; cursor: pointer; text-decoration: underline;" onclick="sendPasswordReset()">Forgot Password?</button>
+                                <button style="background: none; border: none; color: var(--accent-primary); font-size: 0.9em; cursor: pointer; text-decoration: underline;" onclick="sendPasswordReset()">Forgot Password?</button>
                             </div>
                         </div>
                         
@@ -428,7 +537,7 @@
                 <div id="appContent" style="display: none;">
                     <!-- Banners Container -->
                     <div id="bannersContainer" class="banner-container full-width">
-                        <div id="streakStatus" class="streak-status"></div>
+                        <div id="streakStatus" class="streak-status">⚡ Take your first trip to start tracking!</div>
                         <div id="activeTripBanner" class="active-trip-banner" style="display: none;" onclick="goToActiveTrip()">
                             🚌 Currently riding • Tap to view
                         </div>
@@ -439,7 +548,7 @@
                     <div style="text-align: center; margin-bottom: 20px;">
                         <div style="font-size: 3em; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;">
                             <span id="profileAvatar">🚌</span>
-                            <button id="shuffleEmojiBtn" style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 50%; padding: 8px; font-size: 0.5em; cursor: pointer; width: 30px; height: 30px; display: none;">🎲</button>
+                            <button id="shuffleEmojiBtn" style="background: var(--bg-tertiary); border: 2px solid var(--border-color); border-radius: 50%; padding: 8px; font-size: 0.5em; cursor: pointer; width: 30px; height: 30px; display: none;">🎲</button>
                         </div>
                         <input type="text" id="nameInput" placeholder="Your name (e.g., Ryan)" style="text-align: center; font-size: 1.1em; font-weight: 600; margin-bottom: 10px;">
                     </div>
@@ -477,7 +586,7 @@
                     </div>
 
                     <!-- Founder Stats Section -->
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 20px; margin-bottom: 15px; color: white; text-align: center;">
+                    <div style="background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%); border-radius: 12px; padding: 20px; margin-bottom: 15px; color: white; text-align: center;">
                         <h3 style="margin-bottom: 15px; font-size: 1.2em;">🚀 Founder Stats</h3>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                             <div>
@@ -492,18 +601,18 @@
                     </div>
 
                     <!-- Trip Templates Management -->
-                    <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 20px;" id="templatesManagement">
-                        <h3 style="margin-bottom: 15px; color: #333;">⭐ Trip Templates</h3>
+                    <div style="border-top: 1px solid var(--border-light); padding-top: 20px; margin-top: 20px;" id="templatesManagement">
+                        <h3 style="margin-bottom: 15px; color: var(--text-primary);">⭐ Trip Templates</h3>
                         <div id="profileTemplatesList">
                             <div class="loading">Loading templates...</div>
                         </div>
-                        <div style="margin-top: 15px; font-size: 0.9em; color: #666; font-style: italic;">
+                        <div style="margin-top: 15px; font-size: 0.9em; color: var(--text-secondary); font-style: italic;">
                             Templates save your Route + Starting Stop for quick trip starts
                         </div>
                     </div>
 
-                    <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 20px;">
-                        <h3 style="margin-bottom: 15px; color: #333;">Recent Trips</h3>
+                    <div style="border-top: 1px solid var(--border-light); padding-top: 20px; margin-top: 20px;">
+                        <h3 style="margin-bottom: 15px; color: var(--text-primary);">Recent Trips</h3>
                         <div id="profileTripsList">
                             <div class="loading">Loading trips...</div>
                         </div>
@@ -513,8 +622,8 @@
                 <div id="statsSection" class="section" style="display: none;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h2>📊 Your Stats</h2>
-                        <div style="background: #f8f9fa; border-radius: 20px; padding: 4px; display: flex;">
-                            <button id="statsToggle30" class="btn" style="background: #667eea; color: white; padding: 8px 16px; margin: 0; border-radius: 16px; font-size: 0.9em;">30 Days</button>
+                        <div style="background: var(--bg-tertiary); border-radius: 20px; padding: 4px; display: flex;">
+                            <button id="statsToggle30" class="btn" style="background: var(--accent-primary); color: white; padding: 8px 16px; margin: 0; border-radius: 16px; font-size: 0.9em;">30 Days</button>
                             <button id="statsToggleAll" class="btn btn-outline" style="padding: 8px 16px; margin: 0; border: none; font-size: 0.9em;">All Time</button>
                         </div>
                     </div>
@@ -540,8 +649,8 @@
                     </div>
 
                     <!-- Community Comparison -->
-                    <div style="background: #f8f9fa; border-radius: 12px; padding: 20px; margin-top: 20px;">
-                        <h3 style="margin-bottom: 15px; color: #333;">🌍 Community Comparison</h3>
+                    <div style="background: var(--bg-tertiary); border-radius: 12px; padding: 20px; margin-top: 20px; border: 1px solid var(--border-color);">
+                        <h3 style="margin-bottom: 15px; color: var(--text-primary);">🌍 Community Comparison</h3>
                         <div id="communityStats">
                             <div class="loading">Loading community data...</div>
                         </div>
@@ -549,14 +658,14 @@
 
                     <!-- Top Routes & Stops -->
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
-                        <div style="background: white; border-radius: 8px; padding: 15px; border: 1px solid #ddd;">
-                            <h4 style="margin-bottom: 10px; color: #667eea;">🚌 Top Routes</h4>
+                        <div style="background: var(--bg-secondary); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color);">
+                            <h4 style="margin-bottom: 10px; color: var(--accent-primary);">🚌 Top Routes</h4>
                             <div id="topRoutes">
                                 <div class="loading">Loading...</div>
                             </div>
                         </div>
-                        <div style="background: white; border-radius: 8px; padding: 15px; border: 1px solid #ddd;">
-                            <h4 style="margin-bottom: 10px; color: #667eea;">🚏 Top Stops</h4>
+                        <div style="background: var(--bg-secondary); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color);">
+                            <h4 style="margin-bottom: 10px; color: var(--accent-primary);">🚏 Top Stops</h4>
                             <div id="topStops">
                                 <div class="loading">Loading...</div>
                             </div>
@@ -570,7 +679,7 @@
                     
                     <!-- Progress bar for heatmap unlock -->
                     <div id="heatmapProgress" class="heatmap-progress" style="display: none;">
-                        <div id="progressText">🗺️ Unlock your transit heatmap!</div>
+                        <div id="progressText">🗺️ Start taking trips to unlock your heatmap!</div>
                         <div class="progress-bar">
                             <div id="progressFill" class="progress-fill" style="width: 0%;"></div>
                         </div>
@@ -586,19 +695,19 @@
                         
                         <div class="map-legend" id="mapLegend">
                             <div class="legend-item">
-                                <div class="legend-color" style="background: #dc2626;"></div>
+                                <div class="legend-color" style="background: #1e3a8a;"></div>
                                 <span>Home Base (50%+)</span>
                             </div>
                             <div class="legend-item">
-                                <div class="legend-color" style="background: #ea580c;"></div>
+                                <div class="legend-color" style="background: #3b82f6;"></div>
                                 <span>Regular (25-49%)</span>
                             </div>
                             <div class="legend-item">
-                                <div class="legend-color" style="background: #ca8a04;"></div>
+                                <div class="legend-color" style="background: #60a5fa;"></div>
                                 <span>Occasional (10-24%)</span>
                             </div>
                             <div class="legend-item">
-                                <div class="legend-color" style="background: #16a34a;"></div>
+                                <div class="legend-color" style="background: #93c5fd;"></div>
                                 <span>Rare (5-9%)</span>
                             </div>
                         </div>
@@ -607,13 +716,12 @@
                     <div id="mapContainer">
                         <div style="text-align: center;">
                             <div style="font-size: 2em; margin-bottom: 10px;">🗺️</div>
-                            <div>Map will appear here when you have location data</div>
-                            <div style="font-size: 0.9em; color: #999; margin-top: 10px;">Take some trips with GPS enabled to see your transit patterns</div>
+                            <div>Take your first trip to get started!</div>
                         </div>
                     </div>
                     
-                    <div id="mapStats" style="display: none; background: #f8f9fa; border-radius: 8px; padding: 15px; margin-top: 15px;">
-                        <h4 style="margin-bottom: 10px; color: #333;">Map Statistics</h4>
+                    <div id="mapStats" style="display: none; background: var(--bg-tertiary); border-radius: 8px; padding: 15px; margin-top: 15px; border: 1px solid var(--border-color);">
+                        <h4 style="margin-bottom: 10px; color: var(--text-primary);">Map Statistics</h4>
                         <div id="mapStatsContent"></div>
                     </div>
                 </div>
@@ -651,8 +759,8 @@
                     </div>
                     
                     <!-- Progressive Questions -->
-                    <div id="progressiveQuestion" class="section" style="display: none; background: #f8f9fa; border: 2px solid #667eea;">
-                        <div id="questionText" style="font-weight: 500; margin-bottom: 15px; color: #333;"></div>
+                    <div id="progressiveQuestion" class="section" style="display: none; background: var(--bg-tertiary); border: 2px solid var(--accent-primary);">
+                        <div id="questionText" style="font-weight: 500; margin-bottom: 15px; color: var(--text-primary);"></div>
                         <div id="questionOptions" class="question-options" style="display: none;">
                             <!-- Options will be populated by JavaScript -->
                         </div>
@@ -660,7 +768,7 @@
                             <input type="text" id="questionInput" placeholder="" style="margin-bottom: 10px;">
                         </div>
                         <div style="display: flex; gap: 10px;">
-                            <button id="answerBtn" class="btn" style="background: #667eea; color: white; flex: 1;">Answer</button>
+                            <button id="answerBtn" class="btn" style="background: var(--accent-primary); color: white; flex: 1;">Answer</button>
                             <button id="skipBtn" class="btn btn-outline" style="flex: 1;">Skip</button>
                         </div>
                     </div>
@@ -670,13 +778,11 @@
                         <button id="abandonBtn" class="btn btn-outline" style="background: #ffc107; color: #856404; border-color: #ffc107; flex: 1;">⚠️ Cancel Trip</button>
                     </div>
                 </div>
-
-
             </div>
             </div>
 
             <div id="endModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 400px;">
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 20px; border-radius: 8px; width: 90%; max-width: 400px; border: 1px solid var(--border-color);">
                     <h3>End Trip</h3>
                     <div class="form-group">
                         <label>Exit Stop</label>
@@ -687,7 +793,7 @@
                         <label for="saveAsTemplate">⭐ Save route + start stop as template</label>
                     </div>
                     <button id="saveBtn" class="btn btn-primary">Save Trip</button>
-                    <button id="cancelBtn" class="btn" style="background: #ddd;">Cancel</button>
+                    <button id="cancelBtn" class="btn" style="background: var(--border-color);">Cancel</button>
                 </div>
             </div>
                 </div>
@@ -770,6 +876,36 @@
         const activeTripBanner = document.getElementById('activeTripBanner');
         const bannersContainer = document.getElementById('bannersContainer');
 
+        // Theme Management
+        function toggleTheme() {
+            const body = document.body;
+            const themeToggle = document.querySelector('.theme-toggle');
+            const currentTheme = body.getAttribute('data-theme');
+            
+            if (currentTheme === 'dark') {
+                body.removeAttribute('data-theme');
+                themeToggle.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                themeToggle.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Load saved theme on page load
+        function loadSavedTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const themeToggle = document.querySelector('.theme-toggle');
+            
+            if (savedTheme === 'dark') {
+                document.body.setAttribute('data-theme', 'dark');
+                if (themeToggle) themeToggle.textContent = '☀️';
+            } else {
+                if (themeToggle) themeToggle.textContent = '🌙';
+            }
+        }
+
         // Authentication State Management
         auth.onAuthStateChanged((user) => {
             currentUser = user;
@@ -824,28 +960,23 @@
         function showProfile() {
             hideAllSections();
             profileSection.style.display = 'block';
-            document.getElementById('startSection').style.display = 'none';
-            document.getElementById('recentTripsSection').style.display = 'none';
+            startSection.style.display = 'none';
             updateTripIndicator();
             updateProfileStats();
-            // Load profile trips separately to avoid caching issues
             loadProfileTrips();
         }
 
         function showStats() {
             hideAllSections();
             statsSection.style.display = 'block';
-            document.getElementById('startSection').style.display = 'none';
-            document.getElementById('recentTripsSection').style.display = 'none';
+            startSection.style.display = 'none';
             updateTripIndicator();
             
-            // Initialize stats toggle only once
             if (!statsInitialized) {
                 initializeStatsToggle();
                 statsInitialized = true;
             }
             
-            // Force refresh stats on page load
             updateStatsSection();
             loadCommunityData();
         }
@@ -853,14 +984,12 @@
         function showMaps() {
             hideAllSections();
             mapsSection.style.display = 'block';
-            startSection.style.display = 'none'; // Hide start section on maps page
+            startSection.style.display = 'none';
             updateTripIndicator();
             
-            // Initialize map if not already done
             if (!mapInitialized) {
                 initializeMap();
             } else {
-                // Just reload the data
                 loadMapData();
             }
         }
@@ -880,7 +1009,7 @@
             }
         }
 
-        // Maps functionality
+        // Maps functionality - Clean Datawrapper Style
         function initializeMap() {
             if (!currentUser) return;
             
@@ -898,7 +1027,6 @@
                     const trips = [];
                     snapshot.forEach((doc) => {
                         const trip = doc.data();
-                        // Only include trips with location data
                         if (trip.boardingLocation || trip.exitLocation) {
                             trips.push(trip);
                         }
@@ -911,18 +1039,20 @@
                     const progressText = document.getElementById('progressText');
 
                     if (totalTrips === 0) {
+                        progressBar.style.display = 'block';
+                        progressFill.style.width = '0%';
+                        progressCount.textContent = '0 / 50 trips with GPS';
+                        progressText.textContent = '🗺️ Start taking trips with GPS to unlock your heatmap!';
+                        
                         document.getElementById('mapContainer').innerHTML = `
                             <div style="text-align: center;">
                                 <div style="font-size: 2em; margin-bottom: 10px;">🗺️</div>
-                                <div>No location data available yet</div>
-                                <div style="font-size: 0.9em; color: #999; margin-top: 10px;">Take some trips with GPS enabled to see your transit patterns</div>
+                                <div>Take your first trip to get started!</div>
                             </div>
                         `;
-                        progressBar.style.display = 'none';
                         return;
                     }
 
-                    // Update progress bar
                     const progress = Math.min((totalTrips / 50) * 100, 100);
                     progressFill.style.width = `${progress}%`;
                     progressCount.textContent = `${totalTrips} / 50 trips with GPS`;
@@ -936,32 +1066,26 @@
                         } else {
                             progressText.textContent = '🗺️ Almost there! Heatmap unlocking soon!';
                         }
+                        
+                        if (mapMode === 'markers') {
+                            createMap(trips);
+                            updateMapStats(trips);
+                        } else {
+                            document.getElementById('mapContainer').innerHTML = `
+                                <div style="text-align: center;">
+                                    <div style="font-size: 2em; margin-bottom: 10px;">🗺️</div>
+                                    <div style="margin-top: 15px;">
+                                        <button class="btn" style="background: var(--accent-primary); color: white; padding: 10px 20px; font-size: 0.9em;" onclick="setMapMode('markers');">
+                                            View individual trips (${totalTrips} available)
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        }
                     } else {
                         progressBar.style.display = 'none';
-                    }
-
-                    // Check if we have enough trips for meaningful heatmap (50+ recommended)
-                    if (trips.length >= 50 && (mapMode === 'boarding' || mapMode === 'alighting')) {
                         createMap(trips);
                         updateMapStats(trips);
-                    } else if (mapMode === 'markers') {
-                        // Always allow individual trips view regardless of trip count
-                        createMap(trips);
-                        updateMapStats(trips);
-                    } else {
-                        // Not enough for heatmap, show encouragement
-                        document.getElementById('mapContainer').innerHTML = `
-                            <div style="text-align: center;">
-                                <div style="font-size: 2em; margin-bottom: 10px;">🗺️</div>
-                                <div>Need more trips for heatmap (${trips.length}/50)</div>
-                                <div style="font-size: 0.9em; color: #999; margin-top: 10px;">Keep taking trips with GPS to unlock your transit heatmap!</div>
-                                <div style="margin-top: 15px;">
-                                    <button class="btn" style="background: #667eea; color: white; padding: 10px 20px; font-size: 0.9em;" onclick="setMapMode('markers');">
-                                        View individual trips (${trips.length} available)
-                                    </button>
-                                </div>
-                            </div>
-                        `;
                     }
                 })
                 .catch((error) => {
@@ -977,10 +1101,8 @@
         }
 
         function createMap(trips) {
-            // Clear existing map
             document.getElementById('mapContainer').innerHTML = '';
             
-            // Calculate map center from all locations
             const locations = [];
             trips.forEach(trip => {
                 if (trip.boardingLocation) {
@@ -993,7 +1115,6 @@
 
             if (locations.length === 0) return;
 
-            // Calculate center and bounds
             const lats = locations.map(loc => loc[0]);
             const lons = locations.map(loc => loc[1]);
             const minLat = Math.min(...lats);
@@ -1004,22 +1125,21 @@
             const avgLat = (minLat + maxLat) / 2;
             const avgLon = (minLon + maxLon) / 2;
 
-            // Initialize map
             map = L.map('mapContainer').setView([avgLat, avgLon], 12);
 
-            // Add tile layer
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
+            // Use clean CartoDB Light tiles for minimal Datawrapper style
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap contributors © CartoDB',
+                subdomains: 'abcd',
+                maxZoom: 19
             }).addTo(map);
 
-            // Create markers/heatmap
             if (mapMode === 'boarding' || mapMode === 'alighting') {
                 createHeatmap(trips, mapMode);
             } else {
                 createMarkers(trips);
             }
             
-            // Fit map to show all markers with padding
             if (locations.length > 1) {
                 const bounds = L.latLngBounds(locations);
                 map.fitBounds(bounds, { padding: [20, 20] });
@@ -1029,7 +1149,6 @@
         }
 
         function createHeatmap(trips, mode) {
-            // Count stop usage based on mode
             const stopCounts = {};
             
             trips.forEach(trip => {
@@ -1058,16 +1177,14 @@
                 }
             });
 
-            // Filter to only show stops with 5+ uses
             const significantStops = Object.values(stopCounts)
                 .filter(stop => stop.count >= 5)
                 .sort((a, b) => b.count - a.count);
 
             if (significantStops.length === 0) {
-                // Clear map and show message
                 if (map) {
                     map.eachLayer((layer) => {
-                        if (layer !== map._layers[Object.keys(map._layers)[0]]) { // Don't remove tile layer
+                        if (!layer._url) {
                             map.removeLayer(layer);
                         }
                     });
@@ -1078,81 +1195,81 @@
                     <div style="text-align: center;">
                         <div style="font-size: 2em; margin-bottom: 10px;">🗺️</div>
                         <div>No repeated ${modeText} found</div>
-                        <div style="font-size: 0.9em; color: #999; margin-top: 10px;">Use the same stop 5+ times to see it on the heatmap</div>
+                        <div style="font-size: 0.9em; color: var(--text-muted); margin-top: 10px;">Use the same stop 5+ times to see it on the heatmap</div>
                     </div>
                 `;
                 return;
             }
 
-            // Find max usage for percentage calculation
             const maxUsage = significantStops[0].count;
 
-            // Create circles for each stop with dynamic color scaling
+            // Clean data visualization colors - subtle blues
             significantStops.forEach((stop, index) => {
                 const percentage = (stop.count / maxUsage) * 100;
                 let color, description;
                 
                 if (percentage >= 50) {
-                    color = '#dc2626'; // Dark red - Home base
+                    color = '#1e3a8a'; // Dark blue - Home base
                     description = 'Home Base';
                 } else if (percentage >= 25) {
-                    color = '#ea580c'; // Orange - Regular  
+                    color = '#3b82f6'; // Medium blue - Regular  
                     description = 'Regular';
                 } else if (percentage >= 10) {
-                    color = '#ca8a04'; // Yellow - Occasional
+                    color = '#60a5fa'; // Light blue - Occasional
                     description = 'Occasional';
                 } else {
-                    color = '#16a34a'; // Green - Rare
+                    color = '#93c5fd'; // Very light blue - Rare
                     description = 'Rare';
                 }
 
-                // Scale radius: 15-40px based on relative usage
-                const radius = 15 + (percentage / 100) * 25;
+                const radius = 12 + (percentage / 100) * 18;
 
                 const circle = L.circle([stop.lat, stop.lon], {
                     color: color,
                     fillColor: color,
                     fillOpacity: 0.7,
-                    radius: radius * 15 // Multiply for visibility on map
+                    weight: 2,
+                    radius: radius * 20
                 }).addTo(map);
 
-                // Add popup with stop info
                 const modeText = mode === 'boarding' ? 'boardings' : 'alightings';
                 circle.bindPopup(`
-                    <strong>${stop.name}</strong><br>
-                    ${description} (${Math.round(percentage)}% of max)<br>
-                    ${stop.count} ${modeText}<br>
-                    Rank: #${index + 1}
+                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 4px;">
+                        <strong style="font-size: 14px;">${stop.name}</strong><br>
+                        <span style="color: #666; font-size: 12px;">${description} (${Math.round(percentage)}% of max)</span><br>
+                        <span style="color: #666; font-size: 12px;">${stop.count} ${modeText} • Rank #${index + 1}</span>
+                    </div>
                 `);
             });
         }
 
         function createMarkers(trips) {
-            // Create separate markers for each trip
             trips.forEach((trip, index) => {
-                // Boarding marker
                 if (trip.boardingLocation) {
                     const boardingMarker = L.marker([trip.boardingLocation.lat, trip.boardingLocation.lon])
                         .addTo(map);
                     
                     boardingMarker.bindPopup(`
-                        <strong>🚌 Boarding</strong><br>
-                        Stop: ${trip.startStop}<br>
-                        Route: ${trip.route}<br>
-                        Time: ${trip.startTime?.toDate ? trip.startTime.toDate().toLocaleString() : 'Unknown'}
+                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 4px;">
+                            <strong style="font-size: 14px;">🚌 Boarding</strong><br>
+                            <span style="color: #666; font-size: 12px;">Stop: ${trip.startStop}</span><br>
+                            <span style="color: #666; font-size: 12px;">Route: ${trip.route}</span><br>
+                            <span style="color: #666; font-size: 12px;">Time: ${trip.startTime?.toDate ? trip.startTime.toDate().toLocaleString() : 'Unknown'}</span>
+                        </div>
                     `);
                 }
 
-                // Alighting marker
                 if (trip.exitLocation) {
                     const alightingMarker = L.marker([trip.exitLocation.lat, trip.exitLocation.lon])
                         .addTo(map);
                     
                     alightingMarker.bindPopup(`
-                        <strong>🚏 Alighting</strong><br>
-                        Stop: ${trip.endStop}<br>
-                        Route: ${trip.route}<br>
-                        Duration: ${trip.duration || 0} minutes
+                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 4px;">
+                            <strong style="font-size: 14px;">🚏 Alighting</strong><br>
+                            <span style="color: #666; font-size: 12px;">Stop: ${trip.endStop}</span><br>
+                            <span style="color: #666; font-size: 12px;">Route: ${trip.route}</span><br>
+                            <span style="color: #666; font-size: 12px;">Duration: ${trip.duration || 0} minutes</span>
+                        </div>
                     `);
                 }
             });
@@ -1161,15 +1278,12 @@
         function setMapMode(mode) {
             mapMode = mode;
             
-            // Update toggle buttons
             document.getElementById('boardingToggle').className = mode === 'boarding' ? 'toggle-btn active' : 'toggle-btn';
             document.getElementById('alightingToggle').className = mode === 'alighting' ? 'toggle-btn active' : 'toggle-btn';
             document.getElementById('markersToggle').className = mode === 'markers' ? 'toggle-btn active' : 'toggle-btn';
             
-            // Update legend visibility
             document.getElementById('mapLegend').style.display = (mode === 'boarding' || mode === 'alighting') ? 'flex' : 'none';
             
-            // Reload map data
             if (mapInitialized) {
                 loadMapData();
             }
@@ -1182,16 +1296,16 @@
             const statsHtml = `
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
                     <div style="text-align: center;">
-                        <div style="font-size: 1.5em; font-weight: bold; color: #667eea;">${locatedTrips.length}</div>
-                        <div style="font-size: 0.9em; color: #666;">Trips with GPS</div>
+                        <div style="font-size: 1.5em; font-weight: bold; color: var(--accent-primary);">${locatedTrips.length}</div>
+                        <div style="font-size: 0.9em; color: var(--text-secondary);">Trips with GPS</div>
                     </div>
                     <div style="text-align: center;">
-                        <div style="font-size: 1.5em; font-weight: bold; color: #667eea;">${bothLocations.length}</div>
-                        <div style="font-size: 0.9em; color: #666;">Complete journeys</div>
+                        <div style="font-size: 1.5em; font-weight: bold; color: var(--accent-primary);">${bothLocations.length}</div>
+                        <div style="font-size: 0.9em; color: var(--text-secondary);">Complete journeys</div>
                     </div>
                     <div style="text-align: center;">
-                        <div style="font-size: 1.5em; font-weight: bold; color: #667eea;">${Math.round((locatedTrips.length / trips.length) * 100)}%</div>
-                        <div style="font-size: 0.9em; color: #666;">GPS coverage</div>
+                        <div style="font-size: 1.5em; font-weight: bold; color: var(--accent-primary);">${Math.round((locatedTrips.length / trips.length) * 100)}%</div>
+                        <div style="font-size: 0.9em; color: var(--text-secondary);">GPS coverage</div>
                     </div>
                 </div>
             `;
@@ -1207,24 +1321,20 @@
                 activeTripBanner.innerHTML = `🚌 Currently riding ${activeTrip.route} • Tap to view`;
                 activeTripBanner.style.display = 'block';
                 
-                // Only use side-by-side layout if BOTH banners are visible
                 if (streakVisible) {
-                    bannersContainer.className = 'banner-container'; // Side by side
-                    // Make streak banner text shorter when sharing space
+                    bannersContainer.className = 'banner-container';
                     const currentText = streakStatus.textContent;
                     if (currentText && currentText.includes('Keep it going!')) {
                         streakStatus.textContent = currentText.replace(' Keep it going!', '').replace(' You\'re a transit champion!', '');
                     }
                 } else {
-                    bannersContainer.className = 'banner-container full-width'; // Full width for single banner
+                    bannersContainer.className = 'banner-container full-width';
                 }
             } else {
                 activeTripBanner.style.display = 'none';
-                bannersContainer.className = 'banner-container full-width'; // Full width
+                bannersContainer.className = 'banner-container full-width';
                 
-                // Restore full streak text when banner is full width
                 if (streakVisible) {
-                    // Re-calculate to get proper text
                     loadTrips();
                 }
             }
@@ -1236,7 +1346,6 @@
                 connectionStatus.classList.add('logout-mode');
                 logoutModeActive = true;
                 
-                // Reset after 3 seconds if not clicked
                 setTimeout(() => {
                     if (logoutModeActive) {
                         connectionStatus.textContent = 'Logged In';
@@ -1245,7 +1354,6 @@
                     }
                 }, 3000);
             } else {
-                // Actually log out
                 signOut();
             }
         }
@@ -1306,10 +1414,10 @@
             toggle30.addEventListener('click', () => {
                 if (currentStatsView !== '30days') {
                     currentStatsView = '30days';
-                    toggle30.style.background = '#667eea';
+                    toggle30.style.background = 'var(--accent-primary)';
                     toggle30.style.color = 'white';
                     toggleAll.style.background = 'transparent';
-                    toggleAll.style.color = '#666';
+                    toggleAll.style.color = 'var(--text-secondary)';
                     updateStatsSection();
                     loadCommunityData();
                 }
@@ -1318,10 +1426,10 @@
             toggleAll.addEventListener('click', () => {
                 if (currentStatsView !== 'alltime') {
                     currentStatsView = 'alltime';
-                    toggleAll.style.background = '#667eea';
+                    toggleAll.style.background = 'var(--accent-primary)';
                     toggleAll.style.color = 'white';
                     toggle30.style.background = 'transparent';
-                    toggle30.style.color = '#666';
+                    toggle30.style.color = 'var(--text-secondary)';
                     updateStatsSection();
                     loadCommunityData();
                 }
@@ -1350,7 +1458,6 @@
                         const trip = doc.data();
                         trips.push(trip);
                         
-                        // Debug log for first few trips
                         if (trips.length <= 3) {
                             const tripDate = trip.startTime?.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
                             console.log(`Trip on ${tripDate.toLocaleDateString()}: ${trip.route}`);
@@ -1379,7 +1486,6 @@
                 })
                 .catch((error) => {
                     console.error('Error updating stats:', error);
-                    // Try fallback approach without query constraints
                     db.collection('trips').where('userId', '==', currentUser.uid).get().then((snapshot) => {
                         const trips = [];
                         snapshot.forEach((doc) => {
@@ -1396,7 +1502,6 @@
                             }
                         });
                         
-                        // Update stats with filtered trips
                         const totalTrips = trips.length;
                         const uniqueRoutes = new Set(trips.map(t => t.route)).size;
                         const totalMinutes = trips.reduce((sum, t) => sum + (t.duration || 0), 0);
@@ -1432,74 +1537,71 @@
                         trips.push(doc.data());
                     });
 
-                    // Calculate streaks for profile
                     const streakData = calculateStreaks(trips);
                     document.getElementById('profileCurrentStreak').textContent = streakData.current;
                     document.getElementById('profileBestStreak').textContent = streakData.best;
 
-                    // Calculate founder stats
                     calculateFounderStats(trips);
                 });
         }
 
-function loadProfileTrips() {
-    if (!currentUser) return;
-    
-    console.log('🔍 Loading profile trips for user:', currentUser.uid);
+        // FIXED: Profile trips loading with proper debugging
+        function loadProfileTrips() {
+            if (!currentUser) return;
+            
+            console.log('🔍 Loading profile trips for user:', currentUser.uid);
 
-    // First try without orderBy to see if we have trips at all
-    db.collection('trips')
-        .where('userId', '==', currentUser.uid)
-        .get()
-        .then((snapshot) => {
-            console.log('📊 Total trips found:', snapshot.size);
-            
-            if (snapshot.size === 0) {
-                console.log('❌ No trips found for user');
-                displayProfileTrips([]);
-                return;
-            }
-            
-            // Convert to array and sort in JavaScript instead of Firestore
-            const trips = [];
-            snapshot.forEach((doc) => {
-                const trip = doc.data();
-                // Convert Firestore timestamp to JS Date for sorting
-                let startTime;
-                if (trip.startTime?.toDate) {
-                    startTime = trip.startTime.toDate();
-                } else if (trip.startTime) {
-                    startTime = new Date(trip.startTime);
-                } else {
-                    startTime = new Date();
-                }
-                
-                trips.push({ 
-                    id: doc.id, 
-                    ...trip,
-                    sortableStartTime: startTime
+            // Simplified query without orderBy to avoid index issues
+            db.collection('trips')
+                .where('userId', '==', currentUser.uid)
+                .get()
+                .then((snapshot) => {
+                    console.log('📊 Total trips found:', snapshot.size);
+                    
+                    if (snapshot.size === 0) {
+                        console.log('❌ No trips found for user');
+                        displayProfileTrips([]);
+                        return;
+                    }
+                    
+                    // Convert to array and sort in JavaScript
+                    const trips = [];
+                    snapshot.forEach((doc) => {
+                        const trip = doc.data();
+                        let startTime;
+                        if (trip.startTime?.toDate) {
+                            startTime = trip.startTime.toDate();
+                        } else if (trip.startTime) {
+                            startTime = new Date(trip.startTime);
+                        } else {
+                            startTime = new Date();
+                        }
+                        
+                        trips.push({ 
+                            id: doc.id, 
+                            ...trip,
+                            sortableStartTime: startTime
+                        });
+                    });
+                    
+                    // Sort by startTime descending (newest first)
+                    trips.sort((a, b) => b.sortableStartTime - a.sortableStartTime);
+                    
+                    // Take only first 20
+                    const recentTrips = trips.slice(0, 20);
+                    
+                    console.log('✅ Displaying', recentTrips.length, 'recent trips');
+                    displayProfileTrips(recentTrips);
+                })
+                .catch((error) => {
+                    console.error('❌ Error loading profile trips:', error);
+                    console.error('Error code:', error.code);
+                    console.error('Error message:', error.message);
+                    
+                    displayProfileTrips([]);
                 });
-            });
-            
-            // Sort by startTime descending (newest first)
-            trips.sort((a, b) => b.sortableStartTime - a.sortableStartTime);
-            
-            // Take only first 20
-            const recentTrips = trips.slice(0, 20);
-            
-            console.log('✅ Displaying', recentTrips.length, 'recent trips');
-            displayProfileTrips(recentTrips);
-        })
-        .catch((error) => {
-            console.error('❌ Error loading profile trips:', error);
-            console.error('Error code:', error.code);
-            console.error('Error message:', error.message);
-            
-            // Show empty state on error
-            displayProfileTrips([]);
-        });
-}
-        
+        }
+
         function displayProfileTrips(trips) {
             const profileTripsList = document.getElementById('profileTripsList');
             
@@ -1530,15 +1632,12 @@ function loadProfileTrips() {
 
             profileTripsList.innerHTML = tripsHtml;
             
-            // Add swipe functionality to trip items
             profileTripsList.querySelectorAll('.trip-item').forEach(item => {
                 addSwipeToDelete(item);
             });
         }
 
         function calculateFounderStats(trips) {
-            // For now, show 0s until we implement route/stop founding
-            // This will be updated when trips start tracking new routes/stops
             document.getElementById('profileFounderRoutes').textContent = '0';
             document.getElementById('profileFounderStops').textContent = '0';
         }
@@ -1556,12 +1655,12 @@ function loadProfileTrips() {
 
             const topRoutesHtml = sortedRoutes.length > 0 ? 
                 sortedRoutes.map(([route, count], index) => 
-                    `<div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee;">
+                    `<div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border-light);">
                         <span>${index + 1}. ${route}</span>
-                        <span style="color: #667eea; font-weight: 600;">${count} trips</span>
+                        <span style="color: var(--accent-primary); font-weight: 600;">${count} trips</span>
                     </div>`
                 ).join('') : 
-                '<div style="color: #999; font-style: italic;">No trips yet</div>';
+                '<div style="color: var(--text-muted); font-style: italic;">No trips yet</div>';
 
             document.getElementById('topRoutes').innerHTML = topRoutesHtml;
         }
@@ -1581,12 +1680,12 @@ function loadProfileTrips() {
 
             const topStopsHtml = sortedStops.length > 0 ? 
                 sortedStops.map(([stop, count], index) => 
-                    `<div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee;">
+                    `<div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border-light);">
                         <span>${index + 1}. ${stop}</span>
-                        <span style="color: #667eea; font-weight: 600;">${count} uses</span>
+                        <span style="color: var(--accent-primary); font-weight: 600;">${count} uses</span>
                     </div>`
                 ).join('') : 
-                '<div style="color: #999; font-style: italic;">No trips yet</div>';
+                '<div style="color: var(--text-muted); font-style: italic;">No trips yet</div>';
 
             document.getElementById('topStops').innerHTML = topStopsHtml;
         }
@@ -1622,21 +1721,21 @@ function loadProfileTrips() {
 
                     const communityHtml = `
                         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-                            <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
-                                <div style="font-size: 1.8em; font-weight: bold; color: #667eea;">${userTrips.length}</div>
-                                <div style="font-size: 0.9em; color: #666;">Your trips (${timeLabel})</div>
+                            <div style="text-align: center; padding: 15px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                                <div style="font-size: 1.8em; font-weight: bold; color: var(--accent-primary);">${userTrips.length}</div>
+                                <div style="font-size: 0.9em; color: var(--text-secondary);">Your trips (${timeLabel})</div>
                             </div>
-                            <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
-                                <div style="font-size: 1.8em; font-weight: bold; color: #667eea;">#${userRank}</div>
-                                <div style="font-size: 0.9em; color: #666;">Your rank</div>
+                            <div style="text-align: center; padding: 15px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                                <div style="font-size: 1.8em; font-weight: bold; color: var(--accent-primary);">#${userRank}</div>
+                                <div style="font-size: 0.9em; color: var(--text-secondary);">Your rank</div>
                             </div>
-                            <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
-                                <div style="font-size: 1.8em; font-weight: bold; color: #667eea;">${totalUsers}</div>
-                                <div style="font-size: 0.9em; color: #666;">Total users</div>
+                            <div style="text-align: center; padding: 15px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                                <div style="font-size: 1.8em; font-weight: bold; color: var(--accent-primary);">${totalUsers}</div>
+                                <div style="font-size: 0.9em; color: var(--text-secondary);">Total users</div>
                             </div>
-                            <div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
-                                <div style="font-size: 1.8em; font-weight: bold; color: #667eea;">${avgTripsPerUser}</div>
-                                <div style="font-size: 0.9em; color: #666;">Avg trips/user</div>
+                            <div style="text-align: center; padding: 15px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                                <div style="font-size: 1.8em; font-weight: bold; color: var(--accent-primary);">${avgTripsPerUser}</div>
+                                <div style="font-size: 0.9em; color: var(--text-secondary);">Avg trips/user</div>
                             </div>
                         </div>
                     `;
@@ -1645,7 +1744,7 @@ function loadProfileTrips() {
                 })
                 .catch((error) => {
                     console.error('Error loading community data:', error);
-                    document.getElementById('communityStats').innerHTML = '<div style="color: #999; font-style: italic;">Unable to load community data</div>';
+                    document.getElementById('communityStats').innerHTML = '<div style="color: var(--text-muted); font-style: italic;">Unable to load community data</div>';
                 });
         }
 
@@ -1678,13 +1777,11 @@ function loadProfileTrips() {
 
             const uniqueDays = Array.from(tripDays).sort((a, b) => new Date(b) - new Date(a));
 
-            // Check if today is the only day with trips
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const todayString = today.toDateString();
             
             if (uniqueDays.length === 1 && uniqueDays[0] === todayString) {
-                // First day of usage - no streak yet
                 return { current: 0, best: 0 };
             }
 
@@ -1745,7 +1842,6 @@ function loadProfileTrips() {
                 })
                 .catch((error) => {
                     console.error('Error loading templates:', error);
-                    // Set empty state for both displays
                     displayTemplates([]);
                     displayProfileTemplates([]);
                 });
@@ -1762,7 +1858,6 @@ function loadProfileTrips() {
             
             templatesSection.style.display = 'block';
             
-            // Only show first 3 templates on home page
             const templatesHtml = templates.slice(0, 3).map(template => `
                 <div class="template-card" onclick="startFromTemplate('${template.route}', '${template.startStop}')">
                     <span class="template-icon">⭐</span>
@@ -1787,13 +1882,12 @@ function loadProfileTrips() {
                     <div class="delete-overlay">Delete</div>
                     <div><strong>${template.route}</strong></div>
                     <div>From ${template.startStop}</div>
-                    <div style="font-size: 0.9em; color: #666;">⭐ Quick start template</div>
+                    <div style="font-size: 0.9em; color: var(--text-secondary);">⭐ Quick start template</div>
                 </div>
             `).join('');
             
             profileTemplatesList.innerHTML = templatesHtml;
             
-            // Add swipe functionality to template items
             profileTemplatesList.querySelectorAll('.trip-item').forEach(item => {
                 const isTemplate = item.hasAttribute('data-template-id');
                 addSwipeToDelete(item, isTemplate);
@@ -1801,12 +1895,10 @@ function loadProfileTrips() {
         }
 
         function startFromTemplate(route, startStop) {
-            // Fill in the form
             stopInput.value = startStop;
             routeInput.value = route;
             updateStartButton();
             
-            // Flash the fields to show they were filled
             stopInput.style.background = '#e8f5e8';
             routeInput.style.background = '#e8f5e8';
             
@@ -1815,7 +1907,6 @@ function loadProfileTrips() {
                 routeInput.style.background = '';
             }, 500);
             
-            // Focus on the start button
             startBtn.focus();
         }
 
@@ -1845,7 +1936,7 @@ function loadProfileTrips() {
             hideAllSections();
             showActiveSection();
         }
-        // Delete Trip Function
+        
         function deleteTrip(tripId) {
             if (confirm('Are you sure you want to delete this trip?')) {
                 db.collection('trips').doc(tripId).delete()
@@ -1870,7 +1961,6 @@ function loadProfileTrips() {
                 return;
             }
             
-            // Show email and method selection
             document.getElementById('emailDisplay').textContent = email;
             document.getElementById('emailStep').style.display = 'none';
             document.getElementById('authMethodStep').style.display = 'block';
@@ -1892,924 +1982,4 @@ function loadProfileTrips() {
             document.getElementById('authMethodStep').style.display = 'none';
             document.getElementById('passwordGroup').style.display = 'none';
             document.getElementById('authButtons').style.display = 'flex';
-            document.getElementById('signInBtn').style.display = 'none';
-            authStatus.style.display = 'none';
-        }
-
-        magicLinkBtn.addEventListener('click', () => {
-            const email = emailInput.value.trim();
-            const actionCodeSettings = {
-                url: window.location.href,
-                handleCodeInApp: true,
-            };
-
-            magicLinkBtn.disabled = true;
-            magicLinkBtn.textContent = 'Sending...';
-
-            auth.sendSignInLinkToEmail(email, actionCodeSettings)
-                .then(() => {
-                    localStorage.setItem('emailForSignIn', email);
-                    showAuthStatus('Check your email for a magic link!', 'success');
-                    magicLinkBtn.textContent = '✨ Magic Link Sent';
-                })
-                .catch((error) => {
-                    console.error('Error sending email:', error);
-                    showAuthStatus('Magic link failed. Please try again.', 'error');
-                    magicLinkBtn.disabled = false;
-                    magicLinkBtn.textContent = '✨ Magic Link';
-                });
-        });
-
-        passwordBtn.addEventListener('click', () => {
-            document.getElementById('passwordGroup').style.display = 'block';
-            document.getElementById('authButtons').style.display = 'none';
-            document.getElementById('signInBtn').style.display = 'block';
-            passwordInput.focus();
-        });
-
-        passwordInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                signInBtn.click();
-            }
-        });
-
-        function sendPasswordReset() {
-            const email = emailInput.value.trim();
-            if (!email) {
-                alert('Please enter your email first');
-                return;
-            }
-
-            auth.sendPasswordResetEmail(email)
-                .then(() => {
-                    showAuthStatus('Password reset email sent! Check your inbox.', 'success');
-                })
-                .catch((error) => {
-                    console.error('Error sending password reset:', error);
-                    if (error.code === 'auth/user-not-found') {
-                        showAuthStatus('No account found with this email address.', 'error');
-                    } else {
-                        showAuthStatus('Error sending password reset email. Please try again.', 'error');
-                    }
-                });
-        }
-
-        signInBtn.addEventListener('click', () => {
-            const email = emailInput.value.trim();
-            const password = passwordInput.value.trim();
-            
-            if (!email || !password) {
-                alert('Please enter both email and password');
-                return;
-            }
-
-            signInBtn.disabled = true;
-            signInBtn.textContent = 'Signing in...';
-
-            auth.signInWithEmailAndPassword(email, password)
-                .then(() => {
-                    showAuthStatus('Signed in successfully!', 'success');
-                })
-                .catch((error) => {
-                    if (error.code === 'auth/user-not-found') {
-                        auth.createUserWithEmailAndPassword(email, password)
-                            .then(() => {
-                                showAuthStatus('Account created and signed in!', 'success');
-                            })
-                            .catch((error) => {
-                                console.error('Error creating account:', error);
-                                showAuthStatus('Error creating account. Please try again.', 'error');
-                                signInBtn.disabled = false;
-                                signInBtn.textContent = 'Sign In';
-                            });
-                    } else {
-                        console.error('Error signing in:', error);
-                        showAuthStatus('Invalid email or password.', 'error');
-                        signInBtn.disabled = false;
-                        signInBtn.textContent = 'Sign In';
-                    }
-                });
-        });
-
-        if (auth.isSignInWithEmailLink(window.location.href)) {
-            let email = localStorage.getItem('emailForSignIn');
-            if (!email) {
-                email = window.prompt('Please provide your email for confirmation');
-            }
-
-            auth.signInWithEmailLink(email, window.location.href)
-                .then(() => {
-                    localStorage.removeItem('emailForSignIn');
-                })
-                .catch((error) => {
-                    console.error('Error signing in:', error);
-                });
-        }
-
-        function showAuthStatus(message, type) {
-            authStatus.textContent = message;
-            authStatus.className = type === 'success' ? 'auth-status' : 'auth-status error';
-            authStatus.style.display = 'block';
-        }
-
-        // Trip Management
-        function updateStartButton() {
-            const hasStop = stopInput.value.trim().length > 0;
-            const hasRoute = routeInput.value.trim().length > 0;
-            startBtn.disabled = !(hasStop && hasRoute);
-            updateStopPreview();
-            updateRoutePreview();
-        }
-
-        function updateStopPreview() {
-            const stopValue = stopInput.value.trim();
-            const preview = document.getElementById('stopPreview');
-            
-            if (!stopValue) {
-                preview.style.display = 'none';
-                return;
-            }
-
-            const isNumber = /^\d+$/.test(stopValue);
-            const stopName = isNumber ? `Stop #${stopValue}` : stopValue;
-            
-            preview.innerHTML = `🎉 You're the first person to board at ${stopName}! (with GPS)`;
-            preview.className = 'preview-box new';
-            preview.style.display = 'block';
-        }
-
-        function updateRoutePreview() {
-            const routeValue = routeInput.value.trim();
-            const preview = document.getElementById('routePreview');
-            
-            if (!routeValue) {
-                preview.style.display = 'none';
-                return;
-            }
-
-            preview.innerHTML = `✅ Found existing route: ${routeValue}`;
-            preview.className = 'preview-box existing';
-            preview.style.display = 'block';
-        }
-
-        function startTrip() {
-            const stop = stopInput.value.trim();
-            const route = routeInput.value.trim();
-            
-            if (!stop || !route) {
-                alert('Please enter both stop and route');
-                return;
-            }
-
-            getCurrentLocation((boardingLocation) => {
-                const tripData = {
-                    startStop: stop,
-                    route: route,
-                    startTime: firebase.firestore.Timestamp.now(),
-                    boardingLocation: boardingLocation,
-                    userId: currentUser.uid
-                };
-
-                db.collection('activeTrips').doc(currentUser.uid).set(tripData)
-                    .then(() => {
-                        activeTrip = { id: currentUser.uid, ...tripData };
-                        
-                        const locationText = boardingLocation ? 
-                            `📍 GPS: ${boardingLocation.lat.toFixed(4)}, ${boardingLocation.lon.toFixed(4)}` : 
-                            '📍 No GPS data';
-                        
-                        currentTripDiv.innerHTML = `
-                            <div><strong>${route}</strong></div>
-                            <div>From: ${stop}</div>
-                            <div>Started: ${new Date().toLocaleTimeString()}</div>
-                            <div style="font-size: 0.8em; color: #666;">${locationText}</div>
-                        `;
-                        
-                        showActiveSection();
-                        updateTripIndicator();
-                        
-                        stopInput.value = '';
-                        routeInput.value = '';
-                        document.getElementById('stopPreview').style.display = 'none';
-                        document.getElementById('routePreview').style.display = 'none';
-                        updateStartButton();
-                        
-                        startProgressiveQuestions();
-                    })
-                    .catch((error) => {
-                        console.error('Error starting trip:', error);
-                        alert('Error starting trip. Please try again.');
-                    });
-            });
-        }
-
-        function showEndModal() {
-            endModal.style.display = 'block';
-        }
-
-        function hideEndModal() {
-            endModal.style.display = 'none';
-            exitInput.value = '';
-        }
-
-        function saveTrip() {
-            const exitStop = exitInput.value.trim();
-            
-            if (!exitStop) {
-                alert('Please enter exit stop');
-                return;
-            }
-
-            if (!activeTrip) {
-                alert('No active trip');
-                return;
-            }
-
-            // Check if saving as template
-            const saveAsTemplate = document.getElementById('saveAsTemplate').checked;
-
-            // Disable the save button to prevent double-clicks
-            saveBtn.disabled = true;
-            saveBtn.textContent = 'Saving...';
-
-            getCurrentLocation((exitLocation) => {
-                // Handle the startTime whether it's a Firestore Timestamp or already a Date
-                let startTime;
-                if (activeTrip.startTime && activeTrip.startTime.toDate) {
-                    startTime = activeTrip.startTime.toDate();
-                } else if (activeTrip.startTime) {
-                    startTime = new Date(activeTrip.startTime);
-                } else {
-                    startTime = new Date();
-                }
-
-                const endTime = new Date();
-                const duration = Math.round((endTime - startTime) / 1000 / 60);
-
-                const completedTrip = {
-                    startStop: activeTrip.startStop,
-                    endStop: exitStop,
-                    route: activeTrip.route,
-                    startTime: activeTrip.startTime || firebase.firestore.Timestamp.fromDate(startTime),
-                    endTime: firebase.firestore.Timestamp.fromDate(endTime),
-                    boardingLocation: activeTrip.boardingLocation || null,
-                    exitLocation: exitLocation,
-                    userId: currentUser.uid,
-                    duration: duration,
-                    // Include any additional data collected during the trip
-                    vehicleNumber: activeTrip.vehicleNumber || null,
-                    routeType: activeTrip.routeType || null,
-                    direction: activeTrip.direction || null,
-                    crowdLevel: activeTrip.crowdLevel || null,
-                    vehicleType: activeTrip.vehicleType || null
-                };
-
-                console.log('Saving trip:', completedTrip);
-
-                // Save the trip
-                db.collection('trips').add(completedTrip)
-                    .then(() => {
-                        console.log('Trip saved to database');
-                        
-                        // Save as template if requested
-                        if (saveAsTemplate) {
-                            const templateData = {
-                                route: activeTrip.route,
-                                startStop: activeTrip.startStop,
-                                userId: currentUser.uid,
-                                createdAt: firebase.firestore.Timestamp.now(),
-                                nickname: `${activeTrip.route} from ${activeTrip.startStop}`
-                            };
-                            
-                            return db.collection('templates').add(templateData);
-                        }
-                        return Promise.resolve();
-                    })
-                    .then(() => {
-                        return db.collection('activeTrips').doc(currentUser.uid).delete();
-                    })
-                    .then(() => {
-                        console.log('Active trip deleted');
-                        activeTrip = null;
-                        progressiveQuestion.style.display = 'none';
-                        hideEndModal();
-                        showStartSection();
-                        updateTripIndicator();
-                        loadTrips();
-                        loadTemplates(); // Reload templates if one was saved
-                        
-                        // Re-enable the save button
-                        saveBtn.disabled = false;
-                        saveBtn.textContent = 'Save Trip';
-                        
-                        // Reset template checkbox
-                        document.getElementById('saveAsTemplate').checked = false;
-                        
-                        const locationMsg = exitLocation ? '📍 GPS captured' : '📍 No GPS';
-                        const templateMsg = saveAsTemplate ? ' Template saved!' : '';
-                        alert(`Trip saved! ${locationMsg}${templateMsg}`);
-                    })
-                    .catch((error) => {
-                        console.error('Error saving trip:', error);
-                        // Re-enable the save button on error
-                        saveBtn.disabled = false;
-                        saveBtn.textContent = 'Save Trip';
-                        alert('Error saving trip. Please try again.');
-                    });
-            });
-        }
-
-        function abandonTrip() {
-            if (confirm('Are you sure you want to cancel this trip? This cannot be undone.')) {
-                db.collection('activeTrips').doc(currentUser.uid).delete()
-                    .then(() => {
-                        activeTrip = null;
-                        progressiveQuestion.style.display = 'none';
-                        showStartSection();
-                        updateTripIndicator();
-                        alert('Trip cancelled');
-                    })
-                    .catch((error) => {
-                        console.error('Error cancelling trip:', error);
-                        alert('Error cancelling trip. Please try again.');
-                    });
-            }
-        }
-
-        function loadTrips() {
-            if (!currentUser) {
-                console.log('No user logged in');
-                return;
-            }
-
-            console.log('Loading trips for user:', currentUser.uid);
-
-            db.collection('trips')
-                .where('userId', '==', currentUser.uid)
-                .orderBy('startTime', 'desc')
-                .limit(50)
-                .get()
-                .then((snapshot) => {
-                    console.log('✅ Trips loaded:', snapshot.size);
-                    
-                    const trips = [];
-                    snapshot.forEach((doc) => {
-                        trips.push({ id: doc.id, ...doc.data() });
-                    });
-                    
-                    displayTrips(trips);
-                })
-                .catch((error) => {
-                    console.error('Error loading trips:', error);
-                    if (tripsList) {
-                        tripsList.innerHTML = '<div class="empty-state">Error loading trips. Please try again.</div>';
-                    }
-                });
-
-            db.collection('activeTrips').doc(currentUser.uid)
-                .onSnapshot((doc) => {
-                    if (doc.exists) {
-                        activeTrip = { id: doc.id, ...doc.data() };
-                        showActiveTrip();
-                        updateTripIndicator();
-                    } else {
-                        activeTrip = null;
-                        showStartSection();
-                        updateTripIndicator();
-                    }
-                });
-        }
-
-        function showActiveTrip() {
-            if (!activeTrip) return;
-
-            const startTime = activeTrip.startTime.toDate();
-            const locationText = activeTrip.boardingLocation ? 
-                `📍 GPS: ${activeTrip.boardingLocation.lat.toFixed(4)}, ${activeTrip.boardingLocation.lon.toFixed(4)}` : 
-                '📍 No GPS data';
-            
-            currentTripDiv.innerHTML = `
-                <div><strong>${activeTrip.route}</strong></div>
-                <div>From: ${activeTrip.startStop}</div>
-                <div>Started: ${startTime.toLocaleTimeString()}</div>
-                <div style="font-size: 0.8em; color: #666;">${locationText}</div>
-            `;
-            
-            showActiveSection();
-        }
-
-        function showStartSection() {
-            startSection.style.display = 'block';
-            activeSection.style.display = 'none';
-        }
-
-        function showActiveSection() {
-            startSection.style.display = 'none';
-            activeSection.style.display = 'block';
-        }
-
-        function displayTrips(trips) {
-            if (trips.length > 0) {
-                const streakData = calculateStreaks(trips);
-                updateStreakStatus(streakData);
-            } else {
-                // Show encouragement even with no trips
-                streakStatus.style.display = 'block';
-                streakStatus.className = 'streak-status';
-                streakStatus.innerHTML = '⚡ Take your first trip to start tracking!';
-                updateTripIndicator();
-            }
-        }
-
-        function updateStreakStatus(streakData) {
-            streakStatus.style.display = 'block';
-            
-            if (streakData.current === 0) {
-                // Show motivation message
-                streakStatus.className = 'streak-status';
-                streakStatus.innerHTML = '⚡ Take a trip today to start a streak!';
-                updateTripIndicator();
-                return;
-            }
-
-            let text = '';
-            const isNarrow = activeTripBanner.style.display === 'block';
-            
-            if (streakData.current >= 7) {
-                text = isNarrow ? `🔥 ${streakData.current} day streak!` : `🔥 AMAZING! ${streakData.current} day streak! You're a transit champion!`;
-                streakStatus.className = 'streak-status hot-streak';
-            } else if (streakData.current >= 3) {
-                text = isNarrow ? `🔥 ${streakData.current} days!` : `🔥 Hot streak! ${streakData.current} days in a row!`;
-                streakStatus.className = 'streak-status hot-streak';
-            } else {
-                text = isNarrow ? `⚡ ${streakData.current} day streak` : `⚡ ${streakData.current} day streak! Keep it going!`;
-                streakStatus.className = 'streak-status';
-            }
-            
-            streakStatus.innerHTML = `<span class="current-streak-text">${text}</span>`;
-            
-            // Update banner layout after showing streak
-            updateTripIndicator();
-        }
-
-        // Location and Status Management
-        function getCurrentLocation(callback) {
-            if (!navigator.geolocation) {
-                updateLocationStatus('Location not supported', 'poor');
-                callback(null);
-                return;
-            }
-
-            updateLocationStatus('Getting location...', 'loading');
-
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const accuracy = Math.round(position.coords.accuracy);
-                    let className, useLocation = false;
-                    
-                    if (accuracy <= 7.5) {
-                        className = 'excellent';
-                        useLocation = true;
-                    } else if (accuracy <= 15) {
-                        className = 'good';
-                        useLocation = true;
-                    } else {
-                        className = 'poor';
-                        useLocation = false;
-                    }
-                    
-                    const statusMessage = `Location ±${accuracy}m`;
-                    
-                    updateLocationStatus(statusMessage, className);
-                    
-                    if (useLocation) {
-                        const location = {
-                            lat: position.coords.latitude,
-                            lon: position.coords.longitude,
-                            accuracy: position.coords.accuracy,
-                            timestamp: new Date().toISOString()
-                        };
-                        console.log(`GPS logged: ±${accuracy}m accuracy`);
-                        callback(location);
-                    } else {
-                        console.log(`GPS too inaccurate (±${accuracy}m), not logging location`);
-                        callback(null);
-                    }
-                },
-                (error) => {
-                    console.log('Location error:', error);
-                    updateLocationStatus('Location unavailable', 'poor');
-                    callback(null);
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 5000,
-                    maximumAge: 60000
-                }
-            );
-        }
-
-        function updateLocationStatus(message, type) {
-            // Add ± symbol to accuracy readings
-            const formattedMessage = message.replace(/(\d+)m$/, '±$1m');
-            locationStatus.textContent = `📍 ${formattedMessage}`;
-            locationStatus.className = `status-indicator ${type}`;
-        }
-
-        function updateConnectionStatus(connected) {
-            if (!logoutModeActive) {
-                if (connected && currentUser) {
-                    connectionStatus.textContent = 'Logged In';
-                    connectionStatus.className = 'status-indicator connected';
-                } else if (!connected && navigator.onLine === false) {
-                    connectionStatus.textContent = '⚠️ Offline';
-                    connectionStatus.className = 'status-indicator disconnected';
-                } else {
-                    connectionStatus.textContent = 'Not Logged In';
-                    connectionStatus.className = 'status-indicator disconnected';
-                }
-            }
-        }
-
-        // Progressive Question System
-        let currentQuestionIndex = 0;
-        let tripEnrichmentData = {};
-        let showingMoreOptions = false;
-        
-        const questions = [
-            {
-                text: "📱 See the vehicle number?",
-                type: "input",
-                placeholder: "e.g., 8234, 1156",
-                field: "vehicleNumber"
-            },
-            {
-                text: "🚌 What type of transit is this?",
-                type: "options",
-                options: ["Bus", "Subway", "Streetcar", "Light Rail", "Train", "Ferry"],
-                field: "routeType"
-            },
-            {
-                text: "🧭 Which direction is this vehicle headed?",
-                type: "options",
-                mainOptions: ["Northbound", "Southbound", "Eastbound", "Westbound"],
-                moreOptions: ["Downtown", "Uptown", "Inbound", "Outbound", "Clockwise", "Counterclockwise", "Uphill", "Downhill"],
-                field: "direction"
-            },
-            {
-                text: "👥 How crowded is it right now?",
-                type: "options", 
-                options: ["Empty", "Few passengers", "Half full", "Mostly full", "Packed", "Standing room only"],
-                field: "crowdLevel"
-            }
-        ];
-
-        // Conditional vehicle type questions based on route type
-        const vehicleTypeQuestions = {
-            "Bus": {
-                text: "🚌 What type of bus is this?",
-                options: ["Regular bus", "Articulated bus", "Double decker", "Express bus", "Shuttle bus", "School bus"]
-            },
-            "Subway": {
-                text: "🚇 What type of subway car?",
-                options: ["Single car", "2-car train", "4-car train", "6-car train", "8+ car train", "Older model", "Newer model"]
-            },
-            "Train": {
-                text: "🚄 What type of train?",
-                options: ["Commuter train", "High-speed rail", "Regional train", "Intercity train", "Freight train"]
-            },
-            "Light Rail": {
-                text: "🚝 What type of light rail vehicle?",
-                options: ["Single car", "2-car train", "3-car train", "Low-floor", "High-floor"]
-            },
-            "Ferry": {
-                text: "⛴️ What type of ferry?",
-                options: ["Passenger ferry", "Car ferry", "High-speed ferry", "Catamaran", "Traditional ferry"]
-            }
-            // Streetcar doesn't get vehicle type question since they're pretty standard
-        };
-
-        function startProgressiveQuestions() {
-            currentQuestionIndex = 0;
-            tripEnrichmentData = {};
-            showingMoreOptions = false;
-            
-            setTimeout(() => {
-                showNextQuestion();
-            }, 10000);
-        }
-
-        function showNextQuestion() {
-            if (currentQuestionIndex >= questions.length || !activeTrip) {
-                // Check if we need to ask conditional vehicle type question
-                if (currentQuestionIndex === questions.length && tripEnrichmentData.routeType) {
-                    const routeType = tripEnrichmentData.routeType;
-                    if (vehicleTypeQuestions[routeType]) {
-                        showVehicleTypeQuestion(routeType);
-                        return;
-                    }
-                }
-                progressiveQuestion.style.display = 'none';
-                return;
-            }
-
-            const question = questions[currentQuestionIndex];
-            questionText.textContent = question.text;
-            showingMoreOptions = false;
-            
-            if (question.type === "options") {
-                // Show option buttons
-                document.getElementById('questionInputGroup').style.display = 'none';
-                const questionOptionsDiv = document.getElementById('questionOptions');
-                questionOptionsDiv.style.display = 'grid';
-                
-                let optionsHtml = '';
-                
-                if (question.mainOptions) {
-                    // Show main options with "More" button
-                    questionOptionsDiv.className = 'question-options main-options';
-                    optionsHtml = question.mainOptions.map(option => 
-                        `<button class="btn btn-outline btn-sm" onclick="selectQuestionOption('${option}')">${option}</button>`
-                    ).join('');
-                    optionsHtml += `<button class="btn btn-outline btn-sm more-btn" onclick="showMoreOptions()">More Options...</button>`;
-                } else {
-                    // Show all options
-                    questionOptionsDiv.className = 'question-options';
-                    optionsHtml = question.options.map(option => 
-                        `<button class="btn btn-outline btn-sm" onclick="selectQuestionOption('${option}')">${option}</button>`
-                    ).join('');
-                }
-                
-                questionOptionsDiv.innerHTML = optionsHtml;
-            } else {
-                // Show input field
-                document.getElementById('questionOptions').style.display = 'none';
-                document.getElementById('questionInputGroup').style.display = 'block';
-                questionInput.placeholder = question.placeholder;
-                questionInput.value = '';
-                questionInput.focus();
-            }
-            
-            progressiveQuestion.style.display = 'block';
-        }
-
-        function showMoreOptions() {
-            const question = questions[currentQuestionIndex];
-            if (!question.moreOptions) return;
-            
-            showingMoreOptions = true;
-            const questionOptionsDiv = document.getElementById('questionOptions');
-            questionOptionsDiv.className = 'question-options';
-            
-            const allOptions = [...question.mainOptions, ...question.moreOptions];
-            const optionsHtml = allOptions.map(option => 
-                `<button class="btn btn-outline btn-sm" onclick="selectQuestionOption('${option}')">${option}</button>`
-            ).join('');
-            
-            questionOptionsDiv.innerHTML = optionsHtml;
-        }
-
-        function showVehicleTypeQuestion(routeType) {
-            const vehicleQuestion = vehicleTypeQuestions[routeType];
-            questionText.textContent = vehicleQuestion.text;
-            
-            document.getElementById('questionInputGroup').style.display = 'none';
-            const questionOptionsDiv = document.getElementById('questionOptions');
-            questionOptionsDiv.style.display = 'grid';
-            questionOptionsDiv.className = 'question-options';
-            
-            const optionsHtml = vehicleQuestion.options.map(option => 
-                `<button class="btn btn-outline btn-sm" onclick="selectVehicleType('${option}')">${option}</button>`
-            ).join('');
-            
-            questionOptionsDiv.innerHTML = optionsHtml;
-            progressiveQuestion.style.display = 'block';
-        }
-
-        function selectVehicleType(vehicleType) {
-            // Highlight selected option
-            document.querySelectorAll('#questionOptions button').forEach(btn => {
-                btn.style.background = btn.textContent === vehicleType ? '#667eea' : 'transparent';
-                btn.style.color = btn.textContent === vehicleType ? 'white' : '#666';
-            });
-            
-            // Auto-submit after selection
-            setTimeout(() => {
-                tripEnrichmentData.vehicleType = vehicleType;
-                
-                if (activeTrip) {
-                    db.collection('activeTrips').doc(currentUser.uid).update({vehicleType: vehicleType})
-                        .then(() => {
-                            console.log(`Saved vehicleType: ${vehicleType}`);
-                            activeTrip.vehicleType = vehicleType;
-                        })
-                        .catch((error) => {
-                            console.error('Error updating trip:', error);
-                        });
-                }
-                
-                progressiveQuestion.style.display = 'none';
-                // End of questions
-            }, 500);
-        }
-
-        function selectQuestionOption(option) {
-            // Highlight selected option
-            document.querySelectorAll('#questionOptions button').forEach(btn => {
-                btn.style.background = btn.textContent === option ? '#667eea' : 'transparent';
-                btn.style.color = btn.textContent === option ? 'white' : '#666';
-            });
-            
-            // Auto-submit after selection
-            setTimeout(() => {
-                const question = questions[currentQuestionIndex];
-                tripEnrichmentData[question.field] = option;
-                
-                if (activeTrip) {
-                    const updateData = {};
-                    updateData[question.field] = option;
-                    
-                    db.collection('activeTrips').doc(currentUser.uid).update(updateData)
-                        .then(() => {
-                            console.log(`Saved ${question.field}: ${option}`);
-                            activeTrip[question.field] = option;
-                        })
-                        .catch((error) => {
-                            console.error('Error updating trip:', error);
-                        });
-                }
-                
-                progressiveQuestion.style.display = 'none';
-                currentQuestionIndex++;
-                
-                setTimeout(() => {
-                    showNextQuestion();
-                }, 30000);
-            }, 500);
-        }
-
-        function submitAnswer() {
-            const question = questions[currentQuestionIndex];
-            if (question.type === "input") {
-                const answer = questionInput.value.trim();
-                if (answer) {
-                    tripEnrichmentData[question.field] = answer;
-                    
-                    if (activeTrip) {
-                        const updateData = {};
-                        updateData[question.field] = answer;
-                        
-                        db.collection('activeTrips').doc(currentUser.uid).update(updateData)
-                            .then(() => {
-                                console.log(`Saved ${question.field}: ${answer}`);
-                                activeTrip[question.field] = answer;
-                            })
-                            .catch((error) => {
-                                console.error('Error updating trip:', error);
-                            });
-                    }
-                    
-                    progressiveQuestion.style.display = 'none';
-                    currentQuestionIndex++;
-                    
-                    setTimeout(() => {
-                        showNextQuestion();
-                    }, 30000);
-                }
-            }
-        }
-
-        function skipQuestion() {
-            progressiveQuestion.style.display = 'none';
-            currentQuestionIndex++;
-            
-            // Check if we need to ask conditional vehicle type question after skipping
-            if (currentQuestionIndex >= questions.length && tripEnrichmentData.routeType) {
-                const routeType = tripEnrichmentData.routeType;
-                if (vehicleTypeQuestions[routeType]) {
-                    setTimeout(() => {
-                        showVehicleTypeQuestion(routeType);
-                    }, 30000);
-                    return;
-                }
-            }
-            
-            setTimeout(() => {
-                showNextQuestion();
-            }, 30000);
-        }
-
-        // Swipe to delete functionality
-        function addSwipeToDelete(item, isTemplate = false) {
-            let startX = 0;
-            let currentX = 0;
-            let isSwiping = false;
-            let swipeThreshold = 60; // Minimum swipe distance to trigger delete
-            
-            item.addEventListener('touchstart', (e) => {
-                startX = e.touches[0].clientX;
-                isSwiping = true;
-            }, { passive: true });
-            
-            item.addEventListener('touchmove', (e) => {
-                if (!isSwiping) return;
-                
-                currentX = e.touches[0].clientX;
-                const diffX = startX - currentX;
-                
-                // Only allow left swipe and limit the distance
-                if (diffX > 0) {
-                    const swipeDistance = Math.min(diffX, 80);
-                    item.style.transform = `translateX(-${swipeDistance}px)`;
-                    
-                    if (swipeDistance > 30) {
-                        item.classList.add('swiping');
-                    }
-                }
-            }, { passive: true });
-            
-            item.addEventListener('touchend', (e) => {
-                if (!isSwiping) return;
-                isSwiping = false;
-                
-                const diffX = startX - currentX;
-                
-                if (diffX > swipeThreshold) {
-                    // Trigger delete
-                    if (isTemplate) {
-                        const templateId = item.getAttribute('data-template-id');
-                        deleteTemplate(templateId);
-                    } else {
-                        const tripId = item.getAttribute('data-trip-id');
-                        deleteTrip(tripId);
-                    }
-                } else {
-                    // Snap back
-                    item.style.transform = 'translateX(0)';
-                    item.classList.remove('swiping');
-                }
-            }, { passive: true });
-            
-            // Handle click on delete overlay
-            const deleteOverlay = item.querySelector('.delete-overlay');
-            if (deleteOverlay) {
-                deleteOverlay.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if (isTemplate) {
-                        const templateId = item.getAttribute('data-template-id');
-                        deleteTemplate(templateId);
-                    } else {
-                        const tripId = item.getAttribute('data-trip-id');
-                        deleteTrip(tripId);
-                    }
-                });
-            }
-        }
-
-        // App Initialization
-        function initializeApp() {
-            stopInput.addEventListener('input', updateStartButton);
-            routeInput.addEventListener('input', updateStartButton);
-            startBtn.addEventListener('click', startTrip);
-            endBtn.addEventListener('click', showEndModal);
-            document.getElementById('abandonBtn').addEventListener('click', abandonTrip);
-            saveBtn.addEventListener('click', saveTrip);
-            cancelBtn.addEventListener('click', hideEndModal);
-            profileBtn.addEventListener('click', showProfile);
-            statsBtn.addEventListener('click', showStats);
-            mapsBtn.addEventListener('click', showMaps);
-            document.getElementById('shuffleEmojiBtn').addEventListener('click', shuffleEmoji);
-            
-            // Progressive question event listeners
-            answerBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                submitAnswer();
-            });
-            
-            skipBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                skipQuestion();
-            });
-            
-            // Add enter key support for question input
-            questionInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    submitAnswer();
-                }
-            });
-            
-            loadTrips();
-            loadTemplates();
-            getCurrentLocation(() => {});
-            
-            // Monitor connection status
-            window.addEventListener('online', () => updateConnectionStatus(true));
-            window.addEventListener('offline', () => updateConnectionStatus(false));
-            updateConnectionStatus(navigator.onLine);
-        }
-
-        console.log('🎉 TransitStats fully loaded and ready!');
-    </script>
-</body>
-</html>
+            document.getElementById('signInBtn').style.display
