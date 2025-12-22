@@ -66,34 +66,56 @@
         .content-wrapper {
             flex: 1;
         }
-        .header { 
-            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%); 
-            color: white; 
-            padding: 12px; 
-            text-align: center; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+        .header {
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            color: white;
+            padding: 15px 12px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .header-row { display: flex; justify-content: space-between; align-items: center; }
-        .header-title { font-size: 1.2em; font-weight: 600; cursor: pointer; }
-        .user-info { display: flex; gap: 8px; align-items: center; }
+        .header-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        .header-title { font-size: 1.2em; font-weight: 600; cursor: pointer; flex-shrink: 0; }
+        .user-info { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
         .header-btn, .theme-toggle {
             background: rgba(255,255,255,0.2);
             border: 2px solid rgba(255,255,255,0.3);
             color: white;
-            padding: 6px 10px;
-            border-radius: 6px;
+            padding: 8px 12px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 0.8em;
+            font-size: 1em;
             transition: all 0.2s ease;
-            min-width: 40px;
-            height: 36px;
+            min-width: 44px;
+            height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
         }
         .header-btn:hover, .theme-toggle:hover {
             background: rgba(255,255,255,0.3);
             transform: scale(1.05);
+        }
+
+        @media (min-width: 768px) {
+            .header {
+                padding: 18px 20px;
+            }
+            .header-row {
+                gap: 15px;
+            }
+            .header-title {
+                font-size: 1.5em;
+            }
+            .user-info {
+                gap: 10px;
+            }
+            .header-btn, .theme-toggle {
+                padding: 10px 14px;
+                font-size: 1.1em;
+                min-width: 48px;
+                height: 48px;
+            }
         }
         .container { max-width: 100%; padding: 15px; }
         .section { 
