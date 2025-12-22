@@ -388,21 +388,6 @@
             50% { transform: scale(1.02); }
             100% { transform: scale(1); }
         }
-        .question-options {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        .question-options.main-options {
-            grid-template-columns: repeat(2, 1fr);
-        }
-        .more-btn {
-            grid-column: span 2;
-            background: var(--bg-tertiary) !important;
-            color: var(--text-secondary) !important;
-            border: 2px solid var(--border-color) !important;
-        }
         .template-card {
             background: var(--bg-tertiary);
             border: 2px solid var(--border-light);
@@ -738,6 +723,13 @@
                         </div>
                     </div>
 
+                    <!-- Repeat Last Trip -->
+                    <div id="repeatLastTripSection" style="display: none; margin-bottom: 20px;">
+                        <button id="repeatLastTripBtn" class="btn" style="width: 100%; background: var(--accent-secondary); color: white; padding: 15px; font-size: 1em;">
+                            🔄 Repeat Last Trip
+                        </button>
+                    </div>
+
                     <h2>Start New Trip</h2>
                     <div class="form-group">
                         <label>Boarding Stop</label>
@@ -757,25 +749,10 @@
                         <h2>🚌 Currently Riding</h2>
                         <div id="currentTrip"></div>
                     </div>
-                    
-                    <!-- Progressive Questions -->
-                    <div id="progressiveQuestion" class="section" style="display: none; background: var(--bg-tertiary); border: 2px solid var(--accent-primary);">
-                        <div id="questionText" style="font-weight: 500; margin-bottom: 15px; color: var(--text-primary);"></div>
-                        <div id="questionOptions" class="question-options" style="display: none;">
-                            <!-- Options will be populated by JavaScript -->
-                        </div>
-                        <div class="form-group" id="questionInputGroup">
-                            <input type="text" id="questionInput" placeholder="" style="margin-bottom: 10px;">
-                        </div>
-                        <div style="display: flex; gap: 10px;">
-                            <button id="answerBtn" class="btn" style="background: var(--accent-primary); color: white; flex: 1;">Answer</button>
-                            <button id="skipBtn" class="btn btn-outline" style="flex: 1;">Skip</button>
-                        </div>
-                    </div>
 
                     <div style="display: flex; gap: 10px;">
                         <button id="endBtn" class="btn btn-danger" style="flex: 1;">🛑 End Trip</button>
-                        <button id="abandonBtn" class="btn btn-outline" style="background: #ffc107; color: #856404; border-color: #ffc107; flex: 1;">⚠️ Cancel Trip</button>
+                        <button id="cancelTrip" class="btn btn-outline" style="background: #ffc107; color: #856404; border-color: #ffc107; flex: 1;">⚠️ Cancel Trip</button>
                     </div>
                 </div>
             </div>
@@ -865,16 +842,13 @@
         const cancelBtn = document.getElementById('cancelBtn');
         const tripsList = document.getElementById('tripsList');
         const tripCount = document.getElementById('tripCount');
-        const progressiveQuestion = document.getElementById('progressiveQuestion');
-        const questionText = document.getElementById('questionText');
-        const questionInput = document.getElementById('questionInput');
-        const answerBtn = document.getElementById('answerBtn');
-        const skipBtn = document.getElementById('skipBtn');
         const streakStatus = document.getElementById('streakStatus');
         const locationStatus = document.getElementById('locationStatus');
         const connectionStatus = document.getElementById('connectionStatus');
         const activeTripBanner = document.getElementById('activeTripBanner');
         const bannersContainer = document.getElementById('bannersContainer');
+        const repeatLastTripBtn = document.getElementById('repeatLastTripBtn');
+        const repeatLastTripSection = document.getElementById('repeatLastTripSection');
 
         // Theme Management
         function toggleTheme() {
@@ -1982,4 +1956,562 @@
             document.getElementById('authMethodStep').style.display = 'none';
             document.getElementById('passwordGroup').style.display = 'none';
             document.getElementById('authButtons').style.display = 'flex';
-            document.getElementById('signInBtn').style.display
+            document.getElementById('signInBtn').style.display = 'none';
+            emailInput.value = '';
+            passwordInput.value = '';
+        }
+
+        // Password authentication handler
+        passwordBtn.addEventListener('click', () => {
+            document.getElementById('authMethodStep').style.display = 'none';
+            document.getElementById('passwordGroup').style.display = 'block';
+            passwordInput.focus();
+        });
+
+        // Sign in with password
+        signInBtn.addEventListener('click', () => {
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+
+            if (!password) {
+                alert('Please enter your password');
+                return;
+            }
+
+            signInBtn.disabled = true;
+            signInBtn.textContent = 'Signing in...';
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    console.log('✅ Signed in successfully');
+                })
+                .catch((error) => {
+                    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                        // Try to create account instead
+                        auth.createUserWithEmailAndPassword(email, password)
+                            .then(() => {
+                                console.log('✅ Account created successfully');
+                            })
+                            .catch((createError) => {
+                                alert('Error: ' + createError.message);
+                                signInBtn.disabled = false;
+                                signInBtn.textContent = 'Sign In';
+                            });
+                    } else {
+                        alert('Error: ' + error.message);
+                        signInBtn.disabled = false;
+                        signInBtn.textContent = 'Sign In';
+                    }
+                });
+        });
+
+        // Magic link handler
+        magicLinkBtn.addEventListener('click', () => {
+            const email = emailInput.value.trim();
+
+            const actionCodeSettings = {
+                url: window.location.href,
+                handleCodeInApp: true
+            };
+
+            auth.sendSignInLinkToEmail(email, actionCodeSettings)
+                .then(() => {
+                    window.localStorage.setItem('emailForSignIn', email);
+                    alert('Magic link sent! Check your email.');
+                    goBackToEmail();
+                })
+                .catch((error) => {
+                    alert('Error sending magic link: ' + error.message);
+                });
+        });
+
+        // Check for magic link on page load
+        if (auth.isSignInWithEmailLink(window.location.href)) {
+            let email = window.localStorage.getItem('emailForSignIn');
+            if (!email) {
+                email = window.prompt('Please provide your email for confirmation');
+            }
+
+            auth.signInWithEmailLink(email, window.location.href)
+                .then(() => {
+                    window.localStorage.removeItem('emailForSignIn');
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                })
+                .catch((error) => {
+                    console.error('Error signing in with email link:', error);
+                });
+        }
+
+        // Password input enter key
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                signInBtn.click();
+            }
+        });
+
+        // Initialize app on authentication
+        function initializeApp() {
+            loadTemplates();
+            checkActiveTrip();
+            loadLastTrip();
+        }
+
+        function loadLastTrip() {
+            db.collection('trips')
+                .where('userId', '==', currentUser.uid)
+                .where('endStop', '!=', null)
+                .orderBy('endStop')
+                .orderBy('endTime', 'desc')
+                .limit(1)
+                .get()
+                .then((snapshot) => {
+                    if (!snapshot.empty) {
+                        const lastTrip = snapshot.docs[0].data();
+                        repeatLastTripSection.style.display = 'block';
+                        repeatLastTripBtn.onclick = () => {
+                            stopInput.value = lastTrip.startStop;
+                            routeInput.value = lastTrip.route;
+                            updateStartButton();
+
+                            stopInput.style.background = '#e8f5e8';
+                            routeInput.style.background = '#e8f5e8';
+
+                            setTimeout(() => {
+                                stopInput.style.background = '';
+                                routeInput.style.background = '';
+                            }, 500);
+
+                            startBtn.focus();
+                            showNotification(`Ready to board ${lastTrip.route} from ${lastTrip.startStop}`);
+                        };
+                    } else {
+                        repeatLastTripSection.style.display = 'none';
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error loading last trip:', error);
+                    repeatLastTripSection.style.display = 'none';
+                });
+        }
+
+        function checkActiveTrip() {
+            db.collection('trips')
+                .where('userId', '==', currentUser.uid)
+                .where('endStop', '==', null)
+                .limit(1)
+                .get()
+                .then((snapshot) => {
+                    if (!snapshot.empty) {
+                        const doc = snapshot.docs[0];
+                        activeTrip = { id: doc.id, ...doc.data() };
+                        showActiveSection();
+                        updateActiveTripBanner();
+                    } else {
+                        activeTrip = null;
+                        showStartSection();
+                        updateActiveTripBanner();
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error checking active trip:', error);
+                    showStartSection();
+                });
+        }
+
+        function showStartSection() {
+            startSection.style.display = 'block';
+            activeSection.style.display = 'none';
+        }
+
+        function showActiveSection() {
+            startSection.style.display = 'none';
+            activeSection.style.display = 'block';
+
+            if (activeTrip) {
+                const startTime = activeTrip.startTime.toDate();
+                const now = new Date();
+                const elapsed = Math.floor((now - startTime) / 1000 / 60);
+
+                currentTripDiv.innerHTML = `
+                    <div class="current-trip-info">
+                        <div style="font-size: 1.2em; margin-bottom: 5px;">${activeTrip.route}</div>
+                        <div style="color: var(--text-secondary);">From ${activeTrip.startStop}</div>
+                        <div style="color: var(--text-secondary); font-size: 0.9em; margin-top: 5px;">
+                            ${elapsed} minute${elapsed !== 1 ? 's' : ''} ago
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function updateActiveTripBanner() {
+            if (activeTrip) {
+                activeTripBanner.style.display = 'block';
+                activeTripBanner.onclick = goToActiveTrip;
+            } else {
+                activeTripBanner.style.display = 'none';
+            }
+        }
+
+        function updateStartButton() {
+            const stop = stopInput.value.trim();
+            const route = routeInput.value.trim();
+            startBtn.disabled = !stop || !route;
+        }
+
+        // Input validation for start trip
+        stopInput.addEventListener('input', updateStartButton);
+        routeInput.addEventListener('input', updateStartButton);
+
+        // Start trip handler
+        startBtn.addEventListener('click', () => {
+            const stop = stopInput.value.trim();
+            const route = routeInput.value.trim();
+
+            if (!stop || !route) {
+                alert('Please enter both stop and route');
+                return;
+            }
+
+            startBtn.disabled = true;
+            startBtn.textContent = 'Starting...';
+
+            getCurrentLocation((location) => {
+                const tripData = {
+                    userId: currentUser.uid,
+                    route: route,
+                    startStop: stop,
+                    endStop: null,
+                    startTime: firebase.firestore.Timestamp.now(),
+                    boardingLocation: location
+                };
+
+                db.collection('trips').add(tripData)
+                    .then((docRef) => {
+                        activeTrip = { id: docRef.id, ...tripData };
+                        stopInput.value = '';
+                        routeInput.value = '';
+                        startBtn.disabled = false;
+                        startBtn.textContent = 'Board Vehicle';
+                        showActiveSection();
+                        updateActiveTripBanner();
+                        trackRouteStopUsage(route, stop);
+                    })
+                    .catch((error) => {
+                        console.error('Error starting trip:', error);
+                        alert('Error starting trip. Please try again.');
+                        startBtn.disabled = false;
+                        startBtn.textContent = 'Board Vehicle';
+                    });
+            });
+        });
+
+        // End trip button
+        endBtn.addEventListener('click', () => {
+            endModal.style.display = 'block';
+            exitInput.focus();
+        });
+
+        // Cancel end trip
+        cancelBtn.addEventListener('click', () => {
+            endModal.style.display = 'none';
+            exitInput.value = '';
+            document.getElementById('saveAsTemplate').checked = false;
+        });
+
+        // Save trip (end trip)
+        saveBtn.addEventListener('click', () => {
+            const exitStop = exitInput.value.trim();
+
+            if (!exitStop) {
+                alert('Please enter exit stop');
+                return;
+            }
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+
+            getCurrentLocation((location) => {
+                const startTime = activeTrip.startTime.toDate();
+                const endTime = new Date();
+                const duration = Math.floor((endTime - startTime) / 1000 / 60);
+
+                const updateData = {
+                    endStop: exitStop,
+                    endTime: firebase.firestore.Timestamp.now(),
+                    exitLocation: location,
+                    duration: duration
+                };
+
+                db.collection('trips').doc(activeTrip.id).update(updateData)
+                    .then(() => {
+                        const shouldSaveTemplate = document.getElementById('saveAsTemplate').checked;
+
+                        if (shouldSaveTemplate) {
+                            saveAsTemplate(activeTrip.route, activeTrip.startStop);
+                        }
+
+                        activeTrip = null;
+                        exitInput.value = '';
+                        document.getElementById('saveAsTemplate').checked = false;
+                        endModal.style.display = 'none';
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = 'Save';
+                        showStartSection();
+                        updateActiveTripBanner();
+                        loadTemplates();
+                        updateStreakStatus();
+                    })
+                    .catch((error) => {
+                        console.error('Error ending trip:', error);
+                        alert('Error ending trip. Please try again.');
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = 'Save';
+                    });
+            });
+        });
+
+        // Cancel active trip
+        document.getElementById('cancelTrip').addEventListener('click', () => {
+            if (confirm('Are you sure you want to cancel this trip?')) {
+                db.collection('trips').doc(activeTrip.id).delete()
+                    .then(() => {
+                        activeTrip = null;
+                        showStartSection();
+                        updateActiveTripBanner();
+                    })
+                    .catch((error) => {
+                        console.error('Error canceling trip:', error);
+                        alert('Error canceling trip');
+                    });
+            }
+        });
+
+        function saveAsTemplate(route, startStop) {
+            db.collection('templates').add({
+                userId: currentUser.uid,
+                route: route,
+                startStop: startStop,
+                createdAt: firebase.firestore.Timestamp.now()
+            }).catch((error) => {
+                console.error('Error saving template:', error);
+            });
+        }
+
+        function trackRouteStopUsage(route, startStop) {
+            // Track usage for auto-save templates
+            const key = `${route}|${startStop}`;
+            const usageKey = 'routeStopUsage_' + currentUser.uid;
+
+            let usage = JSON.parse(localStorage.getItem(usageKey) || '{}');
+            usage[key] = (usage[key] || 0) + 1;
+            localStorage.setItem(usageKey, JSON.stringify(usage));
+
+            // Auto-save after 3+ uses
+            if (usage[key] === 3) {
+                checkAndAutoSaveTemplate(route, startStop);
+            }
+        }
+
+        function checkAndAutoSaveTemplate(route, startStop) {
+            // Check if template already exists
+            db.collection('templates')
+                .where('userId', '==', currentUser.uid)
+                .where('route', '==', route)
+                .where('startStop', '==', startStop)
+                .get()
+                .then((snapshot) => {
+                    if (snapshot.empty) {
+                        saveAsTemplate(route, startStop);
+                        showNotification(`Template saved: ${route} from ${startStop}`);
+                        loadTemplates();
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error checking template:', error);
+                });
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 70px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: var(--success);
+                color: white;
+                padding: 12px 24px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                animation: slideDown 0.3s ease;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'slideUp 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        function getCurrentLocation(callback) {
+            if ('geolocation' in navigator) {
+                locationStatus.textContent = '📍 Getting location...';
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        locationStatus.textContent = '📍 Location enabled';
+                        callback({
+                            lat: position.coords.latitude,
+                            lon: position.coords.longitude
+                        });
+                    },
+                    (error) => {
+                        console.log('Location error:', error.message);
+                        locationStatus.textContent = '📍 Location unavailable';
+                        callback(null);
+                    },
+                    { timeout: 10000, maximumAge: 60000 }
+                );
+            } else {
+                locationStatus.textContent = '📍 Location not supported';
+                callback(null);
+            }
+        }
+
+        function updateConnectionStatus(isConnected) {
+            if (isConnected) {
+                authStatus.textContent = currentUser ? currentUser.email : '';
+                connectionStatus.textContent = '🟢 Connected';
+                connectionStatus.style.cursor = 'pointer';
+                connectionStatus.onclick = toggleLogoutMode;
+            } else {
+                authStatus.textContent = '';
+                connectionStatus.textContent = '🔴 Sign in required';
+                connectionStatus.style.cursor = 'default';
+                connectionStatus.onclick = null;
+            }
+        }
+
+        function toggleLogoutMode() {
+            logoutModeActive = !logoutModeActive;
+
+            if (logoutModeActive) {
+                connectionStatus.textContent = '⚠️ Tap again to logout';
+                connectionStatus.style.background = 'var(--error)';
+                connectionStatus.style.color = 'white';
+
+                setTimeout(() => {
+                    if (logoutModeActive) {
+                        logoutModeActive = false;
+                        connectionStatus.textContent = '🟢 Connected';
+                        connectionStatus.style.background = '';
+                        connectionStatus.style.color = '';
+                    }
+                }, 3000);
+            } else {
+                auth.signOut();
+            }
+        }
+
+        function updateStreakStatus() {
+            db.collection('trips')
+                .where('userId', '==', currentUser.uid)
+                .where('endStop', '!=', null)
+                .orderBy('endStop')
+                .orderBy('endTime', 'desc')
+                .get()
+                .then((snapshot) => {
+                    const trips = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+
+                    const streaks = calculateStreaks(trips);
+
+                    if (streaks.current > 0) {
+                        streakStatus.style.display = 'block';
+                        streakStatus.textContent = `🔥 ${streaks.current} day streak!`;
+                    } else {
+                        streakStatus.style.display = 'none';
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error updating streak:', error);
+                });
+        }
+
+        function addSwipeToDelete(element, isTemplate, id) {
+            let startX = 0;
+            let currentX = 0;
+            let isSwiping = false;
+
+            element.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+                isSwiping = true;
+            });
+
+            element.addEventListener('touchmove', (e) => {
+                if (!isSwiping) return;
+                currentX = e.touches[0].clientX;
+                const diff = startX - currentX;
+
+                if (diff > 0) {
+                    element.style.transform = `translateX(-${Math.min(diff, 80)}px)`;
+                }
+            });
+
+            element.addEventListener('touchend', () => {
+                const diff = startX - currentX;
+
+                if (diff > 80) {
+                    element.style.transform = 'translateX(-80px)';
+                    showDeleteButton(element, isTemplate, id);
+                } else {
+                    element.style.transform = 'translateX(0)';
+                }
+
+                isSwiping = false;
+            });
+        }
+
+        function showDeleteButton(element, isTemplate, id) {
+            const existing = element.querySelector('.delete-btn');
+            if (existing) return;
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.style.cssText = `
+                position: absolute;
+                right: 0;
+                top: 0;
+                height: 100%;
+                width: 80px;
+                background: var(--error);
+                color: white;
+                border: none;
+                cursor: pointer;
+            `;
+
+            deleteBtn.onclick = () => {
+                if (isTemplate) {
+                    deleteTemplate(id);
+                } else {
+                    deleteTrip(id);
+                }
+            };
+
+            element.style.position = 'relative';
+            element.appendChild(deleteBtn);
+        }
+
+        // Load saved theme on startup
+        loadSavedTheme();
+
+        console.log('✅ TransitStats Ready!');
+    </script>
+</body>
+</html>
