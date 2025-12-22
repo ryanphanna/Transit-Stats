@@ -233,9 +233,15 @@
         
         .banner-container {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 15px;
             margin-bottom: 15px;
+        }
+
+        @media (min-width: 768px) {
+            .banner-container {
+                grid-template-columns: 1fr 1fr;
+            }
         }
         
         .banner-container.full-width {
@@ -2173,6 +2179,12 @@
                 return;
             }
 
+            // Check if user is authenticated
+            if (!currentUser) {
+                alert('You must be signed in to start a trip. Please refresh the page and try again.');
+                return;
+            }
+
             startBtn.disabled = true;
             startBtn.textContent = 'Starting...';
 
@@ -2199,7 +2211,25 @@
                     })
                     .catch((error) => {
                         console.error('Error starting trip:', error);
-                        alert('Error starting trip. Please try again.');
+
+                        // Provide specific error messages
+                        let errorMessage = 'Error starting trip. ';
+
+                        if (error.code === 'permission-denied') {
+                            errorMessage += 'You do not have permission to save trips. Please check your account settings.';
+                        } else if (error.code === 'unavailable') {
+                            errorMessage += 'Cannot connect to the server. Please check your internet connection and try again.';
+                        } else if (error.code === 'unauthenticated') {
+                            errorMessage += 'You must be signed in. Please refresh the page and try again.';
+                        } else if (error.message && error.message.includes('quota')) {
+                            errorMessage += 'Storage quota exceeded. Please contact support.';
+                        } else if (error.message) {
+                            errorMessage += error.message;
+                        } else {
+                            errorMessage += 'Please try again.';
+                        }
+
+                        alert(errorMessage);
                         startBtn.disabled = false;
                         startBtn.textContent = 'Board Vehicle';
                     });
