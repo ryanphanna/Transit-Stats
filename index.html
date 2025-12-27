@@ -531,7 +531,7 @@
                         </div>
                         
                         <div class="form-group" id="passwordGroup" style="display: none;">
-                            <input type="password" id="passwordInput" placeholder="Enter your password">
+                            <input type="password" id="passwordInput" placeholder="Enter password">
                             <div style="text-align: center; margin-top: 10px;">
                                 <button style="background: none; border: none; color: var(--accent-primary); font-size: 0.9em; cursor: pointer; text-decoration: underline;" onclick="sendPasswordReset()">Forgot Password?</button>
                             </div>
@@ -2115,8 +2115,9 @@
 
         // Password authentication handler
         passwordBtn.addEventListener('click', () => {
-            document.getElementById('authMethodStep').style.display = 'none';
             document.getElementById('passwordGroup').style.display = 'block';
+            document.getElementById('authButtons').style.display = 'none';
+            document.getElementById('signInBtn').style.display = 'block';
             passwordInput.focus();
         });
 
@@ -2126,36 +2127,76 @@
             const password = passwordInput.value;
 
             if (!password) {
-                alert('Please enter your password');
+                showAuthError('Please enter your password');
                 return;
             }
 
             signInBtn.disabled = true;
             signInBtn.textContent = 'Signing in...';
+            hideAuthError();
 
             auth.signInWithEmailAndPassword(email, password)
                 .then(() => {
                     console.log('✅ Signed in successfully');
                 })
                 .catch((error) => {
-                    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                        // Try to create account instead
+                    if (error.code === 'auth/user-not-found') {
+                        // Auto-create account if user doesn't exist
                         auth.createUserWithEmailAndPassword(email, password)
                             .then(() => {
                                 console.log('✅ Account created successfully');
                             })
                             .catch((createError) => {
-                                alert('Error: ' + createError.message);
+                                showAuthError(getAuthErrorMessage(createError.code));
                                 signInBtn.disabled = false;
                                 signInBtn.textContent = 'Sign In';
                             });
                     } else {
-                        alert('Error: ' + error.message);
+                        showAuthError(getAuthErrorMessage(error.code));
                         signInBtn.disabled = false;
                         signInBtn.textContent = 'Sign In';
                     }
                 });
         });
+
+        // Helper function to get user-friendly error messages
+        function getAuthErrorMessage(errorCode) {
+            switch (errorCode) {
+                case 'auth/wrong-password':
+                case 'auth/invalid-credential':
+                    return 'Incorrect password. Please try again.';
+                case 'auth/user-not-found':
+                    return 'No account found with this email.';
+                case 'auth/too-many-requests':
+                    return 'Too many failed attempts. Please try again later.';
+                case 'auth/weak-password':
+                    return 'Password is too weak. Please use at least 6 characters.';
+                case 'auth/email-already-in-use':
+                    return 'An account with this email already exists.';
+                case 'auth/invalid-email':
+                    return 'Please enter a valid email address.';
+                default:
+                    return 'An error occurred. Please try again.';
+            }
+        }
+
+        // Helper function to show auth error message
+        function showAuthError(message) {
+            const authStatus = document.getElementById('authStatus');
+            authStatus.textContent = message;
+            authStatus.style.display = 'block';
+            authStatus.style.color = '#ff4444';
+            authStatus.style.background = 'rgba(255, 68, 68, 0.1)';
+            authStatus.style.padding = '10px';
+            authStatus.style.borderRadius = '8px';
+            authStatus.style.marginTop = '15px';
+        }
+
+        // Helper function to hide auth error message
+        function hideAuthError() {
+            const authStatus = document.getElementById('authStatus');
+            authStatus.style.display = 'none';
+        }
 
         // Magic link handler
         magicLinkBtn.addEventListener('click', () => {
