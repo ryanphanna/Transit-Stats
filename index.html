@@ -2164,7 +2164,7 @@
             switch (errorCode) {
                 case 'auth/wrong-password':
                 case 'auth/invalid-credential':
-                    return 'Incorrect password. Please try again.';
+                    return 'Incorrect password. Try again or use magic link.';
                 case 'auth/user-not-found':
                     return 'No account found with this email.';
                 case 'auth/too-many-requests':
@@ -2198,12 +2198,42 @@
             authStatus.style.display = 'none';
         }
 
+        // Helper function to show success message
+        function showAuthSuccess(message) {
+            const authStatus = document.getElementById('authStatus');
+            authStatus.textContent = message;
+            authStatus.style.display = 'block';
+            authStatus.style.color = '#44bb44';
+            authStatus.style.background = 'rgba(68, 187, 68, 0.1)';
+            authStatus.style.padding = '10px';
+            authStatus.style.borderRadius = '8px';
+            authStatus.style.marginTop = '15px';
+        }
+
+        // Password reset function
+        function sendPasswordReset() {
+            const email = emailInput.value.trim();
+
+            if (!email) {
+                showAuthError('Please enter your email address first.');
+                return;
+            }
+
+            auth.sendPasswordResetEmail(email)
+                .then(() => {
+                    showAuthSuccess('Password reset email sent! Check your inbox.');
+                })
+                .catch((error) => {
+                    showAuthError('Error sending reset email: ' + error.message);
+                });
+        }
+
         // Magic link handler
         magicLinkBtn.addEventListener('click', () => {
             const email = emailInput.value.trim();
 
             const actionCodeSettings = {
-                url: window.location.href,
+                url: 'https://ryanphanna.github.io/Transit-Stats/',
                 handleCodeInApp: true
             };
 
