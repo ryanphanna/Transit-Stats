@@ -75,7 +75,7 @@
         }
         .header-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
         .header-title { font-size: 1.2em; font-weight: 600; cursor: pointer; flex-shrink: 0; }
-        .user-info { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
+        .user-info { display: flex; gap: 8px; align-items: center; justify-content: flex-end; flex-wrap: nowrap; }
         .header-btn, .theme-toggle {
             background: rgba(255,255,255,0.2);
             border: 2px solid rgba(255,255,255,0.3);
@@ -555,7 +555,15 @@
                             🚌 Currently riding • Tap to view
                         </div>
                     </div>
-                
+
+                    <!-- Recent Trips Section -->
+                    <div id="recentTripsSection" class="section" style="display: none;">
+                        <h3 style="margin-bottom: 15px; color: var(--text-primary);">📋 Recent Trips</h3>
+                        <div id="recentTripsList">
+                            <div class="loading">Loading trips...</div>
+                        </div>
+                    </div>
+
                 <div id="profileSection" class="section" style="display: none;">
                     <h2 style="white-space: nowrap;">👤 Profile</h2>
                     <div style="text-align: center; margin-bottom: 20px;">
@@ -2082,13 +2090,13 @@
             loadTemplates();
             checkActiveTrip();
             loadLastTrip();
+            loadTrips();
         }
 
         function loadLastTrip() {
             db.collection('trips')
                 .where('userId', '==', currentUser.uid)
                 .where('endStop', '!=', null)
-                .orderBy('endStop')
                 .orderBy('endTime', 'desc')
                 .limit(1)
                 .get()
@@ -2119,6 +2127,56 @@
                 .catch((error) => {
                     console.error('Error loading last trip:', error);
                     repeatLastTripSection.style.display = 'none';
+                });
+        }
+
+        function loadTrips() {
+            const recentTripsSection = document.getElementById('recentTripsSection');
+            const recentTripsList = document.getElementById('recentTripsList');
+
+            db.collection('trips')
+                .where('userId', '==', currentUser.uid)
+                .where('endStop', '!=', null)
+                .orderBy('endTime', 'desc')
+                .limit(5)
+                .get()
+                .then((snapshot) => {
+                    if (!snapshot.empty) {
+                        recentTripsSection.style.display = 'block';
+                        recentTripsList.innerHTML = '';
+
+                        snapshot.forEach((doc) => {
+                            const trip = doc.data();
+                            const endTime = trip.endTime ? trip.endTime.toDate() : new Date();
+                            const dateStr = endTime.toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric'
+                            });
+                            const duration = trip.duration || 0;
+
+                            const tripDiv = document.createElement('div');
+                            tripDiv.className = 'trip-item';
+                            tripDiv.innerHTML = `
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                    <div>
+                                        <div style="font-weight: 600; color: var(--text-primary);">${trip.route}</div>
+                                        <div style="font-size: 0.9em; color: var(--text-secondary);">${trip.startStop} → ${trip.endStop}</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 0.85em; color: var(--text-muted);">${dateStr}</div>
+                                        <div style="font-size: 0.85em; color: var(--text-secondary);">${duration} min</div>
+                                    </div>
+                                </div>
+                            `;
+                            recentTripsList.appendChild(tripDiv);
+                        });
+                    } else {
+                        recentTripsSection.style.display = 'none';
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error loading trips:', error);
+                    recentTripsSection.style.display = 'none';
                 });
         }
 
@@ -2186,6 +2244,11 @@
             const route = routeInput.value.trim();
             startBtn.disabled = !stop || !route;
         }
+
+        // Navigation button handlers
+        profileBtn.addEventListener('click', showProfile);
+        statsBtn.addEventListener('click', showStats);
+        mapsBtn.addEventListener('click', showMaps);
 
         // Input validation for start trip
         stopInput.addEventListener('input', updateStartButton);
@@ -2313,6 +2376,8 @@
                         updateActiveTripBanner();
                         loadTemplates();
                         updateStreakStatus();
+                        loadTrips();
+                        loadLastTrip();
                     })
                     .catch((error) => {
                         console.error('Error ending trip:', error);
