@@ -823,8 +823,8 @@
             <div id="locationStatus" class="status-indicator loading">
                 📍 Getting location...
             </div>
-            <div id="connectionStatus" class="status-indicator connected" onclick="toggleLogout()">
-                Logged In
+            <div id="connectionStatus" class="status-indicator" onclick="toggleLogout()">
+                Checking...
             </div>
         </div>
 
@@ -925,22 +925,30 @@
         // Authentication State Management
         auth.onAuthStateChanged(async (user) => {
             currentUser = user;
-            if (user) {
-                // Check if user is in the allowedUsers whitelist
-                const allowedUsersRef = db.collection('allowedUsers');
-                const querySnapshot = await allowedUsersRef.where('email', '==', user.email).get();
+            try {
+                if (user) {
+                    // Check if user is in the allowedUsers whitelist
+                    const allowedUsersRef = db.collection('allowedUsers');
+                    const querySnapshot = await allowedUsersRef.where('email', '==', user.email).get();
 
-                if (querySnapshot.empty) {
-                    await auth.signOut();
-                    alert('Access denied. This app is invite-only.');
-                    return;
+                    if (querySnapshot.empty) {
+                        await auth.signOut();
+                        alert('Access denied. This app is invite-only.');
+                        return;
+                    }
+
+                    console.log('✅ User authenticated:', user.email);
+                    updateConnectionStatus(true);
+                    showApp();
+                } else {
+                    console.log('❌ No user authenticated');
+                    updateConnectionStatus(false);
+                    showAuth();
                 }
-
-                console.log('✅ User authenticated:', user.email);
-                updateConnectionStatus(true);
-                showApp();
-            } else {
-                console.log('❌ No user authenticated');
+            } catch (error) {
+                console.error('Error in auth state change:', error);
+                // If there's an error checking whitelist but user is authenticated,
+                // show the auth screen and let them try again
                 updateConnectionStatus(false);
                 showAuth();
             }
@@ -1371,10 +1379,10 @@
                 connectionStatus.textContent = 'Log Out';
                 connectionStatus.classList.add('logout-mode');
                 logoutModeActive = true;
-                
+
                 setTimeout(() => {
                     if (logoutModeActive) {
-                        connectionStatus.textContent = 'Logged In';
+                        connectionStatus.textContent = '🟢 Connected';
                         connectionStatus.classList.remove('logout-mode');
                         logoutModeActive = false;
                     }
@@ -2255,14 +2263,36 @@
                 email = window.prompt('Please provide your email for confirmation');
             }
 
-            auth.signInWithEmailLink(email, window.location.href)
-                .then(() => {
-                    window.localStorage.removeItem('emailForSignIn');
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                })
-                .catch((error) => {
-                    console.error('Error signing in with email link:', error);
-                });
+            if (email) {
+                auth.signInWithEmailLink(email, window.location.href)
+                    .then((result) => {
+                        window.localStorage.removeItem('emailForSignIn');
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                        console.log('✅ Magic link sign-in successful:', result.user.email);
+                        // The onAuthStateChanged callback should handle showing the app,
+                        // but we ensure the UI is in a good state
+                        currentUser = result.user;
+                    })
+                    .catch((error) => {
+                        console.error('Error signing in with email link:', error);
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                        // Show error to user instead of silently failing
+                        if (error.code === 'auth/invalid-action-code') {
+                            alert('This magic link has expired or already been used. Please request a new one.');
+                        } else if (error.code === 'auth/invalid-email') {
+                            alert('Invalid email address. Please try again.');
+                        } else {
+                            alert('Error signing in: ' + error.message);
+                        }
+                        showAuth();
+                        updateConnectionStatus(false);
+                    });
+            } else {
+                // User cancelled the email prompt
+                window.history.replaceState({}, document.title, window.location.pathname);
+                showAuth();
+                updateConnectionStatus(false);
+            }
         }
 
         // Password input enter key
