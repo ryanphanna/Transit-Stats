@@ -51,10 +51,10 @@ Unlock beautiful heatmaps after recording 50 trips with GPS data:
 3. **All Trips**: View individual trip markers on the map
 
 **Stop Intensity Levels:**
-- 🔵 **Home Base** (50%+ of usage) - Your primary stop
-- 🔵 **Regular** (25-49% of usage) - Frequently used stops
-- 🔵 **Occasional** (10-24% of usage) - Sometimes used stops
-- 🔵 **Rare** (5-9% of usage) - Infrequently used stops
+- 🔵 **Home Base** (50%+ of usage) - Dark blue - Your primary stop
+- 🔵 **Regular** (25-49% of usage) - Medium blue - Frequently used stops
+- 🔵 **Occasional** (10-24% of usage) - Light blue - Sometimes used stops
+- 🔵 **Rare** (5-9% of usage) - Very light blue - Infrequently used stops
 
 **Progress Tracking:**
 - Visual progress bar showing how close you are to unlocking heatmaps
@@ -112,7 +112,7 @@ Unlock beautiful heatmaps after recording 50 trips with GPS data:
 
 ### For Developers
 1. Clone this repository
-2. Update Firebase configuration in `index.html` (lines 820-827)
+2. Update Firebase configuration in the `<script>` section of `index.html` (search for `firebaseConfig`)
 3. Set up Firebase Authentication and Firestore
 4. Open `index.html` in a web browser or deploy to a hosting service
 
