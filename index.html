@@ -1643,7 +1643,8 @@
             profileTripsList.innerHTML = tripsHtml;
             
             profileTripsList.querySelectorAll('.trip-item').forEach(item => {
-                addSwipeToDelete(item);
+                const tripId = item.getAttribute('data-trip-id');
+                addSwipeToDelete(item, false, tripId);
             });
         }
 
@@ -1899,8 +1900,8 @@
             profileTemplatesList.innerHTML = templatesHtml;
             
             profileTemplatesList.querySelectorAll('.trip-item').forEach(item => {
-                const isTemplate = item.hasAttribute('data-template-id');
-                addSwipeToDelete(item, isTemplate);
+                const templateId = item.getAttribute('data-template-id');
+                addSwipeToDelete(item, true, templateId);
             });
         }
 
