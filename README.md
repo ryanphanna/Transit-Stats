@@ -1,6 +1,6 @@
 # TransitStats
 
-Personal transit trip tracker for transit nerds who want to analyze their ridership patterns.
+Personal transit trip tracker for transit enthusiasts who want to analyze their ridership patterns.
 
 ## What it does
 
