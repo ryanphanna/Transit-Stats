@@ -643,9 +643,14 @@
                 <div id="statsSection" class="section" style="display: none;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h2>📊 Your Stats</h2>
-                        <div style="background: var(--bg-tertiary); border-radius: 20px; padding: 4px; display: flex;">
-                            <button id="statsToggle30" class="btn" style="background: var(--accent-primary); color: white; padding: 8px 16px; margin: 0; border-radius: 16px; font-size: 0.9em;">30 Days</button>
-                            <button id="statsToggleAll" class="btn btn-outline" style="padding: 8px 16px; margin: 0; border: none; font-size: 0.9em;">All Time</button>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="background: var(--bg-tertiary); border-radius: 20px; padding: 4px; display: flex;">
+                                <button id="statsToggle30" class="btn" style="background: var(--accent-primary); color: white; padding: 8px 16px; margin: 0; border-radius: 16px; font-size: 0.9em;">30 Days</button>
+                                <button id="statsToggleAll" class="btn btn-outline" style="padding: 8px 16px; margin: 0; border: none; font-size: 0.9em;">All Time</button>
+                            </div>
+                            <button id="exportCsvBtn" onclick="exportTripsToCSV()" class="btn" style="background: var(--bg-tertiary); color: var(--text-primary); padding: 8px 12px; margin: 0; border-radius: 16px; font-size: 0.9em; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 4px;">
+                                <span style="font-size: 1em;">📥</span> Export
+                            </button>
                         </div>
                     </div>
                     
@@ -1444,6 +1449,105 @@
                     loadCommunityData();
                 }
             });
+        }
+
+        function exportTripsToCSV() {
+            if (!currentUser) {
+                alert('Please sign in to export your trips.');
+                return;
+            }
+
+            const exportBtn = document.getElementById('exportCsvBtn');
+            const originalContent = exportBtn.innerHTML;
+            exportBtn.innerHTML = '<span style="font-size: 1em;">⏳</span> Exporting...';
+            exportBtn.disabled = true;
+
+            let query = db.collection('trips').where('userId', '==', currentUser.uid);
+
+            if (currentStatsView === '30days') {
+                const dateFilter = new Date();
+                dateFilter.setDate(dateFilter.getDate() - 30);
+                query = query.where('startTime', '>=', firebase.firestore.Timestamp.fromDate(dateFilter));
+            }
+
+            query.orderBy('startTime', 'desc').get()
+                .then((snapshot) => {
+                    const trips = [];
+                    snapshot.forEach((doc) => {
+                        trips.push(doc.data());
+                    });
+
+                    if (trips.length === 0) {
+                        alert('No trips to export.');
+                        exportBtn.innerHTML = originalContent;
+                        exportBtn.disabled = false;
+                        return;
+                    }
+
+                    // CSV header
+                    const headers = ['Date', 'Route', 'Start Stop', 'End Stop', 'Duration (min)', 'Start Time', 'End Time'];
+
+                    // Convert trips to CSV rows
+                    const rows = trips.map(trip => {
+                        const startDate = trip.startTime?.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
+                        const endDate = trip.endTime?.toDate ? trip.endTime.toDate() : (trip.endTime ? new Date(trip.endTime) : null);
+
+                        const dateStr = startDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+                        const startTimeStr = startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                        const endTimeStr = endDate ? endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : '';
+
+                        return [
+                            dateStr,
+                            escapeCsvField(trip.route || ''),
+                            escapeCsvField(trip.startStop || ''),
+                            escapeCsvField(trip.endStop || ''),
+                            trip.duration || '',
+                            startTimeStr,
+                            endTimeStr
+                        ];
+                    });
+
+                    // Build CSV content
+                    const csvContent = [
+                        headers.join(','),
+                        ...rows.map(row => row.join(','))
+                    ].join('\n');
+
+                    // Create and download file
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const today = new Date().toISOString().split('T')[0];
+                    const filename = `transit-trips-${today}.csv`;
+
+                    // Use standard download pattern that works on mobile Safari
+                    const link = document.createElement('a');
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', filename);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+
+                    exportBtn.innerHTML = originalContent;
+                    exportBtn.disabled = false;
+                })
+                .catch((error) => {
+                    console.error('Error exporting trips:', error);
+                    alert('Error exporting trips. Please try again.');
+                    exportBtn.innerHTML = originalContent;
+                    exportBtn.disabled = false;
+                });
+        }
+
+        function escapeCsvField(field) {
+            if (field === null || field === undefined) return '';
+            const str = String(field);
+            // Escape fields containing commas, quotes, or newlines
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return '"' + str.replace(/"/g, '""') + '"';
+            }
+            return str;
         }
 
         function updateStatsSection() {
