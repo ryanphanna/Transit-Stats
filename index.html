@@ -6,53 +6,65 @@
     <title>TransitStats</title>
     <style>
         :root {
-            --bg-primary: #f5f5f5;
-            --bg-secondary: white;
+            --bg-primary: #f0f2f5;
+            --bg-secondary: #ffffff;
             --bg-tertiary: #f8f9fa;
-            --text-primary: #333;
-            --text-secondary: #666;
-            --text-muted: #999;
-            --border-color: #ddd;
-            --border-light: #eee;
-            --accent-primary: #667eea;
-            --accent-secondary: #764ba2;
-            --success-bg: #d4edda;
-            --success-text: #155724;
-            --warning-bg: #fff3cd;
-            --warning-text: #856404;
-            --danger-bg: #f8d7da;
-            --danger-text: #721c24;
-            --info-bg: #e3f2fd;
-            --info-text: #1976d2;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --text-muted: #999999;
+            --border-color: #e5e5e5;
+            --border-light: #f0f0f0;
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-orange: #f59e0b;
+            --accent-green: #10b981;
+            --success-bg: #d1fae5;
+            --success-text: #065f46;
+            --warning-bg: #fef3c7;
+            --warning-text: #92400e;
+            --danger-bg: #fee2e2;
+            --danger-text: #991b1b;
+            --info-bg: #dbeafe;
+            --info-text: #1e40af;
+            --card-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+            --card-shadow-lg: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
         }
 
         [data-theme="dark"] {
-            --bg-primary: #1a1a1a;
-            --bg-secondary: #2d2d2d;
-            --bg-tertiary: #242424;
+            --bg-primary: #111111;
+            --bg-secondary: #1c1c1e;
+            --bg-tertiary: #2c2c2e;
             --text-primary: #ffffff;
-            --text-secondary: #cccccc;
-            --text-muted: #888888;
-            --border-color: #404040;
-            --border-light: #333333;
-            --accent-primary: #7c93f0;
-            --accent-secondary: #8a5fb8;
-            --success-bg: #1e4620;
-            --success-text: #90ee90;
-            --warning-bg: #4a4017;
-            --warning-text: #ffd700;
-            --danger-bg: #4a1e1e;
-            --danger-text: #ff6b6b;
-            --info-bg: #1a365d;
-            --info-text: #66b3ff;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --border-color: #3f3f46;
+            --border-light: #27272a;
+            --accent-primary: #818cf8;
+            --accent-secondary: #a78bfa;
+            --accent-blue: #60a5fa;
+            --accent-purple: #a78bfa;
+            --accent-orange: #fbbf24;
+            --accent-green: #34d399;
+            --success-bg: #064e3b;
+            --success-text: #6ee7b7;
+            --warning-bg: #78350f;
+            --warning-text: #fcd34d;
+            --danger-bg: #7f1d1d;
+            --danger-text: #fca5a5;
+            --info-bg: #1e3a5f;
+            --info-text: #93c5fd;
+            --card-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+            --card-shadow-lg: 0 4px 6px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
-            line-height: 1.4; 
+            line-height: 1.5;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -62,76 +74,278 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            padding-bottom: 70px;
         }
         .content-wrapper {
             flex: 1;
         }
+
+        /* Simplified Header */
         .header {
-            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-            color: white;
-            padding: 15px 12px;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-light);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
-        .header-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-        .header-title { font-size: 1.2em; font-weight: 600; cursor: pointer; flex-shrink: 0; }
-        .user-info { display: flex; gap: 8px; align-items: center; justify-content: flex-end; flex-wrap: nowrap; }
-        .header-btn, .theme-toggle {
-            background: rgba(255,255,255,0.2);
-            border: 2px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 8px;
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-title {
+            font-size: 1.25em;
+            font-weight: 700;
             cursor: pointer;
-            font-size: 1em;
-            transition: all 0.2s ease;
-            min-width: 44px;
-            height: 44px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-primary);
+        }
+        .header-title .logo-icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 1;
+            font-size: 14px;
         }
-        .header-btn:hover, .theme-toggle:hover {
-            background: rgba(255,255,255,0.3);
-            transform: scale(1.05);
+        .user-info {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .header-btn {
+            display: none;
+        }
+        .theme-toggle {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .theme-toggle:hover {
+            background: var(--border-light);
         }
 
-        @media (min-width: 768px) {
-            .header {
-                padding: 18px 20px;
-            }
-            .header-row {
-                gap: 15px;
-            }
-            .header-title {
-                font-size: 1.5em;
-            }
-            .user-info {
-                gap: 10px;
-            }
-            .header-btn, .theme-toggle {
-                padding: 10px 14px;
-                font-size: 1.1em;
-                min-width: 48px;
-                height: 48px;
-            }
+        /* Bottom Tab Bar Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+            z-index: 1000;
         }
-        .container { max-width: 100%; padding: 15px; }
-        .section { 
-            background: var(--bg-secondary); 
-            border-radius: 8px; 
-            padding: 20px; 
-            margin-bottom: 15px; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
-            border: 1px solid var(--border-light);
+        .nav-tab {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 16px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 0.7em;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            min-width: 64px;
         }
-        
-        /* Maps specific styles - Clean Datawrapper Style */
+        .nav-tab svg {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            stroke-width: 1.5;
+            fill: none;
+        }
+        .nav-tab.active {
+            color: var(--accent-primary);
+        }
+        .nav-tab.active svg {
+            stroke-width: 2;
+        }
+
+        .container {
+            max-width: 100%;
+            padding: 16px;
+        }
+
+        /* Card Styles */
+        .card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: var(--card-shadow);
+        }
+        .section {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: var(--card-shadow);
+        }
+
+        /* Welcome Section */
+        .welcome-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .welcome-text {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            margin-bottom: 2px;
+        }
+        .welcome-name {
+            font-size: 1.75em;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .streak-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--danger-bg);
+            color: var(--danger-text);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        .streak-badge.active {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            color: white;
+        }
+
+        /* Start Trip Card */
+        .start-trip-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .start-trip-card:hover {
+            box-shadow: var(--card-shadow-lg);
+            transform: translateY(-1px);
+        }
+        .start-trip-info h3 {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        .start-trip-info p {
+            color: var(--text-muted);
+            font-size: 0.9em;
+        }
+        .start-trip-btn {
+            width: 48px;
+            height: 48px;
+            background: var(--accent-primary);
+            border: none;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .start-trip-btn:hover {
+            background: var(--accent-secondary);
+            transform: scale(1.05);
+        }
+        .start-trip-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        /* Quick Actions Grid */
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .quick-action-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: var(--card-shadow);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .quick-action-card:hover {
+            box-shadow: var(--card-shadow-lg);
+            transform: translateY(-1px);
+        }
+        .quick-action-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        .quick-action-icon.history {
+            background: #fef3c7;
+            color: #d97706;
+        }
+        .quick-action-icon.templates {
+            background: #d1fae5;
+            color: #059669;
+        }
+        .quick-action-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.95em;
+            margin-bottom: 2px;
+        }
+        .quick-action-subtitle {
+            color: var(--text-muted);
+            font-size: 0.8em;
+        }
+
+        /* Recent Trips Section */
+        .section-header {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        /* Maps specific styles */
         #mapContainer {
             height: 400px;
             width: 100%;
-            border-radius: 6px;
+            border-radius: 12px;
             overflow: hidden;
             background: var(--bg-tertiary);
             position: relative;
@@ -139,136 +353,180 @@
             align-items: center;
             justify-content: center;
             color: var(--text-secondary);
-            border: 1px solid var(--border-color);
         }
-        
+
         .map-controls {
             background: var(--bg-tertiary);
-            border-radius: 6px;
-            padding: 20px;
-            margin-bottom: 15px;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            border: 1px solid var(--border-color);
+            gap: 12px;
         }
-        
+
         .map-toggle {
             display: flex;
             background: var(--bg-secondary);
-            border-radius: 4px;
-            padding: 2px;
+            border-radius: 10px;
+            padding: 4px;
             align-self: center;
-            border: 1px solid var(--border-color);
         }
-        
+
         .toggle-btn {
             background: transparent;
             border: none;
-            padding: 8px 16px;
-            border-radius: 2px;
-            font-size: 0.9em;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 0.85em;
             cursor: pointer;
             transition: all 0.2s ease;
             white-space: nowrap;
             color: var(--text-secondary);
             font-weight: 500;
         }
-        
+
         .toggle-btn.active {
             background: var(--accent-primary);
             color: white;
         }
-        
+
         .map-legend {
             display: flex;
             justify-content: center;
             flex-wrap: wrap;
-            gap: 20px;
-            font-size: 0.85em;
+            gap: 16px;
+            font-size: 0.8em;
             font-weight: 500;
         }
-        
+
         .legend-item {
             display: flex;
             align-items: center;
             gap: 6px;
         }
-        
+
         .legend-color {
             width: 10px;
             height: 10px;
-            border-radius: 2px;
+            border-radius: 3px;
         }
-        
+
+        /* Locked Heatmap State */
+        .heatmap-locked {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            text-align: center;
+        }
+        .heatmap-locked-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--bg-tertiary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .heatmap-locked-icon svg {
+            width: 40px;
+            height: 40px;
+            stroke: var(--text-muted);
+            stroke-width: 1.5;
+            fill: none;
+        }
+        .heatmap-locked h3 {
+            font-size: 1.3em;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+        .heatmap-locked p {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            margin-bottom: 24px;
+            max-width: 280px;
+        }
+        .heatmap-progress-bar {
+            width: 100%;
+            max-width: 280px;
+            height: 6px;
+            background: var(--border-light);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        .heatmap-progress-fill {
+            height: 100%;
+            background: var(--accent-primary);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        .heatmap-progress-text {
+            color: var(--accent-primary);
+            font-weight: 600;
+            font-size: 0.95em;
+            margin-bottom: 8px;
+        }
+        .heatmap-progress-hint {
+            color: var(--text-muted);
+            font-size: 0.85em;
+        }
+
         /* Progress bar for heatmap unlock */
         .heatmap-progress {
             background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
             color: white;
-            padding: 15px 20px;
-            border-radius: 6px;
-            margin-bottom: 15px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 16px;
             text-align: center;
         }
-        
+
         .progress-bar {
             background: rgba(255,255,255,0.2);
-            border-radius: 3px;
+            border-radius: 4px;
             height: 6px;
-            margin: 10px 0 5px 0;
+            margin: 12px 0 8px 0;
             overflow: hidden;
         }
-        
+
         .progress-fill {
             background: white;
             height: 100%;
-            border-radius: 3px;
+            border-radius: 4px;
             transition: width 0.3s ease;
         }
-        
-        /* Footer status bar */
+
+        /* Hidden footer - replaced by bottom nav */
         .status-footer {
-            background: var(--bg-secondary);
-            border-top: 1px solid var(--border-color);
-            padding: 10px 15px;
-            display: flex;
-            justify-content: flex-start;
-            align-items: center;
-            gap: 20px;
-            font-size: 0.9em;
+            display: none;
         }
-        
+
         /* Active trip banner */
         .active-trip-banner {
             background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
             color: white;
-            padding: 12px 16px;
-            border-radius: 8px;
+            padding: 14px 18px;
+            border-radius: 12px;
             font-weight: 500;
             text-align: center;
             cursor: pointer;
             transition: all 0.2s ease;
+            margin-bottom: 16px;
         }
         .active-trip-banner:hover {
-            opacity: 0.9;
-        }
-        
-        .banner-container {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 15px;
-            margin-bottom: 15px;
+            opacity: 0.95;
+            transform: translateY(-1px);
         }
 
-        @media (min-width: 768px) {
-            .banner-container {
-                grid-template-columns: 1fr 1fr;
-            }
+        .banner-container {
+            display: none;
         }
-        
-        .banner-container.full-width {
-            grid-template-columns: 1fr;
-        }
+
         .status-indicator {
             display: flex;
             align-items: center;
@@ -276,80 +534,115 @@
             padding: 6px 12px;
             border-radius: 20px;
             font-weight: 500;
+            font-size: 0.85em;
         }
         .status-indicator.excellent { background: var(--success-bg); color: var(--success-text); }
         .status-indicator.good { background: var(--warning-bg); color: var(--warning-text); }
         .status-indicator.poor { background: var(--danger-bg); color: var(--danger-text); }
         .status-indicator.loading { background: var(--info-bg); color: var(--info-text); }
-        .status-indicator.connected { 
-            background: var(--success-bg); 
-            color: var(--success-text); 
+        .status-indicator.connected {
+            background: var(--success-bg);
+            color: var(--success-text);
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        .status-indicator.connected:hover {
-            background: #ff4757;
-            color: white;
-        }
-        .status-indicator.connected.logout-mode {
-            background: #ff4757;
-            color: white;
-        }
         .status-indicator.disconnected { background: var(--danger-bg); color: var(--danger-text); }
-        
-        .auth-section { text-align: center; padding: 40px 20px; }
-        .auth-section h2 { margin-bottom: 20px; color: var(--text-primary); }
-        .auth-section p { margin-bottom: 20px; color: var(--text-secondary); }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
-        .form-group input { 
-            width: 100%; 
-            padding: 12px; 
-            border: 2px solid var(--border-color); 
-            border-radius: 6px; 
-            font-size: 1em; 
-            background: var(--bg-secondary);
+
+        .auth-section {
+            text-align: center;
+            padding: 60px 20px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .auth-section h2 {
+            margin-bottom: 12px;
+            color: var(--text-primary);
+            font-size: 1.75em;
+            font-weight: 700;
+        }
+        .auth-section p {
+            margin-bottom: 24px;
+            color: var(--text-secondary);
+            font-size: 0.95em;
+        }
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.9em;
             color: var(--text-primary);
         }
-        .form-group input:focus { outline: none; border-color: var(--accent-primary); }
-        .preview-box { margin-top: 8px; padding: 10px; border-radius: 6px; font-size: 0.9em; border: 1px solid transparent; }
-        .preview-box.new { background: var(--success-bg); border-color: #2ed573; color: var(--success-text); }
-        .preview-box.existing { background: var(--warning-bg); border-color: #ffc107; color: var(--warning-text); }
-        .btn { 
-            width: 100%; 
-            padding: 15px; 
-            border: none; 
-            border-radius: 6px; 
-            font-size: 1.1em; 
-            font-weight: 600; 
-            cursor: pointer; 
-            transition: all 0.2s ease; 
-            margin: 10px 0; 
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 1em;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            transition: border-color 0.2s ease;
         }
-        .btn-primary { background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%); color: white; }
-        .btn-primary:hover { opacity: 0.9; }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        .preview-box {
+            margin-top: 8px;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 0.85em;
+            border: 1px solid transparent;
+        }
+        .preview-box.new { background: var(--success-bg); border-color: var(--accent-green); color: var(--success-text); }
+        .preview-box.existing { background: var(--warning-bg); border-color: var(--accent-orange); color: var(--warning-text); }
+
+        .btn {
+            width: 100%;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 8px 0;
+        }
+        .btn-primary {
+            background: var(--accent-primary);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: var(--accent-secondary);
+        }
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-danger { background: #ff4757; color: white; }
-        .btn-outline { 
-            background: transparent; 
-            color: var(--text-secondary); 
-            border: 2px solid var(--border-color); 
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-outline {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
         }
-        .btn-sm { padding: 8px 12px; font-size: 0.9em; width: auto; }
-        .trip-status { 
-            background: var(--success-bg); 
-            border: 2px solid #2ed573; 
-            border-radius: 8px; 
-            padding: 20px; 
-            margin-bottom: 15px; 
-            text-align: center; 
+        .btn-outline:hover {
+            background: var(--bg-tertiary);
         }
-        .trip-item { 
-            background: var(--bg-tertiary); 
-            border-radius: 8px; 
-            padding: 15px; 
-            margin-bottom: 10px; 
-            border-left: 4px solid var(--accent-primary); 
+        .btn-sm { padding: 10px 16px; font-size: 0.9em; width: auto; }
+
+        .trip-status {
+            background: var(--success-bg);
+            border: 2px solid var(--accent-green);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .trip-item {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--accent-primary);
             position: relative;
             transition: transform 0.2s ease;
             touch-action: pan-y;
@@ -363,64 +656,179 @@
             top: 0;
             bottom: 0;
             width: 80px;
-            background: #ff4757;
+            background: #ef4444;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: 600;
-            font-size: 0.9em;
-            border-radius: 0 8px 8px 0;
+            font-size: 0.85em;
+            border-radius: 0 12px 12px 0;
         }
-        .empty-state { text-align: center; color: var(--text-muted); padding: 20px; font-style: italic; }
-        .auth-status { 
-            background: var(--info-bg); 
-            border: 1px solid #2196f3; 
-            border-radius: 6px; 
-            padding: 10px; 
-            margin-bottom: 15px; 
-            font-size: 0.9em; 
-            color: var(--info-text); 
-        }
-        .loading { text-align: center; padding: 20px; color: var(--text-secondary); }
-        .emoji-btn { 
-            background: var(--bg-tertiary); 
-            border: 2px solid var(--border-color); 
-            border-radius: 8px; 
-            padding: 12px; 
-            font-size: 1.5em; 
-            cursor: pointer; 
-            transition: all 0.2s ease; 
-        }
-        .emoji-btn:hover { background: var(--border-light); transform: scale(1.1); }
-        .emoji-btn.selected { background: var(--accent-primary); border-color: var(--accent-primary); transform: scale(1.1); }
-        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 20px 0; }
-        .stat-card { background: var(--bg-tertiary); border-radius: 8px; padding: 20px; text-align: center; }
-        .stat-number { font-size: 2em; font-weight: bold; color: var(--accent-primary); margin-bottom: 5px; }
-        .stat-label { font-size: 0.9em; color: var(--text-secondary); font-weight: 500; }
-        .streak-status {
-            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-            color: white;
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-weight: 500;
+        .empty-state {
             text-align: center;
-            display: block;
+            color: var(--text-muted);
+            padding: 32px 20px;
+            font-size: 0.95em;
+        }
+        .auth-status {
+            background: var(--info-bg);
+            border: 1px solid var(--accent-blue);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-size: 0.9em;
+            color: var(--info-text);
+        }
+        .loading { text-align: center; padding: 24px; color: var(--text-secondary); }
+
+        .emoji-btn {
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 1.5em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .emoji-btn:hover { background: var(--border-light); transform: scale(1.05); }
+        .emoji-btn.selected { background: var(--accent-primary); border-color: var(--accent-primary); transform: scale(1.05); }
+
+        /* Stats Grid - Colored Numbers */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin: 16px 0;
+        }
+        .stat-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: left;
+            box-shadow: var(--card-shadow);
+        }
+        .stat-label {
+            font-size: 0.75em;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .stat-number {
+            font-size: 2.25em;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .stat-number.blue { color: var(--accent-blue); }
+        .stat-number.purple { color: var(--accent-purple); }
+        .stat-number.orange { color: var(--accent-orange); }
+        .stat-number.green { color: var(--accent-green); }
+
+        /* Community Rank Card */
+        .community-rank-card {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            border-radius: 16px;
+            padding: 20px;
+            color: white;
+            margin: 16px 0;
+        }
+        .community-rank-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .community-rank-header svg {
+            width: 20px;
+            height: 20px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+        }
+        .community-rank-header h3 {
+            font-size: 1.05em;
+            font-weight: 700;
+        }
+        .rank-text {
+            font-size: 0.9em;
+            margin-bottom: 12px;
+            opacity: 0.95;
+        }
+        .rank-bar {
+            height: 6px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        .rank-bar-fill {
+            height: 100%;
+            background: #22c55e;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        .rank-percentage {
+            position: absolute;
+            right: 20px;
+            top: 56px;
+            font-weight: 700;
+            font-size: 1.1em;
+        }
+        .community-stats {
+            display: flex;
+            justify-content: space-between;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+        .community-stat {
+            text-align: left;
+        }
+        .community-stat:last-child {
+            text-align: right;
+        }
+        .community-stat-label {
+            font-size: 0.75em;
+            opacity: 0.8;
+            margin-bottom: 2px;
+        }
+        .community-stat-value {
+            font-size: 1.1em;
+            font-weight: 700;
+        }
+
+        /* Top Routes Section */
+        .top-routes-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+        }
+        .top-routes-card h3 {
+            font-size: 1.1em;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .streak-status {
+            display: none;
         }
         .streak-status.hot-streak {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ff8e6b 100%);
-            animation: pulse 2s infinite;
+            display: none;
         }
         @keyframes pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.02); }
             100% { transform: scale(1); }
         }
+
         .template-card {
             background: var(--bg-tertiary);
-            border: 2px solid var(--border-light);
-            border-radius: 8px;
-            padding: 15px;
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 14px 16px;
             margin-bottom: 10px;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -429,64 +837,268 @@
         .template-card:hover {
             background: var(--border-light);
             border-color: var(--accent-primary);
-            transform: translateY(-2px);
+            transform: translateY(-1px);
         }
         .template-card .template-icon {
             position: absolute;
-            top: 15px;
-            right: 15px;
-            font-size: 1.2em;
+            top: 14px;
+            right: 14px;
+            font-size: 1.1em;
         }
         .template-card .route-name {
-            font-size: 1.1em;
+            font-size: 1em;
             font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
         .template-card .stop-name {
             color: var(--text-secondary);
-            font-size: 0.9em;
+            font-size: 0.85em;
         }
         .templates-section {
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
         .templates-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
         .templates-header h3 {
             margin: 0;
             color: var(--text-primary);
-            font-size: 1.1em;
+            font-size: 1em;
+            font-weight: 600;
         }
         .manage-templates-btn {
             background: transparent;
             border: 1px solid var(--border-color);
             color: var(--text-secondary);
-            padding: 5px 12px;
-            border-radius: 6px;
+            padding: 6px 12px;
+            border-radius: 8px;
             font-size: 0.8em;
             cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .manage-templates-btn:hover {
+            background: var(--bg-tertiary);
         }
         .save-template-checkbox {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin: 15px 0;
-            padding: 10px;
+            gap: 10px;
+            margin: 16px 0;
+            padding: 12px;
             background: var(--bg-tertiary);
-            border-radius: 6px;
+            border-radius: 10px;
         }
         .save-template-checkbox input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             cursor: pointer;
+            accent-color: var(--accent-primary);
         }
         .save-template-checkbox label {
             cursor: pointer;
+            font-size: 0.9em;
+            color: var(--text-primary);
+        }
+
+        /* Profile Page - Settings Style */
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .profile-avatar {
+            width: 72px;
+            height: 72px;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5em;
+            position: relative;
+        }
+        .profile-avatar .edit-badge {
+            position: absolute;
+            bottom: -4px;
+            right: -4px;
+            width: 24px;
+            height: 24px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--bg-secondary);
+        }
+        .profile-avatar .edit-badge svg {
+            width: 12px;
+            height: 12px;
+            stroke: white;
+            stroke-width: 2;
+            fill: none;
+        }
+        .profile-info h2 {
+            font-size: 1.5em;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+        }
+        .profile-info p {
+            color: var(--text-muted);
+            font-size: 0.9em;
+        }
+
+        /* Settings List */
+        .settings-section {
+            margin-bottom: 24px;
+        }
+        .settings-section h3 {
+            font-size: 1em;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            padding-left: 4px;
+        }
+        .settings-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+        }
+        .settings-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-light);
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+        .settings-item:hover {
+            background: var(--bg-tertiary);
+        }
+        .settings-item-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .settings-icon {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1em;
+        }
+        .settings-item-label {
             font-size: 0.95em;
+            color: var(--text-primary);
+        }
+        .settings-item.danger .settings-item-label {
+            color: #ef4444;
+        }
+        .settings-item.success .settings-item-label {
+            color: var(--accent-green);
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            width: 50px;
+            height: 28px;
+            background: var(--border-color);
+            border-radius: 14px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .toggle-switch.active {
+            background: var(--accent-primary);
+        }
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .toggle-switch.active::after {
+            transform: translateX(22px);
+        }
+
+        /* Stats Toggle */
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .stats-header h2 {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .stats-toggle-group {
+            display: flex;
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            padding: 4px;
+        }
+        .stats-toggle-btn {
+            padding: 8px 14px;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            font-size: 0.85em;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .stats-toggle-btn.active {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            box-shadow: var(--card-shadow);
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-content {
+            background: var(--bg-secondary);
+            padding: 24px;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+        }
+        .modal-content h3 {
+            font-size: 1.25em;
+            font-weight: 700;
+            margin-bottom: 16px;
             color: var(--text-primary);
         }
     </style>
@@ -500,15 +1112,38 @@
     <div class="main-content">
         <div class="header">
             <div class="header-row">
-                <h1 class="header-title" onclick="goHome()">TransitStats</h1>
+                <h1 class="header-title" onclick="goHome()">
+                    <span class="logo-icon">🚌</span>
+                    TransitStats
+                </h1>
                 <div id="userInfo" class="user-info" style="display: none;">
-                    <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+                    <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleBtn">🌙</button>
                     <button id="profileBtn" class="header-btn">👤</button>
                     <button id="statsBtn" class="header-btn">📊</button>
                     <button id="mapsBtn" class="header-btn">🗺️</button>
                 </div>
             </div>
         </div>
+
+        <!-- Bottom Tab Bar Navigation -->
+        <nav class="bottom-nav" id="bottomNav" style="display: none;">
+            <button class="nav-tab active" id="navHome" onclick="goHome(); setActiveTab('navHome')">
+                <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span>Home</span>
+            </button>
+            <button class="nav-tab" id="navStats" onclick="showStats(); setActiveTab('navStats')">
+                <svg viewBox="0 0 24 24"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="8" width="4" height="13"/><rect x="17" y="4" width="4" height="17"/></svg>
+                <span>Stats</span>
+            </button>
+            <button class="nav-tab" id="navMap" onclick="showMaps(); setActiveTab('navMap')">
+                <svg viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+                <span>Map</span>
+            </button>
+            <button class="nav-tab" id="navProfile" onclick="showProfile(); setActiveTab('navProfile')">
+                <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span>Profile</span>
+            </button>
+        </nav>
 
         <div class="content-wrapper">
             <div class="container">
@@ -549,34 +1184,61 @@
                 </div>
 
                 <div id="appContent" style="display: none;">
-                    <!-- Banners Container -->
-                    <div id="bannersContainer" class="banner-container full-width">
-                        <div id="streakStatus" class="streak-status">⚡ Take your first trip to start tracking!</div>
-                        <div id="activeTripBanner" class="active-trip-banner" style="display: none;" onclick="goToActiveTrip()">
-                            🚌 Currently riding • Tap to view
+                    <!-- Active Trip Banner (shown when trip in progress) -->
+                    <div id="activeTripBanner" class="active-trip-banner" style="display: none;" onclick="goToActiveTrip()">
+                        🚌 Currently riding • Tap to view
+                    </div>
+
+                    <!-- Welcome Section (Home Screen) -->
+                    <div id="homeWelcomeSection">
+                        <div class="welcome-section">
+                            <div>
+                                <div class="welcome-text">Welcome back,</div>
+                                <div class="welcome-name" id="welcomeUserName">Traveler</div>
+                            </div>
+                            <div class="streak-badge" id="homeStreakBadge">
+                                <span>🔥</span>
+                                <span id="homeStreakCount">0 Days</span>
+                            </div>
                         </div>
+                    </div>
+
+                    <!-- Hidden original streak status -->
+                    <div id="bannersContainer" class="banner-container full-width" style="display: none;">
+                        <div id="streakStatus" class="streak-status">⚡ Take your first trip to start tracking!</div>
                     </div>
 
                     <!-- Recent Trips Section -->
                     <div id="recentTripsSection" class="section" style="display: none;">
-                        <h3 style="margin-bottom: 15px; color: var(--text-primary);">📋 Recent Trips</h3>
+                        <h3 class="section-header">Recent Trips</h3>
                         <div id="recentTripsList">
-                            <div class="loading">Loading trips...</div>
+                            <div class="empty-state">No trips yet. Start one!</div>
                         </div>
                     </div>
 
-                <div id="profileSection" class="section" style="display: none;">
-                    <h2 style="white-space: nowrap;">👤 Profile</h2>
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <div style="font-size: 3em; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <div id="profileSection" style="display: none;">
+                    <!-- Profile Header -->
+                    <div class="profile-header">
+                        <div class="profile-avatar" id="profileAvatarContainer">
                             <span id="profileAvatar">🚌</span>
-                            <button id="shuffleEmojiBtn" style="background: var(--bg-tertiary); border: 2px solid var(--border-color); border-radius: 50%; padding: 8px; font-size: 0.5em; cursor: pointer; width: 30px; height: 30px; display: none;">🎲</button>
+                            <div class="edit-badge" onclick="toggleEmojiSelector()">
+                                <svg viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                            </div>
                         </div>
-                        <input type="text" id="nameInput" placeholder="Your name (e.g., Ryan)" style="text-align: center; font-size: 1.1em; font-weight: 600; margin-bottom: 10px;">
+                        <div class="profile-info">
+                            <h2 id="profileDisplayName">Traveler</h2>
+                            <p id="profileMemberSince">Member since 2025</p>
+                        </div>
                     </div>
-                    <div id="emojiSelector" style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 10px; font-weight: 500;">Choose your transit emoji:</label>
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+
+                    <!-- Hidden name input for editing -->
+                    <input type="text" id="nameInput" placeholder="Your name" style="display: none;">
+                    <button id="shuffleEmojiBtn" style="display: none;">🎲</button>
+
+                    <!-- Emoji Selector (hidden by default) -->
+                    <div id="emojiSelector" class="section" style="display: none; margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 12px; font-weight: 600; font-size: 0.9em;">Choose your transit emoji:</label>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px;">
                             <button class="emoji-btn" onclick="selectEmoji('🚌')">🚌</button>
                             <button class="emoji-btn" onclick="selectEmoji('🚇')">🚇</button>
                             <button class="emoji-btn" onclick="selectEmoji('🚊')">🚊</button>
@@ -586,204 +1248,275 @@
                             <button class="emoji-btn" onclick="selectEmoji('🚄')">🚄</button>
                             <button class="emoji-btn" onclick="selectEmoji('✈️')">✈️</button>
                         </div>
+                        <div class="form-group" style="margin-bottom: 12px;">
+                            <input type="text" id="nameInputVisible" placeholder="Your name (e.g., Ryan)" style="text-align: left;">
+                        </div>
+                        <button class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
                     </div>
 
-                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                        <button class="btn btn-primary" onclick="saveProfile()" style="flex: 1;">Save Profile</button>
-                    </div>
-
-                    <!-- Streak Stats Section -->
-                    <div style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8e6b 100%); border-radius: 12px; padding: 20px; margin-bottom: 15px; color: white; text-align: center;">
-                        <h3 style="margin-bottom: 15px; font-size: 1.2em;">🔥 Streak Stats</h3>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                            <div>
-                                <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="profileCurrentStreak">0</div>
-                                <div style="font-size: 0.9em; opacity: 0.9;">Current Streak</div>
+                    <!-- Settings Section -->
+                    <div class="settings-section">
+                        <h3>Settings</h3>
+                        <div class="settings-card">
+                            <div class="settings-item" onclick="toggleNotifications()">
+                                <div class="settings-item-left">
+                                    <div class="settings-icon">🔔</div>
+                                    <span class="settings-item-label">Notifications</span>
+                                </div>
+                                <div class="toggle-switch active" id="notificationsToggle"></div>
                             </div>
-                            <div>
-                                <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="profileBestStreak">0</div>
-                                <div style="font-size: 0.9em; opacity: 0.9;">🏆 Best Streak</div>
+                            <div class="settings-item" onclick="toggleTheme()">
+                                <div class="settings-item-left">
+                                    <div class="settings-icon">🌙</div>
+                                    <span class="settings-item-label">Dark Mode</span>
+                                </div>
+                                <div class="toggle-switch" id="darkModeToggle"></div>
+                            </div>
+                            <div class="settings-item success" onclick="generateDemoData()">
+                                <div class="settings-item-left">
+                                    <div class="settings-icon">🎲</div>
+                                    <span class="settings-item-label">Generate Demo Data (Unlock Heatmap)</span>
+                                </div>
+                            </div>
+                            <div class="settings-item danger" onclick="clearAllData()">
+                                <div class="settings-item-left">
+                                    <div class="settings-icon">🗑️</div>
+                                    <span class="settings-item-label">Clear All Data</span>
+                                </div>
+                            </div>
+                            <div class="settings-item" onclick="signOut()">
+                                <div class="settings-item-left">
+                                    <div class="settings-icon">↪️</div>
+                                    <span class="settings-item-label">Sign Out</span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Founder Stats Section -->
-                    <div style="background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%); border-radius: 12px; padding: 20px; margin-bottom: 15px; color: white; text-align: center;">
-                        <h3 style="margin-bottom: 15px; font-size: 1.2em;">🚀 Founder Stats</h3>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                            <div>
-                                <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="profileFounderRoutes">0</div>
-                                <div style="font-size: 0.9em; opacity: 0.9;">Routes</div>
-                            </div>
-                            <div>
-                                <div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;" id="profileFounderStops">0</div>
-                                <div style="font-size: 0.9em; opacity: 0.9;">Stops</div>
-                            </div>
-                        </div>
+                    <!-- Hidden Stats for Profile (preserved for functionality) -->
+                    <div style="display: none;">
+                        <div id="profileCurrentStreak">0</div>
+                        <div id="profileBestStreak">0</div>
+                        <div id="profileFounderRoutes">0</div>
+                        <div id="profileFounderStops">0</div>
                     </div>
 
                     <!-- Trip Templates Management -->
-                    <div style="border-top: 1px solid var(--border-light); padding-top: 20px; margin-top: 20px;" id="templatesManagement">
-                        <h3 style="margin-bottom: 15px; color: var(--text-primary);">⭐ Trip Templates</h3>
-                        <div id="profileTemplatesList">
-                            <div class="loading">Loading templates...</div>
-                        </div>
-                        <div style="margin-top: 15px; font-size: 0.9em; color: var(--text-secondary); font-style: italic;">
-                            Templates save your Route + Starting Stop for quick trip starts
+                    <div class="settings-section" id="templatesManagement">
+                        <h3>Trip Templates</h3>
+                        <div class="settings-card" style="padding: 16px;">
+                            <div id="profileTemplatesList">
+                                <div class="empty-state">No templates saved yet</div>
+                            </div>
                         </div>
                     </div>
 
-                    <div style="border-top: 1px solid var(--border-light); padding-top: 20px; margin-top: 20px;">
-                        <h3 style="margin-bottom: 15px; color: var(--text-primary);">Recent Trips</h3>
-                        <div id="profileTripsList">
-                            <div class="loading">Loading trips...</div>
+                    <!-- Recent Trips -->
+                    <div class="settings-section">
+                        <h3>Recent Trips</h3>
+                        <div class="settings-card" style="padding: 16px;">
+                            <div id="profileTripsList">
+                                <div class="empty-state">No trips yet</div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div id="statsSection" class="section" style="display: none;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h2>📊 Your Stats</h2>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div style="background: var(--bg-tertiary); border-radius: 20px; padding: 4px; display: flex;">
-                                <button id="statsToggle30" class="btn" style="background: var(--accent-primary); color: white; padding: 8px 16px; margin: 0; border-radius: 16px; font-size: 0.9em;">30 Days</button>
-                                <button id="statsToggleAll" class="btn btn-outline" style="padding: 8px 16px; margin: 0; border: none; font-size: 0.9em;">All Time</button>
-                            </div>
-                            <button id="exportCsvBtn" onclick="exportTripsToCSV()" class="btn" style="background: var(--bg-tertiary); color: var(--text-primary); padding: 8px 12px; margin: 0; border-radius: 16px; font-size: 0.9em; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 4px;">
-                                <span style="font-size: 1em;">📥</span> Export
-                            </button>
+                <div id="statsSection" style="display: none;">
+                    <!-- Stats Header -->
+                    <div class="stats-header">
+                        <h2>Your Impact</h2>
+                        <div class="stats-toggle-group">
+                            <button id="statsToggle30" class="stats-toggle-btn active">30 Days</button>
+                            <button id="statsToggleAll" class="stats-toggle-btn">All Time</button>
                         </div>
                     </div>
-                    
-                    <!-- General Stats Section -->
+
+                    <!-- Stats Grid with Colored Numbers -->
                     <div class="stats-grid">
                         <div class="stat-card">
-                            <div class="stat-number" id="statsTotalTrips">0</div>
-                            <div class="stat-label">Trips</div>
+                            <div class="stat-label">TOTAL TRIPS</div>
+                            <div class="stat-number blue" id="statsTotalTrips">0</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-number" id="statsUniqueRoutes">0</div>
-                            <div class="stat-label">Routes</div>
+                            <div class="stat-label">HOURS</div>
+                            <div class="stat-number purple" id="statsTotalTime">0.0</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-number" id="statsTotalTime">0</div>
-                            <div class="stat-label">Hours Traveled</div>
+                            <div class="stat-label">ROUTES</div>
+                            <div class="stat-number orange" id="statsUniqueRoutes">0</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-number" id="statsUniqueStops">0</div>
-                            <div class="stat-label">Stops Visited</div>
+                            <div class="stat-label">STOPS</div>
+                            <div class="stat-number green" id="statsUniqueStops">0</div>
                         </div>
                     </div>
 
-                    <!-- Community Comparison -->
-                    <div style="background: var(--bg-tertiary); border-radius: 12px; padding: 20px; margin-top: 20px; border: 1px solid var(--border-color);">
-                        <h3 style="margin-bottom: 15px; color: var(--text-primary);">🌍 Community Comparison</h3>
-                        <div id="communityStats">
-                            <div class="loading">Loading community data...</div>
+                    <!-- Community Rank Card -->
+                    <div class="community-rank-card" style="position: relative;">
+                        <div class="community-rank-header">
+                            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                            <h3>Community Rank</h3>
+                        </div>
+                        <div class="rank-text">You are in the top</div>
+                        <div class="rank-bar">
+                            <div class="rank-bar-fill" id="rankBarFill" style="width: 0%;"></div>
+                        </div>
+                        <span class="rank-percentage" id="rankPercentage">0%</span>
+                        <div class="community-stats">
+                            <div class="community-stat">
+                                <div class="community-stat-label">Community Avg</div>
+                                <div class="community-stat-value" id="communityAvg">24.5 trips/mo</div>
+                            </div>
+                            <div class="community-stat">
+                                <div class="community-stat-label">Total Users</div>
+                                <div class="community-stat-value" id="totalUsers">1,248</div>
+                            </div>
+                        </div>
+                        <div id="communityStats" style="display: none;"></div>
+                    </div>
+
+                    <!-- Top Routes -->
+                    <div class="top-routes-card">
+                        <h3>Top Routes</h3>
+                        <div id="topRoutes">
+                            <div class="empty-state">Not enough data</div>
                         </div>
                     </div>
 
-                    <!-- Top Routes & Stops -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
-                        <div style="background: var(--bg-secondary); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color);">
-                            <h4 style="margin-bottom: 10px; color: var(--accent-primary);">🚌 Top Routes</h4>
-                            <div id="topRoutes">
-                                <div class="loading">Loading...</div>
-                            </div>
-                        </div>
-                        <div style="background: var(--bg-secondary); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color);">
-                            <h4 style="margin-bottom: 10px; color: var(--accent-primary);">🚏 Top Stops</h4>
-                            <div id="topStops">
-                                <div class="loading">Loading...</div>
-                            </div>
-                        </div>
+                    <!-- Hidden: Top Stops (preserved for functionality) -->
+                    <div style="display: none;">
+                        <div id="topStops"></div>
                     </div>
+
+                    <!-- Export Button (hidden, preserved for functionality) -->
+                    <button id="exportCsvBtn" onclick="exportTripsToCSV()" style="display: none;">Export</button>
                 </div>
 
                 <!-- Maps Section -->
-                <div id="mapsSection" class="section" style="display: none;">
-                    <h2>🗺️ Heatmap</h2>
-                    
-                    <!-- Progress bar for heatmap unlock -->
-                    <div id="heatmapProgress" class="heatmap-progress" style="display: none;">
-                        <div id="progressText">🗺️ Start taking trips to unlock your heatmap!</div>
-                        <div class="progress-bar">
-                            <div id="progressFill" class="progress-fill" style="width: 0%;"></div>
-                        </div>
-                        <div id="progressCount" style="font-size: 0.9em; opacity: 0.9;">0 / 50 trips with GPS</div>
-                    </div>
-                    
-                    <div class="map-controls">
-                        <div class="map-toggle">
-                            <button class="toggle-btn active" id="boardingToggle" onclick="setMapMode('boarding')">Boarding</button>
-                            <button class="toggle-btn" id="alightingToggle" onclick="setMapMode('alighting')">Alighting</button>
-                            <button class="toggle-btn" id="markersToggle" onclick="setMapMode('markers')">All Trips</button>
-                        </div>
-                        
-                        <div class="map-legend" id="mapLegend">
-                            <div class="legend-item">
-                                <div class="legend-color" style="background: #1e3a8a;"></div>
-                                <span>Home Base (50%+)</span>
+                <div id="mapsSection" style="display: none;">
+                    <!-- Locked Heatmap State -->
+                    <div id="heatmapLockedState" class="section">
+                        <div class="heatmap-locked">
+                            <div class="heatmap-locked-icon">
+                                <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                             </div>
-                            <div class="legend-item">
-                                <div class="legend-color" style="background: #3b82f6;"></div>
-                                <span>Regular (25-49%)</span>
+                            <h3>Heatmap Locked</h3>
+                            <p>Record 50 trips with GPS data to unlock detailed ridership heatmaps.</p>
+                            <div class="heatmap-progress-bar">
+                                <div class="heatmap-progress-fill" id="heatmapProgressFill" style="width: 0%;"></div>
                             </div>
-                            <div class="legend-item">
-                                <div class="legend-color" style="background: #60a5fa;"></div>
-                                <span>Occasional (10-24%)</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-color" style="background: #93c5fd;"></div>
-                                <span>Rare (5-9%)</span>
-                            </div>
+                            <div class="heatmap-progress-text" id="heatmapProgressText">0/50 Trips</div>
+                            <div class="heatmap-progress-hint">Keep tracking to unlock!</div>
                         </div>
                     </div>
-                    
-                    <div id="mapContainer">
-                        <div style="text-align: center;">
-                            <div style="font-size: 2em; margin-bottom: 10px;">🗺️</div>
-                            <div>Take your first trip to get started!</div>
+
+                    <!-- Unlocked Heatmap Content (hidden until unlocked) -->
+                    <div id="heatmapUnlockedState" style="display: none;">
+                        <!-- Hidden progress bar for backward compatibility -->
+                        <div id="heatmapProgress" class="heatmap-progress" style="display: none;">
+                            <div id="progressText">🗺️ Start taking trips to unlock your heatmap!</div>
+                            <div class="progress-bar">
+                                <div id="progressFill" class="progress-fill" style="width: 0%;"></div>
+                            </div>
+                            <div id="progressCount" style="font-size: 0.9em; opacity: 0.9;">0 / 50 trips with GPS</div>
                         </div>
-                    </div>
-                    
-                    <div id="mapStats" style="display: none; background: var(--bg-tertiary); border-radius: 8px; padding: 15px; margin-top: 15px; border: 1px solid var(--border-color);">
-                        <h4 style="margin-bottom: 10px; color: var(--text-primary);">Map Statistics</h4>
-                        <div id="mapStatsContent"></div>
+
+                        <div class="map-controls">
+                            <div class="map-toggle">
+                                <button class="toggle-btn active" id="boardingToggle" onclick="setMapMode('boarding')">Boarding</button>
+                                <button class="toggle-btn" id="alightingToggle" onclick="setMapMode('alighting')">Alighting</button>
+                                <button class="toggle-btn" id="markersToggle" onclick="setMapMode('markers')">All Trips</button>
+                            </div>
+
+                            <div class="map-legend" id="mapLegend">
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #1e3a8a;"></div>
+                                    <span>Home Base (50%+)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #3b82f6;"></div>
+                                    <span>Regular (25-49%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #60a5fa;"></div>
+                                    <span>Occasional (10-24%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: #93c5fd;"></div>
+                                    <span>Rare (5-9%)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="mapContainer">
+                            <div style="text-align: center;">
+                                <div style="font-size: 2em; margin-bottom: 10px;">🗺️</div>
+                                <div>Loading map...</div>
+                            </div>
+                        </div>
+
+                        <div id="mapStats" style="display: none; background: var(--bg-tertiary); border-radius: 12px; padding: 16px; margin-top: 16px;">
+                            <h4 style="margin-bottom: 10px; color: var(--text-primary); font-weight: 600;">Map Statistics</h4>
+                            <div id="mapStatsContent"></div>
+                        </div>
                     </div>
                 </div>
 
-                <div id="startSection" class="section">
-                    <!-- Trip Templates -->
-                    <div id="templatesSection" class="templates-section" style="display: none;">
-                        <div class="templates-header">
-                            <h3>⭐ Quick Start</h3>
-                            <button class="manage-templates-btn" onclick="showProfile(); scrollToTemplates();">Manage</button>
+                <div id="startSection">
+                    <!-- Start New Trip Card -->
+                    <div class="start-trip-card" onclick="focusTripForm()">
+                        <div class="start-trip-info">
+                            <h3>Start New Trip</h3>
+                            <p>Record a new journey</p>
                         </div>
-                        <div id="templatesList">
-                            <!-- Templates will be populated here -->
-                        </div>
-                    </div>
-
-                    <!-- Repeat Last Trip -->
-                    <div id="repeatLastTripSection" style="display: none; margin-bottom: 20px;">
-                        <button id="repeatLastTripBtn" class="btn" style="width: 100%; background: var(--accent-secondary); color: white; padding: 15px; font-size: 1em;">
-                            🔄 Repeat Last Trip
+                        <button class="start-trip-btn" type="button">
+                            <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                         </button>
                     </div>
 
-                    <h2>Start New Trip</h2>
-                    <div class="form-group">
-                        <label>Boarding Stop</label>
-                        <input type="text" id="stopInput" placeholder="e.g., 6638 or Union Station">
-                        <div id="stopPreview" class="preview-box" style="display: none;"></div>
+                    <!-- Quick Actions Grid -->
+                    <div class="quick-actions-grid">
+                        <div class="quick-action-card" id="repeatLastCard" onclick="repeatLastTrip()" style="display: none;">
+                            <div class="quick-action-icon history">⏱️</div>
+                            <div class="quick-action-title">Repeat Last</div>
+                            <div class="quick-action-subtitle" id="repeatLastSubtitle">No history</div>
+                        </div>
+                        <div class="quick-action-card" onclick="showTemplatesModal()">
+                            <div class="quick-action-icon templates">🔖</div>
+                            <div class="quick-action-title">Templates</div>
+                            <div class="quick-action-subtitle" id="templatesCount">0 saved</div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Route/Line</label>
-                        <input type="text" id="routeInput" placeholder="e.g., 65, Line 1, 504 King">
-                        <div id="routePreview" class="preview-box" style="display: none;"></div>
+
+                    <!-- Trip Form (initially collapsed, shown on card click) -->
+                    <div id="tripFormSection" class="section" style="display: none;">
+                        <div class="form-group">
+                            <label>Boarding Stop</label>
+                            <input type="text" id="stopInput" placeholder="e.g., 6638 or Union Station">
+                            <div id="stopPreview" class="preview-box" style="display: none;"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Route/Line</label>
+                            <input type="text" id="routeInput" placeholder="e.g., 65, Line 1, 504 King">
+                            <div id="routePreview" class="preview-box" style="display: none;"></div>
+                        </div>
+                        <button id="startBtn" class="btn btn-primary" disabled>Board Vehicle</button>
                     </div>
-                    <button id="startBtn" class="btn btn-primary" disabled>🚌 Board Vehicle</button>
+
+                    <!-- Hidden: Original templates section for backward compatibility -->
+                    <div id="templatesSection" class="templates-section" style="display: none;">
+                        <div class="templates-header">
+                            <h3>Quick Start</h3>
+                            <button class="manage-templates-btn" onclick="showProfile(); scrollToTemplates();">Manage</button>
+                        </div>
+                        <div id="templatesList"></div>
+                    </div>
+
+                    <!-- Hidden: Repeat Last Trip Button for backward compatibility -->
+                    <div id="repeatLastTripSection" style="display: none;">
+                        <button id="repeatLastTripBtn" class="btn" style="display: none;">Repeat Last Trip</button>
+                    </div>
                 </div>
 
                 <div id="activeSection" class="section" style="display: none;">
@@ -896,16 +1629,19 @@
         function toggleTheme() {
             const body = document.body;
             const themeToggle = document.querySelector('.theme-toggle');
+            const darkModeToggle = document.getElementById('darkModeToggle');
             const currentTheme = body.getAttribute('data-theme');
-            
+
             if (currentTheme === 'dark') {
                 body.removeAttribute('data-theme');
                 themeToggle.textContent = '🌙';
                 localStorage.setItem('theme', 'light');
+                if (darkModeToggle) darkModeToggle.classList.remove('active');
             } else {
                 body.setAttribute('data-theme', 'dark');
                 themeToggle.textContent = '☀️';
                 localStorage.setItem('theme', 'dark');
+                if (darkModeToggle) darkModeToggle.classList.add('active');
             }
         }
 
@@ -957,9 +1693,14 @@
             authSection.style.display = 'none';
             appContent.style.display = 'block';
             userInfo.style.display = 'block';
+            // Show bottom navigation
+            const bottomNav = document.getElementById('bottomNav');
+            if (bottomNav) bottomNav.style.display = 'flex';
             updateConnectionStatus(true);
             loadUserProfile();
             initializeApp();
+            // Initialize active tab
+            setActiveTab('navHome');
         }
 
         // Profile Management
@@ -971,10 +1712,24 @@
                         const emoji = profile.emoji || '🚌';
                         document.getElementById('profileAvatar').textContent = emoji;
                         document.getElementById('nameInput').value = profile.name || '';
-                        
+
+                        // Update welcome name and profile display name
+                        updateWelcomeName(profile.name);
+
                         if (profile.emoji) {
                             document.getElementById('emojiSelector').style.display = 'none';
                             document.getElementById('shuffleEmojiBtn').style.display = 'block';
+                        }
+
+                        // Update dark mode toggle state
+                        const darkModeToggle = document.getElementById('darkModeToggle');
+                        if (darkModeToggle) {
+                            const isDark = document.body.getAttribute('data-theme') === 'dark';
+                            if (isDark) {
+                                darkModeToggle.classList.add('active');
+                            } else {
+                                darkModeToggle.classList.remove('active');
+                            }
                         }
                     }
                 })
@@ -987,13 +1742,20 @@
             hideAllSections();
             profileSection.style.display = 'block';
             startSection.style.display = 'none';
+            // Hide welcome section when on other pages
+            const welcomeSection = document.getElementById('homeWelcomeSection');
+            if (welcomeSection) welcomeSection.style.display = 'none';
             updateTripIndicator();
             updateProfileStats();
             loadProfileTrips();
+            setActiveTab('navProfile');
         }
 
         function showStats() {
             hideAllSections();
+            // Hide welcome section when on other pages
+            const welcomeSection = document.getElementById('homeWelcomeSection');
+            if (welcomeSection) welcomeSection.style.display = 'none';
             statsSection.style.display = 'block';
             startSection.style.display = 'none';
             updateTripIndicator();
@@ -1002,22 +1764,27 @@
                 initializeStatsToggle();
                 statsInitialized = true;
             }
-            
+
             updateStatsSection();
             loadCommunityData();
+            setActiveTab('navStats');
         }
 
         function showMaps() {
             hideAllSections();
             mapsSection.style.display = 'block';
             startSection.style.display = 'none';
+            // Hide welcome section when on other pages
+            const welcomeSection = document.getElementById('homeWelcomeSection');
+            if (welcomeSection) welcomeSection.style.display = 'none';
             updateTripIndicator();
-            
+
             if (!mapInitialized) {
                 initializeMap();
             } else {
                 loadMapData();
             }
+            setActiveTab('navMap');
         }
 
         function hideAllSections() {
@@ -1032,6 +1799,170 @@
                 showActiveSection();
             } else {
                 showStartSection();
+            }
+            setActiveTab('navHome');
+            // Show welcome section when going home
+            const welcomeSection = document.getElementById('homeWelcomeSection');
+            if (welcomeSection) welcomeSection.style.display = 'block';
+        }
+
+        // Bottom Nav Tab Management
+        function setActiveTab(tabId) {
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            const activeTab = document.getElementById(tabId);
+            if (activeTab) activeTab.classList.add('active');
+        }
+
+        // Focus Trip Form (show form when Start New Trip card is clicked)
+        function focusTripForm() {
+            const tripFormSection = document.getElementById('tripFormSection');
+            if (tripFormSection) {
+                tripFormSection.style.display = 'block';
+                const stopInput = document.getElementById('stopInput');
+                if (stopInput) stopInput.focus();
+            }
+        }
+
+        // Show Templates Modal
+        function showTemplatesModal() {
+            showProfile();
+            setActiveTab('navProfile');
+            setTimeout(() => scrollToTemplates(), 100);
+        }
+
+        // Toggle Emoji Selector
+        function toggleEmojiSelector() {
+            const emojiSelector = document.getElementById('emojiSelector');
+            if (emojiSelector) {
+                emojiSelector.style.display = emojiSelector.style.display === 'none' ? 'block' : 'none';
+                // Sync name input
+                const nameInput = document.getElementById('nameInput');
+                const nameInputVisible = document.getElementById('nameInputVisible');
+                if (nameInputVisible && nameInput) {
+                    nameInputVisible.value = nameInput.value;
+                }
+            }
+        }
+
+        // Toggle Notifications
+        function toggleNotifications() {
+            const toggle = document.getElementById('notificationsToggle');
+            if (toggle) {
+                toggle.classList.toggle('active');
+            }
+        }
+
+        // Sign Out Function
+        function signOut() {
+            if (confirm('Are you sure you want to sign out?')) {
+                auth.signOut();
+            }
+        }
+
+        // Generate Demo Data
+        function generateDemoData() {
+            if (!currentUser) return;
+            if (!confirm('This will create 50 demo trips to unlock the heatmap. Continue?')) return;
+
+            const routes = ['504 King', '501 Queen', 'Line 1', 'Line 2', '65', '29', '52'];
+            const stops = ['Union Station', 'King Station', 'Queen Station', 'Dundas Station', 'Bloor Station', 'St Clair Station'];
+
+            const batch = db.batch();
+            const now = new Date();
+
+            for (let i = 0; i < 50; i++) {
+                const tripRef = db.collection('trips').doc();
+                const startDate = new Date(now.getTime() - Math.random() * 30 * 24 * 60 * 60 * 1000);
+                const endDate = new Date(startDate.getTime() + (15 + Math.random() * 45) * 60 * 1000);
+
+                batch.set(tripRef, {
+                    userId: currentUser.uid,
+                    route: routes[Math.floor(Math.random() * routes.length)],
+                    startStop: stops[Math.floor(Math.random() * stops.length)],
+                    endStop: stops[Math.floor(Math.random() * stops.length)],
+                    startTime: firebase.firestore.Timestamp.fromDate(startDate),
+                    endTime: firebase.firestore.Timestamp.fromDate(endDate),
+                    startLat: 43.65 + (Math.random() - 0.5) * 0.1,
+                    startLng: -79.38 + (Math.random() - 0.5) * 0.1,
+                    endLat: 43.65 + (Math.random() - 0.5) * 0.1,
+                    endLng: -79.38 + (Math.random() - 0.5) * 0.1
+                });
+            }
+
+            batch.commit().then(() => {
+                alert('Demo data generated! Refresh to see the heatmap.');
+                location.reload();
+            }).catch(err => {
+                console.error('Error generating demo data:', err);
+                alert('Error generating demo data. Please try again.');
+            });
+        }
+
+        // Clear All Data
+        function clearAllData() {
+            if (!currentUser) return;
+            if (!confirm('This will delete ALL your trips. This cannot be undone. Continue?')) return;
+            if (!confirm('Are you absolutely sure? All trips will be permanently deleted.')) return;
+
+            db.collection('trips')
+                .where('userId', '==', currentUser.uid)
+                .get()
+                .then(snapshot => {
+                    const batch = db.batch();
+                    snapshot.docs.forEach(doc => batch.delete(doc.ref));
+                    return batch.commit();
+                })
+                .then(() => {
+                    alert('All data cleared.');
+                    location.reload();
+                })
+                .catch(err => {
+                    console.error('Error clearing data:', err);
+                    alert('Error clearing data. Please try again.');
+                });
+        }
+
+        // Update Welcome Name
+        function updateWelcomeName(name) {
+            const welcomeName = document.getElementById('welcomeUserName');
+            const profileDisplayName = document.getElementById('profileDisplayName');
+            if (welcomeName) welcomeName.textContent = name || 'Traveler';
+            if (profileDisplayName) profileDisplayName.textContent = name || 'Traveler';
+        }
+
+        // Update Home Streak Badge
+        function updateHomeStreakBadge(streakDays) {
+            const badge = document.getElementById('homeStreakBadge');
+            const countSpan = document.getElementById('homeStreakCount');
+            if (badge && countSpan) {
+                countSpan.textContent = `${streakDays} Day${streakDays !== 1 ? 's' : ''}`;
+                if (streakDays > 0) {
+                    badge.classList.add('active');
+                } else {
+                    badge.classList.remove('active');
+                }
+            }
+        }
+
+        // Update Heatmap Progress (for locked state)
+        function updateHeatmapLockProgress(tripCount) {
+            const progressFill = document.getElementById('heatmapProgressFill');
+            const progressText = document.getElementById('heatmapProgressText');
+            const lockedState = document.getElementById('heatmapLockedState');
+            const unlockedState = document.getElementById('heatmapUnlockedState');
+
+            const percentage = Math.min((tripCount / 50) * 100, 100);
+
+            if (progressFill) progressFill.style.width = `${percentage}%`;
+            if (progressText) progressText.textContent = `${tripCount}/50 Trips`;
+
+            if (tripCount >= 50) {
+                if (lockedState) lockedState.style.display = 'none';
+                if (unlockedState) unlockedState.style.display = 'block';
+            } else {
+                if (lockedState) lockedState.style.display = 'block';
+                if (unlockedState) unlockedState.style.display = 'none';
             }
         }
 
@@ -1402,9 +2333,21 @@
         }
 
         function saveProfile() {
-            const name = document.getElementById('nameInput').value.trim();
+            // Check both name inputs (hidden and visible)
+            const nameInputVisible = document.getElementById('nameInputVisible');
+            const nameInput = document.getElementById('nameInput');
+            let name = '';
+
+            if (nameInputVisible && nameInputVisible.value.trim()) {
+                name = nameInputVisible.value.trim();
+                // Sync to hidden input
+                if (nameInput) nameInput.value = name;
+            } else if (nameInput) {
+                name = nameInput.value.trim();
+            }
+
             const emoji = document.getElementById('profileAvatar').textContent;
-            
+
             if (!name) {
                 alert('Please enter your name');
                 return;
@@ -1419,6 +2362,11 @@
 
             db.collection('profiles').doc(currentUser.uid).set(profileData)
                 .then(() => {
+                    // Update welcome name and profile display name
+                    updateWelcomeName(name);
+                    // Hide emoji selector after save
+                    const emojiSelector = document.getElementById('emojiSelector');
+                    if (emojiSelector) emojiSelector.style.display = 'none';
                     alert('Profile saved!');
                     goHome();
                 })
@@ -1436,26 +2384,22 @@
         function initializeStatsToggle() {
             const toggle30 = document.getElementById('statsToggle30');
             const toggleAll = document.getElementById('statsToggleAll');
-            
+
             toggle30.addEventListener('click', () => {
                 if (currentStatsView !== '30days') {
                     currentStatsView = '30days';
-                    toggle30.style.background = 'var(--accent-primary)';
-                    toggle30.style.color = 'white';
-                    toggleAll.style.background = 'transparent';
-                    toggleAll.style.color = 'var(--text-secondary)';
+                    toggle30.classList.add('active');
+                    toggleAll.classList.remove('active');
                     updateStatsSection();
                     loadCommunityData();
                 }
             });
-            
+
             toggleAll.addEventListener('click', () => {
                 if (currentStatsView !== 'alltime') {
                     currentStatsView = 'alltime';
-                    toggleAll.style.background = 'var(--accent-primary)';
-                    toggleAll.style.color = 'white';
-                    toggle30.style.background = 'transparent';
-                    toggle30.style.color = 'var(--text-secondary)';
+                    toggleAll.classList.add('active');
+                    toggle30.classList.remove('active');
                     updateStatsSection();
                     loadCommunityData();
                 }
