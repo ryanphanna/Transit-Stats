@@ -114,6 +114,112 @@ function escapeXml(text) {
 // =============================================================================
 
 /**
+ * Check if a phone number is rate limited
+ * @param {string} phoneNumber - Phone number
+ * @returns {boolean} true if rate limited (should ignore message)
+ */
+async function isRateLimited(phoneNumber) {
+  const rateLimitRef = db.collection('rateLimits').doc(phoneNumber);
+  const doc = await rateLimitRef.get();
+  const now = new Date();
+
+  if (!doc.exists) {
+    // First message - create rate limit record
+    await rateLimitRef.set({
+      count: 1,
+      resetAt: admin.firestore.Timestamp.fromDate(
+        new Date(now.getTime() + 60 * 60 * 1000) // 1 hour from now
+      ),
+    });
+    return false;
+  }
+
+  const data = doc.data();
+  const resetAt = data.resetAt.toDate();
+
+  if (now >= resetAt) {
+    // Reset period expired - reset counter
+    await rateLimitRef.set({
+      count: 1,
+      resetAt: admin.firestore.Timestamp.fromDate(
+        new Date(now.getTime() + 60 * 60 * 1000)
+      ),
+    });
+    return false;
+  }
+
+  if (data.count >= 10) {
+    // Rate limit exceeded
+    console.log(`Rate limit exceeded for ${phoneNumber}: ${data.count} messages`);
+    return true;
+  }
+
+  // Increment counter
+  await rateLimitRef.update({
+    count: admin.firestore.FieldValue.increment(1),
+  });
+  return false;
+}
+
+/**
+ * Check if email is in the allowedUsers whitelist
+ * @param {string} email - Email address to check
+ * @returns {boolean} true if email is allowed
+ */
+async function isEmailAllowed(email) {
+  const allowedDoc = await db
+    .collection('allowedUsers')
+    .doc(email.toLowerCase())
+    .get();
+  return allowedDoc.exists;
+}
+
+/**
+ * Track unknown number messages and check if should respond
+ * @param {string} phoneNumber - Phone number
+ * @returns {boolean} true if this is the first message in the hour (should respond)
+ */
+async function shouldRespondToUnknown(phoneNumber) {
+  const unknownRef = db.collection('unknownNumbers').doc(phoneNumber);
+  const doc = await unknownRef.get();
+  const now = new Date();
+
+  if (!doc.exists) {
+    // First ever message from this number
+    await unknownRef.set({
+      firstMessageAt: admin.firestore.FieldValue.serverTimestamp(),
+      messageCount: 1,
+      resetAt: admin.firestore.Timestamp.fromDate(
+        new Date(now.getTime() + 60 * 60 * 1000) // 1 hour from now
+      ),
+    });
+    return true; // Respond to first message
+  }
+
+  const data = doc.data();
+  const resetAt = data.resetAt.toDate();
+
+  if (now >= resetAt) {
+    // Reset period expired - treat as first message again
+    await unknownRef.set({
+      firstMessageAt: admin.firestore.FieldValue.serverTimestamp(),
+      messageCount: 1,
+      resetAt: admin.firestore.Timestamp.fromDate(
+        new Date(now.getTime() + 60 * 60 * 1000)
+      ),
+    });
+    return true;
+  }
+
+  // Not first message in this hour - increment and ignore
+  await unknownRef.update({
+    messageCount: admin.firestore.FieldValue.increment(1),
+  });
+  console.log(`Ignoring repeat message from unknown number ${phoneNumber}`);
+  return false;
+}
+
+/**
  * Get user info by phone number
  * @param {string} phoneNumber - Phone number (e.g., "+16471234567")
  * @returns {object|null} User data or null if not registered
@@ -319,6 +425,16 @@ async function handleRegister(phoneNumber, email) {
     await sendSmsReply(
       phoneNumber,
       'Invalid email format. Text REGISTER [email] with a valid email address.'
+    );
+    return;
+  }
+
+  // Check if email is in the allowedUsers whitelist
+  const allowed = await isEmailAllowed(email);
+  if (!allowed) {
+    await sendSmsReply(
+      phoneNumber,
+      'This app is invite-only. Contact ryan@ryanisnota.pro for access.'
     );
     return;
   }
@@ -605,6 +721,14 @@ async function handleSmsRequest(req, res) {
       return;
     }
 
+    // Check rate limiting first - silently ignore if exceeded
+    const rateLimited = await isRateLimited(phoneNumber);
+    if (rateLimited) {
+      console.log(`Rate limited, ignoring message from ${phoneNumber}`);
+      res.type('text/xml').send(twimlResponse(''));
+      return;
+    }
+
     // Check for pending state first
     const pendingState = await getPendingState(phoneNumber);
 
@@ -647,10 +771,15 @@ async function handleSmsRequest(req, res) {
     const user = await getUserByPhone(phoneNumber);
 
     if (!user) {
-      await sendSmsReply(
-        phoneNumber,
-        'Phone not linked. Text REGISTER [email] to link your TransitStats account.'
-      );
+      // Unknown number - only respond to first message in the hour
+      const shouldRespond = await shouldRespondToUnknown(phoneNumber);
+      if (shouldRespond) {
+        await sendSmsReply(
+          phoneNumber,
+          'Text REGISTER [email] to get started'
+        );
+      }
+      // Otherwise silently ignore to prevent spam costs
       res.type('text/xml').send(twimlResponse(''));
       return;
     }
