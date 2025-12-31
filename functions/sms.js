@@ -2,7 +2,11 @@
  * SMS Webhook Handler for Transit Stats
  *
  * Receives POST webhooks from Twilio and handles transit trip tracking via SMS.
- * Commands: REGISTER, HELP, STATUS, CANCEL, and trip logging "[stopCode] [route]"
+ * Commands: REGISTER, HELP, STATUS, CANCEL, and trip logging "[stop] [route]"
+ *
+ * Stop identification:
+ * - If stop is all digits (e.g., "6036"), saved as stopCode
+ * - If stop contains letters (e.g., "Spadina & Nassau"), saved as stopName
  */
 
 const functions = require('firebase-functions');
@@ -344,6 +348,35 @@ function generateVerificationCode() {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
+/**
+ * Parse stop input to determine if it's a stop code (all digits) or stop name (contains letters)
+ * @param {string} input - The stop input string
+ * @returns {object} Object with stopCode and stopName fields (only one will be set)
+ */
+function parseStopInput(input) {
+  const trimmed = input.trim();
+  // Check if the input is all digits (stop code)
+  if (/^\d+$/.test(trimmed)) {
+    return { stopCode: trimmed, stopName: null };
+  }
+  // Contains letters - it's a stop name
+  return { stopCode: null, stopName: trimmed };
+}
+
+/**
+ * Get display string for a stop (handles both code and name fields)
+ * @param {string|null} stopCode - Stop code (numeric)
+ * @param {string|null} stopName - Stop name (text)
+ * @param {string|null} legacyStop - Legacy startStop/endStop field for backward compatibility
+ * @returns {string} Display string for the stop
+ */
+function getStopDisplay(stopCode, stopName, legacyStop = null) {
+  if (stopCode) return stopCode;
+  if (stopName) return stopName;
+  if (legacyStop) return legacyStop;
+  return 'Unknown';
+}
+
 // =============================================================================
 // COMMAND HANDLERS
 // =============================================================================
@@ -361,7 +394,8 @@ REGISTER [email] - Link account
 HELP - Show this message
 
 Examples:
-"York Mills 97" - Start trip
+"6036 65" - Stop code + route
+"Spadina & Nassau 65" - Stop name + route
 "1" - End active trip
 "2" - Start new trip`;
 
@@ -386,8 +420,15 @@ async function handleStatus(phoneNumber, user) {
     minute: '2-digit',
   });
 
+  // Get display for start stop (handles both old and new schema)
+  const startStopDisplay = getStopDisplay(
+    activeTrip.startStopCode,
+    activeTrip.startStopName,
+    activeTrip.startStop
+  );
+
   const message = `Active trip:
-Route ${activeTrip.route} from ${activeTrip.startStop}
+Route ${activeTrip.route} from ${startStopDisplay}
 Started ${timeStr} (${duration} min ago)
 
 Reply with [stop] to end, or CANCEL to delete.`;
@@ -406,12 +447,19 @@ async function handleCancel(phoneNumber, user) {
     return;
   }
 
+  // Get display for start stop (handles both old and new schema)
+  const startStopDisplay = getStopDisplay(
+    activeTrip.startStopCode,
+    activeTrip.startStopName,
+    activeTrip.startStop
+  );
+
   await db.collection('trips').doc(activeTrip.id).delete();
   await clearPendingState(phoneNumber);
 
   await sendSmsReply(
     phoneNumber,
-    `Cancelled. Route ${activeTrip.route} from ${activeTrip.startStop} deleted.`
+    `Cancelled. Route ${activeTrip.route} from ${startStopDisplay} deleted.`
   );
 }
 
@@ -569,29 +617,41 @@ async function handleVerificationCode(phoneNumber, code) {
 /**
  * Handle trip logging (e.g., "York Mills 97" or "123 504")
  */
-async function handleTripLog(phoneNumber, user, stopCode, route) {
+async function handleTripLog(phoneNumber, user, stopInput, route) {
   const activeTrip = await getActiveTrip(user.userId);
+  const parsedStop = parseStopInput(stopInput);
+  const stopDisplay = getStopDisplay(parsedStop.stopCode, parsedStop.stopName);
 
   if (activeTrip) {
+    // Get display for active trip's start stop (handles both old and new schema)
+    const activeTripStartStop = getStopDisplay(
+      activeTrip.startStopCode,
+      activeTrip.startStopName,
+      activeTrip.startStop
+    );
+
     // User has an active trip - ask to disambiguate
     await setPendingState(phoneNumber, {
       type: 'disambiguate',
       activeTrip: {
         id: activeTrip.id,
         route: activeTrip.route,
-        startStop: activeTrip.startStop,
+        startStopCode: activeTrip.startStopCode || null,
+        startStopName: activeTrip.startStopName || null,
+        startStop: activeTrip.startStop || null, // Legacy field
         startTime: activeTrip.startTime,
       },
       newTrip: {
-        stopCode,
+        stopCode: parsedStop.stopCode,
+        stopName: parsedStop.stopName,
         route,
       },
     });
 
-    const message = `Active trip: Route ${activeTrip.route} from ${activeTrip.startStop}
+    const message = `Active trip: Route ${activeTrip.route} from ${activeTripStartStop}
 
 Reply:
-1 - End trip at ${stopCode}
+1 - End trip at ${stopDisplay}
 2 - Keep active, start new trip`;
 
     await sendSmsReply(phoneNumber, message);
@@ -602,8 +662,10 @@ Reply:
   const tripData = {
     userId: user.userId,
     route: route,
-    startStop: stopCode,
-    endStop: null,
+    startStopCode: parsedStop.stopCode,
+    startStopName: parsedStop.stopName,
+    endStopCode: null,
+    endStopName: null,
     startTime: admin.firestore.FieldValue.serverTimestamp(),
     endTime: null,
     source: 'sms',
@@ -613,7 +675,7 @@ Reply:
   };
 
   await db.collection('trips').add(tripData);
-  await sendSmsReply(phoneNumber, `Route ${route} @ ${stopCode}`);
+  await sendSmsReply(phoneNumber, `Route ${route} @ ${stopDisplay}`);
 }
 
 /**
@@ -623,6 +685,7 @@ async function handleDisambiguation(phoneNumber, user, choice, state) {
   if (choice === '1') {
     // End active trip with new stop as endStop
     const activeTrip = state.activeTrip;
+    const newTrip = state.newTrip;
     const endTime = admin.firestore.Timestamp.now();
     const startTime = activeTrip.startTime.toDate
       ? activeTrip.startTime.toDate()
@@ -630,15 +693,24 @@ async function handleDisambiguation(phoneNumber, user, choice, state) {
 
     const duration = Math.round((endTime.toDate().getTime() - startTime.getTime()) / 60000);
 
+    // Get display strings for start and end stops
+    const startStopDisplay = getStopDisplay(
+      activeTrip.startStopCode,
+      activeTrip.startStopName,
+      activeTrip.startStop
+    );
+    const endStopDisplay = getStopDisplay(newTrip.stopCode, newTrip.stopName);
+
     await db.collection('trips').doc(activeTrip.id).update({
-      endStop: state.newTrip.stopCode,
+      endStopCode: newTrip.stopCode,
+      endStopName: newTrip.stopName,
       endTime: endTime,
     });
 
     await clearPendingState(phoneNumber);
     await sendSmsReply(
       phoneNumber,
-      `Trip saved: ${activeTrip.startStop} -> ${state.newTrip.stopCode}, ${duration} min on Route ${activeTrip.route}`
+      `Trip saved: ${startStopDisplay} -> ${endStopDisplay}, ${duration} min on Route ${activeTrip.route}`
     );
   } else if (choice === '2') {
     // Save active trip as incomplete, start new one
@@ -650,12 +722,17 @@ async function handleDisambiguation(phoneNumber, user, choice, state) {
       endTime: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // Create new trip
+    // Get display for new trip's start stop
+    const newStopDisplay = getStopDisplay(newTrip.stopCode, newTrip.stopName);
+
+    // Create new trip with parsed stop fields
     const tripData = {
       userId: user.userId,
       route: newTrip.route,
-      startStop: newTrip.stopCode,
-      endStop: null,
+      startStopCode: newTrip.stopCode,
+      startStopName: newTrip.stopName,
+      endStopCode: null,
+      endStopName: null,
       startTime: admin.firestore.FieldValue.serverTimestamp(),
       endTime: null,
       source: 'sms',
@@ -669,7 +746,7 @@ async function handleDisambiguation(phoneNumber, user, choice, state) {
 
     await sendSmsReply(
       phoneNumber,
-      `Previous trip saved (boarding only). Route ${newTrip.route} @ ${newTrip.stopCode}`
+      `Previous trip saved (boarding only). Route ${newTrip.route} @ ${newStopDisplay}`
     );
   } else {
     await sendSmsReply(phoneNumber, 'Reply 1 to end trip, 2 to start new.');
@@ -679,7 +756,7 @@ async function handleDisambiguation(phoneNumber, user, choice, state) {
 /**
  * Handle ending a trip with just a stop name (when user has active trip)
  */
-async function handleEndTrip(phoneNumber, user, endStop) {
+async function handleEndTrip(phoneNumber, user, endStopInput) {
   const activeTrip = await getActiveTrip(user.userId);
 
   if (!activeTrip) {
@@ -687,18 +764,28 @@ async function handleEndTrip(phoneNumber, user, endStop) {
     return;
   }
 
+  const parsedEndStop = parseStopInput(endStopInput);
   const endTime = admin.firestore.Timestamp.now();
   const startTime = activeTrip.startTime.toDate();
   const duration = Math.round((endTime.toDate().getTime() - startTime.getTime()) / 60000);
 
+  // Get display strings for start and end stops
+  const startStopDisplay = getStopDisplay(
+    activeTrip.startStopCode,
+    activeTrip.startStopName,
+    activeTrip.startStop
+  );
+  const endStopDisplay = getStopDisplay(parsedEndStop.stopCode, parsedEndStop.stopName);
+
   await db.collection('trips').doc(activeTrip.id).update({
-    endStop: endStop,
+    endStopCode: parsedEndStop.stopCode,
+    endStopName: parsedEndStop.stopName,
     endTime: endTime,
   });
 
   await sendSmsReply(
     phoneNumber,
-    `Trip saved: ${activeTrip.startStop} -> ${endStop}, ${duration} min on Route ${activeTrip.route}`
+    `Trip saved: ${startStopDisplay} -> ${endStopDisplay}, ${duration} min on Route ${activeTrip.route}`
   );
 }
 
