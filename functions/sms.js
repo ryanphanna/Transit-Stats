@@ -158,7 +158,7 @@ async function isRateLimited(phoneNumber) {
     return false;
   }
 
-  if (data.count >= 10) {
+  if (data.count >= 500) {
     // Rate limit exceeded
     console.log(`Rate limit exceeded for ${phoneNumber}: ${data.count} messages`);
     return true;
