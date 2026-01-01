@@ -2,13 +2,23 @@
  * SMS Webhook Handler for Transit Stats
  *
  * Receives POST webhooks from Twilio and handles transit trip tracking via SMS.
- * Commands: REGISTER, HELP, STATUS, CANCEL, and trip logging
  *
- * Multi-line trip format:
+ * START TRIP (multi-line):
  * Line 1: Route (required)
  * Line 2: Stop (required)
  * Line 3: Direction (optional)
  * Line 4: Agency (optional)
+ *
+ * END TRIP (multi-line):
+ * Line 1: END
+ * Line 2: Stop (required)
+ * Line 3: Route (optional, for verification)
+ *
+ * Commands:
+ * - STATUS: Show active trip info
+ * - CANCEL: Delete active trip
+ * - INFO or ?: Show help
+ * - ABANDON: Only during prompts when switching trips
  *
  * Stop identification:
  * - If stop is all digits (e.g., "6036"), saved as stopCode
@@ -472,6 +482,12 @@ function parseMultiLineTripFormat(body, defaultAgency) {
     return null;
   }
 
+  // If first line is a command, don't parse as trip
+  const firstLineUpper = lines[0].toUpperCase();
+  if (['END', 'STATUS', 'CANCEL', 'INFO', '?', 'ABANDON', 'HELP'].includes(firstLineUpper)) {
+    return null;
+  }
+
   const route = lines[0];
   const stop = lines[1];
   const direction = lines.length > 2 ? lines[2] : null;
@@ -493,6 +509,37 @@ function parseMultiLineTripFormat(body, defaultAgency) {
     stop,
     direction,
     agency,
+  };
+}
+
+/**
+ * Parse multi-line END trip format
+ * Line 1: END
+ * Line 2: Stop (required)
+ * Line 3: Route (optional, for verification)
+ * @param {string} body - Message body
+ * @returns {object|null} Parsed end trip data or null if not an END command
+ */
+function parseEndTripFormat(body) {
+  const lines = body.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+  // First line must be "END"
+  if (lines.length === 0 || lines[0].toUpperCase() !== 'END') {
+    return null;
+  }
+
+  // Need at least END and stop (lines 1 and 2)
+  if (lines.length < 2) {
+    return { isEnd: true, stop: null, route: null };
+  }
+
+  const stop = lines[1];
+  const route = lines.length > 2 ? lines[2] : null;
+
+  return {
+    isEnd: true,
+    stop,
+    route,
   };
 }
 
@@ -551,26 +598,24 @@ function parseAgencyOverride(message) {
  * Handle HELP command
  */
 async function handleHelp(phoneNumber) {
-  const message = `TransitStats SMS Commands:
+  const message = `📱 TransitStats SMS
 
-Log a trip (multi-line):
-ROUTE
-STOP
-DIRECTION (optional)
-AGENCY (optional)
+START TRIP:
+Route
+Stop
+Direction (optional)
+Agency (optional)
 
-Other commands:
-STATUS - View active trip
-CANCEL - Cancel active trip
-REGISTER [email] - Link account
+END TRIP:
+END
+Stop
+Route (optional)
 
-Example:
-65
-6036
-North
-TTC
-
-Reply CANCEL to undo`;
+COMMANDS:
+STATUS - Show active trip
+CANCEL - Delete active trip
+INFO - Show this help
+REGISTER [email] - Link account`;
 
   await sendSmsReply(phoneNumber, message);
 }
@@ -582,12 +627,13 @@ async function handleStatus(phoneNumber, user) {
   const activeTrip = await getActiveTrip(user.userId);
 
   if (!activeTrip) {
-    await sendSmsReply(phoneNumber, 'No active trip.\n\nReply CANCEL to undo');
+    await sendSmsReply(phoneNumber, 'No active trip.');
     return;
   }
 
   const startTime = activeTrip.startTime.toDate();
-  const duration = Math.round((Date.now() - startTime.getTime()) / 60000);
+  const elapsedMs = Date.now() - startTime.getTime();
+  const elapsedMin = Math.round(elapsedMs / 60000);
   const timeStr = startTime.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
@@ -605,13 +651,15 @@ async function handleStatus(phoneNumber, user) {
     ? `Route ${activeTrip.route} ${activeTrip.direction}`
     : `Route ${activeTrip.route}`;
 
-  const message = `Active trip:
-${routeDisplay} from ${startStopDisplay}
-Started ${timeStr} (${duration} min ago)
+  const message = `📍 Active Trip:
+${routeDisplay}
+From: Stop ${startStopDisplay}
+Started: ${timeStr}
+Elapsed: ${elapsedMin} min
 
-Reply with stop to end, or CANCEL to delete.
-
-Reply CANCEL to undo`;
+To end trip, text:
+END
+[exit stop]`;
 
   await sendSmsReply(phoneNumber, message);
 }
@@ -623,7 +671,7 @@ async function handleCancel(phoneNumber, user) {
   const activeTrip = await getActiveTrip(user.userId);
 
   if (!activeTrip) {
-    await sendSmsReply(phoneNumber, 'No active trip to cancel.\n\nReply CANCEL to undo');
+    await sendSmsReply(phoneNumber, 'No active trip to cancel.');
     return;
   }
 
@@ -644,7 +692,7 @@ async function handleCancel(phoneNumber, user) {
 
   await sendSmsReply(
     phoneNumber,
-    `Cancelled. ${routeDisplay} from ${startStopDisplay} deleted.\n\nReply CANCEL to undo`
+    `✅ Cancelled ${routeDisplay} from Stop ${startStopDisplay}`
   );
 }
 
@@ -862,9 +910,7 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
 
     const message = `⚠️ Active trip: ${activeTripRouteDisplay} from ${activeTripStartStop}
 
-Abandon and start ${newTripRouteDisplay} from ${stopDisplay}?
-
-END - End ${activeTripRouteDisplay} & start ${newTripRouteDisplay} from ${stopDisplay}
+ABANDON - Abandon ${activeTripRouteDisplay} & start ${newTripRouteDisplay} from ${stopDisplay}
 CANCEL - Keep ${activeTripRouteDisplay} active`;
 
     await sendSmsReply(phoneNumber, message);
@@ -896,18 +942,23 @@ CANCEL - Keep ${activeTripRouteDisplay} active`;
 
   await sendSmsReply(
     phoneNumber,
-    `✅ Started ${routeDisplay} from Stop ${stopDisplay}\n\nReply CANCEL to undo`
+    `✅ Started ${routeDisplay} from Stop ${stopDisplay}`
   );
 }
 
 /**
- * Handle disambiguation response (1 or 2)
+ * Handle disambiguation response (ABANDON or CANCEL)
  */
 async function handleDisambiguation(phoneNumber, user, choice, state) {
-  if (choice === '1') {
+  if (choice === 'abandon') {
     // Abandon old trip and start new one
     const activeTrip = state.activeTrip;
     const newTrip = state.newTrip;
+
+    // Format old trip display
+    const oldTripRouteDisplay = activeTrip.direction
+      ? `Route ${activeTrip.route} ${activeTrip.direction}`
+      : `Route ${activeTrip.route}`;
 
     // Mark active trip as abandoned (no endTime, no exitLocation, no duration)
     await db.collection('trips').doc(activeTrip.id).update({
@@ -946,30 +997,50 @@ async function handleDisambiguation(phoneNumber, user, choice, state) {
 
     await sendSmsReply(
       phoneNumber,
-      `✅ Started ${newRouteDisplay} from Stop ${newStopDisplay}\n\nReply CANCEL to undo`
+      `✅ Abandoned ${oldTripRouteDisplay}\n✅ Started ${newRouteDisplay} from Stop ${newStopDisplay}`
     );
-  } else if (choice === '2') {
+  } else if (choice === 'cancel') {
     // Cancel - keep current trip active
     await clearPendingState(phoneNumber);
 
     await sendSmsReply(
       phoneNumber,
-      'Cancelled. Current trip remains active.\n\nReply CANCEL to undo'
+      'Keeping current trip active.'
     );
   } else {
-    await sendSmsReply(phoneNumber, 'Reply END to abandon & start new, or CANCEL to keep current trip.');
+    await sendSmsReply(phoneNumber, 'Reply ABANDON to start new trip, or CANCEL to keep current trip.');
   }
 }
 
 /**
- * Handle ending a trip with just a stop name (when user has active trip)
+ * Handle ending a trip
+ * @param {string} phoneNumber - Phone number
+ * @param {object} user - User object with userId
+ * @param {string} endStopInput - Stop code or name
+ * @param {string|null} routeVerification - Optional route to verify against active trip
  */
-async function handleEndTrip(phoneNumber, user, endStopInput) {
+async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification = null) {
   const activeTrip = await getActiveTrip(user.userId);
 
   if (!activeTrip) {
-    await sendSmsReply(phoneNumber, 'No active trip to end.\n\nReply CANCEL to undo');
+    await sendSmsReply(phoneNumber, 'No active trip to end.');
     return;
+  }
+
+  // If route verification provided, check it matches active trip
+  if (routeVerification) {
+    const activeRoute = activeTrip.route.toString().toLowerCase();
+    const verifyRoute = routeVerification.toString().toLowerCase();
+    if (activeRoute !== verifyRoute) {
+      const routeDisplay = activeTrip.direction
+        ? `Route ${activeTrip.route} ${activeTrip.direction}`
+        : `Route ${activeTrip.route}`;
+      await sendSmsReply(
+        phoneNumber,
+        `❌ Route mismatch. Active trip is ${routeDisplay}, not Route ${routeVerification}.`
+      );
+      return;
+    }
   }
 
   const parsedEndStop = parseStopInput(endStopInput);
@@ -1000,7 +1071,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput) {
 
   await sendSmsReply(
     phoneNumber,
-    `✅ Ended ${routeDisplay} at Stop ${endStopDisplay} (${duration} min trip)\n\nReply CANCEL to undo`
+    `✅ Ended ${routeDisplay} at Stop ${endStopDisplay} (${duration} min trip)`
   );
 }
 
@@ -1044,30 +1115,56 @@ async function handleSmsRequest(req, res) {
       return;
     }
 
-    // Handle CANCEL or "2" at any time as escape hatch (cancel pending state)
-    if ((upperBody === 'CANCEL' || body === '2') && pendingState) {
-      await clearPendingState(phoneNumber);
-      await sendSmsReply(phoneNumber, 'Cancelled.\n\nReply CANCEL to undo');
-      res.type('text/xml').send(twimlResponse(''));
-      return;
-    }
-
-    // Handle disambiguation (END/1 = start new, CANCEL/2 = keep current)
-    if (pendingState?.type === 'disambiguate' && /^(END|CANCEL|1|2)$/i.test(body)) {
-      const user = await getUserByPhone(phoneNumber);
-      if (user) {
-        // Normalize choice: END/1 -> '1', CANCEL/2 -> '2'
-        const normalizedChoice = (upperBody === 'END' || body === '1') ? '1' : '2';
-        await handleDisambiguation(phoneNumber, user, normalizedChoice, pendingState);
+    // Handle CANCEL at any time as escape hatch (cancel pending state)
+    if (upperBody === 'CANCEL' && pendingState) {
+      if (pendingState.type === 'disambiguate') {
+        // During disambiguation, CANCEL keeps current trip
+        const user = await getUserByPhone(phoneNumber);
+        if (user) {
+          await handleDisambiguation(phoneNumber, user, 'cancel', pendingState);
+        }
+      } else {
+        await clearPendingState(phoneNumber);
+        await sendSmsReply(phoneNumber, 'Cancelled.');
       }
       res.type('text/xml').send(twimlResponse(''));
       return;
     }
 
-    // INFO command - show SMS help
+    // Handle disambiguation (ABANDON = start new, CANCEL = keep current)
+    if (pendingState?.type === 'disambiguate' && upperBody === 'ABANDON') {
+      const user = await getUserByPhone(phoneNumber);
+      if (user) {
+        await handleDisambiguation(phoneNumber, user, 'abandon', pendingState);
+      }
+      res.type('text/xml').send(twimlResponse(''));
+      return;
+    }
+
+    // =========================================================================
+    // PARSE COMMANDS FIRST (before any other handling)
+    // =========================================================================
+
+    // INFO/? command - show SMS help
     if (upperBody === 'INFO' || upperBody === 'COMMANDS' || upperBody === '?') {
       await sendSmsReply(phoneNumber,
-        `📱 TransitStats SMS\n\nSTART TRIP:\nRoute\nStop\nDirection (optional)\nAgency (optional)\n\nEND TRIP:\nText exit stop number\n\nDURING PROMPTS:\nReply END or CANCEL\n\nText INFO anytime for help`
+        `📱 TransitStats SMS
+
+START TRIP:
+Route
+Stop
+Direction (optional)
+Agency (optional)
+
+END TRIP:
+END
+Stop
+Route (optional)
+
+COMMANDS:
+STATUS - Show active trip
+CANCEL - Delete active trip
+INFO - Show this help`
       );
       res.type('text/xml').send(twimlResponse(''));
       return;
@@ -1112,41 +1209,46 @@ async function handleSmsRequest(req, res) {
       return;
     }
 
-    // CANCEL command
+    // CANCEL command (no pending state)
     if (upperBody === 'CANCEL') {
       await handleCancel(phoneNumber, user);
       res.type('text/xml').send(twimlResponse(''));
       return;
     }
 
-    // END command (without stop) - prompt user for stop
-    if (upperBody === 'END') {
-      const activeTrip = await getActiveTrip(user.userId);
-      if (activeTrip) {
-        await sendSmsReply(
-          phoneNumber,
-          'Please reply with your exit stop to end the trip.\n\nReply CANCEL to undo'
-        );
+    // =========================================================================
+    // END TRIP - Multi-line format: END / Stop / Route (optional)
+    // =========================================================================
+    const endTripData = parseEndTripFormat(body);
+    if (endTripData) {
+      if (!endTripData.stop) {
+        // Just "END" without stop - prompt for stop
+        const activeTrip = await getActiveTrip(user.userId);
+        if (activeTrip) {
+          await sendSmsReply(
+            phoneNumber,
+            'Please send:\nEND\n[exit stop]'
+          );
+        } else {
+          await sendSmsReply(phoneNumber, 'No active trip to end.');
+        }
       } else {
-        await sendSmsReply(phoneNumber, 'No active trip to end.\n\nReply CANCEL to undo');
+        // END with stop (and optional route verification)
+        await handleEndTrip(phoneNumber, user, endTripData.stop, endTripData.route);
       }
       res.type('text/xml').send(twimlResponse(''));
       return;
     }
 
-    // END command with stop
-    if (upperBody.startsWith('END ')) {
-      const endStop = body.substring(4).trim();
-      await handleEndTrip(phoneNumber, user, endStop);
-      res.type('text/xml').send(twimlResponse(''));
-      return;
-    }
+    // =========================================================================
+    // START TRIP - Multi-line format: Route / Stop / Direction / Agency
+    // =========================================================================
 
     // Get user's profile for defaultAgency
     const userProfile = await getUserProfile(user.userId);
     const defaultAgency = userProfile?.defaultAgency || 'TTC';
 
-    // Try parsing as multi-line trip format first
+    // Try parsing as multi-line trip format
     const multiLineTrip = parseMultiLineTripFormat(body, defaultAgency);
 
     if (multiLineTrip) {
@@ -1183,28 +1285,21 @@ async function handleSmsRequest(req, res) {
       }
     }
 
-    // Single word - could be ending a trip with just a stop name
-    if (!remainingMessage.includes(' ') && remainingMessage.length > 0) {
-      const activeTrip = await getActiveTrip(user.userId);
-      if (activeTrip) {
-        await handleEndTrip(phoneNumber, user, remainingMessage);
-        res.type('text/xml').send(twimlResponse(''));
-        return;
-      }
-    }
-
     // Unrecognized input
     await sendSmsReply(
       phoneNumber,
       `❌ Invalid format.
 
-Please text:
-ROUTE
-STOP
-DIRECTION (optional)
-AGENCY (optional)
+START TRIP:
+Route
+Stop
+Direction (optional)
 
-Reply CANCEL to undo`
+END TRIP:
+END
+Stop
+
+Text INFO for help`
     );
     res.type('text/xml').send(twimlResponse(''));
   } catch (error) {
