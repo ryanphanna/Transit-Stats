@@ -373,6 +373,40 @@
             border-radius: 0 8px 8px 0;
         }
         .empty-state { text-align: center; color: var(--text-muted); padding: 20px; font-style: italic; }
+
+        /* Verification badges */
+        .verified-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+        }
+        .verified-badge.verified {
+            background: var(--success-bg);
+            color: var(--success-text);
+        }
+        .verified-badge.unverified {
+            background: var(--warning-bg);
+            color: var(--warning-text);
+        }
+        .source-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 0.7em;
+            font-weight: 500;
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
+            margin-left: 6px;
+        }
+        .agency-badge {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+        }
         .auth-status { 
             background: var(--info-bg); 
             border: 1px solid #2196f3; 
@@ -554,6 +588,20 @@
                         <div id="streakStatus" class="streak-status">⚡ Take your first trip to start tracking!</div>
                         <div id="activeTripBanner" class="active-trip-banner" style="display: none;" onclick="goToActiveTrip()">
                             🚌 Currently riding • Tap to view
+                        </div>
+                    </div>
+
+                    <!-- Review SMS Trips Section (unverified) -->
+                    <div id="reviewTripsSection" class="section" style="display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="color: var(--text-primary);">🔍 Review SMS Trips</h3>
+                            <span id="unverifiedCount" class="verified-badge unverified">0 unverified</span>
+                        </div>
+                        <p style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 15px;">
+                            These SMS trips couldn't be matched to stops in the database. Add the stop to verify.
+                        </p>
+                        <div id="reviewTripsList">
+                            <div class="loading">Loading...</div>
                         </div>
                     </div>
 
@@ -835,6 +883,52 @@
                     </div>
                     <button id="saveBtn" class="btn btn-primary">Save Trip</button>
                     <button id="cancelBtn" class="btn" style="background: var(--border-color);">Cancel</button>
+                </div>
+            </div>
+
+            <!-- Add Stop Modal -->
+            <div id="addStopModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 20px; border-radius: 8px; width: 90%; max-width: 400px; border: 1px solid var(--border-color);">
+                    <h3>Add Stop to Database</h3>
+                    <p style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 15px;">
+                        Adding this stop will verify future trips using it.
+                    </p>
+                    <div class="form-group">
+                        <label>Stop Code (optional)</label>
+                        <input type="text" id="addStopCode" placeholder="e.g., 6036">
+                    </div>
+                    <div class="form-group">
+                        <label>Stop Name</label>
+                        <input type="text" id="addStopName" placeholder="e.g., Parliament & Howard">
+                    </div>
+                    <div class="form-group">
+                        <label>Agency</label>
+                        <select id="addStopAgency" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary);">
+                            <option value="TTC">TTC</option>
+                            <option value="OC Transpo">OC Transpo</option>
+                            <option value="GO Transit">GO Transit</option>
+                            <option value="MiWay">MiWay</option>
+                            <option value="YRT">YRT</option>
+                            <option value="Brampton Transit">Brampton Transit</option>
+                            <option value="Durham Transit">Durham Transit</option>
+                            <option value="HSR">HSR</option>
+                            <option value="GRT">GRT</option>
+                            <option value="STM">STM</option>
+                            <option value="TransLink">TransLink</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Latitude</label>
+                        <input type="number" step="any" id="addStopLat" placeholder="e.g., 43.6655">
+                    </div>
+                    <div class="form-group">
+                        <label>Longitude</label>
+                        <input type="number" step="any" id="addStopLng" placeholder="e.g., -79.3644">
+                    </div>
+                    <button id="useCurrentLocationBtn" class="btn btn-outline" style="margin-bottom: 10px;">📍 Use Current Location</button>
+                    <input type="hidden" id="addStopTripId">
+                    <button id="saveStopBtn" class="btn btn-primary">Add Stop & Verify Trip</button>
+                    <button id="cancelStopBtn" class="btn" style="background: var(--border-color);">Cancel</button>
                 </div>
             </div>
                 </div>
@@ -1778,12 +1872,21 @@
                     startTime = new Date();
                 }
                 
-                const agencyDisplay = trip.agency ? `<span style="color: var(--text-secondary); font-size: 0.9em;"> • ${trip.agency}</span>` : '';
+                const agencyDisplay = trip.agency ? `<span class="agency-badge"> • ${trip.agency}</span>` : '';
+                const verifiedBadge = trip.source === 'sms'
+                    ? (trip.verified
+                        ? '<span class="verified-badge verified">✓ Verified</span>'
+                        : '<span class="verified-badge unverified">? Unverified</span>')
+                    : '';
+                const sourceBadge = trip.source === 'sms' ? '<span class="source-badge">SMS</span>' : '';
                 return `
                     <div class="trip-item" data-trip-id="${trip.id}">
                         <div class="delete-overlay">Delete</div>
-                        <div><strong>${trip.route || 'Unknown Route'}</strong>${agencyDisplay}</div>
-                        <div>${trip.startStop || 'Unknown'} → ${trip.endStop || 'Unknown'}</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div><strong>${trip.route || 'Unknown Route'}</strong>${agencyDisplay}${sourceBadge}</div>
+                            ${verifiedBadge}
+                        </div>
+                        <div>${trip.startStop || trip.startStopCode || trip.startStopName || 'Unknown'} → ${trip.endStop || trip.endStopCode || trip.endStopName || 'Unknown'}</div>
                         <div>${trip.duration || 0} min • ${startTime.toLocaleDateString()}</div>
                     </div>
                 `;
@@ -2334,6 +2437,7 @@
             checkActiveTrip();
             loadLastTrip();
             loadTrips();
+            loadUnverifiedTrips();
         }
 
         function loadLastTrip() {
@@ -2397,16 +2501,25 @@
                             });
                             const duration = trip.duration || 0;
 
+                            const startStop = trip.startStop || trip.startStopCode || trip.startStopName || 'Unknown';
+                            const endStop = trip.endStop || trip.endStopCode || trip.endStopName || 'Unknown';
+                            const agencyDisplay = trip.agency ? ` • ${trip.agency}` : '';
+                            const verifiedBadge = trip.source === 'sms'
+                                ? (trip.verified
+                                    ? '<span class="verified-badge verified">✓</span>'
+                                    : '<span class="verified-badge unverified">?</span>')
+                                : '';
+
                             const tripDiv = document.createElement('div');
                             tripDiv.className = 'trip-item';
                             tripDiv.innerHTML = `
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                                     <div>
-                                        <div style="font-weight: 600; color: var(--text-primary);">${trip.route}</div>
-                                        <div style="font-size: 0.9em; color: var(--text-secondary);">${trip.startStop} → ${trip.endStop}</div>
+                                        <div style="font-weight: 600; color: var(--text-primary);">${trip.route}<span class="agency-badge">${agencyDisplay}</span></div>
+                                        <div style="font-size: 0.9em; color: var(--text-secondary);">${startStop} → ${endStop}</div>
                                     </div>
                                     <div style="text-align: right;">
-                                        <div style="font-size: 0.85em; color: var(--text-muted);">${dateStr}</div>
+                                        <div style="font-size: 0.85em; color: var(--text-muted);">${dateStr} ${verifiedBadge}</div>
                                         <div style="font-size: 0.85em; color: var(--text-secondary);">${duration} min</div>
                                     </div>
                                 </div>
@@ -2422,6 +2535,174 @@
                     recentTripsSection.style.display = 'none';
                 });
         }
+
+        // Load unverified SMS trips for review
+        function loadUnverifiedTrips() {
+            const reviewTripsSection = document.getElementById('reviewTripsSection');
+            const reviewTripsList = document.getElementById('reviewTripsList');
+            const unverifiedCount = document.getElementById('unverifiedCount');
+
+            db.collection('trips')
+                .where('userId', '==', currentUser.uid)
+                .where('verified', '==', false)
+                .where('source', '==', 'sms')
+                .orderBy('startTime', 'desc')
+                .limit(10)
+                .get()
+                .then((snapshot) => {
+                    if (!snapshot.empty) {
+                        reviewTripsSection.style.display = 'block';
+                        unverifiedCount.textContent = `${snapshot.size} unverified`;
+                        reviewTripsList.innerHTML = '';
+
+                        snapshot.forEach((doc) => {
+                            const trip = { id: doc.id, ...doc.data() };
+                            const startTime = trip.startTime ? trip.startTime.toDate() : new Date();
+                            const dateStr = startTime.toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric'
+                            });
+                            const startStop = trip.startStopCode || trip.startStopName || trip.startStop || 'Unknown';
+                            const endStop = trip.endStopCode || trip.endStopName || trip.endStop || 'In Progress';
+                            const agency = trip.agency || 'TTC';
+
+                            const tripDiv = document.createElement('div');
+                            tripDiv.className = 'trip-item';
+                            tripDiv.style.cursor = 'pointer';
+                            tripDiv.innerHTML = `
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                    <div>
+                                        <div style="font-weight: 600; color: var(--text-primary);">${trip.route} <span class="agency-badge">• ${agency}</span></div>
+                                        <div style="font-size: 0.9em; color: var(--text-secondary);">${startStop} → ${endStop}</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 0.85em; color: var(--text-muted);">${dateStr}</div>
+                                        <button class="btn btn-sm" style="background: var(--accent-primary); color: white; margin-top: 5px;">Add Stop</button>
+                                    </div>
+                                </div>
+                            `;
+                            tripDiv.querySelector('button').addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                openAddStopModal(trip);
+                            });
+                            reviewTripsList.appendChild(tripDiv);
+                        });
+                    } else {
+                        reviewTripsSection.style.display = 'none';
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error loading unverified trips:', error);
+                    reviewTripsSection.style.display = 'none';
+                });
+        }
+
+        // Open modal to add a stop
+        function openAddStopModal(trip) {
+            const modal = document.getElementById('addStopModal');
+            const stopCodeInput = document.getElementById('addStopCode');
+            const stopNameInput = document.getElementById('addStopName');
+            const agencySelect = document.getElementById('addStopAgency');
+            const tripIdInput = document.getElementById('addStopTripId');
+            const latInput = document.getElementById('addStopLat');
+            const lngInput = document.getElementById('addStopLng');
+
+            // Pre-fill with trip data
+            tripIdInput.value = trip.id;
+            stopCodeInput.value = trip.startStopCode || '';
+            stopNameInput.value = trip.startStopName || trip.startStop || '';
+            agencySelect.value = trip.agency || 'TTC';
+            latInput.value = '';
+            lngInput.value = '';
+
+            // If trip has boarding location, use it
+            if (trip.boardingLocation && trip.boardingLocation.lat) {
+                latInput.value = trip.boardingLocation.lat;
+                lngInput.value = trip.boardingLocation.lng;
+            }
+
+            modal.style.display = 'block';
+        }
+
+        // Close add stop modal
+        document.getElementById('cancelStopBtn').addEventListener('click', () => {
+            document.getElementById('addStopModal').style.display = 'none';
+        });
+
+        // Use current location for stop
+        document.getElementById('useCurrentLocationBtn').addEventListener('click', () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        document.getElementById('addStopLat').value = position.coords.latitude.toFixed(6);
+                        document.getElementById('addStopLng').value = position.coords.longitude.toFixed(6);
+                    },
+                    (error) => {
+                        console.error('Error getting location:', error);
+                        alert('Could not get your location. Please enter coordinates manually.');
+                    }
+                );
+            } else {
+                alert('Geolocation not supported by your browser.');
+            }
+        });
+
+        // Save stop and verify trip
+        document.getElementById('saveStopBtn').addEventListener('click', async () => {
+            const tripId = document.getElementById('addStopTripId').value;
+            const stopCode = document.getElementById('addStopCode').value.trim() || null;
+            const stopName = document.getElementById('addStopName').value.trim();
+            const agency = document.getElementById('addStopAgency').value;
+            const lat = parseFloat(document.getElementById('addStopLat').value);
+            const lng = parseFloat(document.getElementById('addStopLng').value);
+
+            if (!stopName && !stopCode) {
+                alert('Please enter a stop name or code.');
+                return;
+            }
+            if (isNaN(lat) || isNaN(lng)) {
+                alert('Please enter valid coordinates.');
+                return;
+            }
+
+            const saveBtn = document.getElementById('saveStopBtn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+
+            try {
+                // Add stop to database
+                const stopData = {
+                    stopCode: stopCode,
+                    stopName: stopName,
+                    lat: lat,
+                    lng: lng,
+                    agency: agency,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    createdBy: currentUser.uid
+                };
+
+                await db.collection('stops').add(stopData);
+
+                // Update trip as verified with location
+                await db.collection('trips').doc(tripId).update({
+                    verified: true,
+                    boardingLocation: { lat: lat, lng: lng }
+                });
+
+                document.getElementById('addStopModal').style.display = 'none';
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Add Stop & Verify Trip';
+
+                // Reload unverified trips
+                loadUnverifiedTrips();
+                loadTrips();
+            } catch (error) {
+                console.error('Error saving stop:', error);
+                alert('Error saving stop. Please try again.');
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Add Stop & Verify Trip';
+            }
+        });
 
         function checkActiveTrip() {
             db.collection('trips')
