@@ -390,6 +390,64 @@ function getStopDisplay(stopCode, stopName, legacyStop = null) {
   return 'Unknown';
 }
 
+/**
+ * Look up a stop in the stops database
+ * Returns stop data with lat/lng if found, null otherwise
+ * @param {string|null} stopCode - Stop code (numeric)
+ * @param {string|null} stopName - Stop name (text)
+ * @param {string} agency - Transit agency
+ * @returns {object|null} Stop data or null
+ */
+async function lookupStop(stopCode, stopName, agency) {
+  try {
+    let snapshot;
+
+    if (stopCode) {
+      // Look up by stop code and agency
+      snapshot = await db.collection('stops')
+        .where('agency', '==', agency)
+        .where('stopCode', '==', stopCode)
+        .limit(1)
+        .get();
+    } else if (stopName) {
+      // Look up by stop name and agency (case-sensitive exact match)
+      snapshot = await db.collection('stops')
+        .where('agency', '==', agency)
+        .where('stopName', '==', stopName)
+        .limit(1)
+        .get();
+
+      // If no exact match, try case-insensitive search
+      if (snapshot.empty) {
+        const allStops = await db.collection('stops')
+          .where('agency', '==', agency)
+          .get();
+
+        const lowerName = stopName.toLowerCase();
+        for (const doc of allStops.docs) {
+          const data = doc.data();
+          if (data.stopName && data.stopName.toLowerCase() === lowerName) {
+            return { id: doc.id, ...data };
+          }
+        }
+        return null;
+      }
+    } else {
+      return null;
+    }
+
+    if (snapshot.empty) {
+      return null;
+    }
+
+    const doc = snapshot.docs[0];
+    return { id: doc.id, ...doc.data() };
+  } catch (error) {
+    console.error('Error looking up stop:', error);
+    return null;
+  }
+}
+
 // =============================================================================
 // AGENCY HANDLING
 // =============================================================================
@@ -687,6 +745,11 @@ async function handleTripLog(phoneNumber, user, stopInput, route, agency) {
   const parsedStop = parseStopInput(stopInput);
   const stopDisplay = getStopDisplay(parsedStop.stopCode, parsedStop.stopName);
 
+  // Look up stop in database for verification
+  const stopData = await lookupStop(parsedStop.stopCode, parsedStop.stopName, agency);
+  const verified = stopData !== null;
+  const boardingLocation = stopData ? { lat: stopData.lat, lng: stopData.lng } : null;
+
   if (activeTrip) {
     // Get display for active trip's start stop (handles both old and new schema)
     const activeTripStartStop = getStopDisplay(
@@ -712,6 +775,8 @@ async function handleTripLog(phoneNumber, user, stopInput, route, agency) {
         stopName: parsedStop.stopName,
         route,
         agency,
+        verified,
+        boardingLocation,
       },
     });
 
@@ -736,14 +801,17 @@ Reply:
     startTime: admin.firestore.FieldValue.serverTimestamp(),
     endTime: null,
     source: 'sms',
-    verified: false,
-    boardingLocation: null,
+    verified: verified,
+    boardingLocation: boardingLocation,
     exitLocation: null,
     agency: agency,
   };
 
   await db.collection('trips').add(tripData);
-  await sendSmsReply(phoneNumber, `Route ${route} @ ${stopDisplay} (${agency})`);
+
+  // Include verification status in response
+  const verifyStatus = verified ? '✓' : '?';
+  await sendSmsReply(phoneNumber, `${verifyStatus} Route ${route} @ ${stopDisplay} (${agency})`);
 }
 
 /**
@@ -761,6 +829,11 @@ async function handleDisambiguation(phoneNumber, user, choice, state) {
 
     const duration = Math.round((endTime.toDate().getTime() - startTime.getTime()) / 60000);
 
+    // Look up end stop for exit location
+    const agency = activeTrip.agency || newTrip.agency || 'TTC';
+    const endStopData = await lookupStop(newTrip.stopCode, newTrip.stopName, agency);
+    const exitLocation = endStopData ? { lat: endStopData.lat, lng: endStopData.lng } : null;
+
     // Get display strings for start and end stops
     const startStopDisplay = getStopDisplay(
       activeTrip.startStopCode,
@@ -773,6 +846,8 @@ async function handleDisambiguation(phoneNumber, user, choice, state) {
       endStopCode: newTrip.stopCode,
       endStopName: newTrip.stopName,
       endTime: endTime,
+      exitLocation: exitLocation,
+      duration: duration,
     });
 
     await clearPendingState(phoneNumber);
@@ -793,7 +868,7 @@ async function handleDisambiguation(phoneNumber, user, choice, state) {
     // Get display for new trip's start stop
     const newStopDisplay = getStopDisplay(newTrip.stopCode, newTrip.stopName);
 
-    // Create new trip with parsed stop fields
+    // Create new trip with parsed stop fields and verification status
     const tripData = {
       userId: user.userId,
       route: newTrip.route,
@@ -804,8 +879,8 @@ async function handleDisambiguation(phoneNumber, user, choice, state) {
       startTime: admin.firestore.FieldValue.serverTimestamp(),
       endTime: null,
       source: 'sms',
-      verified: false,
-      boardingLocation: null,
+      verified: newTrip.verified || false,
+      boardingLocation: newTrip.boardingLocation || null,
       exitLocation: null,
       agency: newTrip.agency,
     };
@@ -813,9 +888,10 @@ async function handleDisambiguation(phoneNumber, user, choice, state) {
     await db.collection('trips').add(tripData);
     await clearPendingState(phoneNumber);
 
+    const verifyStatus = newTrip.verified ? '✓' : '?';
     await sendSmsReply(
       phoneNumber,
-      `Previous trip saved (boarding only). Route ${newTrip.route} @ ${newStopDisplay} (${newTrip.agency})`
+      `Previous trip saved (boarding only). ${verifyStatus} Route ${newTrip.route} @ ${newStopDisplay} (${newTrip.agency})`
     );
   } else {
     await sendSmsReply(phoneNumber, 'Reply 1 to end trip, 2 to start new.');
@@ -838,6 +914,11 @@ async function handleEndTrip(phoneNumber, user, endStopInput) {
   const startTime = activeTrip.startTime.toDate();
   const duration = Math.round((endTime.toDate().getTime() - startTime.getTime()) / 60000);
 
+  // Look up end stop for verification
+  const agency = activeTrip.agency || 'TTC';
+  const endStopData = await lookupStop(parsedEndStop.stopCode, parsedEndStop.stopName, agency);
+  const exitLocation = endStopData ? { lat: endStopData.lat, lng: endStopData.lng } : null;
+
   // Get display strings for start and end stops
   const startStopDisplay = getStopDisplay(
     activeTrip.startStopCode,
@@ -850,6 +931,8 @@ async function handleEndTrip(phoneNumber, user, endStopInput) {
     endStopCode: parsedEndStop.stopCode,
     endStopName: parsedEndStop.stopName,
     endTime: endTime,
+    exitLocation: exitLocation,
+    duration: duration,
   });
 
   await sendSmsReply(
