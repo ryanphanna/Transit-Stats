@@ -570,7 +570,7 @@ Example:
 North
 TTC
 
-Reply 2 to cancel`;
+Reply CANCEL to undo`;
 
   await sendSmsReply(phoneNumber, message);
 }
@@ -582,7 +582,7 @@ async function handleStatus(phoneNumber, user) {
   const activeTrip = await getActiveTrip(user.userId);
 
   if (!activeTrip) {
-    await sendSmsReply(phoneNumber, 'No active trip.\n\nReply 2 to cancel');
+    await sendSmsReply(phoneNumber, 'No active trip.\n\nReply CANCEL to undo');
     return;
   }
 
@@ -611,7 +611,7 @@ Started ${timeStr} (${duration} min ago)
 
 Reply with stop to end, or CANCEL to delete.
 
-Reply 2 to cancel`;
+Reply CANCEL to undo`;
 
   await sendSmsReply(phoneNumber, message);
 }
@@ -623,7 +623,7 @@ async function handleCancel(phoneNumber, user) {
   const activeTrip = await getActiveTrip(user.userId);
 
   if (!activeTrip) {
-    await sendSmsReply(phoneNumber, 'No active trip to cancel.\n\nReply 2 to cancel');
+    await sendSmsReply(phoneNumber, 'No active trip to cancel.\n\nReply CANCEL to undo');
     return;
   }
 
@@ -644,7 +644,7 @@ async function handleCancel(phoneNumber, user) {
 
   await sendSmsReply(
     phoneNumber,
-    `Cancelled. ${routeDisplay} from ${startStopDisplay} deleted.\n\nReply 2 to cancel`
+    `Cancelled. ${routeDisplay} from ${startStopDisplay} deleted.\n\nReply CANCEL to undo`
   );
 }
 
@@ -723,7 +723,7 @@ async function handleRegister(phoneNumber, email) {
 
   await sendSmsReply(
     phoneNumber,
-    `Verification code sent to ${email}. Reply with the 4-digit code.\n\nReply 2 to cancel`
+    `Verification code sent to ${email}. Reply with the 4-digit code.\n\nReply CANCEL to undo`
   );
 
   // Set state to wait for code
@@ -864,8 +864,8 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
 
 Abandon and start ${newTripRouteDisplay} from ${stopDisplay}?
 
-1 - Abandon & start new
-2 - Cancel`;
+END - End ${activeTripRouteDisplay} & start ${newTripRouteDisplay} from ${stopDisplay}
+CANCEL - Keep ${activeTripRouteDisplay} active`;
 
     await sendSmsReply(phoneNumber, message);
     return;
@@ -896,7 +896,7 @@ Abandon and start ${newTripRouteDisplay} from ${stopDisplay}?
 
   await sendSmsReply(
     phoneNumber,
-    `✅ Started ${routeDisplay} from Stop ${stopDisplay}\n\nReply 2 to cancel`
+    `✅ Started ${routeDisplay} from Stop ${stopDisplay}\n\nReply CANCEL to undo`
   );
 }
 
@@ -946,7 +946,7 @@ async function handleDisambiguation(phoneNumber, user, choice, state) {
 
     await sendSmsReply(
       phoneNumber,
-      `✅ Started ${newRouteDisplay} from Stop ${newStopDisplay}\n\nReply 2 to cancel`
+      `✅ Started ${newRouteDisplay} from Stop ${newStopDisplay}\n\nReply CANCEL to undo`
     );
   } else if (choice === '2') {
     // Cancel - keep current trip active
@@ -954,10 +954,10 @@ async function handleDisambiguation(phoneNumber, user, choice, state) {
 
     await sendSmsReply(
       phoneNumber,
-      'Cancelled. Current trip remains active.\n\nReply 2 to cancel'
+      'Cancelled. Current trip remains active.\n\nReply CANCEL to undo'
     );
   } else {
-    await sendSmsReply(phoneNumber, 'Reply 1 to abandon & start new, 2 to cancel.');
+    await sendSmsReply(phoneNumber, 'Reply END to abandon & start new, or CANCEL to keep current trip.');
   }
 }
 
@@ -968,7 +968,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput) {
   const activeTrip = await getActiveTrip(user.userId);
 
   if (!activeTrip) {
-    await sendSmsReply(phoneNumber, 'No active trip to end.\n\nReply 2 to cancel');
+    await sendSmsReply(phoneNumber, 'No active trip to end.\n\nReply CANCEL to undo');
     return;
   }
 
@@ -1000,7 +1000,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput) {
 
   await sendSmsReply(
     phoneNumber,
-    `✅ Ended ${routeDisplay} at Stop ${endStopDisplay} (${duration} min trip)\n\nReply 2 to cancel`
+    `✅ Ended ${routeDisplay} at Stop ${endStopDisplay} (${duration} min trip)\n\nReply CANCEL to undo`
   );
 }
 
@@ -1031,6 +1031,9 @@ async function handleSmsRequest(req, res) {
       return;
     }
 
+    // Parse uppercase body for command matching
+    const upperBody = body.toUpperCase();
+
     // Check for pending state first
     const pendingState = await getPendingState(phoneNumber);
 
@@ -1041,26 +1044,25 @@ async function handleSmsRequest(req, res) {
       return;
     }
 
-    // Handle "2" at any time as escape hatch (cancel pending state)
-    if (body === '2' && pendingState) {
+    // Handle CANCEL or "2" at any time as escape hatch (cancel pending state)
+    if ((upperBody === 'CANCEL' || body === '2') && pendingState) {
       await clearPendingState(phoneNumber);
-      await sendSmsReply(phoneNumber, 'Cancelled.\n\nReply 2 to cancel');
+      await sendSmsReply(phoneNumber, 'Cancelled.\n\nReply CANCEL to undo');
       res.type('text/xml').send(twimlResponse(''));
       return;
     }
 
-    // Handle disambiguation (1 or 2)
-    if (pendingState?.type === 'disambiguate' && /^[12]$/.test(body)) {
+    // Handle disambiguation (END/1 = start new, CANCEL/2 = keep current)
+    if (pendingState?.type === 'disambiguate' && /^(END|CANCEL|1|2)$/i.test(body)) {
       const user = await getUserByPhone(phoneNumber);
       if (user) {
-        await handleDisambiguation(phoneNumber, user, body, pendingState);
+        // Normalize choice: END/1 -> '1', CANCEL/2 -> '2'
+        const normalizedChoice = (upperBody === 'END' || body === '1') ? '1' : '2';
+        await handleDisambiguation(phoneNumber, user, normalizedChoice, pendingState);
       }
       res.type('text/xml').send(twimlResponse(''));
       return;
     }
-
-    // Parse command
-    const upperBody = body.toUpperCase();
 
     // INFO command - show SMS help
     if (upperBody === 'INFO' || upperBody === 'COMMANDS' || upperBody === '?') {
@@ -1113,6 +1115,21 @@ async function handleSmsRequest(req, res) {
     // CANCEL command
     if (upperBody === 'CANCEL') {
       await handleCancel(phoneNumber, user);
+      res.type('text/xml').send(twimlResponse(''));
+      return;
+    }
+
+    // END command (without stop) - prompt user for stop
+    if (upperBody === 'END') {
+      const activeTrip = await getActiveTrip(user.userId);
+      if (activeTrip) {
+        await sendSmsReply(
+          phoneNumber,
+          'Please reply with your exit stop to end the trip.\n\nReply CANCEL to undo'
+        );
+      } else {
+        await sendSmsReply(phoneNumber, 'No active trip to end.\n\nReply CANCEL to undo');
+      }
       res.type('text/xml').send(twimlResponse(''));
       return;
     }
@@ -1187,7 +1204,7 @@ STOP
 DIRECTION (optional)
 AGENCY (optional)
 
-Reply 2 to cancel`
+Reply CANCEL to undo`
     );
     res.type('text/xml').send(twimlResponse(''));
   } catch (error) {
