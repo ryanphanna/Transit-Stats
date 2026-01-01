@@ -237,6 +237,19 @@ async function getUserByPhone(phoneNumber) {
 }
 
 /**
+ * Get user's profile (including defaultAgency)
+ * @param {string} userId - User ID
+ * @returns {object|null} Profile data or null
+ */
+async function getUserProfile(userId) {
+  const profileDoc = await db.collection('profiles').doc(userId).get();
+  if (!profileDoc.exists) {
+    return null;
+  }
+  return profileDoc.data();
+}
+
+/**
  * Get active trip for a user (trip with no endTime)
  * @param {string} userId - User ID
  * @returns {object|null} Active trip data with ID or null
@@ -375,6 +388,53 @@ function getStopDisplay(stopCode, stopName, legacyStop = null) {
   if (stopName) return stopName;
   if (legacyStop) return legacyStop;
   return 'Unknown';
+}
+
+// =============================================================================
+// AGENCY HANDLING
+// =============================================================================
+
+/**
+ * Known transit agencies for override parsing
+ * Case-insensitive matching
+ */
+const KNOWN_AGENCIES = [
+  'TTC',
+  'OC Transpo',
+  'GO Transit',
+  'GO',
+  'MiWay',
+  'YRT',
+  'Brampton Transit',
+  'Durham Transit',
+  'HSR',
+  'GRT',
+  'STM',
+  'TransLink',
+];
+
+/**
+ * Parse agency override from end of message
+ * Checks if the message ends with a known agency name
+ * @param {string} message - The full message
+ * @returns {object} { agency: string|null, remainingMessage: string }
+ */
+function parseAgencyOverride(message) {
+  const trimmed = message.trim();
+  const lowerMessage = trimmed.toLowerCase();
+
+  // Check each known agency (case-insensitive)
+  for (const agency of KNOWN_AGENCIES) {
+    const lowerAgency = agency.toLowerCase();
+    if (lowerMessage.endsWith(' ' + lowerAgency)) {
+      // Remove agency from end of message
+      const remainingMessage = trimmed.slice(0, -(agency.length + 1)).trim();
+      // Return the canonical agency name (properly cased)
+      return { agency, remainingMessage };
+    }
+  }
+
+  return { agency: null, remainingMessage: trimmed };
 }
 
 // =============================================================================
@@ -615,9 +675,14 @@ async function handleVerificationCode(phoneNumber, code) {
 }
 
 /**
- * Handle trip logging (e.g., "York Mills 97" or "123 504")
+ * Handle trip logging (e.g., "York Mills 97" or "123 504" or "6036 65 OC Transpo")
+ * @param {string} phoneNumber - Phone number
+ * @param {object} user - User object with userId
+ * @param {string} stopInput - Stop code or name
+ * @param {string} route - Route number/name
+ * @param {string} agency - Transit agency
  */
-async function handleTripLog(phoneNumber, user, stopInput, route) {
+async function handleTripLog(phoneNumber, user, stopInput, route, agency) {
   const activeTrip = await getActiveTrip(user.userId);
   const parsedStop = parseStopInput(stopInput);
   const stopDisplay = getStopDisplay(parsedStop.stopCode, parsedStop.stopName);
@@ -640,11 +705,13 @@ async function handleTripLog(phoneNumber, user, stopInput, route) {
         startStopName: activeTrip.startStopName || null,
         startStop: activeTrip.startStop || null, // Legacy field
         startTime: activeTrip.startTime,
+        agency: activeTrip.agency || null,
       },
       newTrip: {
         stopCode: parsedStop.stopCode,
         stopName: parsedStop.stopName,
         route,
+        agency,
       },
     });
 
@@ -672,10 +739,11 @@ Reply:
     verified: false,
     boardingLocation: null,
     exitLocation: null,
+    agency: agency,
   };
 
   await db.collection('trips').add(tripData);
-  await sendSmsReply(phoneNumber, `Route ${route} @ ${stopDisplay}`);
+  await sendSmsReply(phoneNumber, `Route ${route} @ ${stopDisplay} (${agency})`);
 }
 
 /**
@@ -739,6 +807,7 @@ async function handleDisambiguation(phoneNumber, user, choice, state) {
       verified: false,
       boardingLocation: null,
       exitLocation: null,
+      agency: newTrip.agency,
     };
 
     await db.collection('trips').add(tripData);
@@ -746,7 +815,7 @@ async function handleDisambiguation(phoneNumber, user, choice, state) {
 
     await sendSmsReply(
       phoneNumber,
-      `Previous trip saved (boarding only). Route ${newTrip.route} @ ${newStopDisplay}`
+      `Previous trip saved (boarding only). Route ${newTrip.route} @ ${newStopDisplay} (${newTrip.agency})`
     );
   } else {
     await sendSmsReply(phoneNumber, 'Reply 1 to end trip, 2 to start new.');
@@ -893,9 +962,17 @@ async function handleSmsRequest(req, res) {
       return;
     }
 
-    // Trip logging: "[stopCode] [route]" pattern
+    // Parse agency override from message (e.g., "6036 65 OC Transpo")
+    const { agency: agencyOverride, remainingMessage } = parseAgencyOverride(body);
+
+    // Get user's profile for defaultAgency
+    const userProfile = await getUserProfile(user.userId);
+    const defaultAgency = userProfile?.defaultAgency || 'TTC';
+    const agency = agencyOverride || defaultAgency;
+
+    // Trip logging: "[stopCode] [route]" pattern (after agency is stripped)
     // Match patterns like "York Mills 97", "123 504", "Union Station Line 1"
-    const tripMatch = body.match(/^(.+?)\s+(\S+)$/);
+    const tripMatch = remainingMessage.match(/^(.+?)\s+(\S+)$/);
 
     if (tripMatch) {
       const stopCode = tripMatch[1].trim();
@@ -903,17 +980,17 @@ async function handleSmsRequest(req, res) {
 
       // Basic validation
       if (stopCode.length > 0 && route.length > 0) {
-        await handleTripLog(phoneNumber, user, stopCode, route);
+        await handleTripLog(phoneNumber, user, stopCode, route, agency);
         res.type('text/xml').send(twimlResponse(''));
         return;
       }
     }
 
     // Single word - could be ending a trip with just a stop name
-    if (!body.includes(' ') && body.length > 0) {
+    if (!remainingMessage.includes(' ') && remainingMessage.length > 0) {
       const activeTrip = await getActiveTrip(user.userId);
       if (activeTrip) {
-        await handleEndTrip(phoneNumber, user, body);
+        await handleEndTrip(phoneNumber, user, remainingMessage);
         res.type('text/xml').send(twimlResponse(''));
         return;
       }
