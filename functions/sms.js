@@ -1062,8 +1062,17 @@ async function handleSmsRequest(req, res) {
     // Parse command
     const upperBody = body.toUpperCase();
 
+    // INFO command - show SMS help
+    if (upperBody === 'INFO' || upperBody === 'COMMANDS' || upperBody === '?') {
+      await sendSmsReply(phoneNumber,
+        `📱 TransitStats SMS\n\nSTART TRIP:\nRoute\nStop\nDirection (optional)\nAgency (optional)\n\nEND TRIP:\nText exit stop number\n\nDURING PROMPTS:\nReply END or CANCEL\n\nText INFO anytime for help`
+      );
+      res.type('text/xml').send(twimlResponse(''));
+      return;
+    }
+
     // HELP command
-    if (upperBody === 'HELP' || upperBody === '?') {
+    if (upperBody === 'HELP') {
       await handleHelp(phoneNumber);
       res.type('text/xml').send(twimlResponse(''));
       return;
