@@ -588,6 +588,28 @@
                         </div>
                     </div>
 
+                    <!-- Default Agency Selector -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 10px; font-weight: 500;">Default Transit Agency:</label>
+                        <select id="defaultAgencySelect" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 1em;">
+                            <option value="TTC">TTC (Toronto)</option>
+                            <option value="OC Transpo">OC Transpo (Ottawa)</option>
+                            <option value="GO Transit">GO Transit</option>
+                            <option value="MiWay">MiWay (Mississauga)</option>
+                            <option value="YRT">YRT (York Region)</option>
+                            <option value="Brampton Transit">Brampton Transit</option>
+                            <option value="Durham Transit">Durham Transit</option>
+                            <option value="HSR">HSR (Hamilton)</option>
+                            <option value="GRT">GRT (Waterloo Region)</option>
+                            <option value="STM">STM (Montreal)</option>
+                            <option value="TransLink">TransLink (Vancouver)</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <div style="margin-top: 8px; font-size: 0.85em; color: var(--text-secondary);">
+                            Used as default when logging trips via SMS
+                        </div>
+                    </div>
+
                     <div style="display: flex; gap: 10px; margin-bottom: 20px;">
                         <button class="btn btn-primary" onclick="saveProfile()" style="flex: 1;">Save Profile</button>
                     </div>
@@ -979,7 +1001,8 @@
                         const emoji = profile.emoji || '🚌';
                         document.getElementById('profileAvatar').textContent = emoji;
                         document.getElementById('nameInput').value = profile.name || '';
-                        
+                        document.getElementById('defaultAgencySelect').value = profile.defaultAgency || 'TTC';
+
                         if (profile.emoji) {
                             document.getElementById('emojiSelector').style.display = 'none';
                             document.getElementById('shuffleEmojiBtn').style.display = 'block';
@@ -1412,7 +1435,8 @@
         function saveProfile() {
             const name = document.getElementById('nameInput').value.trim();
             const emoji = document.getElementById('profileAvatar').textContent;
-            
+            const defaultAgency = document.getElementById('defaultAgencySelect').value;
+
             if (!name) {
                 alert('Please enter your name');
                 return;
@@ -1421,6 +1445,7 @@
             const profileData = {
                 name: name,
                 emoji: emoji,
+                defaultAgency: defaultAgency,
                 userId: currentUser.uid,
                 updatedAt: firebase.firestore.Timestamp.now()
             };
@@ -1753,10 +1778,11 @@
                     startTime = new Date();
                 }
                 
+                const agencyDisplay = trip.agency ? `<span style="color: var(--text-secondary); font-size: 0.9em;"> • ${trip.agency}</span>` : '';
                 return `
                     <div class="trip-item" data-trip-id="${trip.id}">
                         <div class="delete-overlay">Delete</div>
-                        <div><strong>${trip.route || 'Unknown Route'}</strong></div>
+                        <div><strong>${trip.route || 'Unknown Route'}</strong>${agencyDisplay}</div>
                         <div>${trip.startStop || 'Unknown'} → ${trip.endStop || 'Unknown'}</div>
                         <div>${trip.duration || 0} min • ${startTime.toLocaleDateString()}</div>
                     </div>
