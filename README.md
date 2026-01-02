@@ -14,12 +14,14 @@ TransitStats is a web-based application that helps you track, analyze, and visua
 - **Stop Details**: Record boarding and alighting stops
 - **Duration Tracking**: Automatically calculate trip duration
 - **GPS Location**: Capture boarding and alighting locations for mapping (with permission)
-- **Active Trip Banner**: See at-a-glance when you have a trip in progress
+- **Active Trip Banner**: Clickable banner shows when you have a trip in progress - tap to jump to trip details
+- **Recent Trips**: Home page displays your 5 most recent completed trips for quick reference
 
 #### ⚡ Quick Start Features
 - **Trip Templates**: Save frequently used route + stop combinations for one-tap trip starts
-- **Repeat Last Trip**: Quickly start your commute with a single click
+- **Repeat Last Trip**: One-click repeat for your last completed trip (not just templates)
 - **Auto-save Templates**: After using the same route/stop combo 3+ times, it's automatically saved as a template
+- **Manual Template Saving**: Checkbox option when ending trips to immediately save as a template
 
 #### 📊 Statistics & Analytics
 View your transit usage in two modes: **30 Days** or **All Time**
@@ -42,6 +44,12 @@ View your transit usage in two modes: **30 Days** or **All Time**
 - Compare to community averages
 - Track total user count
 
+**Multi-Agency Support:**
+- Set a default transit agency in your profile
+- Agency badges appear on all trips showing which system you rode
+- Track trips across multiple transit systems (TTC, OC Transpo, GO Transit, etc.)
+- SMS logging supports agency specification
+
 #### 🗺️ Heatmap Visualization
 Unlock beautiful heatmaps after recording 50 trips with GPS data:
 
@@ -63,15 +71,18 @@ Unlock beautiful heatmaps after recording 50 trips with GPS data:
 #### 👤 Profile Management
 - **Custom Avatar**: Choose from 8 transit-themed emojis (🚌 🚇 🚊 🚋 🚞 🚝 🚄 ✈️)
 - **Name Display**: Personalize your profile
+- **Default Agency**: Set your primary transit agency (TTC, OC Transpo, GO Transit, etc.)
 - **Recent Trips**: View your 20 most recent trips
 - **Streak Stats**: Dedicated streak tracking section
 - **Template Management**: Manage your saved trip templates
-- **Swipe to Delete**: Easy trip and template deletion on touch devices
+- **Swipe to Delete**: Touch gesture support for easy deletion of trips and templates on mobile devices
+- **CSV Export**: Export all your trip data to CSV format for analysis in spreadsheets
 
 #### 🔐 Authentication & Sync
 - **Email Sign-in**: Two authentication methods:
-  - 🔑 **Password**: Traditional email/password login
+  - 🔑 **Password**: Traditional email/password login (auto-creates account if none exists)
   - ✨ **Magic Link**: Passwordless email link authentication
+- **Invite-Only Access**: Application uses a whitelist system (`allowedUsers` collection) for controlled access
 - **Cloud Sync**: All your data syncs across devices via Firebase
 - **Secure**: Your data is protected and private
 
@@ -84,6 +95,33 @@ Unlock beautiful heatmaps after recording 50 trips with GPS data:
 - **GPS Tracking**: Optional location capture for boarding and alighting
 - **Privacy-Focused**: Location is only captured when you start/end trips
 - **Status Indicator**: Always know your location service status
+
+#### 📱 SMS Integration
+TransitStats includes a complete SMS-based trip logging system for tracking trips on-the-go without opening the app:
+
+**SMS Trip Logging:**
+- Send multi-line text messages to log trips via SMS
+- Format: Route / Stop / Direction (optional) / Agency (optional)
+- Commands: STATUS (view active trip), END (finish trip), DISCARD (delete trip), INFO (show help)
+
+**Verification System:**
+- **Verified Badge (✓)**: Trips where stops are found in the stop database with GPS coordinates
+- **Unverified Badge (?)**: Trips with stops not yet in the database
+- "Review SMS Trips" section displays unverified trips that need attention
+
+**Stop Database Contribution:**
+- Users can contribute missing stops to the database
+- Add stop name/code, agency, and GPS coordinates
+- Verifying a stop automatically updates the trip and adds location data
+- Community-driven database helps verify future SMS trips
+
+**Registration:**
+- Link your phone number to your TransitStats account via SMS
+- Text REGISTER [email] to begin the verification process
+- Receive a 4-digit code via email to complete linking
+
+**Supported Agencies:**
+- TTC, OC Transpo, GO Transit, MiWay, YRT, Brampton Transit, Durham Transit, HSR, GRT, STM, TransLink, and more
 
 ## Technical Details
 
@@ -123,21 +161,32 @@ You'll need:
   - `profiles`: User profile data
   - `trips`: Trip records
   - `templates`: Saved trip templates
+  - `allowedUsers`: Whitelist for invite-only access
+  - `stops`: Community-contributed stop database (for SMS verification)
+  - `phoneNumbers`: SMS phone number to user mappings
+  - `smsState`: Temporary state for SMS workflows
+  - `smsVerification`: SMS registration verification codes
 
 ## Usage Tips
 
 ### Getting the Most Out of TransitStats
 1. **Be Consistent**: Track every trip to build accurate patterns
 2. **Use Templates**: Save your common routes for faster tracking
-3. **Enable GPS**: Location data unlocks powerful mapping features
-4. **Build Streaks**: Make it a game - how long can you ride transit daily?
-5. **Check Stats**: Review your 30-day stats regularly to understand patterns
+3. **Try SMS Logging**: Track trips hands-free via text message
+4. **Set Your Agency**: Configure your default transit agency in your profile
+5. **Enable GPS**: Location data unlocks powerful mapping features
+6. **Build Streaks**: Make it a game - how long can you ride transit daily?
+7. **Check Stats**: Review your 30-day stats regularly to understand patterns
+8. **Verify SMS Trips**: Review unverified trips and contribute stops to the database
+9. **Export Your Data**: Download your trip history as CSV for deeper analysis
 
 ### Privacy Notes
 - Your GPS location is only recorded when you explicitly start or end a trip
 - All data is private to your account
 - No data is shared with third parties
 - You can delete individual trips at any time
+- SMS messages are processed securely and phone numbers are stored only for account linking
+- Stop database contributions are anonymized and used only for trip verification
 
 ## Features in Detail
 
@@ -149,9 +198,9 @@ A streak is maintained when you take transit trips on consecutive days:
 
 ### Template Auto-save
 To reduce friction for frequent routes:
-- Use the same route + starting stop combination 3 times
-- TransitStats automatically saves it as a template
-- Access it from the "Quick Start" section
+- **Automatic**: Use the same route + starting stop combination 3 times and it's automatically saved as a template
+- **Manual**: Check the "⭐ Save route + start stop as template" box when ending any trip to immediately save it
+- Access saved templates from the "Quick Start" section
 - Delete templates you no longer need from your Profile
 
 ### Heatmap Unlock System
@@ -160,6 +209,67 @@ Progressive unlock encourages engagement:
 - 50+ trips: Full heatmap unlocked
 - All trip markers viewable before unlock
 - Heatmap shows frequency-based visualization after unlock
+
+### User Interface Features
+
+**Interactive Banners:**
+- **Active Trip Banner**: Clickable banner at the top shows your current trip - tap to jump to trip details
+- **Streak Banner**: Displays your current riding streak on the home page
+- **Grid Layout**: Responsive design adapts to desktop screens with banner grid
+
+**Touch Gestures:**
+- **Swipe-to-Delete**: Swipe left or right on trips and templates to reveal delete option
+- Works seamlessly on mobile and touch-enabled devices
+
+**Recent Trips Display:**
+- **Home Page**: Shows 5 most recent completed trips for quick access
+- **Profile Page**: Full history with 20 most recent trips
+- Different views for different contexts
+
+### SMS Trip Logging
+
+Track trips without opening the app by sending text messages:
+
+**Getting Started:**
+1. Text `REGISTER [your-email]` to the TransitStats number
+2. Receive a 4-digit verification code via email
+3. Reply with the code to link your phone
+
+**Starting a Trip:**
+Send a multi-line message with:
+```
+[Route number/name]
+[Stop code or name]
+[Direction] (optional)
+[Agency] (optional)
+```
+
+Example:
+```
+65
+6036
+Eastbound
+OC Transpo
+```
+
+**Ending a Trip:**
+Send:
+```
+END
+[Route]
+[Exit stop]
+```
+
+**Other Commands:**
+- `STATUS` - View your active trip details
+- `DISCARD` - Delete the current active trip
+- `INFO` or `?` - Show help message
+
+**Trip Verification:**
+- Trips are marked as **Verified (✓)** when stops are found in the database
+- **Unverified (?)** trips appear in the "Review SMS Trips" section
+- You can add missing stops to the database to verify trips retroactively
+- Adding stops contributes to the community database and helps verify future trips
 
 ## Contributing
 
