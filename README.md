@@ -80,7 +80,7 @@ Unlock beautiful heatmaps after recording 50 trips with GPS data:
 
 #### 🔐 Authentication & Sync
 - **Email Sign-in**: Two authentication methods:
-  - 🔑 **Password**: Traditional email/password login (auto-creates account if none exists)
+  - 🔑 **Password**: Traditional email/password login (automatically creates account for new users)
   - ✨ **Magic Link**: Passwordless email link authentication
 - **Invite-Only Access**: Application uses a whitelist system (`allowedUsers` collection) for controlled access
 - **Cloud Sync**: All your data syncs across devices via Firebase
