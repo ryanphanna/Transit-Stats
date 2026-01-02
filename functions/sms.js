@@ -615,23 +615,22 @@ function parseAgencyOverride(message) {
  * Handle HELP command
  */
 async function handleHelp(phoneNumber) {
-  const message = `📱 TransitStats SMS
+  const message = `TransitStats
 
-START TRIP:
-Route
-Stop
-Direction (optional)
-Agency (optional)
+To start a trip send:
 
-END TRIP:
+ROUTE
+STOP
+DIRECTION (optional)
+AGENCY (optional)
+
+To end a trip send:
+
 END
-Route
-Stop
+ROUTE
+STOP
 
-COMMANDS:
-STATUS - View active trip
-DISCARD - Delete active trip
-INFO - Show this help
+STATUS to view active trip. INFO to view this information.
 REGISTER [email] - Link account`;
 
   await sendSmsReply(phoneNumber, message);
@@ -672,7 +671,7 @@ async function handleStatus(phoneNumber, user) {
 ${routeDisplay} from Stop ${startStopDisplay}
 Started ${timeStr} (${elapsedMin} min ago)
 
-END + route + stop to finish | DISCARD to delete`;
+END + ROUTE + STOP to finish. DISCARD to delete. INFO for help.`;
 
   await sendSmsReply(phoneNumber, message);
 }
@@ -914,9 +913,9 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
       },
     });
 
-    const message = `⚠️ ${activeTripRouteDisplay} from ${activeTripStartStop} has no exit stop.
+    const message = `${activeTripRouteDisplay} from ${activeTripStartStop} was not ended. ⚠️
 
-Reply START to begin ${newTripRouteDisplay} from ${stopDisplay}.`;
+START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDisplay}. DISCARD to delete. INFO for help.`;
 
     await sendSmsReply(phoneNumber, message);
     return;
@@ -949,7 +948,7 @@ Reply START to begin ${newTripRouteDisplay} from ${stopDisplay}.`;
     phoneNumber,
     `✅ Started ${routeDisplay} from Stop ${stopDisplay}.
 
-END + route + stop to finish | DISCARD to delete`
+END + ROUTE + STOP to finish. DISCARD to delete. INFO for help.`
   );
 }
 
@@ -1005,7 +1004,7 @@ async function handleConfirmStart(phoneNumber, user, state) {
     `✅ ${oldTripRouteDisplay} marked incomplete.
 ✅ Started ${newRouteDisplay} from Stop ${newStopDisplay}.
 
-END + route + stop to finish | DISCARD to delete`
+END + ROUTE + STOP to finish. DISCARD to delete. INFO for help.`
   );
 }
 
@@ -1158,23 +1157,22 @@ async function handleSmsRequest(req, res) {
     // INFO/? command - show SMS help
     if (upperBody === 'INFO' || upperBody === 'COMMANDS' || upperBody === '?') {
       await sendSmsReply(phoneNumber,
-        `📱 TransitStats SMS
+        `TransitStats
 
-START TRIP:
-Route
-Stop
-Direction (optional)
-Agency (optional)
+To start a trip send:
 
-END TRIP:
+ROUTE
+STOP
+DIRECTION (optional)
+AGENCY (optional)
+
+To end a trip send:
+
 END
-Route
-Stop
+ROUTE
+STOP
 
-COMMANDS:
-STATUS - View active trip
-DISCARD - Delete active trip
-INFO - Show this help`
+STATUS to view active trip. INFO to view this information.`
       );
       res.type('text/xml').send(twimlResponse(''));
       return;
