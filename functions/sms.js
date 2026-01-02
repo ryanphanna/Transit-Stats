@@ -16,7 +16,7 @@
  *
  * Commands (anytime):
  * - END + route + stop: End active trip properly (saves with exit stop)
- * - CANCEL: Delete active trip without saving
+ * - DISCARD: Delete active trip without saving
  * - STATUS: Show active trip info
  * - INFO or ?: Show help
  *
@@ -487,7 +487,7 @@ function parseMultiLineTripFormat(body, defaultAgency) {
 
   // If first line is a command, don't parse as trip
   const firstLineUpper = lines[0].toUpperCase();
-  if (['END', 'STATUS', 'CANCEL', 'INFO', '?', 'START', 'HELP'].includes(firstLineUpper)) {
+  if (['END', 'STATUS', 'DISCARD', 'INFO', '?', 'START', 'HELP'].includes(firstLineUpper)) {
     return null;
   }
 
@@ -630,7 +630,7 @@ Stop
 
 COMMANDS:
 STATUS - View active trip
-CANCEL - Delete active trip
+DISCARD - Delete active trip
 INFO - Show this help
 REGISTER [email] - Link account`;
 
@@ -672,19 +672,19 @@ async function handleStatus(phoneNumber, user) {
 ${routeDisplay} from Stop ${startStopDisplay}
 Started ${timeStr} (${elapsedMin} min ago)
 
-END + route + stop to finish | CANCEL to delete`;
+END + route + stop to finish | DISCARD to delete`;
 
   await sendSmsReply(phoneNumber, message);
 }
 
 /**
- * Handle CANCEL command - deletes active trip without saving
+ * Handle DISCARD command - deletes active trip without saving
  */
-async function handleCancel(phoneNumber, user) {
+async function handleDiscard(phoneNumber, user) {
   const activeTrip = await getActiveTrip(user.userId);
 
   if (!activeTrip) {
-    await sendSmsReply(phoneNumber, 'No active trip to cancel.');
+    await sendSmsReply(phoneNumber, 'No active trip to discard.');
     return;
   }
 
@@ -698,7 +698,7 @@ async function handleCancel(phoneNumber, user) {
 
   await sendSmsReply(
     phoneNumber,
-    `✅ Cancelled ${routeDisplay}.`
+    `✅ Discarded ${routeDisplay}.`
   );
 }
 
@@ -777,7 +777,7 @@ async function handleRegister(phoneNumber, email) {
 
   await sendSmsReply(
     phoneNumber,
-    `Verification code sent to ${email}. Reply with the 4-digit code.\n\nReply CANCEL to undo`
+    `Verification code sent to ${email}. Reply with the 4-digit code.\n\nReply DISCARD to undo`
   );
 
   // Set state to wait for code
@@ -949,7 +949,7 @@ Reply START to begin ${newTripRouteDisplay} from ${stopDisplay}.`;
     phoneNumber,
     `✅ Started ${routeDisplay} from Stop ${stopDisplay}.
 
-END + route + stop to finish | CANCEL to delete`
+END + route + stop to finish | DISCARD to delete`
   );
 }
 
@@ -1005,7 +1005,7 @@ async function handleConfirmStart(phoneNumber, user, state) {
     `✅ ${oldTripRouteDisplay} marked incomplete.
 ✅ Started ${newRouteDisplay} from Stop ${newStopDisplay}.
 
-END + route + stop to finish | CANCEL to delete`
+END + route + stop to finish | DISCARD to delete`
   );
 }
 
@@ -1122,11 +1122,31 @@ async function handleSmsRequest(req, res) {
       return;
     }
 
-    // Handle CANCEL at any time as escape hatch (cancel pending state or delete active trip)
-    if (upperBody === 'CANCEL' && pendingState) {
-      // Just clear the pending state - prompt expires, user can send new commands
+    // Handle DISCARD at any time as escape hatch (discard pending state AND delete active trip)
+    if (upperBody === 'DISCARD' && pendingState) {
+      // Clear the pending state AND delete any active trip
       await clearPendingState(phoneNumber);
-      await sendSmsReply(phoneNumber, 'Cancelled.');
+
+      // Get the user and delete their active trip
+      const user = await getUserByPhone(phoneNumber);
+      if (user) {
+        const activeTrip = await getActiveTrip(user.userId);
+        if (activeTrip) {
+          await db.collection('trips').doc(activeTrip.id).delete();
+
+          // Format route with direction if available
+          const routeDisplay = activeTrip.direction
+            ? `Route ${activeTrip.route} ${activeTrip.direction}`
+            : `Route ${activeTrip.route}`;
+
+          await sendSmsReply(phoneNumber, `✅ Discarded ${routeDisplay}.`);
+          res.type('text/xml').send(twimlResponse(''));
+          return;
+        }
+      }
+
+      // No active trip found, just acknowledge the discard
+      await sendSmsReply(phoneNumber, 'No active trip to discard.');
       res.type('text/xml').send(twimlResponse(''));
       return;
     }
@@ -1153,7 +1173,7 @@ Stop
 
 COMMANDS:
 STATUS - View active trip
-CANCEL - Delete active trip
+DISCARD - Delete active trip
 INFO - Show this help`
       );
       res.type('text/xml').send(twimlResponse(''));
@@ -1199,9 +1219,9 @@ INFO - Show this help`
       return;
     }
 
-    // CANCEL command (no pending state)
-    if (upperBody === 'CANCEL') {
-      await handleCancel(phoneNumber, user);
+    // DISCARD command (no pending state)
+    if (upperBody === 'DISCARD') {
+      await handleDiscard(phoneNumber, user);
       res.type('text/xml').send(twimlResponse(''));
       return;
     }
