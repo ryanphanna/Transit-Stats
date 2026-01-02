@@ -75,7 +75,7 @@
         }
         .header-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
         .header-title { font-size: 1.2em; font-weight: 600; cursor: pointer; flex-shrink: 0; }
-        .user-info { display: flex; gap: 8px; align-items: center; justify-content: flex-end; flex-wrap: nowrap; }
+        .user-info { display: flex; flex-direction: row; gap: 8px; align-items: center; justify-content: flex-end; flex-wrap: nowrap; }
         .header-btn, .theme-toggle {
             background: rgba(255,255,255,0.2);
             border: 2px solid rgba(255,255,255,0.3);
@@ -87,10 +87,10 @@
             transition: all 0.2s ease;
             min-width: 44px;
             height: 44px;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 1;
+            flex-shrink: 0;
         }
         .header-btn:hover, .theme-toggle:hover {
             background: rgba(255,255,255,0.3);
@@ -3089,6 +3089,19 @@
             let currentX = 0;
             let isSwiping = false;
 
+            // Add click handler to the existing delete overlay
+            const overlay = element.querySelector('.delete-overlay');
+            if (overlay) {
+                overlay.style.cursor = 'pointer';
+                overlay.onclick = () => {
+                    if (isTemplate) {
+                        deleteTemplate(id);
+                    } else {
+                        deleteTrip(id);
+                    }
+                };
+            }
+
             element.addEventListener('touchstart', (e) => {
                 startX = e.touches[0].clientX;
                 isSwiping = true;
@@ -3109,44 +3122,12 @@
 
                 if (diff > 80) {
                     element.style.transform = 'translateX(-80px)';
-                    showDeleteButton(element, isTemplate, id);
                 } else {
                     element.style.transform = 'translateX(0)';
                 }
 
                 isSwiping = false;
             });
-        }
-
-        function showDeleteButton(element, isTemplate, id) {
-            const existing = element.querySelector('.delete-btn');
-            if (existing) return;
-
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'delete-btn';
-            deleteBtn.textContent = 'Delete';
-            deleteBtn.style.cssText = `
-                position: absolute;
-                right: 0;
-                top: 0;
-                height: 100%;
-                width: 80px;
-                background: var(--error);
-                color: white;
-                border: none;
-                cursor: pointer;
-            `;
-
-            deleteBtn.onclick = () => {
-                if (isTemplate) {
-                    deleteTemplate(id);
-                } else {
-                    deleteTrip(id);
-                }
-            };
-
-            element.style.position = 'relative';
-            element.appendChild(deleteBtn);
         }
 
         // Load saved theme on startup
