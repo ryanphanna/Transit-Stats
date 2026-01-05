@@ -967,7 +967,7 @@ async function handleConfirmStart(phoneNumber, user, state) {
   // Mark active trip as incomplete (no endTime, no exitLocation, no duration)
   await db.collection('trips').doc(activeTrip.id).update({
     incomplete: true,
-    endTime: null,
+    endTime: activeTrip.startTime,
     exitLocation: null,
     duration: null,
   });
