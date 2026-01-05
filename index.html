@@ -266,295 +266,337 @@
                                         GPS</div>
                                 </div>
 
-                                <div class="map-layout">
-                                    <div class="map-controls">
-                                        <div class="map-toggle">
-                                            <button class="toggle-btn active" id="boardingToggle"
-                                                onclick="setMapMode('boarding')">Boarding</button>
-                                            <button class="toggle-btn" id="alightingToggle"
-                                                onclick="setMapMode('alighting')">Alighting</button>
-                                            <button class="toggle-btn" id="markersToggle"
-                                                onclick="setMapMode('markers')">All
-                                                Trips</button>
-                                        </div>
-
-                                        <div class="map-legend" id="mapLegend">
-                                            <div class="legend-item">
-                                                <div class="legend-color" style="background: #1e3a8a;"></div>
-                                                <span>Home Base (50%+)</span>
+                                <!-- LEFT COLUMN: Profile & Stats -->
+                                <div class="col-left">
+                                    <!-- Profile Dashboard -->
+                                    <div class="section profile-dashboard-section">
+                                        <div class="profile-dashboard-grid">
+                                            <!-- Identity Card -->
+                                            <div class="profile-card identity-card">
+                                                <div class="card-content">
+                                                    <div id="displayAvatar" class="avatar-large">👤</div>
+                                                    <div id="displayAgency" class="agency-tag">Agency</div>
+                                                </div>
                                             </div>
-                                            <div class="legend-item">
-                                                <div class="legend-color" style="background: #3b82f6;"></div>
-                                                <span>Regular (25-49%)</span>
+
+                                            <!-- Streak Card -->
+                                            <div class="profile-card streak-card">
+                                                <div class="card-header">🔥 Streak</div>
+                                                <div class="streak-stats">
+                                                    <div class="stat-item">
+                                                        <span id="currentStreak" class="stat-val">0</span>
+                                                        <span class="stat-lbl">Current</span>
+                                                    </div>
+                                                    <div class="stat-item">
+                                                        <span id="bestStreak" class="stat-val">0</span>
+                                                        <span class="stat-lbl">Best</span>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div class="legend-item">
-                                                <div class="legend-color" style="background: #60a5fa;"></div>
-                                                <span>Occasional (10-24%)</span>
-                                            </div>
-                                            <div class="legend-item">
-                                                <div class="legend-color" style="background: #93c5fd;"></div>
-                                                <span>Rare (5-9%)</span>
+
+                                            <!-- Founder Card -->
+                                            <div class="profile-card status-card">
+                                                <div class="card-header">🚀 Founder</div>
+                                                <div class="founder-stats">
+                                                    <div class="stat-item">
+                                                        <span id="totalRoutes" class="stat-val">0</span>
+                                                        <span class="stat-lbl">Routes</span>
+                                                    </div>
+                                                    <div class="stat-item">
+                                                        <span id="totalStops" class="stat-val">0</span>
+                                                        <span class="stat-lbl">Stops</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
+                                    </div>
 
-                                        <div id="mapStats"
-                                            style="display: none; background: var(--bg-tertiary); border-radius: 8px; padding: 15px; margin-top: 15px; border: 1px solid var(--border-color);">
-                                            <h4 style="margin-bottom: 10px; color: var(--text-primary);">Map Statistics
-                                            </h4>
-                                            <div id="mapStatsContent"></div>
+                                    <!-- Trip Templates -->
+                                    <div class="section templates-section">
+                                        <div class="templates-header">
+                                            <h3>⭐ Trip Templates</h3>
+                                        </div>
+                                        <div id="templatesList">
+                                            <div class="empty-state">No saved templates yet</div>
                                         </div>
                                     </div>
 
-                                    <div id="mapContainer">
-                                        <div style="text-align: center;">
-                                            <div style="font-size: 2em; margin-bottom: 10px;">🗺️</div>
-                                            <div>Take your first trip to get started!</div>
+                                    <!-- Toggle Stats View (30 Days / All Time) -->
+                                    <div class="section"
+                                        style="padding: 10px; display: flex; gap: 5px; background: var(--bg-tertiary);">
+                                        <button id="statsToggle30" class="btn btn-sm"
+                                            style="flex: 1; background: var(--accent-primary); color: white;">30
+                                            Days</button>
+                                        <button id="statsToggleAll" class="btn btn-sm"
+                                            style="flex: 1; background: transparent; color: var(--text-secondary);">All
+                                            Time</button>
+                                        <!-- Export Button Removed -->
+                                    </div>
+
+                                    <!-- Stats Grid -->
+                                    <div class="stats-grid">
+                                        <div class="stat-card">
+                                            <div class="stat-number" id="totalTrips">0</div>
+                                            <div class="stat-label">Trips</div>
+                                        </div>
+                                        <div class="stat-card">
+                                            <div class="stat-number" id="uniqueRoutes">0</div>
+                                            <div class="stat-label">Routes</div>
+                                        </div>
+                                        <div class="stat-card">
+                                            <div class="stat-number" id="totalHours">0</div>
+                                            <div class="stat-label">Hours Traveled</div>
+                                        </div>
+                                        <div class="stat-card">
+                                            <div class="stat-number" id="uniqueStops">0</div>
+                                            <div class="stat-label">Stops Visited</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Community Comparison Removed -->
+                                </div>
+
+                                <!-- CENTER COLUMN: Map & Feed -->
+                                <div class="col-center">
+
+                                    <!-- Map Section (Moved to Top) -->
+                                    <div id="mapsSection" class="section">
+                                        <div id="mapContainer"></div>
+                                    </div>
+
+                                    <!-- Start Trip Section -->
+                                    <div id="activeTripSection" class="section">
+                                        <h3 style="margin-bottom: 15px;">Start New Trip</h3>
+                                        <div class="form-row">
+                                            <div class="form-group" style="flex: 1;">
+                                                <label>Boarding Stop</label>
+                                                <input type="text" id="stopInput"
+                                                    placeholder="e.g., 6638 or Union Station">
+                                                <div id="stopPreview" class="preview-box" style="display: none;"></div>
+                                            </div>
+                                            <div class="form-group" style="flex: 1;">
+                                                <label>Route/Line</label>
+                                                <input type="text" id="routeInput"
+                                                    placeholder="e.g., 65, Line 1, 504 King">
+                                            </div>
+                                        </div>
+                                        <button id="startBtn" class="btn btn-primary">🚌 Board Vehicle</button>
+                                    </div>
+
+                                    <!-- Banners Container -->
+                                    <div id="bannersContainer" class="banner-container full-width">
+                                        <!-- Dynamic banners will be inserted here -->
+                                    </div>
+
+                                    <!-- Review Unverified Trips Only (if needed) -->
+                                    <!-- <div id="reviewTripsSection" ... > (Hidden/Removed) </div> -->
+
+                                    <!-- Recent Trips (News Feed Style) -->
+                                    <div class="section">
+                                        <h3 style="margin-bottom: 15px;">📜 Recent Trips</h3>
+                                        <div id="recentTripsList" class="news-feed">
+                                            <div class="loading">Loading trips...</div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div id="startSection" class="section">
-                                <!-- Trip Templates -->
-                                <div id="templatesSection" class="templates-section" style="display: none;">
-                                    <div class="templates-header">
-                                        <h3>⭐ Quick Start</h3>
-                                        <button class="manage-templates-btn"
-                                            onclick="showProfile(); scrollToTemplates();">Manage</button>
+                                <!-- RIGHT COLUMN: Top Stats -->
+                                <div class="col-right">
+                                    <div class="section">
+                                        <h3>🚌 Top Routes</h3>
+                                        <div id="topRoutesList">
+                                            <div class="loading">Loading...</div>
+                                        </div>
                                     </div>
-                                    <div id="templatesList">
-                                        <!-- Templates will be populated here -->
-                                    </div>
-                                </div>
 
-                                <!-- Repeat Last Trip -->
-                                <div id="repeatLastTripSection" style="display: none; margin-bottom: 20px;">
-                                    <button id="repeatLastTripBtn" class="btn"
-                                        style="width: 100%; background: var(--accent-secondary); color: white; padding: 15px; font-size: 1em;">
-                                        🔄 Repeat Last Trip
-                                    </button>
-                                </div>
-
-                                <h2>Start New Trip</h2>
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label>Boarding Stop</label>
-                                        <input type="text" id="stopInput" placeholder="e.g., 6638 or Union Station">
-                                        <div id="stopPreview" class="preview-box" style="display: none;"></div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Route/Line</label>
-                                        <input type="text" id="routeInput" placeholder="e.g., 65, Line 1, 504 King">
-                                        <div id="routePreview" class="preview-box" style="display: none;"></div>
+                                    <div class="section">
+                                        <h3>🚏 Top Stops</h3>
+                                        <div id="topStopsList">
+                                            <div class="loading">Loading...</div>
+                                        </div>
                                     </div>
                                 </div>
-                                <button id="startBtn" class="btn btn-primary" disabled>🚌 Board Vehicle</button>
-                            </div>
 
-                            <div id="activeSection" class="section" style="display: none;">
-                                <div class="trip-status">
-                                    <h2>🚌 Currently Riding</h2>
-                                    <div id="currentTrip"></div>
-                                </div>
-
-                                <div style="display: flex; gap: 10px;">
-                                    <button id="endBtn" class="btn btn-danger" style="flex: 1;">🛑 End Trip</button>
-                                    <button id="cancelTrip" class="btn btn-outline"
-                                        style="background: #ffc107; color: #856404; border-color: #ffc107; flex: 1;">⚠️
-                                        Cancel
-                                        Trip</button>
-                                </div>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- RIGHT COLUMN: Activity Feed -->
-                        <div class="col-right">
-
-
-                            <!-- Recent Trips Section -->
-                            <div id="recentTripsSection" class="section" style="display: none;">
-                                <h3 style="margin-bottom: 15px; color: var(--text-primary);">📋 Recent Trips</h3>
-                                <div id="recentTripsList">
-                                    <div class="loading">Loading trips...</div>
-                                </div>
+                    <div id="endModal"
+                        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+                        <div
+                            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 20px; border-radius: 8px; width: 90%; max-width: 400px; border: 1px solid var(--border-color);">
+                            <h3>End Trip</h3>
+                            <div class="form-group">
+                                <label>Exit Stop</label>
+                                <input type="text" id="exitInput" placeholder="e.g., 1234 or King Station">
                             </div>
+                            <div class="save-template-checkbox">
+                                <input type="checkbox" id="saveAsTemplate">
+                                <label for="saveAsTemplate">⭐ Save route + start stop as template</label>
+                            </div>
+                            <button id="saveBtn" class="btn btn-primary">Save Trip</button>
+                            <button id="cancelBtn" class="btn" style="background: var(--border-color);">Cancel</button>
+                        </div>
+                    </div>
+
+                    <!-- Add Stop Modal -->
+                    <div id="addStopModal"
+                        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+                        <div
+                            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 20px; border-radius: 8px; width: 90%; max-width: 400px; border: 1px solid var(--border-color);">
+                            <h3>Add Stop to Database</h3>
+                            <p style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 15px;">
+                                Adding this stop will verify future trips using it.
+                            </p>
+                            <div class="form-group">
+                                <label>Stop Code (optional)</label>
+                                <input type="text" id="addStopCode" placeholder="e.g., 6036">
+                            </div>
+                            <div class="form-group">
+                                <label>Stop Name</label>
+                                <input type="text" id="addStopName" placeholder="e.g., Parliament & Howard">
+                            </div>
+                            <div class="form-group">
+                                <label>Agency</label>
+                                <select id="addStopAgency"
+                                    style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary);">
+                                    <option value="TTC">TTC</option>
+                                    <option value="OC Transpo">OC Transpo</option>
+                                    <option value="GO Transit">GO Transit</option>
+                                    <option value="MiWay">MiWay</option>
+                                    <option value="YRT">YRT</option>
+                                    <option value="Brampton Transit">Brampton Transit</option>
+                                    <option value="Durham Transit">Durham Transit</option>
+                                    <option value="HSR">HSR</option>
+                                    <option value="GRT">GRT</option>
+                                    <option value="STM">STM</option>
+                                    <option value="TransLink">TransLink</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Latitude</label>
+                                <input type="number" step="any" id="addStopLat" placeholder="e.g., 43.6655">
+                            </div>
+                            <div class="form-group">
+                                <label>Longitude</label>
+                                <input type="number" step="any" id="addStopLng" placeholder="e.g., -79.3644">
+                            </div>
+                            <button id="useCurrentLocationBtn" class="btn btn-outline" style="margin-bottom: 10px;">📍
+                                Use
+                                Current Location</button>
+                            <input type="hidden" id="addStopTripId">
+                            <button id="saveStopBtn" class="btn btn-primary">Add Stop & Verify Trip</button>
+                            <button id="cancelStopBtn" class="btn"
+                                style="background: var(--border-color);">Cancel</button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div id="endModal"
+            <!-- Settings Modal -->
+            <div id="settingsModal"
                 style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
                 <div
-                    style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 20px; border-radius: 8px; width: 90%; max-width: 400px; border: 1px solid var(--border-color);">
-                    <h3>End Trip</h3>
-                    <div class="form-group">
-                        <label>Exit Stop</label>
-                        <input type="text" id="exitInput" placeholder="e.g., 1234 or King Station">
+                    style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 25px; border-radius: 12px; width: 90%; max-width: 450px; border: 1px solid var(--border-color); max-height: 90vh; overflow-y: auto;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="margin: 0;">⚙️ Settings</h3>
+                        <button onclick="closeSettings()"
+                            style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: var(--text-secondary);">×</button>
                     </div>
-                    <div class="save-template-checkbox">
-                        <input type="checkbox" id="saveAsTemplate">
-                        <label for="saveAsTemplate">⭐ Save route + start stop as template</label>
-                    </div>
-                    <button id="saveBtn" class="btn btn-primary">Save Trip</button>
-                    <button id="cancelBtn" class="btn" style="background: var(--border-color);">Cancel</button>
-                </div>
-            </div>
 
-            <!-- Add Stop Modal -->
-            <div id="addStopModal"
-                style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-                <div
-                    style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 20px; border-radius: 8px; width: 90%; max-width: 400px; border: 1px solid var(--border-color);">
-                    <h3>Add Stop to Database</h3>
-                    <p style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 15px;">
-                        Adding this stop will verify future trips using it.
-                    </p>
-                    <div class="form-group">
-                        <label>Stop Code (optional)</label>
-                        <input type="text" id="addStopCode" placeholder="e.g., 6036">
+                    <h4
+                        style="margin-bottom: 15px; color: var(--text-secondary); text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.5px;">
+                        Profile</h4>
+
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div
+                            style="font-size: 3em; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            <span id="settingsAvatar">🚌</span>
+                            <button id="shuffleEmojiBtn" onclick="shuffleEmoji()"
+                                style="background: var(--bg-tertiary); border: 2px solid var(--border-color); border-radius: 50%; padding: 8px; font-size: 0.5em; cursor: pointer; width: 30px; height: 30px; display: none;">🎲</button>
+                        </div>
+                        <div id="emojiSelector">
+                            <label
+                                style="display: block; margin-bottom: 10px; font-size: 0.9em; color: var(--text-secondary);">Choose
+                                Avatar</label>
+                            <div
+                                style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
+                                <button class="emoji-btn" onclick="selectEmoji('🚌')">🚌</button>
+                                <button class="emoji-btn" onclick="selectEmoji('🚇')">🚇</button>
+                                <button class="emoji-btn" onclick="selectEmoji('🚊')">🚊</button>
+                                <button class="emoji-btn" onclick="selectEmoji('🚋')">🚋</button>
+                                <button class="emoji-btn" onclick="selectEmoji('🚞')">🚞</button>
+                                <button class="emoji-btn" onclick="selectEmoji('🚝')">🚝</button>
+                                <button class="emoji-btn" onclick="selectEmoji('🚄')">🚄</button>
+                                <button class="emoji-btn" onclick="selectEmoji('✈️')">✈️</button>
+                            </div>
+                        </div>
                     </div>
+
                     <div class="form-group">
-                        <label>Stop Name</label>
-                        <input type="text" id="addStopName" placeholder="e.g., Parliament & Howard">
+                        <label>Display Name</label>
+                        <input type="text" id="nameInput" placeholder="Your name (e.g., Ryan)">
                     </div>
+
                     <div class="form-group">
-                        <label>Agency</label>
-                        <select id="addStopAgency"
-                            style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary);">
-                            <option value="TTC">TTC</option>
-                            <option value="OC Transpo">OC Transpo</option>
+                        <label>Default Agency</label>
+                        <select id="defaultAgencySelect"
+                            style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 1em;">
+                            <option value="TTC">TTC (Toronto)</option>
+                            <option value="OC Transpo">OC Transpo (Ottawa)</option>
                             <option value="GO Transit">GO Transit</option>
-                            <option value="MiWay">MiWay</option>
-                            <option value="YRT">YRT</option>
+                            <option value="MiWay">MiWay (Mississauga)</option>
+                            <option value="YRT">YRT (York Region)</option>
                             <option value="Brampton Transit">Brampton Transit</option>
                             <option value="Durham Transit">Durham Transit</option>
-                            <option value="HSR">HSR</option>
-                            <option value="GRT">GRT</option>
-                            <option value="STM">STM</option>
-                            <option value="TransLink">TransLink</option>
+                            <option value="HSR">HSR (Hamilton)</option>
+                            <option value="GRT">GRT (Waterloo Region)</option>
+                            <option value="STM">STM (Montreal)</option>
+                            <option value="TransLink">TransLink (Vancouver)</option>
+                            <option value="Other">Other</option>
                         </select>
                     </div>
+
+                    <hr style="border: none; border-top: 1px solid var(--border-light); margin: 25px 0;">
+
+                    <h4
+                        style="margin-bottom: 15px; color: var(--text-secondary); text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.5px;">
+                        Appearance</h4>
+
                     <div class="form-group">
-                        <label>Latitude</label>
-                        <input type="number" step="any" id="addStopLat" placeholder="e.g., 43.6655">
+                        <label>Theme</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <button id="themeLightBtn" class="btn btn-outline" onclick="setTheme('light')"
+                                style="margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                ☀️ Light
+                            </button>
+                            <button id="themeDarkBtn" class="btn btn-outline" onclick="setTheme('dark')"
+                                style="margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                🌙 Dark
+                            </button>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Longitude</label>
-                        <input type="number" step="any" id="addStopLng" placeholder="e.g., -79.3644">
-                    </div>
-                    <button id="useCurrentLocationBtn" class="btn btn-outline" style="margin-bottom: 10px;">📍 Use
-                        Current Location</button>
-                    <input type="hidden" id="addStopTripId">
-                    <button id="saveStopBtn" class="btn btn-primary">Add Stop & Verify Trip</button>
-                    <button id="cancelStopBtn" class="btn" style="background: var(--border-color);">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Settings Modal -->
-    <div id="settingsModal"
-        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-        <div
-            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 25px; border-radius: 12px; width: 90%; max-width: 450px; border: 1px solid var(--border-color); max-height: 90vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3 style="margin: 0;">⚙️ Settings</h3>
-                <button onclick="closeSettings()"
-                    style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: var(--text-secondary);">×</button>
-            </div>
-
-            <h4
-                style="margin-bottom: 15px; color: var(--text-secondary); text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.5px;">
-                Profile</h4>
-
-            <div style="text-align: center; margin-bottom: 20px;">
-                <div
-                    style="font-size: 3em; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                    <span id="settingsAvatar">🚌</span>
-                    <button id="shuffleEmojiBtn" onclick="shuffleEmoji()"
-                        style="background: var(--bg-tertiary); border: 2px solid var(--border-color); border-radius: 50%; padding: 8px; font-size: 0.5em; cursor: pointer; width: 30px; height: 30px; display: none;">🎲</button>
-                </div>
-                <div id="emojiSelector">
-                    <label
-                        style="display: block; margin-bottom: 10px; font-size: 0.9em; color: var(--text-secondary);">Choose
-                        Avatar</label>
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
-                        <button class="emoji-btn" onclick="selectEmoji('🚌')">🚌</button>
-                        <button class="emoji-btn" onclick="selectEmoji('🚇')">🚇</button>
-                        <button class="emoji-btn" onclick="selectEmoji('🚊')">🚊</button>
-                        <button class="emoji-btn" onclick="selectEmoji('🚋')">🚋</button>
-                        <button class="emoji-btn" onclick="selectEmoji('🚞')">🚞</button>
-                        <button class="emoji-btn" onclick="selectEmoji('🚝')">🚝</button>
-                        <button class="emoji-btn" onclick="selectEmoji('🚄')">🚄</button>
-                        <button class="emoji-btn" onclick="selectEmoji('✈️')">✈️</button>
+                    <div style="margin-top: 30px; display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="saveSettings()" style="flex: 1;">Save Changes</button>
+                        <button class="btn" onclick="closeSettings()"
+                            style="flex: 1; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">Cancel</button>
                     </div>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label>Display Name</label>
-                <input type="text" id="nameInput" placeholder="Your name (e.g., Ryan)">
-            </div>
-
-            <div class="form-group">
-                <label>Default Agency</label>
-                <select id="defaultAgencySelect"
-                    style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 1em;">
-                    <option value="TTC">TTC (Toronto)</option>
-                    <option value="OC Transpo">OC Transpo (Ottawa)</option>
-                    <option value="GO Transit">GO Transit</option>
-                    <option value="MiWay">MiWay (Mississauga)</option>
-                    <option value="YRT">YRT (York Region)</option>
-                    <option value="Brampton Transit">Brampton Transit</option>
-                    <option value="Durham Transit">Durham Transit</option>
-                    <option value="HSR">HSR (Hamilton)</option>
-                    <option value="GRT">GRT (Waterloo Region)</option>
-                    <option value="STM">STM (Montreal)</option>
-                    <option value="TransLink">TransLink (Vancouver)</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
-
-            <hr style="border: none; border-top: 1px solid var(--border-light); margin: 25px 0;">
-
-            <h4
-                style="margin-bottom: 15px; color: var(--text-secondary); text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.5px;">
-                Appearance</h4>
-
-            <div class="form-group">
-                <label>Theme</label>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <button id="themeLightBtn" class="btn btn-outline" onclick="setTheme('light')"
-                        style="margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        ☀️ Light
-                    </button>
-                    <button id="themeDarkBtn" class="btn btn-outline" onclick="setTheme('dark')"
-                        style="margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        🌙 Dark
-                    </button>
+            <!-- Status Footer -->
+            <div class="status-footer">
+                <div id="locationStatus" class="status-indicator loading">
+                    📍 Getting location...
+                </div>
+                <div id="connectionStatus" class="status-indicator" onclick="toggleLogout()">
+                    Checking...
                 </div>
             </div>
 
-            <div style="margin-top: 30px; display: flex; gap: 10px;">
-                <button class="btn btn-primary" onclick="saveSettings()" style="flex: 1;">Save Changes</button>
-                <button class="btn" onclick="closeSettings()"
-                    style="flex: 1; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Status Footer -->
-    <div class="status-footer">
-        <div id="locationStatus" class="status-indicator loading">
-            📍 Getting location...
-        </div>
-        <div id="connectionStatus" class="status-indicator" onclick="toggleLogout()">
-            Checking...
-        </div>
-    </div>
-
-    <script src="app.js"></script>
+            <script src="app.js"></script>
 </body>
 
 </html>

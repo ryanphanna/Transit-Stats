@@ -82,7 +82,11 @@
 <body data-theme="dark">
     <div class="header">
         <div class="header-row">
-            <h1 class="header-title">TransitStats Admin</h1>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="header-btn" onclick="window.location.href='index.html'" style="font-size: 0.9em;">←
+                    Back</button>
+                <h1 class="header-title">TransitStats Admin</h1>
+            </div>
             <div id="userInfo">
                 <span id="userEmail" style="margin-right: 10px; font-size: 0.9em;"></span>
                 <button class="header-btn" onclick="firebase.auth().signOut()">Sign Out</button>
