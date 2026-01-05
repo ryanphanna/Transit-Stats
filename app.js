@@ -37,8 +37,8 @@ setTimeout(() => {
                     <strong>22 trips</strong>
                 </div>
             `;
-    document.getElementById('topRoutes').innerHTML = topRoutesHTML;
-    document.getElementById('topStops').innerHTML = topRoutesHTML.replace(/504 King/g, 'King St W').replace(/501 Queen/g, 'Queen St E');
+    document.getElementById('topRoutesList').innerHTML = topRoutesHTML;
+    document.getElementById('topStopsList').innerHTML = topRoutesHTML.replace(/504 King/g, 'King St W').replace(/501 Queen/g, 'Queen St E');
 
 }, 1000);
 // --------------------------------------------
@@ -227,6 +227,9 @@ function loadUserProfile() {
                 if (displayName) displayName.textContent = profile.name || 'Traveler';
                 if (displayAgency) displayAgency.textContent = profile.defaultAgency || 'TTC';
 
+                // Ensure the "Identity Card" always shows something
+                if (displayName && !profile.name) displayName.classList.add('placeholder-text');
+
                 // Update Settings Inputs
                 const settingsAvatar = document.getElementById('settingsAvatar');
                 const nameInput = document.getElementById('nameInput');
@@ -269,7 +272,7 @@ function showStats() {
     }
 
     updateStatsSection();
-    loadCommunityData();
+    // loadCommunityData(); // Removed per user request
 }
 
 function showMaps() {
@@ -713,7 +716,7 @@ function initializeStatsToggle() {
             toggleAll.style.background = 'transparent';
             toggleAll.style.color = 'var(--text-secondary)';
             updateStatsSection();
-            loadCommunityData();
+            // loadCommunityData();
         }
     });
 
@@ -725,7 +728,7 @@ function initializeStatsToggle() {
             toggle30.style.background = 'transparent';
             toggle30.style.color = 'var(--text-secondary)';
             updateStatsSection();
-            loadCommunityData();
+            // loadCommunityData();
         }
     });
 }
@@ -1066,7 +1069,7 @@ function generateTopRoutes(trips) {
         ).join('') :
         '<div style="color: var(--text-muted); font-style: italic;">No trips yet</div>';
 
-    document.getElementById('topRoutes').innerHTML = topRoutesHtml;
+    document.getElementById('topRoutesList').innerHTML = topRoutesHtml;
 }
 
 function generateTopStops(trips) {
@@ -1091,7 +1094,7 @@ function generateTopStops(trips) {
         ).join('') :
         '<div style="color: var(--text-muted); font-style: italic;">No trips yet</div>';
 
-    document.getElementById('topStops').innerHTML = topStopsHtml;
+    document.getElementById('topStopsList').innerHTML = topStopsHtml;
 }
 
 function loadCommunityData() {

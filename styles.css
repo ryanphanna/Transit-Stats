@@ -129,9 +129,9 @@ body {
 
 
 .container {
-    max-width: 100%;
     padding: 15px;
     transition: max-width 0.3s ease;
+    width: 100%;
 }
 
 .section {
@@ -268,6 +268,78 @@ body {
 
 .active-trip-banner:hover {
     opacity: 0.9;
+}
+
+/* Dashboard Grid - 3 Column Layout */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+@media (min-width: 1200px) {
+    .dashboard-grid {
+        grid-template-columns: 300px minmax(500px, 1fr) 300px;
+        align-items: start;
+    }
+}
+
+.col-left,
+.col-right {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.col-center {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* News Feed Style for Recent Trips */
+.news-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.news-feed .trip-item {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 0;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.news-feed .trip-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.news-feed .trip-route {
+    font-size: 1.1em;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.news-feed .trip-stops {
+    color: var(--text-secondary);
+    font-size: 0.95em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.news-feed .trip-meta {
+    font-size: 0.85em;
+    color: var(--text-muted);
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
 }
 
 .banner-container {
