@@ -39,10 +39,7 @@ View your transit usage in two modes: **30 Days** or **All Time**
 - Best streak ever achieved
 - Visual streak indicators
 
-**Community Comparison:**
-- See your rank among all users
-- Compare to community averages
-- Track total user count
+
 
 **Multi-Agency Support:**
 - Set a default transit agency in your profile
@@ -76,7 +73,7 @@ Unlock beautiful heatmaps after recording 50 trips with GPS data:
 - **Streak Stats**: Dedicated streak tracking section
 - **Template Management**: Manage your saved trip templates
 - **Swipe to Delete**: Touch gesture support for easy deletion of trips and templates on mobile devices
-- **CSV Export**: Export all your trip data to CSV format for analysis in spreadsheets
+- **Swipe to Delete**: Touch gesture support for easy deletion of trips and templates on mobile devices
 
 #### 🔐 Authentication & Sync
 - **Email Sign-in**: Two authentication methods:
@@ -104,16 +101,19 @@ TransitStats includes a complete SMS-based trip logging system for tracking trip
 - Format: Route / Stop / Direction (optional) / Agency (optional)
 - Commands: STATUS (view active trip), END (finish trip), DISCARD (delete trip), INFO (show help)
 
+**Smart Features:**
+- **Direction Normalization**: "SB" -> "Southbound", "CW" -> "Clockwise"
+- **Alias Resolution**: Text "Home" or "Work" (if configured in Admin) to map to specific stops
+- **Auto-Formatting**: "king and spadina" -> "King & Spadina"
+
 **Verification System:**
 - **Verified Badge (✓)**: Trips where stops are found in the stop database with GPS coordinates
 - **Unverified Badge (?)**: Trips with stops not yet in the database
-- "Review SMS Trips" section displays unverified trips that need attention
 
-**Stop Database Contribution:**
-- Users can contribute missing stops to the database
-- Add stop name/code, agency, and GPS coordinates
-- Verifying a stop automatically updates the trip and adds location data
-- Community-driven database helps verify future SMS trips
+**Admin Panel:**
+- Users can manage the stop database via the hidden Admin Panel (`/admin.html`)
+- **Link Aliases**: Map common names (e.g., "King & Spadina") to canonical Stop IDs
+- **Stop Management**: create, edit, and verify stops to improve data quality 
 
 **Registration:**
 - Link your phone number to your TransitStats account via SMS
@@ -177,8 +177,7 @@ You'll need:
 5. **Enable GPS**: Location data unlocks powerful mapping features
 6. **Build Streaks**: Make it a game - how long can you ride transit daily?
 7. **Check Stats**: Review your 30-day stats regularly to understand patterns
-8. **Verify SMS Trips**: Review unverified trips and contribute stops to the database
-9. **Export Your Data**: Download your trip history as CSV for deeper analysis
+8. **Verify SMS Trips**: Use the Admin Panel to keep your stop library clean
 
 ### Privacy Notes
 - Your GPS location is only recorded when you explicitly start or end a trip
