@@ -1,0 +1,942 @@
+:root {
+    --bg-primary: #f5f5f5;
+    --bg-secondary: white;
+    --bg-tertiary: #f8f9fa;
+    --text-primary: #333;
+    --text-secondary: #666;
+    --text-muted: #999;
+    --border-color: #ddd;
+    --border-light: #eee;
+    --accent-primary: #667eea;
+    --accent-secondary: #764ba2;
+    --success-bg: #d4edda;
+    --success-text: #155724;
+    --warning-bg: #fff3cd;
+    --warning-text: #856404;
+    --danger-bg: #f8d7da;
+    --danger-text: #721c24;
+    --info-bg: #e3f2fd;
+    --info-text: #1976d2;
+}
+
+[data-theme="dark"] {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --bg-tertiary: #242424;
+    --text-primary: #ffffff;
+    --text-secondary: #cccccc;
+    --text-muted: #888888;
+    --border-color: #404040;
+    --border-light: #333333;
+    --accent-primary: #7c93f0;
+    --accent-secondary: #8a5fb8;
+    --success-bg: #1e4620;
+    --success-text: #90ee90;
+    --warning-bg: #4a4017;
+    --warning-text: #ffd700;
+    --danger-bg: #4a1e1e;
+    --danger-text: #ff6b6b;
+    --info-bg: #1a365d;
+    --info-text: #66b3ff;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.4;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.content-wrapper {
+    flex: 1;
+}
+
+.header {
+    background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+    color: white;
+    padding: 15px 12px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-title {
+    font-size: 1.2em;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+}
+
+.header-btn,
+.theme-toggle {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: all 0.2s ease;
+    min-width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.header-btn:hover,
+.theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.header-btn span {
+    display: none;
+}
+
+
+
+.container {
+    max-width: 100%;
+    padding: 15px;
+    transition: max-width 0.3s ease;
+}
+
+.section {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-light);
+}
+
+/* Maps specific styles - Clean Datawrapper Style */
+#mapContainer {
+    height: 400px;
+    width: 100%;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--bg-tertiary);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.map-controls {
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    padding: 20px;
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    border: 1px solid var(--border-color);
+}
+
+.map-toggle {
+    display: flex;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    padding: 2px;
+    align-self: center;
+    border: 1px solid var(--border-color);
+}
+
+.toggle-btn {
+    background: transparent;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 2px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.toggle-btn.active {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.map-legend {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legend-color {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+}
+
+/* Progress bar for heatmap unlock */
+.heatmap-progress {
+    background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.progress-bar {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    height: 6px;
+    margin: 10px 0 5px 0;
+    overflow: hidden;
+}
+
+.progress-fill {
+    background: white;
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+/* Footer status bar */
+.status-footer {
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    padding: 10px 15px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 20px;
+    font-size: 0.9em;
+}
+
+/* Active trip banner */
+.active-trip-banner {
+    background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.active-trip-banner:hover {
+    opacity: 0.9;
+}
+
+.banner-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+@media (min-width: 768px) {
+    .banner-container {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.banner-container.full-width {
+    grid-template-columns: 1fr;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.status-indicator.excellent {
+    background: var(--success-bg);
+    color: var(--success-text);
+}
+
+.status-indicator.good {
+    background: var(--warning-bg);
+    color: var(--warning-text);
+}
+
+.status-indicator.poor {
+    background: var(--danger-bg);
+    color: var(--danger-text);
+}
+
+.status-indicator.loading {
+    background: var(--info-bg);
+    color: var(--info-text);
+}
+
+.status-indicator.connected {
+    background: var(--success-bg);
+    color: var(--success-text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.status-indicator.connected:hover {
+    background: #ff4757;
+    color: white;
+}
+
+.status-indicator.connected.logout-mode {
+    background: #ff4757;
+    color: white;
+}
+
+.status-indicator.disconnected {
+    background: var(--danger-bg);
+    color: var(--danger-text);
+}
+
+.auth-section {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.auth-section h2 {
+    margin-bottom: 20px;
+    color: var(--text-primary);
+}
+
+.auth-section p {
+    margin-bottom: 20px;
+    color: var(--text-secondary);
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 1em;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+.form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.preview-box {
+    margin-top: 8px;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    border: 1px solid transparent;
+}
+
+.preview-box.new {
+    background: var(--success-bg);
+    border-color: #2ed573;
+    color: var(--success-text);
+}
+
+.preview-box.existing {
+    background: var(--warning-bg);
+    border-color: #ffc107;
+    color: var(--warning-text);
+}
+
+.btn {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 10px 0;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    opacity: 0.9;
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-danger {
+    background: #ff4757;
+    color: white;
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 2px solid var(--border-color);
+}
+
+.btn-sm {
+    padding: 8px 12px;
+    font-size: 0.9em;
+    width: auto;
+}
+
+.trip-status {
+    background: var(--success-bg);
+    border: 2px solid #2ed573;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.trip-item {
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-left: 4px solid var(--accent-primary);
+    position: relative;
+    transition: transform 0.2s ease;
+    touch-action: pan-y;
+}
+
+.trip-item.swiping {
+    transform: translateX(-80px);
+}
+
+.trip-item .delete-overlay {
+    position: absolute;
+    right: -80px;
+    top: 0;
+    bottom: 0;
+    width: 80px;
+    background: #ff4757;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 0.9em;
+    border-radius: 0 8px 8px 0;
+}
+
+.empty-state {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 20px;
+    font-style: italic;
+}
+
+/* Verification badges */
+.verified-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 600;
+}
+
+.verified-badge.verified {
+    background: var(--success-bg);
+    color: var(--success-text);
+}
+
+.verified-badge.unverified {
+    background: var(--warning-bg);
+    color: var(--warning-text);
+}
+
+.source-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 0.7em;
+    font-weight: 500;
+    background: var(--bg-tertiary);
+    color: var(--text-muted);
+    margin-left: 6px;
+}
+
+.agency-badge {
+    font-size: 0.85em;
+    color: var(--text-secondary);
+}
+
+.auth-status {
+    background: var(--info-bg);
+    border: 1px solid #2196f3;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 15px;
+    font-size: 0.9em;
+    color: var(--info-text);
+}
+
+.loading {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-secondary);
+}
+
+.emoji-btn {
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 1.5em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.emoji-btn:hover {
+    background: var(--border-light);
+    transform: scale(1.1);
+}
+
+.emoji-btn.selected {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    transform: scale(1.1);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.stat-card {
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: var(--accent-primary);
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.streak-status {
+    background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    text-align: center;
+    display: block;
+}
+
+.streak-status.hot-streak {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ff8e6b 100%);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.02);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.template-card {
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-light);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.template-card:hover {
+    background: var(--border-light);
+    border-color: var(--accent-primary);
+    transform: translateY(-2px);
+}
+
+.template-card .template-icon {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    font-size: 1.2em;
+}
+
+.template-card .route-name {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 5px;
+}
+
+.template-card .stop-name {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+}
+
+.templates-section {
+    margin-bottom: 20px;
+}
+
+.templates-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.templates-header h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.1em;
+}
+
+.manage-templates-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 0.8em;
+    cursor: pointer;
+}
+
+.save-template-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 15px 0;
+    padding: 10px;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+}
+
+.save-template-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.save-template-checkbox label {
+    cursor: pointer;
+    font-size: 0.95em;
+    color: var(--text-primary);
+}
+
+
+@media (min-width: 768px) {
+    .header {
+        padding: 18px 20px;
+    }
+
+    .header-row {
+        gap: 15px;
+    }
+
+    .header-title {
+        font-size: 1.5em;
+    }
+
+    .user-info {
+        gap: 10px;
+    }
+
+    .header-btn,
+    .theme-toggle {
+        padding: 10px 14px;
+        font-size: 1.1em;
+        min-width: 48px;
+        height: 48px;
+    }
+
+    .banner-container {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .profile-dashboard-grid {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .profile-content-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .form-row {
+        flex-direction: row;
+    }
+
+    .form-row .form-group {
+        flex: 1;
+        margin-bottom: 0;
+    }
+}
+
+@media (min-width: 1200px) {
+    :root {
+        --spacing-unit: 8px;
+    }
+
+    body {
+        font-size: 12px;
+        /* Aggressive reduction for high density */
+    }
+
+    /* Explicitly set form element sizes to match body */
+    input,
+    button,
+    select,
+    textarea {
+        font-size: 12px !important;
+    }
+
+    h1 {
+        font-size: 1.6em;
+    }
+
+    h2 {
+        font-size: 1.3em;
+    }
+
+    h3 {
+        font-size: 1.1em;
+    }
+
+    h4 {
+        font-size: 1em;
+    }
+
+    .stat-number {
+        font-size: 2em;
+        /* Keep these relatively readable */
+    }
+
+    .container {
+        max-width: 100%;
+        padding: 15px 30px;
+    }
+
+    /* Main Dashboard Grid - High Density 3-Column */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 320px 1fr 340px;
+        /* Left (Control) | Center (Vis) | Right (Feed) */
+        gap: 20px;
+        align-items: start;
+    }
+
+    /* Wrapper Classes for 3-Column Layout */
+    .col-left,
+    .col-center,
+    .col-right {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    /* Force visibility of sections on Desktop for Density */
+    /* We override the JS-toggled display: none */
+    #profileSection,
+    #statsSection,
+    #mapsSection,
+    #startSection,
+    #recentTripsSection,
+    #reviewTripsSection {
+        display: block !important;
+    }
+
+    /* Hide Section Headers to reduce clutter since layout implies context */
+    #profileSection h2,
+    #statsSection h2,
+    #mapsSection h2 {
+        display: none;
+    }
+
+    /* Map Optimization - Make it the Hero */
+    #mapContainer {
+        height: 550px !important;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Compact Components */
+    .section {
+        padding: 20px;
+        /* Comfortable but not wasteful */
+        border: none;
+        box-shadow: none;
+        /* Flatten visual hierarchy */
+        background: transparent;
+        /* Merge with bg */
+    }
+
+    /* If sections have white bg, let's keep it but make it tighter */
+    .col-left .section,
+    .col-right .section {
+        background: var(--bg-secondary);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        border-radius: 12px;
+        padding: 16px;
+    }
+
+    .col-center .section {
+        background: transparent;
+        box-shadow: none;
+        padding: 0;
+    }
+
+    /* Forms in Center */
+    #startSection {
+        background: var(--bg-secondary);
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Stats Grid - High Density Horizontal */
+    .stats-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px;
+    }
+
+    .stat-card {
+        padding: 12px;
+        border: 1px solid var(--border-light);
+    }
+
+    .stat-number {
+        font-size: 1.5em;
+    }
+
+    .stat-label {
+        font-size: 0.85em;
+    }
+
+    /* Profile Grid - Vertical Stack */
+    .profile-dashboard-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    /* Trip Templates - Compact List */
+    .template-card {
+        padding: 10px 15px;
+        margin-bottom: 8px;
+    }
+
+    .template-card .route-name {
+        font-size: 1em;
+    }
+
+    /* Map Layout - Integrated */
+    .map-layout {
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 15px;
+    }
+
+    .map-controls {
+        background: var(--bg-secondary);
+        padding: 10px;
+        border-radius: 8px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+
+    .map-toggle {
+        margin: 0;
+    }
+}
+
+@media (min-width: 1400px) {
+    .container {
+        max-width: 1320px;
+    }
+}
