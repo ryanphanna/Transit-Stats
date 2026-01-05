@@ -392,7 +392,7 @@ function parseStopInput(input) {
     return { stopCode: trimmed, stopName: null };
   }
   // Contains letters - it's a stop name
-  return { stopCode: null, stopName: trimmed };
+  return { stopCode: null, stopName: toTitleCase(trimmed) };
 }
 
 /**
@@ -425,19 +425,20 @@ async function lookupStop(stopCode, stopName, agency) {
       // Look up by stop code and agency
       snapshot = await db.collection('stops')
         .where('agency', '==', agency)
-        .where('stopCode', '==', stopCode)
+        .where('code', '==', stopCode) // Corrected from stopCode to code
         .limit(1)
         .get();
     } else if (stopName) {
       // Look up by stop name and agency (case-sensitive exact match)
       snapshot = await db.collection('stops')
         .where('agency', '==', agency)
-        .where('stopName', '==', stopName)
+        .where('name', '==', stopName) // Corrected from stopName to name
         .limit(1)
         .get();
 
-      // If no exact match, try case-insensitive search
+      // If no exact match (or code lookup failed)
       if (snapshot.empty) {
+        // 1. Try case-insensitive name match
         const allStops = await db.collection('stops')
           .where('agency', '==', agency)
           .get();
@@ -445,11 +446,37 @@ async function lookupStop(stopCode, stopName, agency) {
         const lowerName = stopName.toLowerCase();
         for (const doc of allStops.docs) {
           const data = doc.data();
-          if (data.stopName && data.stopName.toLowerCase() === lowerName) {
-            return { id: doc.id, ...data };
+          // Check 'name' field
+          if (data.name && data.name.toLowerCase() === lowerName) {
+            return { id: doc.id, ...data, stopCode: data.code, stopName: data.name }; // Map back to internal format
           }
         }
-        return null;
+
+        // 2. Try ALIAS match (exact)
+        const aliasSnapshot = await db.collection('stops')
+          .where('agency', '==', agency)
+          .where('aliases', 'array-contains', stopName)
+          .limit(1)
+          .get();
+
+        if (!aliasSnapshot.empty) {
+          const doc = aliasSnapshot.docs[0];
+          const data = doc.data();
+          return { id: doc.id, ...data, stopCode: data.code, stopName: data.name };
+        }
+
+        // 3. Try ALIAS match (case-insensitive loop)
+        // Since we already fetched allStops above, we can reuse it
+        for (const doc of allStops.docs) {
+          const data = doc.data();
+          if (data.aliases && Array.isArray(data.aliases)) {
+            if (data.aliases.some(a => a.toLowerCase() === lowerName)) {
+              return { id: doc.id, ...data, stopCode: data.code, stopName: data.name };
+            }
+          }
+        }
+
+        return null; // Finally give up
       }
     } else {
       return null;
@@ -460,11 +487,67 @@ async function lookupStop(stopCode, stopName, agency) {
     }
 
     const doc = snapshot.docs[0];
-    return { id: doc.id, ...doc.data() };
+    const data = doc.data();
+    return { id: doc.id, ...data, stopCode: data.code, stopName: data.name };
   } catch (error) {
     console.error('Error looking up stop:', error);
     return null;
   }
+}
+
+/**
+ * Normalize direction input to standard full-word format
+ * @param {string} input - Raw direction input (e.g. "SB", "North", "CW")
+ * @returns {string} Normalized direction (e.g. "Southbound", "Northbound", "Clockwise") or original input
+ */
+function normalizeDirection(input) {
+  if (!input) return null;
+
+  const upper = input.trim().toUpperCase();
+
+  // North/Northbound
+  if (['N', 'NB', 'NORTH', 'NORTHBOUND'].includes(upper)) return 'Northbound';
+
+  // South/Southbound
+  if (['S', 'SB', 'SOUTH', 'SOUTHBOUND'].includes(upper)) return 'Southbound';
+
+  // East/Eastbound
+  if (['E', 'EB', 'EAST', 'EASTBOUND'].includes(upper)) return 'Eastbound';
+
+  // West/Westbound
+  if (['W', 'WB', 'WEST', 'WESTBOUND'].includes(upper)) return 'Westbound';
+
+  // Clockwise
+  if (['CW', 'CLOCKWISE'].includes(upper)) return 'Clockwise';
+
+  // Counterclockwise
+  if (['CCW', 'COUNTERCLOCKWISE', 'ANTICLOCKWISE', 'ANTI-CLOCKWISE'].includes(upper)) return 'Counterclockwise';
+
+  // Inbound
+  if (['IB', 'IN', 'INBOUND'].includes(upper)) return 'Inbound';
+
+  // Outbound
+  if (['OB', 'OUT', 'OUTBOUND'].includes(upper)) return 'Outbound';
+
+  // Return original if no match (e.g. specific destination name)
+  return input.trim();
+}
+
+/**
+ * Convert string to Title Case
+ * Also normalizes " and " to " & " for intersections
+ * @param {string} str - Input string
+ * @returns {string} Title Cased String
+ */
+function toTitleCase(str) {
+  if (!str) return str;
+
+  // Replace " and " with " & " (case insensitive)
+  const withAmpersand = str.replace(/\s+and\s+/gi, ' & ');
+
+  return withAmpersand.toLowerCase().split(' ').map(word => {
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  }).join(' ');
 }
 
 /**
@@ -491,9 +574,10 @@ function parseMultiLineTripFormat(body, defaultAgency) {
     return null;
   }
 
-  const route = lines[0];
-  const stop = lines[1];
-  const direction = lines.length > 2 ? lines[2] : null;
+  const route = toTitleCase(lines[0]);
+  const stop = toTitleCase(lines[1]);
+  // Normalize direction if present
+  const direction = lines.length > 2 ? normalizeDirection(lines[2]) : null;
 
   // Check if line 4 is an agency
   let agency = defaultAgency;
@@ -903,8 +987,9 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
         agency: activeTrip.agency || null,
       },
       newTrip: {
-        stopCode: parsedStop.stopCode,
-        stopName: parsedStop.stopName,
+        // Use resolved data if available
+        stopCode: stopData ? stopData.stopCode : parsedStop.stopCode,
+        stopName: stopData ? stopData.stopName : parsedStop.stopName,
         route,
         direction,
         agency,
@@ -926,8 +1011,9 @@ START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDispla
     userId: user.userId,
     route: route,
     direction: direction || null,
-    startStopCode: parsedStop.stopCode,
-    startStopName: parsedStop.stopName,
+    // Use resolved stop data if available, otherwise fall back to parsed input
+    startStopCode: stopData ? stopData.stopCode : parsedStop.stopCode,
+    startStopName: stopData ? stopData.stopName : parsedStop.stopName,
     endStopCode: null,
     endStopName: null,
     startTime: admin.firestore.FieldValue.serverTimestamp(),
@@ -944,9 +1030,15 @@ START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDispla
   // Format route display
   const routeDisplay = direction ? `Route ${route} ${direction}` : `Route ${route}`;
 
+  // Use the canonical display name
+  const finalStopDisplay = getStopDisplay(
+    stopData ? stopData.stopCode : parsedStop.stopCode,
+    stopData ? stopData.stopName : parsedStop.stopName
+  );
+
   await sendSmsReply(
     phoneNumber,
-    `✅ Started ${routeDisplay} from Stop ${stopDisplay}.
+    `✅ Started ${routeDisplay} from Stop ${finalStopDisplay}.
 
 END + ROUTE + STOP to finish. DISCARD to delete. INFO for help.`
   );
@@ -995,8 +1087,9 @@ async function handleConfirmStart(phoneNumber, user, state) {
 
   // Format displays
   const newStopDisplay = getStopDisplay(newTrip.stopCode, newTrip.stopName);
-  const newRouteDisplay = newTrip.direction
-    ? `Route ${newTrip.route} ${newTrip.direction}`
+  const normalizedDirection = normalizeDirection(newTrip.direction);
+  const newRouteDisplay = normalizedDirection
+    ? `Route ${newTrip.route} ${normalizedDirection}`
     : `Route ${newTrip.route}`;
 
   await sendSmsReply(
@@ -1050,11 +1143,14 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
   const exitLocation = endStopData ? { lat: endStopData.lat, lng: endStopData.lng } : null;
 
   // Get display strings for start and end stops
-  const endStopDisplay = getStopDisplay(parsedEndStop.stopCode, parsedEndStop.stopName);
+  const endStopDisplay = getStopDisplay(
+    endStopData ? endStopData.stopCode : parsedEndStop.stopCode,
+    endStopData ? endStopData.stopName : parsedEndStop.stopName
+  );
 
   await db.collection('trips').doc(activeTrip.id).update({
-    endStopCode: parsedEndStop.stopCode,
-    endStopName: parsedEndStop.stopName,
+    endStopCode: endStopData ? endStopData.stopCode : parsedEndStop.stopCode,
+    endStopName: endStopData ? endStopData.stopName : parsedEndStop.stopName,
     endTime: endTime,
     exitLocation: exitLocation,
     duration: duration,
@@ -1287,7 +1383,16 @@ STATUS to view active trip. INFO to view this information.`
 
       // Basic validation
       if (stopCode.length > 0 && route.length > 0) {
-        await handleTripLog(phoneNumber, user, stopCode, route, null, agency);
+        // If stop input is actually a name (not digits), Title Case it
+        // Note: parseStopInput will handle the logic, but we need to check the raw string here if it's name-like
+        // Actually, handleTripLog calls parseStopInput inside, so we just need to title case the route here
+        // But wait, the stopCode variable here is the raw first part.
+        // Let's rely on handleTripLog's internal parsing for the stop, but we should make sure we pass clean inputs?
+        // No, handleTripLog calls parseStopInput(stopInput).
+        // And parseStopInput calls toTitleCase if it's a name.
+        // So we just need to ensure the ROUTE is title cased.
+
+        await handleTripLog(phoneNumber, user, stopCode, toTitleCase(route), null, agency);
         res.type('text/xml').send(twimlResponse(''));
         return;
       }
