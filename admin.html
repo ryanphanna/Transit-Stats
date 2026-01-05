@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransitStats Admin</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <style>
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .admin-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .admin-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .stop-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .stop-card h4 {
+            margin: 0 0 5px 0;
+            color: var(--text-primary);
+        }
+
+        .stop-card .meta {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+        }
+
+        .stop-card .aliases {
+            margin-top: 8px;
+            font-size: 0.85em;
+            color: var(--text-muted);
+        }
+
+        .alias-badge {
+            background: var(--bg-tertiary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 4px;
+            display: inline-block;
+        }
+
+        .action-btn {
+            padding: 4px 8px;
+            font-size: 0.8em;
+            margin-left: 5px;
+        }
+
+        .pending-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-secondary);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border-light);
+        }
+    </style>
+</head>
+
+<body data-theme="dark">
+    <div class="header">
+        <div class="header-row">
+            <h1 class="header-title">TransitStats Admin</h1>
+            <div id="userInfo">
+                <span id="userEmail" style="margin-right: 10px; font-size: 0.9em;"></span>
+                <button class="header-btn" onclick="firebase.auth().signOut()">Sign Out</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-container">
+        <div id="authSection" style="text-align: center; margin-top: 50px;">
+            <h2>Admin Access Required</h2>
+            <p>Please sign in to manage stops.</p>
+            <button onclick="login()" class="btn btn-primary">Sign In with Google</button>
+        </div>
+
+        <div id="adminContent" style="display: none;">
+            <div class="admin-grid">
+                <!-- Left Column: Pending Links -->
+                <div class="section">
+                    <h2>⚠️ Pending Unlinked Stops</h2>
+                    <p class="section-desc">These raw strings were found in user trips but don't match any canonical
+                        stop.</p>
+                    <div id="pendingList">
+                        <div class="loading">Loading pending stops...</div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Stop Library -->
+                <div class="section">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h2 style="margin: 0;">📚 Stop Library</h2>
+                        <button onclick="openCreateModal()" class="btn btn-primary" style="font-size: 0.8em;">+ New
+                            Stop</button>
+                    </div>
+
+                    <div class="form-group">
+                        <input type="text" id="stopSearch" placeholder="Search stops..." onkeyup="filterStops()">
+                    </div>
+
+                    <div id="stopLibrary">
+                        <div class="loading">Loading stop library...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Link/Create Modal -->
+    <div id="linkModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; border: 1px solid var(--border-color);">
+            <h3 style="margin-top: 0;">Link Stop</h3>
+            <p>Mapping raw string: <strong id="modalTargetString" style="color: var(--accent-primary);"></strong></p>
+
+            <div id="linkOptions">
+                <h4 style="margin-bottom: 10px;">Option 1: Link to Existing Stop</h4>
+                <div class="form-group">
+                    <select id="existingStopSelect"
+                        style="width: 100%; padding: 10px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                        <option value="">Select a stop...</option>
+                    </select>
+                </div>
+                <button onclick="confirmLink()" class="btn btn-primary" style="width: 100%;">Link as Alias</button>
+
+                <div style="text-align: center; margin: 15px 0; color: var(--text-muted);">- OR -</div>
+
+                <h4 style="margin-bottom: 10px;">Option 2: Create New Stop</h4>
+                <button onclick="switchToCreate()" class="btn btn-outline" style="width: 100%;">Create New Stop from
+                    this string</button>
+            </div>
+
+            <div id="createOptions" style="display: none;">
+                <div class="form-group">
+                    <label>Canonical Name</label>
+                    <input type="text" id="newStopName">
+                </div>
+                <div class="form-group">
+                    <label>Stop Code (Optional)</label>
+                    <input type="text" id="newStopCode">
+                </div>
+                <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="form-group">
+                        <label>Lat</label>
+                        <input type="number" step="any" id="newStopLat">
+                    </div>
+                    <div class="form-group">
+                        <label>Lng</label>
+                        <input type="number" step="any" id="newStopLng">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Agency</label>
+                    <select id="newStopAgency"
+                        style="width: 100%; padding: 10px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                        <option value="TTC">TTC</option>
+                        <option value="GO Transit">GO Transit</option>
+                        <option value="UP Express">UP Express</option>
+                        <option value="MiWay">MiWay</option>
+                        <option value="YRT">YRT</option>
+                    </select>
+                </div>
+                <button onclick="confirmCreate()" class="btn btn-primary" style="width: 100%;">Create & Link</button>
+                <button onclick="backToLink()" class="btn btn-text" style="width: 100%; margin-top: 5px;">Back</button>
+            </div>
+
+            <button onclick="closeModal()" class="btn"
+                style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 1.5em; color: var(--text-secondary);">×</button>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+
+</html>

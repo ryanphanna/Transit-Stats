@@ -596,6 +596,58 @@ body {
     font-weight: 500;
 }
 
+/* Badges */
+.badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
+.badge-warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+/* SMS Inbox Styles */
+.review-inbox-item {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px !important;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.review-inbox-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-color: var(--accent-primary);
+}
+
+/* Pulse Animation for Priority Action */
+@keyframes pulse-verify {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(26, 115, 232, 0.4);
+    }
+
+    70% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 10px rgba(26, 115, 232, 0);
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(26, 115, 232, 0);
+    }
+}
+
+.btn-verify-pulse {
+    animation: pulse-verify 2s infinite;
+}
+
 .streak-status {
     background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
     color: white;

@@ -24,6 +24,8 @@
                     <button id="mapsBtn" class="header-btn" onclick="showMaps()">🗺️<span>Map</span></button>
                     <button id="settingsBtn" class="header-btn"
                         onclick="openSettings()">⚙️<span>Settings</span></button>
+                    <button id="adminBtn" class="header-btn"
+                        onclick="window.location.href='admin.html'">🛠️<span>Admin</span></button>
                 </div>
             </div>
         </div>
@@ -228,6 +230,18 @@
 
                         <!-- CENTER COLUMN: Visual & Action -->
                         <div class="col-center">
+                            <!-- Review SMS Trips Section (Moved to Admin Panel) -->
+                            <!-- <div id="reviewTripsSection" class="section" style="display: none;">
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                    <h3 style="color: var(--text-primary);">📩 SMS Inbox</h3>
+                                    <span id="unverifiedCount" class="verified-badge unverified">0 new matches</span>
+                                </div>
+                                <div id="reviewTripsList">
+                                    <div class="loading">Loading...</div>
+                                </div>
+                            </div> -->
+
                             <!-- Banners Container -->
                             <div id="bannersContainer" class="banner-container full-width">
                                 <div id="streakStatus" class="streak-status">⚡ Take your first trip to start tracking!
@@ -355,21 +369,7 @@
 
                         <!-- RIGHT COLUMN: Activity Feed -->
                         <div class="col-right">
-                            <!-- Review SMS Trips Section (unverified) -->
-                            <div id="reviewTripsSection" class="section" style="display: none;">
-                                <div
-                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                                    <h3 style="color: var(--text-primary);">🔍 Review SMS Trips</h3>
-                                    <span id="unverifiedCount" class="verified-badge unverified">0 unverified</span>
-                                </div>
-                                <p style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 15px;">
-                                    These SMS trips couldn't be matched to stops in the database. Add the stop to
-                                    verify.
-                                </p>
-                                <div id="reviewTripsList">
-                                    <div class="loading">Loading...</div>
-                                </div>
-                            </div>
+
 
                             <!-- Recent Trips Section -->
                             <div id="recentTripsSection" class="section" style="display: none;">
