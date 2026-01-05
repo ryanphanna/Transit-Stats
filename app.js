@@ -272,7 +272,7 @@ function showStats() {
     }
 
     updateStatsSection();
-    // loadCommunityData(); // Removed per user request
+
 }
 
 function showMaps() {
@@ -716,7 +716,7 @@ function initializeStatsToggle() {
             toggleAll.style.background = 'transparent';
             toggleAll.style.color = 'var(--text-secondary)';
             updateStatsSection();
-            // loadCommunityData();
+
         }
     });
 
@@ -728,109 +728,14 @@ function initializeStatsToggle() {
             toggle30.style.background = 'transparent';
             toggle30.style.color = 'var(--text-secondary)';
             updateStatsSection();
-            // loadCommunityData();
+
         }
     });
 }
 
-function exportTripsToCSV() {
-    if (!currentUser) {
-        alert('Please sign in to export your trips.');
-        return;
-    }
 
-    const exportBtn = document.getElementById('exportCsvBtn');
-    const originalContent = exportBtn.innerHTML;
-    exportBtn.innerHTML = '<span style="font-size: 1em;">⏳</span> Exporting...';
-    exportBtn.disabled = true;
 
-    let query = db.collection('trips').where('userId', '==', currentUser.uid);
 
-    if (currentStatsView === '30days') {
-        const dateFilter = new Date();
-        dateFilter.setDate(dateFilter.getDate() - 30);
-        query = query.where('startTime', '>=', firebase.firestore.Timestamp.fromDate(dateFilter));
-    }
-
-    query.orderBy('startTime', 'desc').get()
-        .then((snapshot) => {
-            const trips = [];
-            snapshot.forEach((doc) => {
-                trips.push(doc.data());
-            });
-
-            if (trips.length === 0) {
-                alert('No trips to export.');
-                exportBtn.innerHTML = originalContent;
-                exportBtn.disabled = false;
-                return;
-            }
-
-            // CSV header
-            const headers = ['Date', 'Route', 'Start Stop', 'End Stop', 'Duration (min)', 'Start Time', 'End Time'];
-
-            // Convert trips to CSV rows
-            const rows = trips.map(trip => {
-                const startDate = trip.startTime?.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
-                const endDate = trip.endTime?.toDate ? trip.endTime.toDate() : (trip.endTime ? new Date(trip.endTime) : null);
-
-                const dateStr = startDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
-                const startTimeStr = startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-                const endTimeStr = endDate ? endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : '';
-
-                return [
-                    dateStr,
-                    escapeCsvField(trip.route || ''),
-                    escapeCsvField(trip.startStop || ''),
-                    escapeCsvField(trip.endStop || ''),
-                    trip.duration || '',
-                    startTimeStr,
-                    endTimeStr
-                ];
-            });
-
-            // Build CSV content
-            const csvContent = [
-                headers.join(','),
-                ...rows.map(row => row.join(','))
-            ].join('\n');
-
-            // Create and download file
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const today = new Date().toISOString().split('T')[0];
-            const filename = `transit-trips-${today}.csv`;
-
-            // Use standard download pattern that works on mobile Safari
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', filename);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-
-            exportBtn.innerHTML = originalContent;
-            exportBtn.disabled = false;
-        })
-        .catch((error) => {
-            console.error('Error exporting trips:', error);
-            alert('Error exporting trips. Please try again.');
-            exportBtn.innerHTML = originalContent;
-            exportBtn.disabled = false;
-        });
-}
-
-function escapeCsvField(field) {
-    if (field === null || field === undefined) return '';
-    const str = String(field);
-    // Escape fields containing commas, quotes, or newlines
-    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-        return '"' + str.replace(/"/g, '""') + '"';
-    }
-    return str;
-}
 
 function updateStatsSection() {
     if (!currentUser) return;
@@ -1095,64 +1000,6 @@ function generateTopStops(trips) {
         '<div style="color: var(--text-muted); font-style: italic;">No trips yet</div>';
 
     document.getElementById('topStopsList').innerHTML = topStopsHtml;
-}
-
-function loadCommunityData() {
-    const dateFilter = new Date();
-    if (currentStatsView === '30days') {
-        dateFilter.setDate(dateFilter.getDate() - 30);
-    } else {
-        dateFilter.setFullYear(dateFilter.getFullYear() - 10);
-    }
-
-    db.collection('trips')
-        .where('startTime', '>=', firebase.firestore.Timestamp.fromDate(dateFilter))
-        .get()
-        .then((snapshot) => {
-            const allTrips = [];
-            const userTrips = [];
-
-            snapshot.forEach((doc) => {
-                const trip = doc.data();
-                allTrips.push(trip);
-                if (trip.userId === currentUser.uid) {
-                    userTrips.push(trip);
-                }
-            });
-
-            const totalUsers = new Set(allTrips.map(t => t.userId)).size;
-            const userRank = calculateUserRank(userTrips.length, allTrips);
-            const avgTripsPerUser = totalUsers > 0 ? Math.round(allTrips.length / totalUsers * 10) / 10 : 0;
-
-            const timeLabel = currentStatsView === '30days' ? '30 days' : 'all time';
-
-            const communityHtml = `
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-                            <div style="text-align: center; padding: 15px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
-                                <div style="font-size: 1.8em; font-weight: bold; color: var(--accent-primary);">${userTrips.length}</div>
-                                <div style="font-size: 0.9em; color: var(--text-secondary);">Your trips (${timeLabel})</div>
-                            </div>
-                            <div style="text-align: center; padding: 15px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
-                                <div style="font-size: 1.8em; font-weight: bold; color: var(--accent-primary);">#${userRank}</div>
-                                <div style="font-size: 0.9em; color: var(--text-secondary);">Your rank</div>
-                            </div>
-                            <div style="text-align: center; padding: 15px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
-                                <div style="font-size: 1.8em; font-weight: bold; color: var(--accent-primary);">${totalUsers}</div>
-                                <div style="font-size: 0.9em; color: var(--text-secondary);">Total users</div>
-                            </div>
-                            <div style="text-align: center; padding: 15px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
-                                <div style="font-size: 1.8em; font-weight: bold; color: var(--accent-primary);">${avgTripsPerUser}</div>
-                                <div style="font-size: 0.9em; color: var(--text-secondary);">Avg trips/user</div>
-                            </div>
-                        </div>
-                    `;
-
-            document.getElementById('communityStats').innerHTML = communityHtml;
-        })
-        .catch((error) => {
-            console.error('Error loading community data:', error);
-            document.getElementById('communityStats').innerHTML = '<div style="color: var(--text-muted); font-style: italic;">Unable to load community data</div>';
-        });
 }
 
 function calculateUserRank(userTripCount, allTrips) {
@@ -1680,185 +1527,15 @@ function loadTrips() {
         });
 }
 
-// Load unverified SMS trips for review (Real-time Inbox)
-function loadUnverifiedTrips() {
-    const reviewTripsSection = document.getElementById('reviewTripsSection');
-    const reviewTripsList = document.getElementById('reviewTripsList');
-    const unverifiedCount = document.getElementById('unverifiedCount');
 
-    // Use onSnapshot for real-time updates when new SMS trips arrive
-    db.collection('trips')
-        .where('userId', '==', currentUser.uid)
-        .where('verified', '==', false)
-        .where('source', '==', 'sms')
-        .orderBy('startTime', 'desc')
-        .limit(10)
-        .onSnapshot((snapshot) => {
-            if (!snapshot.empty) {
-                reviewTripsSection.style.display = 'block';
-                unverifiedCount.textContent = `${snapshot.size} new match${snapshot.size === 1 ? '' : 'es'}`;
-                reviewTripsList.innerHTML = '';
 
-                snapshot.forEach((doc) => {
-                    const trip = { id: doc.id, ...doc.data() };
-                    const startTime = trip.startTime ? trip.startTime.toDate() : new Date();
-                    // Relative time (e.g., "5 mins ago")
-                    const timeDiff = Math.floor((new Date() - startTime) / 60000);
-                    let timeStr = timeDiff < 1 ? 'Just now' : `${timeDiff} mins ago`;
-                    if (timeDiff > 60) timeStr = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-                    const startStop = trip.startStopCode || trip.startStopName || trip.startStop || 'Unknown';
-                    const endStop = trip.endStopCode || trip.endStopName || trip.endStop || 'In Progress';
-                    const agency = trip.agency || 'TTC';
 
-                    const tripDiv = document.createElement('div');
-                    tripDiv.className = 'trip-item review-inbox-item';
-                    tripDiv.innerHTML = `
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <div style="display: flex; align-items: center; gap: 8px;">
-                                        <span style="font-size: 1.2em;">💬</span>
-                                        <span class="badge badge-warning">Needs Verification</span>
-                                    </div>
-                                    <div style="font-size: 0.85em; color: var(--text-muted);">${timeStr}</div>
-                                </div>
-                                
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div>
-                                        <div style="font-weight: 600; font-size: 1.1em; color: var(--text-primary); margin-bottom: 2px;">
-                                            ${trip.route} <span style="font-weight: 400; color: var(--text-secondary);">• ${agency}</span>
-                                        </div>
-                                        <div style="font-size: 0.9em; color: var(--text-secondary);">
-                                            ${startStop} <span style="color: var(--accent-primary);">➜</span> ${endStop}
-                                        </div>
-                                    </div>
-                                    <button class="btn btn-primary btn-verify-pulse" style="padding: 8px 16px; font-size: 0.95em;">
-                                        Verify Stop 📍
-                                    </button>
-                                </div>
-                            `;
 
-                    tripDiv.querySelector('.btn-verify-pulse').addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        openAddStopModal(trip);
-                    });
 
-                    reviewTripsList.appendChild(tripDiv);
-                });
-            } else {
-                reviewTripsSection.style.display = 'none';
-            }
-        }, (error) => {
-            console.error('Error listening to unverified trips:', error);
-            reviewTripsSection.style.display = 'none';
-        });
-}
 
-// Open modal to add a stop
-function openAddStopModal(trip) {
-    const modal = document.getElementById('addStopModal');
-    const stopCodeInput = document.getElementById('addStopCode');
-    const stopNameInput = document.getElementById('addStopName');
-    const agencySelect = document.getElementById('addStopAgency');
-    const tripIdInput = document.getElementById('addStopTripId');
-    const latInput = document.getElementById('addStopLat');
-    const lngInput = document.getElementById('addStopLng');
 
-    // Pre-fill with trip data
-    tripIdInput.value = trip.id;
-    stopCodeInput.value = trip.startStopCode || '';
-    stopNameInput.value = trip.startStopName || trip.startStop || '';
-    agencySelect.value = trip.agency || 'TTC';
-    latInput.value = '';
-    lngInput.value = '';
 
-    // If trip has boarding location, use it
-    if (trip.boardingLocation && trip.boardingLocation.lat) {
-        latInput.value = trip.boardingLocation.lat;
-        lngInput.value = trip.boardingLocation.lng;
-    }
-
-    modal.style.display = 'block';
-}
-
-// Close add stop modal
-document.getElementById('cancelStopBtn').addEventListener('click', () => {
-    document.getElementById('addStopModal').style.display = 'none';
-});
-
-// Use current location for stop
-document.getElementById('useCurrentLocationBtn').addEventListener('click', () => {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                document.getElementById('addStopLat').value = position.coords.latitude.toFixed(6);
-                document.getElementById('addStopLng').value = position.coords.longitude.toFixed(6);
-            },
-            (error) => {
-                console.error('Error getting location:', error);
-                alert('Could not get your location. Please enter coordinates manually.');
-            }
-        );
-    } else {
-        alert('Geolocation not supported by your browser.');
-    }
-});
-
-// Save stop and verify trip
-document.getElementById('saveStopBtn').addEventListener('click', async () => {
-    const tripId = document.getElementById('addStopTripId').value;
-    const stopCode = document.getElementById('addStopCode').value.trim() || null;
-    const stopName = document.getElementById('addStopName').value.trim();
-    const agency = document.getElementById('addStopAgency').value;
-    const lat = parseFloat(document.getElementById('addStopLat').value);
-    const lng = parseFloat(document.getElementById('addStopLng').value);
-
-    if (!stopName && !stopCode) {
-        alert('Please enter a stop name or code.');
-        return;
-    }
-    if (isNaN(lat) || isNaN(lng)) {
-        alert('Please enter valid coordinates.');
-        return;
-    }
-
-    const saveBtn = document.getElementById('saveStopBtn');
-    saveBtn.disabled = true;
-    saveBtn.textContent = 'Saving...';
-
-    try {
-        // Add stop to database
-        const stopData = {
-            stopCode: stopCode,
-            stopName: stopName,
-            lat: lat,
-            lng: lng,
-            agency: agency,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            createdBy: currentUser.uid
-        };
-
-        await db.collection('stops').add(stopData);
-
-        // Update trip as verified with location
-        await db.collection('trips').doc(tripId).update({
-            verified: true,
-            boardingLocation: { lat: lat, lng: lng }
-        });
-
-        document.getElementById('addStopModal').style.display = 'none';
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Add Stop & Verify Trip';
-
-        // Reload unverified trips
-        loadUnverifiedTrips();
-        loadTrips();
-    } catch (error) {
-        console.error('Error saving stop:', error);
-        alert('Error saving stop. Please try again.');
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Add Stop & Verify Trip';
-    }
-});
 
 function checkActiveTrip() {
     db.collection('trips')
