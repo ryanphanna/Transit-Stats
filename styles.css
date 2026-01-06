@@ -122,6 +122,22 @@ body {
     transform: scale(1.05);
 }
 
+.header-btn i,
+.header-btn span {
+    pointer-events: none;
+}
+
+.header-btn.primary-action {
+    background: var(--accent-primary);
+    color: white;
+    border: none;
+}
+
+.header-btn.primary-action:hover {
+    background: var(--accent-secondary);
+    transform: translateY(-1px);
+}
+
 .header-btn span {
     display: none;
 }
@@ -1028,8 +1044,58 @@ body {
         gap: 12px;
     }
 
-    /* Trip Templates - Compact List */
-    .template-card {
+
+    /* Mastery Cards for Top Stats */
+    .mastery-card {
+        background: var(--bg-tertiary);
+        border-radius: 8px;
+        /* Slightly squarer than trips */
+        padding: 12px;
+        margin-bottom: 8px;
+        border: 1px solid var(--border-color);
+    }
+
+    .mastery-card:hover {
+        background: var(--bg-secondary);
+    }
+
+    .mastery-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+    }
+
+    .mastery-route {
+        font-weight: 700;
+        color: var(--text-primary);
+        font-size: 1.05em;
+    }
+
+    .mastery-count {
+        font-size: 0.9em;
+        color: var(--text-secondary);
+        background: var(--bg-primary);
+        padding: 2px 8px;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+    }
+
+    .mastery-bar-bg {
+        height: 4px;
+        background: var(--border-color);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .mastery-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+        border-radius: 2px;
+    }
+
+    /* Quick Templates Chips */
+    .template-chip {
         padding: 10px 15px;
         margin-bottom: 8px;
     }
