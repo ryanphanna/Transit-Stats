@@ -610,37 +610,28 @@ function parseMultiLineTripFormat(body, defaultAgency) {
 function parseEndTripFormat(body) {
   const lines = body.split('\n').map(line => line.trim()).filter(line => line.length > 0);
 
-  // First line must be "END"
-  if (lines.length === 0 || lines[0].toUpperCase() !== 'END') {
+  // First line must be "END" or "STOP"
+  if (lines.length === 0 || !['END', 'STOP'].includes(lines[0].toUpperCase())) {
     return null;
   }
 
   // Just "END" - no stop provided
   if (lines.length < 2) {
-    return { isEnd: true, stop: null, route: null };
+    return { isEnd: true, stop: null, route: null, notes: null };
   }
 
-  // Two lines: END + route OR END + stop
-  // If line 2 looks like a route (short, often numeric), treat line 2 as route
-  // Otherwise treat it as stop
-  if (lines.length === 2) {
-    // Single value after END - could be route or stop
-    // We'll treat it as stop for backwards compatibility
-    return {
-      isEnd: true,
-      stop: lines[1],
-      route: null,
-    };
-  }
-
-  // Three or more lines: END / route / stop
-  const route = lines[1];
-  const stop = lines[2];
+  // Format:
+  // Line 1: END/STOP
+  // Line 2: Stop Name
+  // Line 3+: Notes
+  const stop = lines[1];
+  const notes = lines.length > 2 ? lines.slice(2).join('\n') : null;
 
   return {
     isEnd: true,
     stop,
-    route,
+    route: null, // Deprecated route verification in favor of simple stop + notes
+    notes
   };
 }
 
@@ -701,18 +692,17 @@ function parseAgencyOverride(message) {
 async function handleHelp(phoneNumber) {
   const message = `TransitStats
 
-To start a trip send:
+To start a trip, send:
 
 ROUTE
 STOP
 DIRECTION (optional)
 AGENCY (optional)
 
-To end a trip send:
-
+To end a trip, send:
 END
-ROUTE
 STOP
+NOTES (optional)
 
 STATUS to view active trip. INFO to view this information.
 REGISTER [email] - Link account`;
@@ -1108,7 +1098,7 @@ END + ROUTE + STOP to finish. DISCARD to delete. INFO for help.`
  * @param {string} endStopInput - Stop code or name
  * @param {string|null} routeVerification - Optional route to verify against active trip
  */
-async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification = null) {
+async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification = null, notes = null) {
   const activeTrip = await getActiveTrip(user.userId);
 
   if (!activeTrip) {
@@ -1154,6 +1144,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     endTime: endTime,
     exitLocation: exitLocation,
     duration: duration,
+    notes: notes || null
   });
 
   // Format route display
@@ -1255,18 +1246,17 @@ async function handleSmsRequest(req, res) {
       await sendSmsReply(phoneNumber,
         `TransitStats
 
-To start a trip send:
+To start a trip, send:
 
 ROUTE
 STOP
 DIRECTION (optional)
 AGENCY (optional)
 
-To end a trip send:
-
+To end a trip, send:
 END
-ROUTE
 STOP
+NOTES (optional)
 
 STATUS to view active trip. INFO to view this information.`
       );
@@ -1338,7 +1328,7 @@ STATUS to view active trip. INFO to view this information.`
         }
       } else {
         // END with stop (and optional route verification)
-        await handleEndTrip(phoneNumber, user, endTripData.stop, endTripData.route);
+        await handleEndTrip(phoneNumber, user, endTripData.stop, endTripData.route, endTripData.notes);
       }
       res.type('text/xml').send(twimlResponse(''));
       return;
