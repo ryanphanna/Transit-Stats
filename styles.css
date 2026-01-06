@@ -297,8 +297,17 @@ body {
 
 @media (min-width: 1200px) {
     .dashboard-grid {
-        grid-template-columns: 300px minmax(500px, 1fr) 300px;
+        grid-template-columns: 320px minmax(500px, 1fr) 320px;
         align-items: start;
+        gap: 25px;
+        padding: 0 20px;
+    }
+
+    /* Enforce Dashboard Visibility on Desktop */
+    #profileSection,
+    #mapsSection,
+    #statsSection {
+        display: block !important;
     }
 }
 

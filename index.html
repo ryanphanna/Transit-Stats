@@ -82,7 +82,7 @@
 
                         <!-- LEFT COLUMN: Profile & Context -->
                         <div class="col-left">
-                            <div id="profileSection" class="section" style="display: none;">
+                            <div id="profileSection" class="section">
                                 <h2 style="white-space: nowrap; margin-bottom: 20px;">👤 Profile</h2>
 
                                 <div class="profile-dashboard-grid">
@@ -147,84 +147,9 @@
                                         </div>
                                     </div>
 
-                                    <!-- Recent Trips (Hidden in Profile view, visible in right col now) -->
-                                    <div id="profileTripsListWrapper"
-                                        style="background: var(--bg-tertiary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); display: none;">
-                                        <h3 style="margin-bottom: 15px; color: var(--text-primary);">Recent Trips</h3>
-                                        <div id="profileTripsList">
-                                            <div class="loading">Loading trips...</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div id="statsSection" class="section" style="display: none;">
-                                <div
-                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                                    <h2>📊 Your Stats</h2>
-                                    <div style="display: flex; align-items: center; gap: 10px;">
-                                        <div
-                                            style="background: var(--bg-tertiary); border-radius: 20px; padding: 4px; display: flex;">
-                                            <button id="statsToggle30" class="btn"
-                                                style="background: var(--accent-primary); color: white; padding: 8px 16px; margin: 0; border-radius: 16px; font-size: 0.9em;">30
-                                                Days</button>
-                                            <button id="statsToggleAll" class="btn btn-outline"
-                                                style="padding: 8px 16px; margin: 0; border: none; font-size: 0.9em;">All
-                                                Time</button>
-                                        </div>
-                                        <button id="exportCsvBtn" onclick="exportTripsToCSV()" class="btn"
-                                            style="background: var(--bg-tertiary); color: var(--text-primary); padding: 8px 12px; margin: 0; border-radius: 16px; font-size: 0.9em; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 4px;">
-                                            <span style="font-size: 1em;">📥</span> Export
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- General Stats Section -->
-                                <div class="stats-grid">
-                                    <div class="stat-card">
-                                        <div class="stat-number" id="statsTotalTrips">0</div>
-                                        <div class="stat-label">Trips</div>
-                                    </div>
-                                    <div class="stat-card">
-                                        <div class="stat-number" id="statsUniqueRoutes">0</div>
-                                        <div class="stat-label">Routes</div>
-                                    </div>
-                                    <div class="stat-card">
-                                        <div class="stat-number" id="statsTotalTime">0</div>
-                                        <div class="stat-label">Hours Traveled</div>
-                                    </div>
-                                    <div class="stat-card">
-                                        <div class="stat-number" id="statsUniqueStops">0</div>
-                                        <div class="stat-label">Stops Visited</div>
-                                    </div>
-                                </div>
-
-                                <!-- Community Comparison -->
-                                <div
-                                    style="background: var(--bg-tertiary); border-radius: 12px; padding: 20px; margin-top: 20px; border: 1px solid var(--border-color);">
-                                    <h3 style="margin-bottom: 15px; color: var(--text-primary);">🌍 Community Comparison
-                                    </h3>
-                                    <div id="communityStats">
-                                        <div class="loading">Loading community data...</div>
-                                    </div>
-                                </div>
-
-                                <!-- Top Routes & Stops -->
-                                <div class="desktop-grid-2" style="margin-top: 20px;">
-                                    <div
-                                        style="background: var(--bg-secondary); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color);">
-                                        <h4 style="margin-bottom: 10px; color: var(--accent-primary);">🚌 Top Routes
-                                        </h4>
-                                        <div id="topRoutes">
-                                            <div class="loading">Loading...</div>
-                                        </div>
-                                    </div>
-                                    <div
-                                        style="background: var(--bg-secondary); border-radius: 8px; padding: 15px; border: 1px solid var(--border-color);">
-                                        <h4 style="margin-bottom: 10px; color: var(--accent-primary);">🚏 Top Stops</h4>
-                                        <div id="topStops">
-                                            <div class="loading">Loading...</div>
-                                        </div>
+                                    <!-- Hidden Trips List (Logic wrapper, not visible) -->
+                                    <div id="profileTripsListWrapper" style="display: none;">
+                                        <div id="profileTripsList"></div>
                                     </div>
                                 </div>
                             </div>
@@ -232,17 +157,6 @@
 
                         <!-- CENTER COLUMN: Visual & Action -->
                         <div class="col-center">
-                            <!-- Review SMS Trips Section (Moved to Admin Panel) -->
-                            <!-- <div id="reviewTripsSection" class="section" style="display: none;">
-                                <div
-                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                                    <h3 style="color: var(--text-primary);">📩 SMS Inbox</h3>
-                                    <span id="unverifiedCount" class="verified-badge unverified">0 new matches</span>
-                                </div>
-                                <div id="reviewTripsList">
-                                    <div class="loading">Loading...</div>
-                                </div>
-                            </div> -->
 
                             <!-- Banners Container -->
                             <div id="bannersContainer" class="banner-container full-width">
@@ -252,6 +166,14 @@
                                     onclick="goToActiveTrip()">
                                     🚌 Currently riding • Tap to view
                                 </div>
+                            </div>
+
+                            <!-- Repeat Last Trip Section -->
+                            <div id="repeatLastTripSection" style="display: none; margin-bottom: 15px;">
+                                <button id="repeatLastTripBtn" class="btn btn-primary"
+                                    style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);">
+                                    🔄 Repeat Last Trip
+                                </button>
                             </div>
 
                             <!-- Maps Section -->
@@ -268,148 +190,87 @@
                                         GPS</div>
                                 </div>
 
-                                <!-- LEFT COLUMN: Profile & Stats -->
-                                <div class="col-left">
-                                    <!-- Profile Dashboard -->
-                                    <div class="section profile-dashboard-section">
-                                        <div class="profile-dashboard-grid">
-                                            <!-- Identity Card -->
-                                            <div class="profile-card identity-card">
-                                                <div class="card-content">
-                                                    <div id="displayAvatar" class="avatar-large">👤</div>
-                                                    <div id="displayAgency" class="agency-tag">Agency</div>
-                                                </div>
-                                            </div>
-
-                                            <!-- Streak Card -->
-                                            <div class="profile-card streak-card">
-                                                <div class="card-header">🔥 Streak</div>
-                                                <div class="streak-stats">
-                                                    <div class="stat-item">
-                                                        <span id="currentStreak" class="stat-val">0</span>
-                                                        <span class="stat-lbl">Current</span>
-                                                    </div>
-                                                    <div class="stat-item">
-                                                        <span id="bestStreak" class="stat-val">0</span>
-                                                        <span class="stat-lbl">Best</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <!-- Founder Card -->
-                                            <div class="profile-card status-card">
-                                                <div class="card-header">🚀 Founder</div>
-                                                <div class="founder-stats">
-                                                    <div class="stat-item">
-                                                        <span id="totalRoutes" class="stat-val">0</span>
-                                                        <span class="stat-lbl">Routes</span>
-                                                    </div>
-                                                    <div class="stat-item">
-                                                        <span id="totalStops" class="stat-val">0</span>
-                                                        <span class="stat-lbl">Stops</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Trip Templates -->
-                                    <div class="section templates-section">
-                                        <div class="templates-header">
-                                            <h3>⭐ Trip Templates</h3>
-                                        </div>
-                                        <div id="templatesList">
-                                            <div class="empty-state">No saved templates yet</div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Toggle Stats View (30 Days / All Time) -->
-                                    <div class="section"
-                                        style="padding: 10px; display: flex; gap: 5px; background: var(--bg-tertiary);">
-                                        <button id="statsToggle30" class="btn btn-sm"
-                                            style="flex: 1; background: var(--accent-primary); color: white;">30
-                                            Days</button>
-                                        <button id="statsToggleAll" class="btn btn-sm"
-                                            style="flex: 1; background: transparent; color: var(--text-secondary);">All
-                                            Time</button>
-                                        <!-- Export Button Removed -->
-                                    </div>
-
-                                    <!-- Stats Grid -->
-                                    <div class="stats-grid">
-                                        <div class="stat-card">
-                                            <div class="stat-number" id="totalTrips">0</div>
-                                            <div class="stat-label">Trips</div>
-                                        </div>
-                                        <div class="stat-card">
-                                            <div class="stat-number" id="uniqueRoutes">0</div>
-                                            <div class="stat-label">Routes</div>
-                                        </div>
-                                        <div class="stat-card">
-                                            <div class="stat-number" id="totalHours">0</div>
-                                            <div class="stat-label">Hours Traveled</div>
-                                        </div>
-                                        <div class="stat-card">
-                                            <div class="stat-number" id="uniqueStops">0</div>
-                                            <div class="stat-label">Stops Visited</div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Community Comparison Removed -->
+                                <div id="mapContainer"></div>
+                                <div id="mapStats" style="margin-top: 15px; display: none;">
+                                    <div id="mapStatsContent"></div>
                                 </div>
+                            </div>
 
-                                <!-- CENTER COLUMN: Map & Feed -->
-                                <div class="col-center">
-
-                                    <!-- Map Section (Moved to Top) -->
-                                    <div id="mapsSection" class="section">
-                                        <div id="mapContainer"></div>
-                                    </div>
-
-
-
-                                    <!-- Banners Container -->
-                                    <div id="bannersContainer" class="banner-container full-width">
-                                        <!-- Dynamic banners will be inserted here -->
-                                    </div>
-
-                                    <!-- Review Unverified Trips Only (if needed) -->
-                                    <!-- <div id="reviewTripsSection" ... > (Hidden/Removed) </div> -->
-
-                                    <!-- Recent Trips (News Feed Style) -->
-                                    <div class="section">
-                                        <h3 style="margin-bottom: 15px;">📜 Recent Trips</h3>
-                                        <div id="recentTripsList" class="news-feed">
-                                            <div class="loading">Loading trips...</div>
-                                        </div>
-                                    </div>
+                            <!-- Recent Trips Feed -->
+                            <div class="section">
+                                <h3 style="margin-bottom: 15px;">📜 Recent Trips</h3>
+                                <div id="recentTripsList" class="news-feed">
+                                    <div class="loading">Loading trips...</div>
                                 </div>
-
-                                <!-- RIGHT COLUMN: Top Stats -->
-                                <div class="col-right">
-                                    <div class="section">
-                                        <h3>🚌 Top Routes</h3>
-                                        <div id="topRoutesList">
-                                            <div class="loading">Loading...</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="section">
-                                        <h3>🚏 Top Stops</h3>
-                                        <div id="topStopsList">
-                                            <div class="loading">Loading...</div>
-                                        </div>
-                                    </div>
-                                </div>
-
                             </div>
                         </div>
+
+                        <!-- RIGHT COLUMN: Stats & Leaderboards -->
+                        <div class="col-right">
+                            <div id="statsSection" class="section">
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                    <h2>📊 Stats</h2>
+                                    <div style="display: flex; align-items: center; gap: 5px;">
+                                        <div
+                                            style="background: var(--bg-tertiary); border-radius: 20px; padding: 4px; display: flex;">
+                                            <button id="statsToggle30" class="btn"
+                                                style="background: var(--accent-primary); color: white; padding: 6px 12px; margin: 0; border-radius: 16px; font-size: 0.8em;">30d</button>
+                                            <button id="statsToggleAll" class="btn btn-outline"
+                                                style="padding: 6px 12px; margin: 0; border: none; font-size: 0.8em;">All</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- General Stats Grid -->
+                                <div class="stats-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                                    <div class="stat-card" style="padding: 12px;">
+                                        <div class="stat-number" id="statsTotalTrips" style="font-size: 1.4em;">0</div>
+                                        <div class="stat-label">Trips</div>
+                                    </div>
+                                    <div class="stat-card" style="padding: 12px;">
+                                        <div class="stat-number" id="statsUniqueRoutes" style="font-size: 1.4em;">0
+                                        </div>
+                                        <div class="stat-label">Routes</div>
+                                    </div>
+                                    <div class="stat-card" style="padding: 12px;">
+                                        <div class="stat-number" id="statsTotalTime" style="font-size: 1.4em;">0</div>
+                                        <div class="stat-label">Hours</div>
+                                    </div>
+                                    <div class="stat-card" style="padding: 12px;">
+                                        <div class="stat-number" id="statsUniqueStops" style="font-size: 1.4em;">0</div>
+                                        <div class="stat-label">Stops</div>
+                                    </div>
+                                </div>
+                                <button id="exportCsvBtn" onclick="exportTripsToCSV()" class="btn btn-outline"
+                                    style="width: 100%; margin-top: 10px; font-size: 0.9em;">
+                                    📥 Export Data
+                                </button>
+                            </div>
+
+                            <!-- Top Routes -->
+                            <div class="section">
+                                <h3>🚌 Top Routes</h3>
+                                <div id="topRoutesList">
+                                    <div class="loading">Loading...</div>
+                                </div>
+                            </div>
+
+                            <!-- Top Stops -->
+                            <div class="section">
+                                <h3>🚏 Top Stops</h3>
+                                <div id="topStopsList">
+                                    <div class="loading">Loading...</div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
 
                     <div id="endModal"
                         style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
                         <div
-                            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 20px; border-radius: 8px; width: 90%; max-width: 400px; border: 1px solid var(--border-color);">
+                            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%; -50%); background: var(--bg-secondary); padding: 20px; border-radius: 8px; width: 90%; max-width: 400px; border: 1px solid var(--border-color);">
                             <h3>End Trip</h3>
                             <div class="form-group">
                                 <label>Exit Stop</label>

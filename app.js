@@ -1556,6 +1556,23 @@ function initializeApp() {
     checkActiveTrip();
     loadLastTrip();
     loadTrips();
+
+    // Dashboard Data Initialization
+    updateProfileStats();
+    updateStatsSection();
+
+    if (!statsInitialized) {
+        initializeStatsToggle();
+        statsInitialized = true;
+    }
+
+    // Initialize Map (with slight delay for container render)
+    setTimeout(() => {
+        if (!mapInitialized) {
+            initializeMap();
+        }
+    }, 500);
+
     // loadUnverifiedTrips(); // Moved to Admin Panel
 }
 
