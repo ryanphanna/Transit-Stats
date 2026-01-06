@@ -50,7 +50,9 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg-primary);
     color: var(--text-primary);
-    line-height: 1.4;
+    line-height: 1.5;
+    font-size: 16px;
+    /* Explicit base size */
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -347,14 +349,14 @@ body {
 }
 
 .news-feed .trip-route {
-    font-size: 1.1em;
+    font-size: 1.3em;
     font-weight: 600;
     margin-bottom: 5px;
 }
 
 .news-feed .trip-stops {
     color: var(--text-secondary);
-    font-size: 0.95em;
+    font-size: 1.05em;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -682,14 +684,15 @@ body {
 }
 
 .stat-number {
-    font-size: 1.8em;
-    font-weight: bold;
+    font-size: 2.6em;
+    font-weight: 800;
+    /* Bolder */
     color: var(--accent-primary);
     margin-bottom: 5px;
 }
 
 .stat-label {
-    font-size: 0.9em;
+    font-size: 1.1em;
     color: var(--text-secondary);
     font-weight: 500;
 }
