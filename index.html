@@ -26,6 +26,8 @@
                         onclick="openSettings()">⚙️<span>Settings</span></button>
                     <button id="adminBtn" class="header-btn"
                         onclick="window.location.href='admin.html'">🛠️<span>Admin</span></button>
+                    <button id="logTripBtn" class="header-btn primary-action" onclick="openLogTripModal()">➕<span>Log
+                            Trip</span></button>
                 </div>
             </div>
         </div>
@@ -364,24 +366,7 @@
                                         <div id="mapContainer"></div>
                                     </div>
 
-                                    <!-- Start Trip Section -->
-                                    <div id="activeTripSection" class="section">
-                                        <h3 style="margin-bottom: 15px;">Start New Trip</h3>
-                                        <div class="form-row">
-                                            <div class="form-group" style="flex: 1;">
-                                                <label>Boarding Stop</label>
-                                                <input type="text" id="stopInput"
-                                                    placeholder="e.g., 6638 or Union Station">
-                                                <div id="stopPreview" class="preview-box" style="display: none;"></div>
-                                            </div>
-                                            <div class="form-group" style="flex: 1;">
-                                                <label>Route/Line</label>
-                                                <input type="text" id="routeInput"
-                                                    placeholder="e.g., 65, Line 1, 504 King">
-                                            </div>
-                                        </div>
-                                        <button id="startBtn" class="btn btn-primary">🚌 Board Vehicle</button>
-                                    </div>
+
 
                                     <!-- Banners Container -->
                                     <div id="bannersContainer" class="banner-container full-width">
@@ -440,6 +425,42 @@
                     </div>
 
 
+                </div>
+            </div>
+
+            <!-- Log Trip Modal -->
+            <div id="logTripModal"
+                style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+                <div
+                    style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 25px; border-radius: 12px; width: 90%; max-width: 450px; border: 1px solid var(--border-color); box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="margin: 0;">🚌 Start New Trip</h3>
+                        <button onclick="closeLogTripModal()"
+                            style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: var(--text-secondary);">×</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Route/Line</label>
+                        <input type="text" id="routeInput" placeholder="e.g., 65, Line 1, 504 King"
+                            style="font-size: 1.1em; padding: 12px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Boarding Stop</label>
+                        <input type="text" id="stopInput" placeholder="e.g., 6638 or King St"
+                            style="font-size: 1.1em; padding: 12px;">
+                        <div id="stopPreview" class="preview-box" style="display: none;"></div>
+                    </div>
+
+                    <!-- Quick Templates -->
+                    <div id="quickTemplates"
+                        style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px;">
+                        <!-- Templates injected here -->
+                    </div>
+
+                    <button id="startBtn" class="btn btn-primary"
+                        style="width: 100%; padding: 14px; font-size: 1.1em;">Board Vehicle 🚌</button>
                 </div>
             </div>
 
@@ -546,6 +567,7 @@
                 </div>
             </div>
 
+            <script src="visuals.js"></script>
             <script src="app.js"></script>
 </body>
 

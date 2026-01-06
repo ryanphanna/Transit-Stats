@@ -963,18 +963,29 @@ function generateTopRoutes(trips) {
 
     const sortedRoutes = Object.entries(routeCounts)
         .sort(([, a], [, b]) => b - a)
-        .slice(0, 5);
+        .slice(0, 5)
+        .map(([route, count]) => ({ route, count })); // Convert to array of objects
 
-    const topRoutesHtml = sortedRoutes.length > 0 ?
-        sortedRoutes.map(([route, count], index) =>
-            `<div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border-light);">
-                        <span>${index + 1}. ${route}</span>
-                        <span style="color: var(--accent-primary); font-weight: 600;">${count} trips</span>
-                    </div>`
-        ).join('') :
-        '<div style="color: var(--text-muted); font-style: italic;">No trips yet</div>';
+    const topRoutesList = document.getElementById('topRoutesList');
 
-    document.getElementById('topRoutesList').innerHTML = topRoutesHtml;
+    if (sortedRoutes.length > 0) {
+        // Calculate max for progress bars
+        const maxTrips = sortedRoutes[0].count;
+
+        topRoutesList.innerHTML = sortedRoutes.map(item => `
+            <div class="mastery-card">
+                <div class="mastery-header">
+                    <div class="mastery-route">${item.route}</div>
+                    <div class="mastery-count">${item.count} trips</div>
+                </div>
+                <div class="mastery-bar-bg">
+                    <div class="mastery-bar-fill" style="width: ${(item.count / maxTrips) * 100}%"></div>
+                </div>
+            </div>
+        `).join('');
+    } else {
+        topRoutesList.innerHTML = '<div class="empty-state">No routes yet</div>';
+    }
 }
 
 function generateTopStops(trips) {
@@ -988,18 +999,29 @@ function generateTopStops(trips) {
 
     const sortedStops = Object.entries(stopCounts)
         .sort(([, a], [, b]) => b - a)
-        .slice(0, 5);
+        .slice(0, 5)
+        .map(([stop, count]) => ({ stop, count })); // Convert to array of objects
 
-    const topStopsHtml = sortedStops.length > 0 ?
-        sortedStops.map(([stop, count], index) =>
-            `<div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border-light);">
-                        <span>${index + 1}. ${stop}</span>
-                        <span style="color: var(--accent-primary); font-weight: 600;">${count} uses</span>
-                    </div>`
-        ).join('') :
-        '<div style="color: var(--text-muted); font-style: italic;">No trips yet</div>';
+    const topStopsList = document.getElementById('topStopsList');
 
-    document.getElementById('topStopsList').innerHTML = topStopsHtml;
+    if (sortedStops.length > 0) {
+        // Calculate max
+        const maxVisits = sortedStops[0].count;
+
+        topStopsList.innerHTML = sortedStops.map(item => `
+            <div class="mastery-card">
+                <div class="mastery-header">
+                    <div class="mastery-route" style="font-weight: 500; font-size: 0.95em;">${item.stop}</div>
+                    <div class="mastery-count">${item.count}</div>
+                </div>
+                <div class="mastery-bar-bg">
+                    <div class="mastery-bar-fill" style="width: ${(item.count / maxVisits) * 100}%; opacity: 0.7;"></div>
+                </div>
+            </div>
+        `).join('');
+    } else {
+        topStopsList.innerHTML = '<div class="empty-state">No stops yet</div>';
+    }
 }
 
 function calculateUserRank(userTripCount, allTrips) {
@@ -1148,21 +1170,127 @@ function displayProfileTemplates(templates) {
     });
 }
 
-function startFromTemplate(route, startStop) {
-    stopInput.value = startStop;
-    routeInput.value = route;
-    updateStartButton();
 
-    stopInput.style.background = '#e8f5e8';
-    routeInput.style.background = '#e8f5e8';
+// -- Log Trip Modal Logic --
 
-    setTimeout(() => {
-        stopInput.style.background = '';
-        routeInput.style.background = '';
-    }, 500);
+function openLogTripModal() {
+    const modal = document.getElementById('logTripModal');
+    modal.style.display = 'block';
 
-    startBtn.focus();
+    // Clear inputs if not editing
+    if (!activeTrip) {
+        document.getElementById('routeInput').value = '';
+        document.getElementById('stopInput').value = '';
+    }
+
+    document.getElementById('routeInput').focus();
+    renderQuickTemplates();
 }
+
+function closeLogTripModal() {
+    document.getElementById('logTripModal').style.display = 'none';
+}
+
+function renderQuickTemplates() {
+    const container = document.getElementById('quickTemplates');
+    if (!currentUser) return;
+
+    db.collection('templates')
+        .where('userId', '==', currentUser.uid)
+        .orderBy('useCount', 'desc')
+        .limit(5)
+        .get()
+        .then(snapshot => {
+            if (snapshot.empty) {
+                container.style.display = 'none';
+                return;
+            }
+            container.style.display = 'flex';
+            container.innerHTML = snapshot.docs.map(doc => {
+                const t = doc.data();
+                return `<div class="template-chip" onclick="useQuickTemplate('${t.route}', '${t.startStop}')">
+                    ${t.route} • ${t.startStop}
+                </div>`;
+            }).join('');
+        });
+}
+
+function useQuickTemplate(route, stop) {
+    document.getElementById('routeInput').value = route;
+    document.getElementById('stopInput').value = stop;
+    updateStartButton();
+}
+
+
+function startNewTrip() {
+    const stopInput = document.getElementById('stopInput');
+    const routeInput = document.getElementById('routeInput');
+    const startBtn = document.getElementById('startBtn');
+
+    const stop = stopInput.value.trim();
+    const route = routeInput.value.trim();
+
+    stopInput.style.background = '';
+    routeInput.style.background = '';
+
+    if (!stop || !route) {
+        if (!stop) stopInput.style.background = 'rgba(255, 0, 0, 0.1)';
+        if (!route) routeInput.style.background = 'rgba(255, 0, 0, 0.1)';
+        setTimeout(() => {
+            stopInput.style.background = '';
+            routeInput.style.background = '';
+        }, 500);
+        return;
+    }
+
+    // Check if user is authenticated
+    if (!currentUser) {
+        alert('You must be signed in to start a trip. Please refresh the page and try again.');
+        return;
+    }
+
+    startBtn.disabled = true;
+    startBtn.textContent = 'Starting...';
+
+    getCurrentLocation((location) => {
+        const tripData = {
+            userId: currentUser.uid,
+            route: route,
+            startStop: stop,
+            endStop: null,
+            startTime: firebase.firestore.Timestamp.now(),
+            boardingLocation: location
+        };
+
+        db.collection('trips').add(tripData)
+            .then((docRef) => {
+                activeTrip = { id: docRef.id, ...tripData };
+                stopInput.value = '';
+                routeInput.value = '';
+                startBtn.disabled = false;
+                startBtn.textContent = 'Board Vehicle';
+
+                closeLogTripModal(); // Close modal on success
+                showActiveSection();
+                updateActiveTripBanner();
+                trackRouteStopUsage(route, stop);
+            })
+            .catch((error) => {
+                console.error('Error starting trip:', error);
+                alert('Error starting trip: ' + error.message);
+                startBtn.disabled = false;
+                startBtn.textContent = 'Board Vehicle';
+            });
+    });
+}
+
+function startFromTemplate(route, startStop) {
+    document.getElementById('routeInput').value = route;
+    document.getElementById('stopInput').value = startStop;
+    openLogTripModal();
+    // setTimeout(() => startNewTrip(), 100); // Optional: auto-start? Let's verify first.
+}
+
 
 function deleteTemplate(templateId) {
     if (confirm('Delete this template?')) {
@@ -1443,10 +1571,14 @@ function loadLastTrip() {
                 const lastTrip = snapshot.docs[0].data();
                 repeatLastTripSection.style.display = 'block';
                 repeatLastTripBtn.onclick = () => {
-                    stopInput.value = lastTrip.startStop;
-                    routeInput.value = lastTrip.route;
-                    updateStartButton();
+                    document.getElementById('stopInput').value = lastTrip.startStop;
+                    document.getElementById('routeInput').value = lastTrip.route;
 
+                    openLogTripModal(); // Open the modal so user can see/confirm
+
+                    // Highlight effect
+                    const stopInput = document.getElementById('stopInput');
+                    const routeInput = document.getElementById('routeInput');
                     stopInput.style.background = '#e8f5e8';
                     routeInput.style.background = '#e8f5e8';
 
@@ -1455,7 +1587,7 @@ function loadLastTrip() {
                         routeInput.style.background = '';
                     }, 500);
 
-                    startBtn.focus();
+                    document.getElementById('startBtn').focus();
                     showNotification(`Ready to board ${lastTrip.route} from ${lastTrip.startStop}`);
                 };
             } else {
@@ -1517,6 +1649,13 @@ function loadTrips() {
                             `;
                     recentTripsList.appendChild(tripDiv);
                 });
+
+                // -- Visuals Integration --
+                // We need ALL trips for the heatmap, not just the recent 5.
+                // In a production app, we'd have a separate 'loadAllTripsForVisuals' or aggregates.
+                // For this MVP, let's fetch a larger batch for the heatmap (e.g. 100 recent)
+                loadTripsForHeatmap();
+
             } else {
                 recentTripsSection.style.display = 'none';
             }
@@ -1525,6 +1664,22 @@ function loadTrips() {
             console.error('Error loading trips:', error);
             recentTripsSection.style.display = 'none';
         });
+}
+
+function loadTripsForHeatmap() {
+    // Separate query to get more data for the visuals without clogging the feed logic
+    db.collection('trips')
+        .where('userId', '==', currentUser.uid)
+        .where('verified', '==', true) // Only map verified trips
+        .limit(200) // Decent sample size for personal heatmap
+        .get()
+        .then(snapshot => {
+            const trips = snapshot.docs.map(doc => doc.data());
+            if (window.Visuals && window.map) {
+                window.Visuals.renderPointHeatmap(trips, window.map);
+            }
+        })
+        .catch(err => console.log('Error loading heatmap data:', err));
 }
 
 
@@ -1551,24 +1706,28 @@ function checkActiveTrip() {
                 updateActiveTripBanner();
             } else {
                 activeTrip = null;
-                showStartSection();
+                showStartSection(); // Ensures UI resets
                 updateActiveTripBanner();
             }
         })
         .catch((error) => {
             console.error('Error checking active trip:', error);
-            showStartSection();
+            // showStartSection(); // No longer needed as form is in modal
         });
 }
 
 function showStartSection() {
-    startSection.style.display = 'block';
+    // startSection.style.display = 'block'; // Removed, form is in modal
     activeSection.style.display = 'none';
+    document.getElementById('logTripBtn').style.display = 'flex'; // Show + button
 }
 
 function showActiveSection() {
-    startSection.style.display = 'none';
+    // startSection.style.display = 'none';
     activeSection.style.display = 'block';
+
+    // Optional: Hide + button when trip is active if we want to force focus
+    // document.getElementById('logTripBtn').style.display = 'none'; 
 
     if (activeTrip) {
         const startTime = activeTrip.startTime.toDate();
@@ -1609,71 +1768,7 @@ stopInput.addEventListener('input', updateStartButton);
 routeInput.addEventListener('input', updateStartButton);
 
 // Start trip handler
-startBtn.addEventListener('click', () => {
-    const stop = stopInput.value.trim();
-    const route = routeInput.value.trim();
-
-    if (!stop || !route) {
-        alert('Please enter both stop and route');
-        return;
-    }
-
-    // Check if user is authenticated
-    if (!currentUser) {
-        alert('You must be signed in to start a trip. Please refresh the page and try again.');
-        return;
-    }
-
-    startBtn.disabled = true;
-    startBtn.textContent = 'Starting...';
-
-    getCurrentLocation((location) => {
-        const tripData = {
-            userId: currentUser.uid,
-            route: route,
-            startStop: stop,
-            endStop: null,
-            startTime: firebase.firestore.Timestamp.now(),
-            boardingLocation: location
-        };
-
-        db.collection('trips').add(tripData)
-            .then((docRef) => {
-                activeTrip = { id: docRef.id, ...tripData };
-                stopInput.value = '';
-                routeInput.value = '';
-                startBtn.disabled = false;
-                startBtn.textContent = 'Board Vehicle';
-                showActiveSection();
-                updateActiveTripBanner();
-                trackRouteStopUsage(route, stop);
-            })
-            .catch((error) => {
-                console.error('Error starting trip:', error);
-
-                // Provide specific error messages
-                let errorMessage = 'Error starting trip. ';
-
-                if (error.code === 'permission-denied') {
-                    errorMessage += 'You do not have permission to save trips. Please check your account settings.';
-                } else if (error.code === 'unavailable') {
-                    errorMessage += 'Cannot connect to the server. Please check your internet connection and try again.';
-                } else if (error.code === 'unauthenticated') {
-                    errorMessage += 'You must be signed in. Please refresh the page and try again.';
-                } else if (error.message && error.message.includes('quota')) {
-                    errorMessage += 'Storage quota exceeded. Please contact support.';
-                } else if (error.message) {
-                    errorMessage += error.message;
-                } else {
-                    errorMessage += 'Please try again.';
-                }
-
-                alert(errorMessage);
-                startBtn.disabled = false;
-                startBtn.textContent = 'Board Vehicle';
-            });
-    });
-});
+startBtn.addEventListener('click', startNewTrip);
 
 // End trip button
 endBtn.addEventListener('click', () => {
