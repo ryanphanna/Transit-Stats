@@ -928,6 +928,7 @@ function displayProfileTrips(trips) {
                 : '<span class="verified-badge unverified">? Unverified</span>')
             : '';
         const sourceBadge = trip.source === 'sms' ? '<span class="source-badge">SMS</span>' : '';
+        const notesDisplay = trip.notes ? `<div style="font-size: 0.85em; color: var(--text-muted); margin-top: 5px; font-style: italic;">📝 ${trip.notes}</div>` : '';
         return `
                     <div class="trip-item" data-trip-id="${trip.id}">
                         <div class="delete-overlay">Delete</div>
@@ -936,6 +937,7 @@ function displayProfileTrips(trips) {
                             ${verifiedBadge}
                         </div>
                         <div>${trip.startStopName || trip.startStop || trip.startStopCode || 'Unknown'} → ${trip.endStopName || trip.endStop || trip.endStopCode || 'Unknown'}</div>
+                        ${notesDisplay}
                         <div>${trip.duration || 0} min • ${startTime.toLocaleDateString()}</div>
                     </div>
                 `;
@@ -1650,6 +1652,8 @@ function loadTrips() {
                             : '<span class="verified-badge unverified">?</span>')
                         : '';
 
+                    const notesDisplay = trip.notes ? `<div style="font-size: 0.85em; color: var(--text-muted); margin-top: 4px; padding-top: 4px; border-top: 1px dotted var(--border-light);">📝 ${trip.notes}</div>` : '';
+
                     const tripDiv = document.createElement('div');
                     tripDiv.className = 'trip-item';
                     tripDiv.innerHTML = `
@@ -1663,6 +1667,7 @@ function loadTrips() {
                                         <div style="font-size: 0.85em; color: var(--text-secondary);">${duration} min</div>
                                     </div>
                                 </div>
+                                ${notesDisplay}
                             `;
                     recentTripsList.appendChild(tripDiv);
                 });
