@@ -21,13 +21,12 @@ let stopsLibrary = [];
 let pendingStops = [];
 let currentTargetString = '';
 let currentUser = null;
+let currentAliasTargetId = null;
 
 // Auth Listener
 auth.onAuthStateChanged((user) => {
     currentUser = user;
     if (user) {
-        // Simple admin check (in a real app, use custom claims or a whitelist collection)
-        // For this demo, we assume any authenticated user accessing this hidden page is admin
         document.getElementById('authSection').style.display = 'none';
         document.getElementById('adminContent').style.display = 'block';
         document.getElementById('userEmail').textContent = user.email;
@@ -66,29 +65,32 @@ async function loadStopLibrary() {
 
 async function loadProvisionalStops() {
     try {
-        // Find trips that are NOT verified and have a startStop string
-        // Note: This is a heavy query for client-side aggregation. 
-        // In production, use Cloud Functions or an aggregation collection.
         const snapshot = await db.collection('trips')
             .where('verified', '==', false)
-            .where('userId', '==', currentUser.uid) // Limit to current user's trips for now
+            .where('userId', '==', currentUser.uid)
             .limit(100)
             .get();
 
         const uniquePending = new Set();
+        const pendingCounts = {};
+
         snapshot.docs.forEach(doc => {
             const trip = doc.data();
             const rawStop = trip.startStop || trip.startStopName || trip.startStopCode;
             if (rawStop && typeof rawStop === 'string') {
-                uniquePending.add(rawStop.trim());
+                const trimmed = rawStop.trim();
+                uniquePending.add(trimmed);
+                pendingCounts[trimmed] = (pendingCounts[trimmed] || 0) + 1;
             }
         });
 
-        // Filter out strings that are already known aliases
-        // (This catches cases where trips aren't marked verified yet but the alias exists)
-        pendingStops = Array.from(uniquePending).filter(str => !findStopByAlias(str));
+        pendingStops = Array.from(uniquePending)
+            .filter(str => !findStopByAlias(str))
+            .map(str => ({ name: str, count: pendingCounts[str] }))
+            .sort((a, b) => b.count - a.count);
 
         renderPendingList();
+        updatePendingCount();
     } catch (error) {
         console.error('Error loading pending:', error);
     }
@@ -106,31 +108,45 @@ function findStopByAlias(str) {
 function renderStopLibrary(stops) {
     const container = document.getElementById('stopLibrary');
     if (stops.length === 0) {
-        container.innerHTML = '<div class="empty-state">No confirmed stops in library.</div>';
+        container.innerHTML = '<div class="empty-state">No matching stops found.</div>';
         return;
     }
 
     container.innerHTML = stops.map(stop => `
         <div class="stop-card">
-            <h4>${stop.name} <span class="agency-badge">(${stop.agency || 'Unknown'})</span></h4>
-            <div class="meta">
-                ${stop.code ? `<span class="badge">#${stop.code}</span>` : ''} 
-                📍 ${stop.lat?.toFixed(4)}, ${stop.lng?.toFixed(4)}
+            <div class="stop-card-header">
+                <div>
+                    <h4>${stop.name} <span class="agency-badge" style="font-size:0.75em; opacity:0.8; font-weight:normal;">(${stop.agency || 'Unknown'})</span></h4>
+                    <div class="stop-meta">
+                        ${stop.code ? `<span class="badge" style="background:var(--bg-tertiary);">#${stop.code}</span>` : ''} 
+                        <span title="Lat: ${stop.lat}, Lng: ${stop.lng}">📍 Location</span>
+                    </div>
+                </div>
             </div>
-            ${renderAliases(stop.aliases)}
-            <div style="margin-top: 10px; text-align: right;">
-                <button class="btn btn-outline btn-sm" onclick="editStop('${stop.id}')">Edit</button>
+            
+            ${renderAliases(stop)}
+            
+            <div style="margin-top: 15px; display:flex; justify-content:space-between; align-items:center;">
+                 <button class="btn btn-primary" style="padding:4px 10px; font-size:0.8em;" onclick="openManualAliasModal('${stop.id}', '${stop.name.replace(/'/g, "\\'")}')">
+                    + Alias
+                 </button>
             </div>
         </div>
     `).join('');
 }
 
-function renderAliases(aliases) {
-    if (!aliases || aliases.length === 0) return '';
+function renderAliases(stop) {
+    if (!stop.aliases || stop.aliases.length === 0) {
+        return '<div class="aliases-container" style="color:var(--text-muted); font-size:0.8em;">No variations linked</div>';
+    }
     return `
-        <div class="aliases">
-            Aliases: 
-            ${aliases.map(a => `<span class="alias-badge">${a}</span>`).join('')}
+        <div class="aliases-container">
+            ${stop.aliases.map(a => `
+                <span class="alias-badge">
+                    ${a} 
+                    <span class="remove-alias" onclick="removeAlias('${stop.id}', '${a.replace(/'/g, "\\'")}')" title="Remove alias">×</span>
+                </span>
+            `).join('')}
         </div>
     `;
 }
@@ -138,25 +154,46 @@ function renderAliases(aliases) {
 function renderPendingList() {
     const container = document.getElementById('pendingList');
     if (pendingStops.length === 0) {
-        container.innerHTML = '<div class="empty-state">No unlinked stops found! 🎉</div>';
+        container.innerHTML = `
+            <div style="text-align: center; padding: 30px 10px; color: var(--text-muted);">
+                <div style="font-size: 2em; margin-bottom: 10px;">🎉</div>
+                <div>All caught up!</div>
+                <div style="font-size: 0.8em;">No unlinked stops found.</div>
+            </div>`;
         return;
     }
 
-    container.innerHTML = pendingStops.map(str => `
-        <div class="pending-item">
-            <strong>${str}</strong>
-            <button class="btn btn-primary btn-sm" onclick="openLinkModal('${str.replace(/'/g, "\\'")}')">Link</button>
+    container.innerHTML = pendingStops.map(item => `
+        <div class="inbox-item">
+            <div style="overflow:hidden; text-overflow:ellipsis;">
+                <span class="count-badge">${item.count}</span>
+                <strong>${item.name}</strong>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openLinkModal('${item.name.replace(/'/g, "\\'")}')">Link</button>
         </div>
     `).join('');
 }
 
+function updatePendingCount() {
+    const count = pendingStops.length;
+    const badge = document.getElementById('pendingCount');
+    badge.textContent = count;
+    badge.style.display = count > 0 ? 'inline-block' : 'none';
+}
+
 function filterStops() {
     const query = document.getElementById('stopSearch').value.toLowerCase();
-    const filtered = stopsLibrary.filter(stop =>
-        stop.name.toLowerCase().includes(query) ||
-        (stop.code && stop.code.toLowerCase().includes(query)) ||
-        (stop.aliases && stop.aliases.some(a => a.toLowerCase().includes(query)))
-    );
+    const agency = document.getElementById('agencyFilter').value;
+
+    const filtered = stopsLibrary.filter(stop => {
+        const matchesSearch = stop.name.toLowerCase().includes(query) ||
+            (stop.code && stop.code.toLowerCase().includes(query)) ||
+            (stop.aliases && stop.aliases.some(a => a.toLowerCase().includes(query)));
+
+        const matchesAgency = agency === 'All' || stop.agency === agency;
+
+        return matchesSearch && matchesAgency;
+    });
     renderStopLibrary(filtered);
 }
 
@@ -166,15 +203,12 @@ function updateStopSelect() {
         stopsLibrary.map(s => `<option value="${s.id}">${s.name} (${s.agency})</option>`).join('');
 }
 
-
 // Modal Logic
 function openLinkModal(targetString) {
     currentTargetString = targetString;
     document.getElementById('modalTargetString').textContent = targetString;
     document.getElementById('linkModal').style.display = 'block';
-    backToLink(); // Reset to initial view
 
-    // Auto-search for existing similar stops could go here
     document.getElementById('stopSearch').value = targetString;
     filterStops();
 }
@@ -188,9 +222,7 @@ function switchToCreate() {
     document.getElementById('linkOptions').style.display = 'none';
     document.getElementById('createOptions').style.display = 'block';
 
-    // Pre-fill
     document.getElementById('newStopName').value = currentTargetString;
-    // Try to guess if it's a code
     if (/^\\d+$/.test(currentTargetString)) {
         document.getElementById('newStopCode').value = currentTargetString;
         document.getElementById('newStopName').value = '';
@@ -202,7 +234,49 @@ function backToLink() {
     document.getElementById('createOptions').style.display = 'none';
 }
 
-// Database Actions
+function openManualAliasModal(stopId, stopName) {
+    currentAliasTargetId = stopId;
+    document.getElementById('aliasTargetName').textContent = stopName;
+    document.getElementById('newAliasInput').value = '';
+    document.getElementById('manualAliasModal').style.display = 'block';
+    document.getElementById('newAliasInput').focus();
+}
+
+async function saveManualAlias() {
+    const alias = document.getElementById('newAliasInput').value.trim();
+    if (!alias) return;
+
+    try {
+        const stopRef = db.collection('stops').doc(currentAliasTargetId);
+        await stopRef.update({
+            aliases: firebase.firestore.FieldValue.arrayUnion(alias)
+        });
+
+        await batchVerifyTrips(alias, currentAliasTargetId);
+
+        document.getElementById('manualAliasModal').style.display = 'none';
+        loadData();
+    } catch (error) {
+        console.error('Error adding alias:', error);
+        alert('Failed to add alias: ' + error.message);
+    }
+}
+
+async function removeAlias(stopId, alias) {
+    if (!confirm(`Remove alias "${alias}"? This will not un-verify past trips.`)) return;
+
+    try {
+        const stopRef = db.collection('stops').doc(stopId);
+        await stopRef.update({
+            aliases: firebase.firestore.FieldValue.arrayRemove(alias)
+        });
+        loadData();
+    } catch (error) {
+        console.error('Error removing alias:', error);
+        alert('Failed to remove alias');
+    }
+}
+
 async function confirmLink() {
     const stopId = document.getElementById('existingStopSelect').value;
     if (!stopId) {
@@ -213,17 +287,14 @@ async function confirmLink() {
     try {
         const stopRef = db.collection('stops').doc(stopId);
 
-        // Atomically add alias
         await stopRef.update({
             aliases: firebase.firestore.FieldValue.arrayUnion(currentTargetString)
         });
 
-        // Batch update verified trips
         await batchVerifyTrips(currentTargetString, stopId);
 
-        alert('Linked successfully!');
         closeModal();
-        loadData(); // Refresh everything
+        loadData();
     } catch (error) {
         console.error('Error linking:', error);
         alert('Error linking stop: ' + error.message);
@@ -238,22 +309,20 @@ async function confirmCreate() {
     const agency = document.getElementById('newStopAgency').value;
 
     if (!name && !code) { alert('Name or Code required'); return; }
-    if (isNaN(lat) || isNaN(lng)) { alert('Valid Lat/Lng required'); return; }
 
     try {
         const docRef = await db.collection('stops').add({
             name: name,
             code: code,
-            lat: lat,
-            lng: lng,
+            lat: lat || 0,
+            lng: lng || 0,
             agency: agency,
-            aliases: [currentTargetString], // Add the trigger string as first alias
+            aliases: [currentTargetString],
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
         await batchVerifyTrips(currentTargetString, docRef.id);
 
-        alert('Created and linked successfully!');
         closeModal();
         loadData();
     } catch (error) {
@@ -263,25 +332,27 @@ async function confirmCreate() {
 }
 
 async function batchVerifyTrips(rawString, stopId) {
-    // 1. Get the authoritative stop data
+    if (!rawString) return;
+
     const stopDoc = await db.collection('stops').doc(stopId).get();
     const stopData = stopDoc.data();
 
-    // 2. Query all unverified trips with this string
     const snapshot = await db.collection('trips')
         .where('userId', '==', currentUser.uid)
         .where('verified', '==', false)
-        // Note: Firestore doesn't support logical OR in where clauses efficiently for this
-        // We'll rely on the client-side filter or exact match
-        .where('startStop', '==', rawString)
         .get();
 
-    // 3. Update them
+    const toUpdate = snapshot.docs.filter(d => {
+        const t = d.data();
+        const raw = t.startStop || t.startStopName || t.startStopCode;
+        return raw === rawString;
+    });
+
     const batch = db.batch();
-    snapshot.docs.forEach(doc => {
+    toUpdate.forEach(doc => {
         batch.update(doc.ref, {
             verified: true,
-            startStopName: stopData.name, // Canonize the name
+            startStopName: stopData.name,
             boardingLocation: {
                 lat: stopData.lat,
                 lng: stopData.lng
@@ -290,12 +361,8 @@ async function batchVerifyTrips(rawString, stopId) {
         });
     });
 
-    await batch.commit();
-}
-
-function openCreateModal() {
-    // Manually open create modal without a link target
-    document.getElementById('linkModal').style.display = 'block';
-    switchToCreate();
-    currentTargetString = ''; // No alias to add initially
+    if (toUpdate.length > 0) {
+        await batch.commit();
+        console.log(`Verified ${toUpdate.length} trips.`);
+    }
 }

@@ -10,71 +10,129 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
-        .admin-container {
-            max-width: 1200px;
+        /* Admin Specific Overrides */
+        .admin-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            max-width: 1600px;
             margin: 0 auto;
             padding: 20px;
+            height: calc(100vh - 80px);
+            /* Full height minus header */
         }
 
-        .admin-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .admin-grid {
+        @media (max-width: 900px) {
+            .admin-layout {
                 grid-template-columns: 1fr;
+                height: auto;
             }
         }
 
+        .admin-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            max-height: 100%;
+        }
+
+        .admin-main {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            max-height: 100%;
+        }
+
+        /* Stop Card Compact Style */
         .stop-card {
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 15px;
-            margin-bottom: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .stop-card:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .stop-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
         }
 
         .stop-card h4 {
-            margin: 0 0 5px 0;
+            margin: 0;
+            font-size: 1.1em;
             color: var(--text-primary);
         }
 
-        .stop-card .meta {
+        .stop-meta {
             font-size: 0.85em;
             color: var(--text-secondary);
+            margin-bottom: 8px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
         }
 
-        .stop-card .aliases {
-            margin-top: 8px;
-            font-size: 0.85em;
-            color: var(--text-muted);
+        .aliases-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-light);
         }
 
         .alias-badge {
             background: var(--bg-tertiary);
-            padding: 2px 6px;
-            border-radius: 4px;
-            margin-right: 4px;
-            display: inline-block;
-        }
-
-        .action-btn {
+            color: var(--text-secondary);
             padding: 4px 8px;
+            border-radius: 6px;
             font-size: 0.8em;
-            margin-left: 5px;
+            border: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
-        .pending-item {
+        .alias-badge .remove-alias {
+            cursor: pointer;
+            opacity: 0.5;
+            font-weight: bold;
+        }
+
+        .alias-badge .remove-alias:hover {
+            opacity: 1;
+            color: var(--danger-text);
+        }
+
+        /* Inbox Items */
+        .inbox-item {
+            background: var(--bg-primary);
+            border-left: 3px solid var(--warning-text);
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 0.95em;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: var(--bg-secondary);
-            padding: 12px;
-            border-radius: 8px;
             margin-bottom: 8px;
-            border: 1px solid var(--border-light);
+        }
+
+        .inbox-item .count-badge {
+            background: var(--warning-bg);
+            color: var(--warning-text);
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin-right: 8px;
         }
     </style>
 </head>
@@ -83,51 +141,81 @@
     <div class="header">
         <div class="header-row">
             <div style="display: flex; align-items: center; gap: 15px;">
-                <button class="header-btn" onclick="window.location.href='index.html'" style="font-size: 0.9em;">←
-                    Back</button>
-                <h1 class="header-title">TransitStats Admin</h1>
+                <button class="header-btn" onclick="window.location.href='index.html'" style="font-size: 0.9em;">← Back
+                    to App</button>
+                <h1 class="header-title">Data Management</h1>
             </div>
-            <div id="userInfo">
-                <span id="userEmail" style="margin-right: 10px; font-size: 0.9em;"></span>
+            <div id="userInfo" style="display: none; align-items: center; gap: 10px;">
+                <span id="userEmail" style="font-size: 0.9em; opacity: 0.8;"></span>
                 <button class="header-btn" onclick="firebase.auth().signOut()">Sign Out</button>
             </div>
         </div>
     </div>
 
-    <div class="admin-container">
-        <div id="authSection" style="text-align: center; margin-top: 50px;">
-            <h2>Admin Access Required</h2>
-            <p>Please sign in to manage stops.</p>
-            <button onclick="login()" class="btn btn-primary">Sign In with Google</button>
-        </div>
+    <!-- Auth View -->
+    <div id="authSection" class="section auth-section" style="max-width: 400px; margin: 50px auto;">
+        <h2>🔐 Admin Access</h2>
+        <p>Restricted area. Please sign in.</p>
+        <button onclick="login()" class="btn btn-primary">Sign In with Google</button>
+    </div>
 
-        <div id="adminContent" style="display: none;">
-            <div class="admin-grid">
-                <!-- Left Column: Pending Links -->
-                <div class="section">
-                    <h2>⚠️ Pending Unlinked Stops</h2>
-                    <p class="section-desc">These raw strings were found in user trips but don't match any canonical
-                        stop.</p>
-                    <div id="pendingList">
-                        <div class="loading">Loading pending stops...</div>
-                    </div>
-                </div>
+    <!-- Main Admin View -->
+    <div id="adminContent" style="display: none; height: 100%;">
+        <div class="admin-layout">
 
-                <!-- Right Column: Stop Library -->
-                <div class="section">
+            <!-- Sidebar: Inbox -->
+            <div class="admin-sidebar">
+                <div class="section" style="flex: 1; display: flex; flex-direction: column;">
                     <div
                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h2 style="margin: 0;">📚 Stop Library</h2>
-                        <button onclick="openCreateModal()" class="btn btn-primary" style="font-size: 0.8em;">+ New
-                            Stop</button>
+                        <h3 style="margin: 0;">📥 Inbox</h3>
+                        <span id="pendingCount" class="badge badge-warning">0</span>
+                    </div>
+                    <p style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 15px;">
+                        Unlinked stop names from recent trips. Link them to canonical stops to verify trips.
+                    </p>
+
+                    <div id="pendingList" style="overflow-y: auto; flex: 1;">
+                        <div class="loading">checkin inbox...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main: Library -->
+            <div class="admin-main">
+                <div class="section" style="flex: 1; display: flex; flex-direction: column;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div>
+                            <h2 style="margin: 0;">📚 Stop Library</h2>
+                            <div style="font-size: 0.9em; color: var(--text-secondary);">Manage canonical stops and
+                                their aliases</div>
+                        </div>
+                        <button onclick="openCreateModal()" class="btn btn-primary"
+                            style="width: auto; padding: 10px 20px;">+ New Stop</button>
                     </div>
 
-                    <div class="form-group">
-                        <input type="text" id="stopSearch" placeholder="Search stops..." onkeyup="filterStops()">
+                    <!-- Filters -->
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <input type="text" id="stopSearch" placeholder="🔍 Search by name, code, or alias..."
+                            onkeyup="filterStops()"
+                            style="padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-tertiary); color: var(--text-primary);">
+
+                        <select id="agencyFilter" onchange="filterStops()"
+                            style="padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-tertiary); color: var(--text-primary);">
+                            <option value="All">All Agencies</option>
+                            <option value="TTC">TTC</option>
+                            <option value="GO Transit">GO Transit</option>
+                            <option value="MiWay">MiWay</option>
+                            <option value="YRT">YRT</option>
+                            <option value="Other">Other</option>
+                        </select>
                     </div>
 
-                    <div id="stopLibrary">
-                        <div class="loading">Loading stop library...</div>
+                    <!-- Grid -->
+                    <div id="stopLibrary"
+                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; overflow-y: auto; padding-bottom: 20px;">
+                        <div class="loading">Loading library...</div>
                     </div>
                 </div>
             </div>
@@ -138,35 +226,50 @@
     <div id="linkModal"
         style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
         <div
-            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; border: 1px solid var(--border-color);">
-            <h3 style="margin-top: 0;">Link Stop</h3>
-            <p>Mapping raw string: <strong id="modalTargetString" style="color: var(--accent-primary);"></strong></p>
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; border: 1px solid var(--border-color); box-shadow: 0 4px 25px rgba(0,0,0,0.2);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                <h3 style="margin: 0;">Link Stop</h3>
+                <button onclick="closeModal()"
+                    style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: var(--text-secondary); line-height: 1;">×</button>
+            </div>
+
+            <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <div
+                    style="font-size: 0.85em; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">
+                    Raw Input String</div>
+                <div id="modalTargetString"
+                    style="font-size: 1.2em; font-weight: bold; color: var(--accent-primary); word-break: break-all;">
+                </div>
+            </div>
 
             <div id="linkOptions">
-                <h4 style="margin-bottom: 10px;">Option 1: Link to Existing Stop</h4>
+                <h4 style="margin-bottom: 10px;">Link to Existing Stop</h4>
                 <div class="form-group">
                     <select id="existingStopSelect"
-                        style="width: 100%; padding: 10px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                        style="width: 100%; padding: 12px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; font-size: 1em;">
                         <option value="">Select a stop...</option>
                     </select>
                 </div>
                 <button onclick="confirmLink()" class="btn btn-primary" style="width: 100%;">Link as Alias</button>
 
-                <div style="text-align: center; margin: 15px 0; color: var(--text-muted);">- OR -</div>
+                <div style="text-align: center; margin: 20px 0; color: var(--text-muted); position: relative;">
+                    <span
+                        style="background: var(--bg-secondary); padding: 0 10px; position: relative; z-index: 1;">OR</span>
+                    <hr
+                        style="position: absolute; top: 50%; left: 0; right: 0; border: none; border-top: 1px solid var(--border-light); z-index: 0;">
+                </div>
 
-                <h4 style="margin-bottom: 10px;">Option 2: Create New Stop</h4>
-                <button onclick="switchToCreate()" class="btn btn-outline" style="width: 100%;">Create New Stop from
-                    this string</button>
+                <button onclick="switchToCreate()" class="btn btn-outline" style="width: 100%;">Create New Stop</button>
             </div>
 
             <div id="createOptions" style="display: none;">
                 <div class="form-group">
                     <label>Canonical Name</label>
-                    <input type="text" id="newStopName">
+                    <input type="text" id="newStopName" placeholder="e.g. Union Station">
                 </div>
                 <div class="form-group">
                     <label>Stop Code (Optional)</label>
-                    <input type="text" id="newStopCode">
+                    <input type="text" id="newStopCode" placeholder="e.g. 1234">
                 </div>
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <div class="form-group">
@@ -181,20 +284,43 @@
                 <div class="form-group">
                     <label>Agency</label>
                     <select id="newStopAgency"
-                        style="width: 100%; padding: 10px; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                        style="width: 100%; padding: 12px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
                         <option value="TTC">TTC</option>
                         <option value="GO Transit">GO Transit</option>
                         <option value="UP Express">UP Express</option>
                         <option value="MiWay">MiWay</option>
                         <option value="YRT">YRT</option>
+                        <option value="Other">Other</option>
                     </select>
                 </div>
-                <button onclick="confirmCreate()" class="btn btn-primary" style="width: 100%;">Create & Link</button>
-                <button onclick="backToLink()" class="btn btn-text" style="width: 100%; margin-top: 5px;">Back</button>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
+                    <button onclick="backToLink()" class="btn btn-outline">Back</button>
+                    <button onclick="confirmCreate()" class="btn btn-primary">Create & Link</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Alias Modal (Manual) -->
+    <div id="manualAliasModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; border: 1px solid var(--border-color);">
+            <h3 style="margin-top: 0;">Add Alias</h3>
+            <p style="font-size: 0.9em; color: var(--text-secondary);">Adding alias for <strong
+                    id="aliasTargetName"></strong></p>
+
+            <div class="form-group">
+                <input type="text" id="newAliasInput" placeholder="e.g. Sheppard Station"
+                    style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
             </div>
 
-            <button onclick="closeModal()" class="btn"
-                style="position: absolute; top: 10px; right: 10px; background: none; border: none; font-size: 1.5em; color: var(--text-secondary);">×</button>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="saveManualAlias()" class="btn btn-primary" style="flex: 1;">Add Alias</button>
+                <!-- Cancel button handled by simple close -->
+                <button onclick="document.getElementById('manualAliasModal').style.display='none'"
+                    class="btn btn-outline" style="flex: 1;">Cancel</button>
+            </div>
         </div>
     </div>
 
