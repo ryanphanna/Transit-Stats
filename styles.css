@@ -297,10 +297,11 @@ body {
 
 @media (min-width: 1200px) {
     .dashboard-grid {
-        grid-template-columns: 320px minmax(500px, 1fr) 320px;
+        grid-template-columns: 320px minmax(auto, 1fr) 320px;
         align-items: start;
         gap: 25px;
         padding: 0 20px;
+        max-width: 1200px;
     }
 
     /* Enforce Dashboard Visibility on Desktop */
