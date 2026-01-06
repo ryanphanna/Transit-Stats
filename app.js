@@ -14,34 +14,7 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 console.log('✅ Firebase initialized successfully!');
 
-// --- DEV: AUTH BYPASS FOR UI VERIFICATION ---
-// Mimic a user so we can see the internal UI
-setTimeout(() => {
-    console.log('🔓 Dev Bypass: Forcing App Show');
-    currentUser = { uid: 'dev-preview', email: 'dev@preview.com' };
-    showApp();
-    // Populate some dummy data for visuals
-    document.getElementById('statsTotalTrips').innerText = '124';
-    document.getElementById('statsUniqueRoutes').innerText = '8';
-    document.getElementById('statsTotalTime').innerText = '42.5';
-    document.getElementById('statsUniqueStops').innerText = '15';
 
-    // Mock Top Routes content to verify grid
-    const topRoutesHTML = `
-                <div style="display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid var(--border-light);">
-                    <span>🚌 504 King</span>
-                    <strong>45 trips</strong>
-                </div>
-                <div style="display: flex; justify-content: space-between; padding: 10px;">
-                    <span>🚌 501 Queen</span>
-                    <strong>22 trips</strong>
-                </div>
-            `;
-    document.getElementById('topRoutesList').innerHTML = topRoutesHTML;
-    document.getElementById('topStopsList').innerHTML = topRoutesHTML.replace(/504 King/g, 'King St W').replace(/501 Queen/g, 'Queen St E');
-
-}, 1000);
-// --------------------------------------------
 
 let currentUser = null;
 let activeTrip = null;
