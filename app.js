@@ -1995,7 +1995,12 @@ function updateStreakStatus() {
             if (streaks.current > 0) {
                 streakStatus.style.display = 'block';
                 streakStatus.textContent = `🔥 ${streaks.current} day streak!`;
+            } else if (trips.length === 0) {
+                // Only show "take your first trip" if user has no trips at all
+                streakStatus.style.display = 'block';
+                streakStatus.textContent = '⚡ Take your first trip to start tracking!';
             } else {
+                // User has trips but no current streak - hide the banner
                 streakStatus.style.display = 'none';
             }
         })

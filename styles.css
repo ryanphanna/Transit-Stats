@@ -917,8 +917,8 @@ body {
     }
 
     body {
-        font-size: 12px;
-        /* Aggressive reduction for high density */
+        font-size: 15px;
+        /* Comfortable reading size */
     }
 
     /* Explicitly set form element sizes to match body */
@@ -926,7 +926,7 @@ body {
     button,
     select,
     textarea {
-        font-size: 12px !important;
+        font-size: 15px !important;
     }
 
     h1 {
