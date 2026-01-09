@@ -160,14 +160,15 @@ function renderStopLibrary(stops) {
             ${renderAliases(stop)}
             
             <div style="margin-top: 15px; display:flex; justify-content:flex-end; align-items:center;">
-                <button class="btn btn-sm btn-outline" style="padding:4px 10px; font-size:0.8em; border:none; color:var(--text-secondary);" 
+                <button class="btn btn-sm btn-outline" style="padding:4px 10px; font-size:0.8em; border:none; color:var(--text-secondary);"
                     onclick="openStopForm('edit', {
-                        id: '${stop.id}', 
-                        name: '${stop.name.replace(/'/g, "\\'")}', 
-                        code: '${(stop.code || '').replace(/'/g, "\\'")}', 
-                        agency: '${(stop.agency || 'Other').replace(/'/g, "\\'")}', 
-                        lat: ${stop.lat || 0}, 
-                        lng: ${stop.lng || 0}
+                        id: '${stop.id}',
+                        name: '${stop.name.replace(/'/g, "\\'")}',
+                        code: '${(stop.code || '').replace(/'/g, "\\'")}',
+                        agency: '${(stop.agency || 'Other').replace(/'/g, "\\'")}',
+                        lat: ${stop.lat || 0},
+                        lng: ${stop.lng || 0},
+                        aliases: ${JSON.stringify(stop.aliases || [])}
                     })">
                     ✏️ Edit
                  </button>
@@ -183,10 +184,7 @@ function renderAliases(stop) {
     return `
         <div class="aliases-container">
             ${stop.aliases.map(a => `
-                <span class="alias-badge">
-                    ${a} 
-                    <span class="remove-alias" onclick="removeAlias('${stop.id}', '${a.replace(/'/g, "\\'")}')" title="Remove alias">×</span>
-                </span>
+                <span class="alias-badge">${a}</span>
             `).join('')}
         </div>
     `;
@@ -670,6 +668,7 @@ function openStopForm(mode, stopData = null) {
     const modal = document.getElementById('stopFormModal');
     const title = document.getElementById('stopFormTitle');
     const saveBtn = document.getElementById('saveStopBtn');
+    const aliasesSection = document.getElementById('editAliasesSection');
 
     modal.style.display = 'block';
 
@@ -683,6 +682,15 @@ function openStopForm(mode, stopData = null) {
         document.getElementById('editStopLat').value = stopData.lat || '';
         document.getElementById('editStopLng').value = stopData.lng || '';
         document.getElementById('editStopAgency').value = stopData.agency || 'Other';
+
+        // Show aliases section and render aliases
+        if (stopData.aliases && stopData.aliases.length > 0) {
+            aliasesSection.style.display = 'block';
+            renderEditAliases(stopData.id, stopData.aliases);
+        } else {
+            aliasesSection.style.display = 'block';
+            document.getElementById('editAliasesList').innerHTML = '<span style="color: var(--text-muted); font-size: 0.9em;">No aliases linked</span>';
+        }
     } else {
         // Create mode
         currentEditId = null;
@@ -694,6 +702,45 @@ function openStopForm(mode, stopData = null) {
         document.getElementById('editStopLat').value = '';
         document.getElementById('editStopLng').value = '';
         document.getElementById('editStopAgency').value = 'TTC'; // Default
+
+        // Hide aliases section in create mode
+        aliasesSection.style.display = 'none';
+    }
+}
+
+function renderEditAliases(stopId, aliases) {
+    const container = document.getElementById('editAliasesList');
+    if (!aliases || aliases.length === 0) {
+        container.innerHTML = '<span style="color: var(--text-muted); font-size: 0.9em;">No aliases linked</span>';
+        return;
+    }
+    container.innerHTML = aliases.map(a => `
+        <span class="alias-badge" style="display: flex; align-items: center; gap: 4px;">
+            ${a}
+            <span class="remove-alias" onclick="removeAliasFromEdit('${stopId}', '${a.replace(/'/g, "\\'")}')" title="Remove alias" style="cursor: pointer; opacity: 0.5; font-weight: bold;">×</span>
+        </span>
+    `).join('');
+}
+
+async function removeAliasFromEdit(stopId, alias) {
+    if (!confirm(`Remove alias "${alias}"? This will not un-verify past trips.`)) return;
+
+    try {
+        const stopRef = db.collection('stops').doc(stopId);
+        await stopRef.update({
+            aliases: firebase.firestore.FieldValue.arrayRemove(alias)
+        });
+
+        // Refresh the aliases in the edit modal
+        const stopDoc = await stopRef.get();
+        const stopData = stopDoc.data();
+        renderEditAliases(stopId, stopData.aliases || []);
+
+        // Also refresh the main library view
+        loadData();
+    } catch (error) {
+        console.error('Error removing alias:', error);
+        alert('Failed to remove alias');
     }
 }
 
