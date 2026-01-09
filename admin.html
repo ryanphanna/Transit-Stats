@@ -161,7 +161,9 @@
 <body>
     <div class="header">
         <div class="header-row">
-            <h1 class="header-title" onclick="window.location.href='index.html'" style="cursor: pointer;">TransitStats <span style="font-weight: normal; opacity: 0.9;">Data Manager</span></h1>
+            <h1 class="header-title" onclick="window.location.href='index.html'" style="cursor: pointer;">TransitStats
+                <span style="font-weight: normal; opacity: 0.9;">Data Manager</span>
+            </h1>
             <div id="userInfo" class="user-info" style="display: none;">
                 <button id="adminBtn" class="header-btn text-btn" style="background: rgba(255, 255, 255, 0.3);">Data Manager</button>
                 <button id="mapsBtn" class="header-btn" onclick="window.location.href='index.html#map'">🗺️<span>Map</span></button>
@@ -195,26 +197,32 @@
 
                     <!-- Search & Bulk Actions -->
                     <div style="margin-bottom: 15px;">
-                        <input type="text" id="inboxSearch" placeholder="🔍 Search inbox..."
-                            onkeyup="filterInbox()"
+                        <input type="text" id="inboxSearch" placeholder="🔍 Search inbox..." onkeyup="filterInbox()"
                             style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-tertiary); color: var(--text-primary); font-size: 0.9em; box-sizing: border-box;">
                     </div>
 
                     <!-- Bulk Actions Bar -->
-                    <div id="bulkActionsBar" style="display: none; margin-bottom: 10px; padding: 8px; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--accent-primary);">
+                    <div id="bulkActionsBar"
+                        style="display: none; margin-bottom: 10px; padding: 8px; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--accent-primary);">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span id="selectedCount" style="font-size: 0.85em; color: var(--accent-primary);">0 selected</span>
+                            <span id="selectedCount" style="font-size: 0.85em; color: var(--accent-primary);">0
+                                selected</span>
                             <div style="display: flex; gap: 8px;">
-                                <button onclick="clearSelection()" class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8em;">Clear</button>
-                                <button onclick="bulkLinkSelected()" class="btn btn-primary" style="padding: 4px 8px; font-size: 0.8em;">Link All</button>
+                                <button onclick="clearSelection()" class="btn btn-outline"
+                                    style="padding: 4px 8px; font-size: 0.8em;">Clear</button>
+                                <button onclick="bulkLinkSelected()" class="btn btn-primary"
+                                    style="padding: 4px 8px; font-size: 0.8em;">Link All</button>
                             </div>
                         </div>
                     </div>
 
                     <!-- Select All Toggle -->
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-light);">
-                        <input type="checkbox" id="selectAllInbox" onchange="toggleSelectAll()" style="width: 16px; height: 16px; cursor: pointer;">
-                        <label for="selectAllInbox" style="font-size: 0.85em; color: var(--text-secondary); cursor: pointer;">Select all</label>
+                    <div
+                        style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-light);">
+                        <input type="checkbox" id="selectAllInbox" onchange="toggleSelectAll()"
+                            style="width: 16px; height: 16px; cursor: pointer;">
+                        <label for="selectAllInbox"
+                            style="font-size: 0.85em; color: var(--text-secondary); cursor: pointer;">Select all</label>
                     </div>
 
                     <div id="pendingList" style="overflow-y: auto; flex: 1;">
@@ -230,14 +238,15 @@
                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <div>
                             <h2 style="margin: 0;">📚 Stop Library</h2>
-                            <div style="font-size: 0.9em; color: var(--text-secondary);">Your verified stops with alternate names/codes</div>
+                            <div style="font-size: 0.9em; color: var(--text-secondary);">Your verified stops with
+                                alternate names/codes</div>
                         </div>
-                        <button onclick="openCreateModal()" class="btn btn-primary"
+                        <button onclick="openStopForm('create')" class="btn btn-primary"
                             style="width: auto; padding: 10px 20px;">+ New Stop</button>
                     </div>
 
                     <!-- Filters -->
-                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
                         <input type="text" id="stopSearch" placeholder="🔍 Search by name, code, or alias..."
                             onkeyup="filterStops()"
                             style="padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-tertiary); color: var(--text-primary);">
@@ -247,11 +256,20 @@
                             <option value="All">All Agencies</option>
                             <option value="TTC">TTC</option>
                             <option value="GO Transit">GO Transit</option>
+                            <option value="UP Express">UP Express</option>
                             <option value="MiWay">MiWay</option>
                             <option value="YRT">YRT</option>
                             <option value="Other">Other</option>
                         </select>
+
+                        <select id="stopSort" onchange="filterStops()"
+                            style="padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-tertiary); color: var(--text-primary);">
+                            <option value="nameAsc">Name (A-Z)</option>
+                            <option value="nameDesc">Name (Z-A)</option>
+                            <option value="agencyAsc">Agency (A-Z)</option>
+                        </select>
                     </div>
+
 
                     <!-- Grid -->
                     <div id="stopLibrary"
@@ -288,7 +306,7 @@
                     <button id="linkExistingBtn" onclick="showLinkExisting()" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
                         <span style="font-size: 1.1em;">&#128279;</span> Link to Existing Stop
                     </button>
-                    <button id="createNewBtn" onclick="switchToCreate()" class="btn btn-outline" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <button id="createNewBtn" onclick="showCreateNew()" class="btn btn-outline" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
                         <span style="font-size: 1.1em;">+</span> Create New Stop
                     </button>
                 </div>
@@ -306,7 +324,12 @@
                 </div>
             </div>
 
-            <div id="createOptions" style="display: none;">
+            <div id="createNewView" style="display: none;">
+                <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                    <button onclick="backToChoice()" class="btn btn-sm btn-outline">← Back</button>
+                    <h3 style="margin: 0; font-size: 1.1em;">Create New Stop</h3>
+                </div>
+
                 <div class="form-group">
                     <label>Stop Name</label>
                     <input type="text" id="newStopName" placeholder="e.g. Union Station">
@@ -337,8 +360,7 @@
                         <option value="Other">Other</option>
                     </select>
                 </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
-                    <button onclick="backToLink()" class="btn btn-outline">Back</button>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 20px;">
                     <button onclick="confirmCreate()" class="btn btn-primary">Create & Link</button>
                 </div>
             </div>
@@ -364,6 +386,59 @@
                 <!-- Cancel button handled by simple close -->
                 <button onclick="document.getElementById('manualAliasModal').style.display='none'"
                     class="btn btn-outline" style="flex: 1;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stop Form Modal (Create/Edit) -->
+    <div id="stopFormModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; border: 1px solid var(--border-color);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 id="stopFormTitle" style="margin: 0;">Edit Stop</h3>
+                <button onclick="closeStopFormModal()"
+                    style="background: none; border: none; font-size: 1.5em; color: var(--text-secondary); cursor: pointer;">&times;</button>
+            </div>
+
+            <input type="hidden" id="editStopId">
+
+            <div class="form-group">
+                <label>Stop Name</label>
+                <input type="text" id="editStopName" placeholder="e.g. Union Station">
+            </div>
+            <div class="form-group">
+                <label>Stop Code (Optional)</label>
+                <input type="text" id="editStopCode" placeholder="e.g. 1234">
+            </div>
+
+            <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group">
+                    <label>Lat</label>
+                    <input type="number" step="any" id="editStopLat">
+                </div>
+                <div class="form-group">
+                    <label>Lng</label>
+                    <input type="number" step="any" id="editStopLng">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Agency</label>
+                <select id="editStopAgency"
+                    style="width: 100%; padding: 12px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                    <option value="TTC">TTC</option>
+                    <option value="GO Transit">GO Transit</option>
+                    <option value="UP Express">UP Express</option>
+                    <option value="MiWay">MiWay</option>
+                    <option value="YRT">YRT</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="saveStopFromForm()" id="saveStopBtn" class="btn btn-primary" style="flex: 1;">Save
+                    Changes</button>
             </div>
         </div>
     </div>
