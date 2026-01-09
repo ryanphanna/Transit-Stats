@@ -1170,7 +1170,12 @@ body {
     display: flex;
     flex-direction: column;
     height: calc(100vh - 84px);
-    margin: -20px;
+    width: 100vw;
+    position: relative;
+    left: 50%;
+    right: 50%;
+    margin-left: -50vw;
+    margin-right: -50vw;
     margin-top: 0;
 }
 
