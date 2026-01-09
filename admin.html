@@ -165,18 +165,9 @@
                 <span style="font-weight: normal; opacity: 0.9;">Data Manager</span>
             </h1>
             <div id="userInfo" class="user-info" style="display: none;">
-                <button id="profileBtn" class="header-btn"
-                    onclick="window.location.href='index.html#profile'">👤<span>Profile</span></button>
-                <button id="statsBtn" class="header-btn"
-                    onclick="window.location.href='index.html#stats'">📊<span>Trips</span></button>
-                <button id="mapsBtn" class="header-btn"
-                    onclick="window.location.href='index.html#map'">🗺️<span>Map</span></button>
-                <button id="settingsBtn" class="header-btn"
-                    onclick="window.location.href='index.html#settings'">⚙️<span>Settings</span></button>
-                <button id="adminBtn" class="header-btn"
-                    style="background: rgba(255, 255, 255, 0.3);">🛠️<span>Admin</span></button>
-                <button id="logTripBtn" class="header-btn primary-action"
-                    onclick="window.location.href='index.html#logtrip'">➕<span>Log Trip</span></button>
+                <button id="adminBtn" class="header-btn text-btn" style="background: rgba(255, 255, 255, 0.3);">Data Manager</button>
+                <button id="mapsBtn" class="header-btn" onclick="window.location.href='index.html#map'">🗺️<span>Map</span></button>
+                <button id="settingsBtn" class="header-btn" onclick="window.location.href='index.html#settings'">⚙️<span>Settings</span></button>
             </div>
         </div>
     </div>
@@ -310,39 +301,27 @@
                 </div>
             </div>
 
-            <!-- Step 1: Initial Choice -->
-            <div id="linkChoiceView" style="display: block;">
-                <div style="display: grid; gap: 15px; margin-top: 20px;">
-                    <button onclick="showLinkExisting()" class="btn btn-primary"
-                        style="padding: 20px; font-size: 1.1em; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                        🔗 Link to Existing Stop
+            <div id="linkOptions">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                    <button id="linkExistingBtn" onclick="showLinkExisting()" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <span style="font-size: 1.1em;">&#128279;</span> Link to Existing Stop
                     </button>
-                    <button onclick="showCreateNew()" class="btn btn-outline"
-                        style="padding: 20px; font-size: 1.1em; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                        ➕ Create New Stop
+                    <button id="createNewBtn" onclick="showCreateNew()" class="btn btn-outline" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <span style="font-size: 1.1em;">+</span> Create New Stop
                     </button>
                 </div>
-            </div>
 
-            <!-- Step 2A: Link to Existing -->
-            <div id="linkExistingView" style="display: none;">
-                <h4 style="margin-bottom: 10px;">Link to Existing Stop</h4>
-                <div class="form-group">
-                    <select id="existingStopSelect"
-                        style="width: 100%; padding: 12px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; font-size: 1em;">
-                        <option value="">Select a stop...</option>
-                    </select>
+                <div id="existingStopSearch" style="display: none;">
+                    <div class="form-group" style="position: relative;">
+                        <input type="text" id="stopSearchInput" placeholder="Search for a stop..."
+                            style="width: 100%; padding: 12px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; font-size: 1em;"
+                            oninput="filterStopSearch()" onfocus="showStopResults()">
+                        <div id="stopSearchResults"
+                            style="display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: var(--bg-primary); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 8px 8px; z-index: 10;">
+                        </div>
+                    </div>
+                    <button onclick="confirmLink()" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Link as Alias</button>
                 </div>
-                <button onclick="confirmLink()" class="btn btn-primary" style="width: 100%;">Link as Alias</button>
-
-                <div style="text-align: center; margin: 20px 0; color: var(--text-muted); position: relative;">
-                    <span
-                        style="background: var(--bg-secondary); padding: 0 10px; position: relative; z-index: 1;">OR</span>
-                    <hr
-                        style="position: absolute; top: 50%; left: 0; right: 0; border: none; border-top: 1px solid var(--border-light); z-index: 0;">
-                </div>
-
-                <button onclick="switchToCreate()" class="btn btn-outline" style="width: 100%;">Create New Stop</button>
             </div>
 
             <div id="createNewView" style="display: none;">

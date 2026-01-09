@@ -22,15 +22,11 @@
             <div class="header-row">
                 <h1 class="header-title" onclick="goHome()">TransitStats</h1>
                 <div id="userInfo" class="user-info" style="display: none;">
-                    <button id="adminBtn" class="header-btn" onclick="window.location.href='admin.html'">Data
-                        Manager</button>
-                    <button id="profileBtn" class="header-btn" onclick="showProfile()">👤<span>Profile</span></button>
-                    <button id="statsBtn" class="header-btn" onclick="showStats()">📊<span>Trips</span></button>
+                    <button id="adminBtn" class="header-btn text-btn"
+                        onclick="window.location.href='admin.html'">Data Manager</button>
                     <button id="mapsBtn" class="header-btn" onclick="showMaps()">🗺️<span>Map</span></button>
                     <button id="settingsBtn" class="header-btn"
                         onclick="openSettings()">⚙️<span>Settings</span></button>
-                    <button id="logTripBtn" class="header-btn primary-action" onclick="openLogTripModal()">➕<span>Log
-                            Trip</span></button>
                 </div>
             </div>
         </div>
@@ -116,21 +112,9 @@
                                     </div>
                                 </div>
 
-                                <div class="profile-content-grid" style="margin-top: 20px;">
-                                    <!-- Templates -->
-                                    <div id="templatesManagement"
-                                        style="background: var(--bg-tertiary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color);">
-                                        <h3 style="margin-bottom: 15px; color: var(--text-primary);">⭐ Trip Templates
-                                        </h3>
-                                        <div id="profileTemplatesList">
-                                            <div class="loading">Loading templates...</div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Hidden Trips List (Logic wrapper, not visible) -->
-                                    <div id="profileTripsListWrapper" style="display: none;">
-                                        <div id="profileTripsList"></div>
-                                    </div>
+                                <!-- Hidden Trips List (Logic wrapper, not visible) -->
+                                <div id="profileTripsListWrapper" style="display: none;">
+                                    <div id="profileTripsList"></div>
                                 </div>
                             </div>
                         </div>
@@ -407,16 +391,13 @@
                         <button class="btn" onclick="closeSettings()"
                             style="flex: 1; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">Cancel</button>
                     </div>
-                </div>
-            </div>
 
-            <!-- Status Footer -->
-            <div class="status-footer">
-                <div id="locationStatus" class="status-indicator loading">
-                    📍 Getting location...
-                </div>
-                <div id="connectionStatus" class="status-indicator" onclick="toggleLogout()">
-                    Checking...
+                    <hr style="border: none; border-top: 1px solid var(--border-light); margin: 25px 0;">
+
+                    <button class="btn" onclick="signOut()"
+                        style="width: 100%; background: transparent; color: var(--danger-text); border: 1px solid var(--danger-text);">
+                        Log Out
+                    </button>
                 </div>
             </div>
 
