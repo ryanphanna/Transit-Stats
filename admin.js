@@ -25,6 +25,19 @@ let currentTargetString = '';
 let currentUser = null;
 let currentAliasTargetId = null;
 
+// Theme - Load saved theme from localStorage (shared with main app)
+function loadSavedTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+        document.body.setAttribute('data-theme', 'dark');
+    } else {
+        document.body.removeAttribute('data-theme');
+    }
+}
+
+// Load theme immediately
+loadSavedTheme();
+
 // Auth Listener
 auth.onAuthStateChanged((user) => {
     currentUser = user;
