@@ -633,31 +633,54 @@ function createFullMap(trips, totalTrips) {
     const container = document.getElementById('fullMapContainer');
     container.innerHTML = '';
 
-    // Collect all locations based on filter
-    const locations = [];
+    // Aggregate locations by stop name
+    const stopMap = new Map();
+    let totalLocations = 0;
+
     trips.forEach(trip => {
         if ((mapFilter === 'boarding' || mapFilter === 'both') && trip.boardingLocation) {
-            locations.push({
-                lat: trip.boardingLocation.lat,
-                lon: trip.boardingLocation.lng || trip.boardingLocation.lon,
-                type: 'boarding',
-                stop: trip.startStop,
-                route: trip.route,
-                time: trip.startTime
-            });
+            const stopName = trip.startStopName || trip.startStop || trip.startStopCode || 'Unknown';
+            const key = `boarding-${stopName}`;
+            totalLocations++;
+
+            if (stopMap.has(key)) {
+                const existing = stopMap.get(key);
+                existing.count++;
+                existing.routes.add(trip.route);
+            } else {
+                stopMap.set(key, {
+                    lat: trip.boardingLocation.lat,
+                    lon: trip.boardingLocation.lng || trip.boardingLocation.lon,
+                    type: 'boarding',
+                    stop: stopName,
+                    count: 1,
+                    routes: new Set([trip.route])
+                });
+            }
         }
         if ((mapFilter === 'exiting' || mapFilter === 'both') && trip.exitLocation) {
-            locations.push({
-                lat: trip.exitLocation.lat,
-                lon: trip.exitLocation.lng || trip.exitLocation.lon,
-                type: 'exiting',
-                stop: trip.endStop,
-                route: trip.route,
-                time: trip.endTime,
-                duration: trip.duration
-            });
+            const stopName = trip.endStopName || trip.endStop || trip.endStopCode || 'Unknown';
+            const key = `exiting-${stopName}`;
+            totalLocations++;
+
+            if (stopMap.has(key)) {
+                const existing = stopMap.get(key);
+                existing.count++;
+                existing.routes.add(trip.route);
+            } else {
+                stopMap.set(key, {
+                    lat: trip.exitLocation.lat,
+                    lon: trip.exitLocation.lng || trip.exitLocation.lon,
+                    type: 'exiting',
+                    stop: stopName,
+                    count: 1,
+                    routes: new Set([trip.route])
+                });
+            }
         }
     });
+
+    const locations = Array.from(stopMap.values());
 
     if (locations.length === 0) {
         container.innerHTML = `
@@ -667,7 +690,7 @@ function createFullMap(trips, totalTrips) {
                 <div style="font-size: 0.9em; opacity: 0.7;">Take trips with GPS enabled to see them on the map</div>
             </div>
         `;
-        updateFullMapStats(0, 0, totalTrips);
+        updateFullMapStats(0, 0, 0, totalTrips);
         return;
     }
 
@@ -693,29 +716,11 @@ function createFullMap(trips, totalTrips) {
         maxZoom: 19
     }).addTo(map);
 
-    // Create marker cluster group
-    markerClusterGroup = L.markerClusterGroup({
-        maxClusterRadius: 50,
-        spiderfyOnMaxZoom: true,
-        showCoverageOnHover: false,
-        zoomToBoundsOnClick: true,
-        iconCreateFunction: function (cluster) {
-            const count = cluster.getChildCount();
-            let size = 'small';
-            if (count > 10) size = 'medium';
-            if (count > 50) size = 'large';
-
-            return L.divIcon({
-                html: '<div><span>' + count + '</span></div>',
-                className: 'marker-cluster marker-cluster-' + size,
-                iconSize: L.point(40, 40)
-            });
-        }
-    });
-
-    // Add markers to cluster group
+    // Add markers for each unique stop
     locations.forEach(loc => {
         const isBoarding = loc.type === 'boarding';
+        const routesList = Array.from(loc.routes).join(', ');
+
         const icon = L.divIcon({
             className: 'custom-marker',
             html: `<div style="
@@ -732,27 +737,22 @@ function createFullMap(trips, totalTrips) {
 
         const marker = L.marker([loc.lat, loc.lon], { icon: icon });
 
-        const timeStr = loc.time?.toDate ? loc.time.toDate().toLocaleString() : 'Unknown';
+        const tripText = loc.count === 1 ? 'trip' : 'trips';
         const popupContent = isBoarding
             ? `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                <strong style="color: #3b82f6;">🚌 Boarding</strong><br>
-                <span style="color: #666;">Stop: ${loc.stop || 'Unknown'}</span><br>
-                <span style="color: #666;">Route: ${loc.route}</span><br>
-                <span style="color: #888; font-size: 0.9em;">${timeStr}</span>
+                <strong style="color: #3b82f6;">🚌 ${loc.stop}</strong><br>
+                <span style="color: #666;">${loc.count} ${tripText} boarded</span><br>
+                <span style="color: #888; font-size: 0.9em;">Routes: ${routesList}</span>
                </div>`
             : `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                <strong style="color: #10b981;">🚏 Exiting</strong><br>
-                <span style="color: #666;">Stop: ${loc.stop || 'Unknown'}</span><br>
-                <span style="color: #666;">Route: ${loc.route}</span><br>
-                ${loc.duration ? `<span style="color: #666;">Duration: ${loc.duration} min</span><br>` : ''}
-                <span style="color: #888; font-size: 0.9em;">${timeStr}</span>
+                <strong style="color: #10b981;">🚏 ${loc.stop}</strong><br>
+                <span style="color: #666;">${loc.count} ${tripText} exited</span><br>
+                <span style="color: #888; font-size: 0.9em;">Routes: ${routesList}</span>
                </div>`;
 
         marker.bindPopup(popupContent);
-        markerClusterGroup.addLayer(marker);
+        marker.addTo(map);
     });
-
-    map.addLayer(markerClusterGroup);
 
     // Fit bounds
     if (locations.length > 1) {
@@ -763,14 +763,14 @@ function createFullMap(trips, totalTrips) {
     }
 
     // Update stats
-    updateFullMapStats(trips.length, locations.length, totalTrips);
+    updateFullMapStats(trips.length, locations.length, totalLocations, totalTrips);
 }
 
-function updateFullMapStats(tripCount, locationCount, totalTrips) {
+function updateFullMapStats(tripCount, stopCount, locationCount, totalTrips) {
     document.getElementById('mapTripCount').textContent = `${tripCount} trips`;
-    document.getElementById('mapLocationCount').textContent = `${locationCount} locations`;
+    document.getElementById('mapLocationCount').textContent = `${stopCount} stops`;
 
-    const coverage = totalTrips > 0 ? Math.round((tripCount / totalTrips) * 100) : 0;
+    const coverage = totalTrips > 0 ? Math.round((locationCount / totalTrips) * 100) : 0;
     document.getElementById('mapCoverage').textContent = `${coverage}% GPS coverage`;
 }
 
