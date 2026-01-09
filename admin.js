@@ -63,9 +63,9 @@ function login() {
     });
 }
 
-function loadData() {
-    loadStopLibrary();
-    loadProvisionalStops();
+async function loadData() {
+    await loadStopLibrary();
+    await loadProvisionalStops();
 }
 
 async function loadStopLibrary() {
@@ -84,8 +84,8 @@ async function loadStopLibrary() {
 async function loadProvisionalStops() {
     try {
         const snapshot = await db.collection('trips')
-            .where('verified', '==', false)
             .where('userId', '==', currentUser.uid)
+            .orderBy('startTime', 'desc')
             .limit(100)
             .get();
 
@@ -94,9 +94,19 @@ async function loadProvisionalStops() {
 
         snapshot.docs.forEach(doc => {
             const trip = doc.data();
-            const rawStop = trip.startStop || trip.startStopName || trip.startStopCode;
-            if (rawStop && typeof rawStop === 'string') {
-                const trimmed = rawStop.trim();
+
+            // Check Start Stop
+            const startRaw = trip.startStop || trip.startStopName || trip.startStopCode;
+            if (startRaw && typeof startRaw === 'string') {
+                const trimmed = startRaw.trim();
+                uniquePending.add(trimmed);
+                pendingCounts[trimmed] = (pendingCounts[trimmed] || 0) + 1;
+            }
+
+            // Check End Stop
+            const endRaw = trip.endStop || trip.endStopName || trip.endStopCode;
+            if (endRaw && typeof endRaw === 'string') {
+                const trimmed = endRaw.trim();
                 uniquePending.add(trimmed);
                 pendingCounts[trimmed] = (pendingCounts[trimmed] || 0) + 1;
             }
@@ -344,19 +354,23 @@ async function batchVerifyTrips(rawString, stopId) {
     const stopDoc = await db.collection('stops').doc(stopId).get();
     const stopData = stopDoc.data();
 
-    const snapshot = await db.collection('trips')
+    // Find trips where this string is the Start Stop
+    const startSnapshot = await db.collection('trips')
         .where('userId', '==', currentUser.uid)
-        .where('verified', '==', false)
+        .where('startStop', '==', rawString)
         .get();
 
-    const toUpdate = snapshot.docs.filter(d => {
-        const t = d.data();
-        const raw = t.startStop || t.startStopName || t.startStopCode;
-        return raw === rawString;
-    });
+    // Find trips where this string is the End Stop
+    const endSnapshot = await db.collection('trips')
+        .where('userId', '==', currentUser.uid)
+        .where('endStop', '==', rawString)
+        .get();
 
     const batch = db.batch();
-    toUpdate.forEach(doc => {
+    let updateCount = 0;
+
+    // Update Start Stops
+    startSnapshot.docs.forEach(doc => {
         batch.update(doc.ref, {
             verified: true,
             startStopName: stopData.name,
@@ -366,11 +380,28 @@ async function batchVerifyTrips(rawString, stopId) {
             },
             verifiedStopId: stopId
         });
+        updateCount++;
     });
 
-    if (toUpdate.length > 0) {
+    // Update End Stops
+    endSnapshot.docs.forEach(doc => {
+        batch.update(doc.ref, {
+            // We don't necessarily mark verified=true just for end stop unless start is also known, 
+            // but for now let's assume if we are linking data we are improving verification status.
+            // If the start stop was unknown, it remains unknown, but at least we fix the end stop.
+            endStopName: stopData.name,
+            exitLocation: {
+                lat: stopData.lat,
+                lng: stopData.lng
+            },
+            verifiedEndId: stopId
+        });
+        updateCount++;
+    });
+
+    if (updateCount > 0) {
         await batch.commit();
-        console.log(`Verified ${toUpdate.length} trips.`);
+        console.log(`Updated ${updateCount} trips (Start/End set to ${rawString}).`);
     }
 }
 
