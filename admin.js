@@ -324,15 +324,12 @@ function openLinkModal(targetString) {
     document.getElementById('modalTargetString').textContent = targetString;
     document.getElementById('linkModal').style.display = 'block';
     document.getElementById('linkOptions').style.display = 'block';
-    document.getElementById('createOptions').style.display = 'none';
     document.getElementById('existingStopSearch').style.display = 'none';
     document.getElementById('stopSearchInput').value = '';
     document.getElementById('stopSearchResults').style.display = 'none';
     document.getElementById('linkExistingBtn').style.background = '';
-
-    // Reset to Choice View
-    document.getElementById('linkChoiceView').style.display = 'block';
-    document.getElementById('linkExistingView').style.display = 'none';
+    document.getElementById('linkExistingBtn').classList.remove('active');
+    document.getElementById('createNewBtn').classList.remove('active');
     document.getElementById('createNewView').style.display = 'none';
 }
 
@@ -342,22 +339,19 @@ function closeModal() {
 }
 
 function backToChoice() {
-    document.getElementById('linkChoiceView').style.display = 'block';
-    document.getElementById('linkExistingView').style.display = 'none';
+    // Show the link options with both buttons
+    document.getElementById('linkOptions').style.display = 'block';
+    document.getElementById('existingStopSearch').style.display = 'none';
     document.getElementById('createNewView').style.display = 'none';
-}
-
-function showLinkExisting() {
-    document.getElementById('linkChoiceView').style.display = 'none';
-    document.getElementById('linkExistingView').style.display = 'block';
-
-    // Initialize search
-    document.getElementById('existingStopSearch').value = currentTargetString;
-    filterLinkStops();
+    // Reset button styles
+    document.getElementById('linkExistingBtn').classList.remove('active');
+    document.getElementById('linkExistingBtn').style.background = '';
+    document.getElementById('createNewBtn').classList.remove('active');
 }
 
 function showCreateNew() {
-    document.getElementById('linkChoiceView').style.display = 'none';
+    // Hide link options and show create form
+    document.getElementById('linkOptions').style.display = 'none';
     document.getElementById('createNewView').style.display = 'block';
 
     document.getElementById('newStopName').value = currentTargetString;
