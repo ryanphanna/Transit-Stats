@@ -230,6 +230,7 @@ function loadUserProfile() {
 
 function showProfile() {
     hideAllSections();
+    dashboardGrid.style.display = 'grid'; // Restore dashboard if returning from Map
     profileSection.style.display = 'block';
     startSection.style.display = 'none';
     updateTripIndicator();
@@ -239,6 +240,7 @@ function showProfile() {
 
 function showStats() {
     hideAllSections();
+    dashboardGrid.style.display = 'grid'; // Restore dashboard if returning from Map
     statsSection.style.display = 'block';
     startSection.style.display = 'none';
     updateTripIndicator();
@@ -249,7 +251,6 @@ function showStats() {
     }
 
     updateStatsSection();
-
 }
 
 function showMaps() {
@@ -698,7 +699,7 @@ function createFullMap(trips, totalTrips) {
         spiderfyOnMaxZoom: true,
         showCoverageOnHover: false,
         zoomToBoundsOnClick: true,
-        iconCreateFunction: function(cluster) {
+        iconCreateFunction: function (cluster) {
             const count = cluster.getChildCount();
             let size = 'small';
             if (count > 10) size = 'medium';
