@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TransitStats Admin</title>
+    <title>TransitStats Data Manager</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -158,17 +158,17 @@
     </style>
 </head>
 
-<body data-theme="dark">
+<body>
     <div class="header">
         <div class="header-row">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <button class="header-btn" onclick="window.location.href='index.html'" style="font-size: 0.9em;">← Back
-                    to App</button>
-                <h1 class="header-title">Data Management</h1>
-            </div>
-            <div id="userInfo" style="display: none; align-items: center; gap: 10px;">
-                <span id="userEmail" style="font-size: 0.9em; opacity: 0.8;"></span>
-                <button class="header-btn" onclick="firebase.auth().signOut()">Sign Out</button>
+            <h1 class="header-title" onclick="window.location.href='index.html'" style="cursor: pointer;">TransitStats <span style="font-weight: normal; opacity: 0.9;">Data Manager</span></h1>
+            <div id="userInfo" class="user-info" style="display: none;">
+                <button id="profileBtn" class="header-btn" onclick="window.location.href='index.html#profile'">👤<span>Profile</span></button>
+                <button id="statsBtn" class="header-btn" onclick="window.location.href='index.html#stats'">📊<span>Trips</span></button>
+                <button id="mapsBtn" class="header-btn" onclick="window.location.href='index.html#map'">🗺️<span>Map</span></button>
+                <button id="settingsBtn" class="header-btn" onclick="window.location.href='index.html#settings'">⚙️<span>Settings</span></button>
+                <button id="adminBtn" class="header-btn" style="background: rgba(255, 255, 255, 0.3);">🛠️<span>Admin</span></button>
+                <button id="logTripBtn" class="header-btn primary-action" onclick="window.location.href='index.html#logtrip'">➕<span>Log Trip</span></button>
             </div>
         </div>
     </div>
