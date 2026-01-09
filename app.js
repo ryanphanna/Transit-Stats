@@ -396,10 +396,10 @@ function createMap(trips) {
     const locations = [];
     trips.forEach(trip => {
         if (trip.boardingLocation) {
-            locations.push([trip.boardingLocation.lat, trip.boardingLocation.lon]);
+            locations.push([trip.boardingLocation.lat, trip.boardingLocation.lng || trip.boardingLocation.lon]);
         }
         if (trip.exitLocation) {
-            locations.push([trip.exitLocation.lat, trip.exitLocation.lon]);
+            locations.push([trip.exitLocation.lat, trip.exitLocation.lng || trip.exitLocation.lon]);
         }
     });
 
@@ -448,7 +448,7 @@ function createHeatmap(trips, mode) {
                 stopCounts[key] = {
                     name: trip.startStop,
                     lat: trip.boardingLocation.lat,
-                    lon: trip.boardingLocation.lon,
+                    lon: trip.boardingLocation.lng || trip.boardingLocation.lon,
                     count: 0
                 };
             }
@@ -459,7 +459,7 @@ function createHeatmap(trips, mode) {
                 stopCounts[key] = {
                     name: trip.endStop,
                     lat: trip.exitLocation.lat,
-                    lon: trip.exitLocation.lon,
+                    lon: trip.exitLocation.lng || trip.exitLocation.lon,
                     count: 0
                 };
             }
@@ -536,7 +536,7 @@ function createHeatmap(trips, mode) {
 function createMarkers(trips) {
     trips.forEach((trip, index) => {
         if (trip.boardingLocation) {
-            const boardingMarker = L.marker([trip.boardingLocation.lat, trip.boardingLocation.lon])
+            const boardingMarker = L.marker([trip.boardingLocation.lat, trip.boardingLocation.lng || trip.boardingLocation.lon])
                 .addTo(map);
 
             boardingMarker.bindPopup(`
@@ -550,7 +550,7 @@ function createMarkers(trips) {
         }
 
         if (trip.exitLocation) {
-            const alightingMarker = L.marker([trip.exitLocation.lat, trip.exitLocation.lon])
+            const alightingMarker = L.marker([trip.exitLocation.lat, trip.exitLocation.lng || trip.exitLocation.lon])
                 .addTo(map);
 
             alightingMarker.bindPopup(`
@@ -638,7 +638,7 @@ function createFullMap(trips, totalTrips) {
         if ((mapFilter === 'boarding' || mapFilter === 'both') && trip.boardingLocation) {
             locations.push({
                 lat: trip.boardingLocation.lat,
-                lon: trip.boardingLocation.lon,
+                lon: trip.boardingLocation.lng || trip.boardingLocation.lon,
                 type: 'boarding',
                 stop: trip.startStop,
                 route: trip.route,
@@ -648,7 +648,7 @@ function createFullMap(trips, totalTrips) {
         if ((mapFilter === 'exiting' || mapFilter === 'both') && trip.exitLocation) {
             locations.push({
                 lat: trip.exitLocation.lat,
-                lon: trip.exitLocation.lon,
+                lon: trip.exitLocation.lng || trip.exitLocation.lon,
                 type: 'exiting',
                 stop: trip.endStop,
                 route: trip.route,
@@ -864,21 +864,7 @@ function updateTripIndicator() {
 }
 
 function toggleLogout() {
-    if (!logoutModeActive) {
-        connectionStatus.textContent = 'Log Out';
-        connectionStatus.classList.add('logout-mode');
-        logoutModeActive = true;
-
-        setTimeout(() => {
-            if (logoutModeActive) {
-                connectionStatus.textContent = '🟢 Connected';
-                connectionStatus.classList.remove('logout-mode');
-                logoutModeActive = false;
-            }
-        }, 3000);
-    } else {
-        signOut();
-    }
+    // Connection status footer has been removed - function kept for compatibility
 }
 
 function selectEmoji(emoji) {
@@ -2179,62 +2165,30 @@ function showNotification(message) {
 
 function getCurrentLocation(callback) {
     if ('geolocation' in navigator) {
-        locationStatus.textContent = '📍 Getting location...';
-
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                locationStatus.textContent = '📍 Location enabled';
                 callback({
                     lat: position.coords.latitude,
-                    lon: position.coords.longitude
+                    lng: position.coords.longitude
                 });
             },
             (error) => {
                 console.log('Location error:', error.message);
-                locationStatus.textContent = '📍 Location unavailable';
                 callback(null);
             },
             { timeout: 10000, maximumAge: 60000 }
         );
     } else {
-        locationStatus.textContent = '📍 Location not supported';
         callback(null);
     }
 }
 
 function updateConnectionStatus(isConnected) {
-    if (isConnected) {
-        authStatus.textContent = currentUser ? currentUser.email : '';
-        connectionStatus.textContent = '🟢 Connected';
-        connectionStatus.style.cursor = 'pointer';
-        connectionStatus.onclick = toggleLogoutMode;
-    } else {
-        authStatus.textContent = '';
-        connectionStatus.textContent = '🔴 Sign in required';
-        connectionStatus.style.cursor = 'default';
-        connectionStatus.onclick = null;
-    }
+    // Connection status footer has been removed - function kept for compatibility
 }
 
 function toggleLogoutMode() {
-    logoutModeActive = !logoutModeActive;
-
-    if (logoutModeActive) {
-        connectionStatus.textContent = '⚠️ Tap again to logout';
-        connectionStatus.style.background = 'var(--error)';
-        connectionStatus.style.color = 'white';
-
-        setTimeout(() => {
-            if (logoutModeActive) {
-                logoutModeActive = false;
-                connectionStatus.textContent = '🟢 Connected';
-                connectionStatus.style.background = '';
-                connectionStatus.style.color = '';
-            }
-        }, 3000);
-    } else {
-        auth.signOut();
-    }
+    // Connection status footer has been removed - function kept for compatibility
 }
 
 function updateStreakStatus() {
