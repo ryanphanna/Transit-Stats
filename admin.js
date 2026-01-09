@@ -44,7 +44,8 @@ auth.onAuthStateChanged((user) => {
     if (user) {
         document.getElementById('authSection').style.display = 'none';
         document.getElementById('adminContent').style.display = 'block';
-        document.getElementById('userEmail').textContent = user.email;
+        const userEmailEl = document.getElementById('userEmail');
+        if (userEmailEl) userEmailEl.textContent = user.email;
         document.getElementById('userInfo').style.display = 'flex';
 
         loadData();
@@ -75,6 +76,8 @@ async function loadStopLibrary() {
         updateStopSelect();
     } catch (error) {
         console.error('Error loading lib:', error);
+        const container = document.getElementById('stopLibrary');
+        container.innerHTML = `<div class="empty-state" style="color: var(--danger-text);">Failed to load library: ${error.message}</div>`;
     }
 }
 
@@ -111,6 +114,8 @@ async function loadProvisionalStops() {
         updatePendingCount();
     } catch (error) {
         console.error('Error loading pending:', error);
+        const container = document.getElementById('pendingList');
+        container.innerHTML = `<div class="empty-state" style="color: var(--danger-text);">Failed to load inbox: ${error.message}</div>`;
     }
 }
 
