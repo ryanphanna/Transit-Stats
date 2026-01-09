@@ -1846,21 +1846,27 @@ function loadLastTrip() {
 function loadTrips() {
     const recentTripsList = document.getElementById('recentTripsList');
 
+    // Simplified query without orderBy to avoid Firestore index issues
     db.collection('trips')
         .where('userId', '==', currentUser.uid)
-        .orderBy('endTime', 'desc')
-        .limit(10)
         .get()
         .then((snapshot) => {
-            // Filter to completed trips (with endStop) in JS to avoid Firestore index issues
-            const completedTrips = snapshot.docs.filter(doc => doc.data().endStop != null).slice(0, 5);
+            // Filter to completed trips (with endStop) and sort in JS
+            const completedTrips = snapshot.docs
+                .filter(doc => doc.data().endStop != null)
+                .map(doc => ({ id: doc.id, ...doc.data() }))
+                .sort((a, b) => {
+                    const aTime = a.endTime?.toDate ? a.endTime.toDate() : new Date(a.endTime || 0);
+                    const bTime = b.endTime?.toDate ? b.endTime.toDate() : new Date(b.endTime || 0);
+                    return bTime - aTime;
+                })
+                .slice(0, 5);
 
             if (completedTrips.length > 0) {
                 recentTripsList.innerHTML = '';
 
-                completedTrips.forEach((doc) => {
-                    const trip = doc.data();
-                    const endTime = trip.endTime ? trip.endTime.toDate() : new Date();
+                completedTrips.forEach((trip) => {
+                    const endTime = trip.endTime?.toDate ? trip.endTime.toDate() : new Date();
                     const dateStr = endTime.toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric'
@@ -1896,10 +1902,7 @@ function loadTrips() {
                     recentTripsList.appendChild(tripDiv);
                 });
 
-                // -- Visuals Integration --
-                // We need ALL trips for the heatmap, not just the recent 5.
-                // In a production app, we'd have a separate 'loadAllTripsForVisuals' or aggregates.
-                // For this MVP, let's fetch a larger batch for the heatmap (e.g. 100 recent)
+                // Load heatmap data for visuals
                 loadTripsForHeatmap();
 
             } else {

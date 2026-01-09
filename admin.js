@@ -19,6 +19,8 @@ const db = firebase.firestore();
 // Global State
 let stopsLibrary = [];
 let pendingStops = [];
+let filteredPendingStops = [];
+let selectedInboxItems = new Set();
 let currentTargetString = '';
 let currentUser = null;
 let currentAliasTargetId = null;
@@ -89,6 +91,9 @@ async function loadProvisionalStops() {
             .map(str => ({ name: str, count: pendingCounts[str] }))
             .sort((a, b) => b.count - a.count);
 
+        filteredPendingStops = [...pendingStops];
+        selectedInboxItems.clear();
+        updateBulkActionsBar();
         renderPendingList();
         updatePendingCount();
     } catch (error) {
@@ -151,23 +156,31 @@ function renderAliases(stop) {
     `;
 }
 
-function renderPendingList() {
+function renderPendingList(itemsToRender = null) {
     const container = document.getElementById('pendingList');
-    if (pendingStops.length === 0) {
+    const items = itemsToRender || filteredPendingStops;
+
+    if (items.length === 0) {
+        const isFiltered = document.getElementById('inboxSearch')?.value.trim();
         container.innerHTML = `
             <div style="text-align: center; padding: 30px 10px; color: var(--text-muted);">
-                <div style="font-size: 2em; margin-bottom: 10px;">🎉</div>
-                <div>All caught up!</div>
-                <div style="font-size: 0.8em;">No unlinked stops found.</div>
+                <div style="font-size: 2em; margin-bottom: 10px;">${isFiltered ? '🔍' : '🎉'}</div>
+                <div>${isFiltered ? 'No matches found' : 'All caught up!'}</div>
+                <div style="font-size: 0.8em;">${isFiltered ? 'Try a different search term' : 'No unlinked stops found.'}</div>
             </div>`;
         return;
     }
 
-    container.innerHTML = pendingStops.map(item => `
-        <div class="inbox-item">
-            <div style="overflow:hidden; text-overflow:ellipsis;">
-                <span class="count-badge">${item.count}</span>
-                <strong>${item.name}</strong>
+    container.innerHTML = items.map(item => `
+        <div class="inbox-item ${selectedInboxItems.has(item.name) ? 'selected' : ''}" data-name="${item.name.replace(/"/g, '&quot;')}">
+            <div class="inbox-item-content">
+                <input type="checkbox" class="inbox-item-checkbox"
+                    ${selectedInboxItems.has(item.name) ? 'checked' : ''}
+                    onchange="toggleInboxSelection('${item.name.replace(/'/g, "\\'")}')">
+                <div style="overflow:hidden; text-overflow:ellipsis; flex: 1;">
+                    <span class="count-badge">${item.count}</span>
+                    <strong>${item.name}</strong>
+                </div>
             </div>
             <button class="btn btn-primary btn-sm" onclick="openLinkModal('${item.name.replace(/'/g, "\\'")}')">Link</button>
         </div>
@@ -277,30 +290,6 @@ async function removeAlias(stopId, alias) {
     }
 }
 
-async function confirmLink() {
-    const stopId = document.getElementById('existingStopSelect').value;
-    if (!stopId) {
-        alert('Please select a stop');
-        return;
-    }
-
-    try {
-        const stopRef = db.collection('stops').doc(stopId);
-
-        await stopRef.update({
-            aliases: firebase.firestore.FieldValue.arrayUnion(currentTargetString)
-        });
-
-        await batchVerifyTrips(currentTargetString, stopId);
-
-        closeModal();
-        loadData();
-    } catch (error) {
-        console.error('Error linking:', error);
-        alert('Error linking stop: ' + error.message);
-    }
-}
-
 async function confirmCreate() {
     const name = document.getElementById('newStopName').value;
     const code = document.getElementById('newStopCode').value;
@@ -364,5 +353,157 @@ async function batchVerifyTrips(rawString, stopId) {
     if (toUpdate.length > 0) {
         await batch.commit();
         console.log(`Verified ${toUpdate.length} trips.`);
+    }
+}
+
+// ========================================
+// INBOX SEARCH & BULK SELECT FUNCTIONS
+// ========================================
+
+function filterInbox() {
+    const query = document.getElementById('inboxSearch').value.toLowerCase().trim();
+
+    if (!query) {
+        filteredPendingStops = [...pendingStops];
+    } else {
+        filteredPendingStops = pendingStops.filter(item =>
+            item.name.toLowerCase().includes(query)
+        );
+    }
+
+    renderPendingList();
+}
+
+function toggleInboxSelection(name) {
+    if (selectedInboxItems.has(name)) {
+        selectedInboxItems.delete(name);
+    } else {
+        selectedInboxItems.add(name);
+    }
+
+    updateBulkActionsBar();
+    updateSelectAllCheckbox();
+
+    // Update the item's visual state
+    const item = document.querySelector(`.inbox-item[data-name="${name.replace(/"/g, '\\"')}"]`);
+    if (item) {
+        item.classList.toggle('selected', selectedInboxItems.has(name));
+    }
+}
+
+function toggleSelectAll() {
+    const selectAllCheckbox = document.getElementById('selectAllInbox');
+
+    if (selectAllCheckbox.checked) {
+        // Select all visible (filtered) items
+        filteredPendingStops.forEach(item => selectedInboxItems.add(item.name));
+    } else {
+        // Deselect all
+        selectedInboxItems.clear();
+    }
+
+    updateBulkActionsBar();
+    renderPendingList();
+}
+
+function updateSelectAllCheckbox() {
+    const selectAllCheckbox = document.getElementById('selectAllInbox');
+    if (!selectAllCheckbox) return;
+
+    const allSelected = filteredPendingStops.length > 0 &&
+        filteredPendingStops.every(item => selectedInboxItems.has(item.name));
+
+    selectAllCheckbox.checked = allSelected;
+    selectAllCheckbox.indeterminate = !allSelected && selectedInboxItems.size > 0;
+}
+
+function updateBulkActionsBar() {
+    const bar = document.getElementById('bulkActionsBar');
+    const countSpan = document.getElementById('selectedCount');
+
+    if (!bar || !countSpan) return;
+
+    if (selectedInboxItems.size > 0) {
+        bar.style.display = 'block';
+        countSpan.textContent = `${selectedInboxItems.size} selected`;
+    } else {
+        bar.style.display = 'none';
+    }
+}
+
+function clearSelection() {
+    selectedInboxItems.clear();
+    updateBulkActionsBar();
+    updateSelectAllCheckbox();
+    renderPendingList();
+}
+
+async function bulkLinkSelected() {
+    if (selectedInboxItems.size === 0) {
+        alert('No items selected');
+        return;
+    }
+
+    const stopId = document.getElementById('existingStopSelect').value;
+
+    if (!stopId) {
+        // Open a modal to select a stop to link all selected items to
+        const selectedArray = Array.from(selectedInboxItems);
+        const firstItem = selectedArray[0];
+
+        // Show modal with first item, but we'll link all
+        currentTargetString = firstItem;
+        document.getElementById('modalTargetString').innerHTML = `
+            <div style="margin-bottom: 8px;">${firstItem}</div>
+            ${selectedArray.length > 1 ? `<div style="font-size: 0.85em; color: var(--text-muted);">+ ${selectedArray.length - 1} more items</div>` : ''}
+        `;
+        document.getElementById('linkModal').style.display = 'block';
+
+        // Store the bulk mode flag
+        window.bulkLinkMode = true;
+        window.bulkLinkItems = selectedArray;
+
+        document.getElementById('stopSearch').value = '';
+        filterStops();
+        return;
+    }
+}
+
+// confirmLink supports both single and bulk mode
+async function confirmLink() {
+    const stopId = document.getElementById('existingStopSelect').value;
+    if (!stopId) {
+        alert('Please select a stop');
+        return;
+    }
+
+    try {
+        const stopRef = db.collection('stops').doc(stopId);
+
+        if (window.bulkLinkMode && window.bulkLinkItems) {
+            // Bulk link mode
+            for (const itemName of window.bulkLinkItems) {
+                await stopRef.update({
+                    aliases: firebase.firestore.FieldValue.arrayUnion(itemName)
+                });
+                await batchVerifyTrips(itemName, stopId);
+            }
+
+            window.bulkLinkMode = false;
+            window.bulkLinkItems = null;
+            selectedInboxItems.clear();
+        } else {
+            // Single link mode
+            await stopRef.update({
+                aliases: firebase.firestore.FieldValue.arrayUnion(currentTargetString)
+            });
+            await batchVerifyTrips(currentTargetString, stopId);
+        }
+
+        closeModal();
+        loadData();
+    } catch (error) {
+        console.error('Error linking:', error);
+        alert('Error linking stop: ' + error.message);
     }
 }
