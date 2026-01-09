@@ -436,6 +436,13 @@
                 </select>
             </div>
 
+            <!-- Aliases Section (only shown in edit mode) -->
+            <div id="editAliasesSection" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-light);">
+                <label style="display: block; margin-bottom: 8px;">Linked Aliases</label>
+                <div id="editAliasesList" style="display: flex; flex-wrap: wrap; gap: 6px; min-height: 30px;">
+                </div>
+            </div>
+
             <div style="display: flex; gap: 10px; margin-top: 20px;">
                 <button onclick="saveStopFromForm()" id="saveStopBtn" class="btn btn-primary" style="flex: 1;">Save
                     Changes</button>
