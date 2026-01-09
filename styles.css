@@ -75,6 +75,8 @@ body {
     padding: 15px 12px;
     text-align: center;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    min-height: 74px;
+    box-sizing: border-box;
 }
 
 .header-row {
@@ -881,6 +883,7 @@ body {
 @media (min-width: 768px) {
     .header {
         padding: 18px 20px;
+        min-height: 84px;
     }
 
     .header-row {
@@ -1157,7 +1160,7 @@ body {
 .map-page {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 80px);
+    height: calc(100vh - 84px);
     margin: -20px;
     margin-top: 0;
 }
@@ -1301,7 +1304,7 @@ body {
 /* Mobile adjustments for map page */
 @media (max-width: 768px) {
     .map-page {
-        height: calc(100vh - 70px);
+        height: calc(100vh - 74px);
     }
 
     .map-filter-bar {
