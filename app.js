@@ -1001,8 +1001,10 @@ function updateStatsSection() {
 
             const stops = new Set();
             trips.forEach(t => {
-                if (t.startStop) stops.add(t.startStop);
-                if (t.endStop) stops.add(t.endStop);
+                const startStop = t.startStopName || t.startStop || t.startStopCode;
+                const endStop = t.endStopName || t.endStop || t.endStopCode;
+                if (startStop) stops.add(startStop);
+                if (endStop) stops.add(endStop);
             });
             const uniqueStops = stops.size;
 
@@ -1039,8 +1041,10 @@ function updateStatsSection() {
 
                 const stops = new Set();
                 trips.forEach(t => {
-                    if (t.startStop) stops.add(t.startStop);
-                    if (t.endStop) stops.add(t.endStop);
+                    const startStop = t.startStopName || t.startStop || t.startStopCode;
+                    const endStop = t.endStopName || t.endStop || t.endStopCode;
+                    if (startStop) stops.add(startStop);
+                    if (endStop) stops.add(endStop);
                 });
                 const uniqueStops = stops.size;
 
@@ -1222,8 +1226,8 @@ function generateTopRoutes(trips) {
 function generateTopStops(trips) {
     const stopCounts = {};
     trips.forEach(trip => {
-        const startStop = trip.startStop || 'Unknown';
-        const endStop = trip.endStop || 'Unknown';
+        const startStop = trip.startStopName || trip.startStop || trip.startStopCode || 'Unknown';
+        const endStop = trip.endStopName || trip.endStop || trip.endStopCode || 'Unknown';
         stopCounts[startStop] = (stopCounts[startStop] || 0) + 1;
         stopCounts[endStop] = (stopCounts[endStop] || 0) + 1;
     });
@@ -1851,9 +1855,12 @@ function loadTrips() {
         .where('userId', '==', currentUser.uid)
         .get()
         .then((snapshot) => {
-            // Filter to completed trips (with endStop) and sort in JS
+            // Filter to completed trips (with endStop, endStopCode, or endStopName) and sort in JS
             const completedTrips = snapshot.docs
-                .filter(doc => doc.data().endStop != null)
+                .filter(doc => {
+                    const data = doc.data();
+                    return data.endStop != null || data.endStopCode != null || data.endStopName != null;
+                })
                 .map(doc => ({ id: doc.id, ...doc.data() }))
                 .sort((a, b) => {
                     const aTime = a.endTime?.toDate ? a.endTime.toDate() : new Date(a.endTime || 0);
@@ -2237,9 +2244,12 @@ function updateStreakStatus() {
         .orderBy('endTime', 'desc')
         .get()
         .then((snapshot) => {
-            // Filter to completed trips (with endStop) in JS to avoid Firestore index issues
+            // Filter to completed trips (with endStop, endStopCode, or endStopName) in JS to avoid Firestore index issues
             const trips = snapshot.docs
-                .filter(doc => doc.data().endStop != null)
+                .filter(doc => {
+                    const data = doc.data();
+                    return data.endStop != null || data.endStopCode != null || data.endStopName != null;
+                })
                 .map(doc => ({
                     id: doc.id,
                     ...doc.data()
