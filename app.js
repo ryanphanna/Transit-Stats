@@ -1844,21 +1844,21 @@ function loadLastTrip() {
 }
 
 function loadTrips() {
-    const recentTripsSection = document.getElementById('recentTripsSection');
     const recentTripsList = document.getElementById('recentTripsList');
 
     db.collection('trips')
         .where('userId', '==', currentUser.uid)
-        .where('endStop', '!=', null)
         .orderBy('endTime', 'desc')
-        .limit(5)
+        .limit(10)
         .get()
         .then((snapshot) => {
-            if (!snapshot.empty) {
-                recentTripsSection.style.display = 'block';
+            // Filter to completed trips (with endStop) in JS to avoid Firestore index issues
+            const completedTrips = snapshot.docs.filter(doc => doc.data().endStop != null).slice(0, 5);
+
+            if (completedTrips.length > 0) {
                 recentTripsList.innerHTML = '';
 
-                snapshot.forEach((doc) => {
+                completedTrips.forEach((doc) => {
                     const trip = doc.data();
                     const endTime = trip.endTime ? trip.endTime.toDate() : new Date();
                     const dateStr = endTime.toLocaleDateString('en-US', {
@@ -1903,12 +1903,12 @@ function loadTrips() {
                 loadTripsForHeatmap();
 
             } else {
-                recentTripsSection.style.display = 'none';
+                recentTripsList.innerHTML = '<div class="empty-state"><span>🚌</span><p>Take your first trip to get started!</p></div>';
             }
         })
         .catch((error) => {
             console.error('Error loading trips:', error);
-            recentTripsSection.style.display = 'none';
+            recentTripsList.innerHTML = '<div class="empty-state"><span>⚠️</span><p>Error loading trips</p></div>';
         });
 }
 
@@ -2231,15 +2231,16 @@ function toggleLogoutMode() {
 function updateStreakStatus() {
     db.collection('trips')
         .where('userId', '==', currentUser.uid)
-        .where('endStop', '!=', null)
-        .orderBy('endStop')
         .orderBy('endTime', 'desc')
         .get()
         .then((snapshot) => {
-            const trips = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            // Filter to completed trips (with endStop) in JS to avoid Firestore index issues
+            const trips = snapshot.docs
+                .filter(doc => doc.data().endStop != null)
+                .map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
 
             const streaks = calculateStreaks(trips);
 
