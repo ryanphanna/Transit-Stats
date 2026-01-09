@@ -140,6 +140,11 @@ body {
     transform: translateY(-1px);
 }
 
+.header-btn.nav-active {
+    background: rgba(255, 255, 255, 0.35);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
 .header-btn span {
     display: none;
 }
@@ -308,7 +313,6 @@ body {
 
     /* Enforce Dashboard Visibility on Desktop */
     #profileSection,
-    #mapsSection,
     #statsSection {
         display: block !important;
     }
@@ -977,7 +981,6 @@ body {
     /* We override the JS-toggled display: none */
     #profileSection,
     #statsSection,
-    #mapsSection,
     #startSection,
     #recentTripsSection,
     #reviewTripsSection {
@@ -986,16 +989,8 @@ body {
 
     /* Hide Section Headers to reduce clutter since layout implies context */
     #profileSection h2,
-    #statsSection h2,
-    #mapsSection h2 {
+    #statsSection h2 {
         display: none;
-    }
-
-    /* Map Optimization - Make it the Hero */
-    #mapContainer {
-        height: 550px !important;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     /* Compact Components */
@@ -1142,5 +1137,176 @@ body {
     .container {
         max-width: 1320px;
         margin: 0 auto;
+    }
+}
+
+/* ========================================
+   DEDICATED MAP PAGE
+   ======================================== */
+
+.map-page {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 80px);
+    margin: -20px;
+    margin-top: 0;
+}
+
+.map-filter-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.map-filters {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-tertiary);
+    padding: 4px;
+    border-radius: 8px;
+}
+
+.filter-btn {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+}
+
+.filter-btn.active {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.locate-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+}
+
+.locate-btn:hover {
+    background: var(--bg-secondary);
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.locate-btn.locating {
+    color: var(--accent-primary);
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+#fullMapContainer {
+    flex: 1;
+    width: 100%;
+    min-height: 300px;
+    background: var(--bg-tertiary);
+}
+
+.map-stats-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
+
+.map-stat-divider {
+    color: var(--border-color);
+}
+
+/* Cluster styling */
+.marker-cluster-small {
+    background-color: rgba(59, 130, 246, 0.6);
+}
+.marker-cluster-small div {
+    background-color: rgba(59, 130, 246, 0.8);
+}
+
+.marker-cluster-medium {
+    background-color: rgba(30, 58, 138, 0.6);
+}
+.marker-cluster-medium div {
+    background-color: rgba(30, 58, 138, 0.8);
+}
+
+.marker-cluster-large {
+    background-color: rgba(30, 58, 138, 0.8);
+}
+.marker-cluster-large div {
+    background-color: rgba(30, 58, 138, 1);
+}
+
+.marker-cluster {
+    background-clip: padding-box;
+    border-radius: 20px;
+}
+
+.marker-cluster div {
+    width: 30px;
+    height: 30px;
+    margin-left: 5px;
+    margin-top: 5px;
+    text-align: center;
+    border-radius: 15px;
+    font: 12px "Helvetica Neue", Arial, Helvetica, sans-serif;
+    color: white;
+    font-weight: 600;
+    line-height: 30px;
+}
+
+.marker-cluster span {
+    line-height: 30px;
+}
+
+/* Mobile adjustments for map page */
+@media (max-width: 768px) {
+    .map-page {
+        height: calc(100vh - 70px);
+    }
+
+    .map-filter-bar {
+        padding: 10px 15px;
+    }
+
+    .filter-btn {
+        padding: 6px 12px;
+        font-size: 0.85em;
+    }
+
+    .map-stats-footer {
+        padding: 10px 15px;
+        font-size: 0.85em;
+        flex-wrap: wrap;
+        gap: 6px;
     }
 }

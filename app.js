@@ -23,14 +23,18 @@ let logoutModeActive = false;
 let statsInitialized = false;
 let map = null;
 let mapMode = 'boarding';
+let mapFilter = 'boarding';
 let mapInitialized = false;
+let markerClusterGroup = null;
+let mapTripsData = [];
 
 // DOM Elements
 const authSection = document.getElementById('authSection');
 const appContent = document.getElementById('appContent');
 const profileSection = document.getElementById('profileSection');
 const statsSection = document.getElementById('statsSection');
-const mapsSection = document.getElementById('mapsSection');
+const mapPage = document.getElementById('mapPage');
+const dashboardGrid = document.querySelector('.dashboard-grid');
 const emailInput = document.getElementById('emailInput');
 const passwordInput = document.getElementById('passwordInput');
 const continueBtn = document.getElementById('continueBtn');
@@ -249,30 +253,49 @@ function showStats() {
 }
 
 function showMaps() {
-    hideAllSections();
-    mapsSection.style.display = 'block';
-    startSection.style.display = 'none';
-    updateTripIndicator();
+    // Hide dashboard, show map page
+    dashboardGrid.style.display = 'none';
+    mapPage.style.display = 'flex';
+
+    // Update nav button states
+    updateNavState('map');
 
     if (!mapInitialized) {
-        initializeMap();
+        initializeFullMap();
     } else {
-        loadMapData();
+        loadFullMapData();
     }
 }
 
 function hideAllSections() {
     profileSection.style.display = 'none';
     statsSection.style.display = 'none';
-    mapsSection.style.display = 'none';
+    mapPage.style.display = 'none';
 }
 
 function goHome() {
-    hideAllSections();
+    // Show dashboard, hide map page
+    mapPage.style.display = 'none';
+    dashboardGrid.style.display = 'grid';
+
+    // Update nav button states
+    updateNavState('home');
+
     if (activeTrip) {
         showActiveSection();
     } else {
         showStartSection();
+    }
+}
+
+function updateNavState(active) {
+    // Remove active state from all nav buttons
+    const navBtns = document.querySelectorAll('.header-btn:not(.primary-action)');
+    navBtns.forEach(btn => btn.classList.remove('nav-active'));
+
+    // Add active state to current
+    if (active === 'map') {
+        document.getElementById('mapsBtn')?.classList.add('nav-active');
     }
 }
 
@@ -542,19 +565,7 @@ function createMarkers(trips) {
     });
 }
 
-function setMapMode(mode) {
-    mapMode = mode;
-
-    document.getElementById('boardingToggle').className = mode === 'boarding' ? 'toggle-btn active' : 'toggle-btn';
-    document.getElementById('alightingToggle').className = mode === 'alighting' ? 'toggle-btn active' : 'toggle-btn';
-    document.getElementById('markersToggle').className = mode === 'markers' ? 'toggle-btn active' : 'toggle-btn';
-
-    document.getElementById('mapLegend').style.display = (mode === 'boarding' || mode === 'alighting') ? 'flex' : 'none';
-
-    if (mapInitialized) {
-        loadMapData();
-    }
-}
+// Old setMapMode function removed - replaced by setMapFilter for dedicated map page
 
 function updateMapStats(trips) {
     const locatedTrips = trips.filter(t => t.boardingLocation || t.exitLocation);
@@ -579,6 +590,251 @@ function updateMapStats(trips) {
 
     document.getElementById('mapStatsContent').innerHTML = statsHtml;
     document.getElementById('mapStats').style.display = 'block';
+}
+
+// ========================================
+// DEDICATED MAP PAGE FUNCTIONS
+// ========================================
+
+function initializeFullMap() {
+    if (!currentUser) return;
+    loadFullMapData();
+    mapInitialized = true;
+}
+
+function loadFullMapData() {
+    if (!currentUser) return;
+
+    db.collection('trips')
+        .where('userId', '==', currentUser.uid)
+        .get()
+        .then((snapshot) => {
+            const trips = [];
+            let totalTrips = 0;
+
+            snapshot.forEach((doc) => {
+                totalTrips++;
+                const trip = doc.data();
+                if (trip.boardingLocation || trip.exitLocation) {
+                    trips.push(trip);
+                }
+            });
+
+            mapTripsData = trips;
+            createFullMap(trips, totalTrips);
+        })
+        .catch((error) => {
+            console.error('Error loading map data:', error);
+        });
+}
+
+function createFullMap(trips, totalTrips) {
+    const container = document.getElementById('fullMapContainer');
+    container.innerHTML = '';
+
+    // Collect all locations based on filter
+    const locations = [];
+    trips.forEach(trip => {
+        if ((mapFilter === 'boarding' || mapFilter === 'both') && trip.boardingLocation) {
+            locations.push({
+                lat: trip.boardingLocation.lat,
+                lon: trip.boardingLocation.lon,
+                type: 'boarding',
+                stop: trip.startStop,
+                route: trip.route,
+                time: trip.startTime
+            });
+        }
+        if ((mapFilter === 'exiting' || mapFilter === 'both') && trip.exitLocation) {
+            locations.push({
+                lat: trip.exitLocation.lat,
+                lon: trip.exitLocation.lon,
+                type: 'exiting',
+                stop: trip.endStop,
+                route: trip.route,
+                time: trip.endTime,
+                duration: trip.duration
+            });
+        }
+    });
+
+    if (locations.length === 0) {
+        container.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary);">
+                <div style="font-size: 3em; margin-bottom: 15px;">🗺️</div>
+                <div style="font-size: 1.1em; margin-bottom: 8px;">No location data yet</div>
+                <div style="font-size: 0.9em; opacity: 0.7;">Take trips with GPS enabled to see them on the map</div>
+            </div>
+        `;
+        updateFullMapStats(0, 0, totalTrips);
+        return;
+    }
+
+    // Calculate bounds
+    const lats = locations.map(loc => loc.lat);
+    const lons = locations.map(loc => loc.lon);
+    const avgLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+    const avgLon = (Math.min(...lons) + Math.max(...lons)) / 2;
+
+    // Create map
+    if (map) {
+        map.remove();
+    }
+
+    map = L.map('fullMapContainer', {
+        zoomControl: true
+    }).setView([avgLat, avgLon], 12);
+
+    // Add tile layer
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap © CartoDB',
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(map);
+
+    // Create marker cluster group
+    markerClusterGroup = L.markerClusterGroup({
+        maxClusterRadius: 50,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true,
+        iconCreateFunction: function(cluster) {
+            const count = cluster.getChildCount();
+            let size = 'small';
+            if (count > 10) size = 'medium';
+            if (count > 50) size = 'large';
+
+            return L.divIcon({
+                html: '<div><span>' + count + '</span></div>',
+                className: 'marker-cluster marker-cluster-' + size,
+                iconSize: L.point(40, 40)
+            });
+        }
+    });
+
+    // Add markers to cluster group
+    locations.forEach(loc => {
+        const isBoarding = loc.type === 'boarding';
+        const icon = L.divIcon({
+            className: 'custom-marker',
+            html: `<div style="
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: ${isBoarding ? '#3b82f6' : '#10b981'};
+                border: 2px solid white;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            "></div>`,
+            iconSize: [12, 12],
+            iconAnchor: [6, 6]
+        });
+
+        const marker = L.marker([loc.lat, loc.lon], { icon: icon });
+
+        const timeStr = loc.time?.toDate ? loc.time.toDate().toLocaleString() : 'Unknown';
+        const popupContent = isBoarding
+            ? `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                <strong style="color: #3b82f6;">🚌 Boarding</strong><br>
+                <span style="color: #666;">Stop: ${loc.stop || 'Unknown'}</span><br>
+                <span style="color: #666;">Route: ${loc.route}</span><br>
+                <span style="color: #888; font-size: 0.9em;">${timeStr}</span>
+               </div>`
+            : `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                <strong style="color: #10b981;">🚏 Exiting</strong><br>
+                <span style="color: #666;">Stop: ${loc.stop || 'Unknown'}</span><br>
+                <span style="color: #666;">Route: ${loc.route}</span><br>
+                ${loc.duration ? `<span style="color: #666;">Duration: ${loc.duration} min</span><br>` : ''}
+                <span style="color: #888; font-size: 0.9em;">${timeStr}</span>
+               </div>`;
+
+        marker.bindPopup(popupContent);
+        markerClusterGroup.addLayer(marker);
+    });
+
+    map.addLayer(markerClusterGroup);
+
+    // Fit bounds
+    if (locations.length > 1) {
+        const bounds = L.latLngBounds(locations.map(l => [l.lat, l.lon]));
+        map.fitBounds(bounds, { padding: [30, 30] });
+    } else {
+        map.setView([locations[0].lat, locations[0].lon], 15);
+    }
+
+    // Update stats
+    updateFullMapStats(trips.length, locations.length, totalTrips);
+}
+
+function updateFullMapStats(tripCount, locationCount, totalTrips) {
+    document.getElementById('mapTripCount').textContent = `${tripCount} trips`;
+    document.getElementById('mapLocationCount').textContent = `${locationCount} locations`;
+
+    const coverage = totalTrips > 0 ? Math.round((tripCount / totalTrips) * 100) : 0;
+    document.getElementById('mapCoverage').textContent = `${coverage}% GPS coverage`;
+}
+
+function setMapFilter(filter) {
+    mapFilter = filter;
+
+    // Update button states
+    document.getElementById('filterBoarding').className = filter === 'boarding' ? 'filter-btn active' : 'filter-btn';
+    document.getElementById('filterExiting').className = filter === 'exiting' ? 'filter-btn active' : 'filter-btn';
+    document.getElementById('filterBoth').className = filter === 'both' ? 'filter-btn active' : 'filter-btn';
+
+    // Reload map with new filter
+    if (mapTripsData.length > 0) {
+        createFullMap(mapTripsData, mapTripsData.length);
+    }
+}
+
+function locateUser() {
+    const btn = document.getElementById('locateBtn');
+    btn.classList.add('locating');
+
+    if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser');
+        btn.classList.remove('locating');
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const { latitude, longitude } = position.coords;
+
+            if (map) {
+                map.setView([latitude, longitude], 15);
+
+                // Add a temporary marker for current location
+                const currentLocMarker = L.circleMarker([latitude, longitude], {
+                    radius: 8,
+                    fillColor: '#ef4444',
+                    color: 'white',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map);
+
+                currentLocMarker.bindPopup('📍 You are here').openPopup();
+
+                // Remove marker after 10 seconds
+                setTimeout(() => {
+                    map.removeLayer(currentLocMarker);
+                }, 10000);
+            }
+
+            btn.classList.remove('locating');
+        },
+        (error) => {
+            console.error('Geolocation error:', error);
+            alert('Unable to get your location');
+            btn.classList.remove('locating');
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000
+        }
+    );
 }
 
 function updateTripIndicator() {
@@ -1541,12 +1797,7 @@ function initializeApp() {
         statsInitialized = true;
     }
 
-    // Initialize Map (with slight delay for container render)
-    setTimeout(() => {
-        if (!mapInitialized) {
-            initializeMap();
-        }
-    }, 500);
+    // Map will initialize when user clicks Map nav button
 
     // loadUnverifiedTrips(); // Moved to Admin Panel
 }
