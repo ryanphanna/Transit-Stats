@@ -267,14 +267,24 @@ body {
 
 /* Footer status bar */
 .status-footer {
-    background: var(--bg-secondary);
-    border-top: 1px solid var(--border-color);
-    padding: 10px 15px;
+    background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+    color: white;
+    padding: 12px 20px;
     display: flex;
-    justify-content: flex-start;
+    justify-content: space-between;
     align-items: center;
     gap: 20px;
     font-size: 0.9em;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.status-footer .status-indicator {
+    color: white;
+    opacity: 0.95;
+}
+
+.status-footer .status-indicator.loading {
+    opacity: 0.8;
 }
 
 /* Active trip banner */
