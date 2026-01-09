@@ -152,16 +152,24 @@ function renderStopLibrary(stops) {
                     <h4>${stop.name} <span class="agency-badge" style="font-size:0.75em; opacity:0.8; font-weight:normal;">(${stop.agency || 'Unknown'})</span></h4>
                     <div class="stop-meta">
                         ${stop.code ? `<span class="badge" style="background:var(--bg-tertiary);">#${stop.code}</span>` : ''} 
-                        <span title="Lat: ${stop.lat}, Lng: ${stop.lng}">📍 Location</span>
+                        ${(stop.lat && stop.lng) ? `<span style="font-size: 0.8em; color: var(--text-muted);" title="Lat: ${stop.lat}, Lng: ${stop.lng}">📍 ${parseFloat(stop.lat).toFixed(4)}, ${parseFloat(stop.lng).toFixed(4)}</span>` : ''}
                     </div>
                 </div>
             </div>
             
             ${renderAliases(stop)}
             
-            <div style="margin-top: 15px; display:flex; justify-content:space-between; align-items:center;">
-                 <button class="btn btn-primary" style="padding:4px 10px; font-size:0.8em;" onclick="openManualAliasModal('${stop.id}', '${stop.name.replace(/'/g, "\\'")}')">
-                    + Alias
+            <div style="margin-top: 15px; display:flex; justify-content:flex-end; align-items:center;">
+                <button class="btn btn-sm btn-outline" style="padding:4px 10px; font-size:0.8em; border:none; color:var(--text-secondary);" 
+                    onclick="openStopForm('edit', {
+                        id: '${stop.id}', 
+                        name: '${stop.name.replace(/'/g, "\\'")}', 
+                        code: '${(stop.code || '').replace(/'/g, "\\'")}', 
+                        agency: '${(stop.agency || 'Other').replace(/'/g, "\\'")}', 
+                        lat: ${stop.lat || 0}, 
+                        lng: ${stop.lng || 0}
+                    })">
+                    ✏️ Edit
                  </button>
             </div>
         </div>
@@ -225,6 +233,7 @@ function updatePendingCount() {
 function filterStops() {
     const query = document.getElementById('stopSearch').value.toLowerCase();
     const agency = document.getElementById('agencyFilter').value;
+    const sort = document.getElementById('stopSort').value;
 
     const filtered = stopsLibrary.filter(stop => {
         const matchesSearch = stop.name.toLowerCase().includes(query) ||
@@ -235,6 +244,18 @@ function filterStops() {
 
         return matchesSearch && matchesAgency;
     });
+
+    // Sort results
+    filtered.sort((a, b) => {
+        if (sort === 'nameAsc') return a.name.localeCompare(b.name);
+        if (sort === 'nameDesc') return b.name.localeCompare(a.name);
+        if (sort === 'agencyAsc') {
+            const agencyCompare = a.agency.localeCompare(b.agency);
+            return agencyCompare !== 0 ? agencyCompare : a.name.localeCompare(b.name);
+        }
+        return 0;
+    });
+
     renderStopLibrary(filtered);
 }
 
@@ -250,8 +271,10 @@ function openLinkModal(targetString) {
     document.getElementById('modalTargetString').textContent = targetString;
     document.getElementById('linkModal').style.display = 'block';
 
-    document.getElementById('stopSearch').value = targetString;
-    filterStops();
+    // Reset to Choice View
+    document.getElementById('linkChoiceView').style.display = 'block';
+    document.getElementById('linkExistingView').style.display = 'none';
+    document.getElementById('createNewView').style.display = 'none';
 }
 
 function closeModal() {
@@ -259,20 +282,45 @@ function closeModal() {
     currentTargetString = '';
 }
 
-function switchToCreate() {
-    document.getElementById('linkOptions').style.display = 'none';
-    document.getElementById('createOptions').style.display = 'block';
+function backToChoice() {
+    document.getElementById('linkChoiceView').style.display = 'block';
+    document.getElementById('linkExistingView').style.display = 'none';
+    document.getElementById('createNewView').style.display = 'none';
+}
+
+function showLinkExisting() {
+    document.getElementById('linkChoiceView').style.display = 'none';
+    document.getElementById('linkExistingView').style.display = 'block';
+
+    // Initialize search
+    document.getElementById('existingStopSearch').value = currentTargetString;
+    filterLinkStops();
+}
+
+function showCreateNew() {
+    document.getElementById('linkChoiceView').style.display = 'none';
+    document.getElementById('createNewView').style.display = 'block';
 
     document.getElementById('newStopName').value = currentTargetString;
-    if (/^\\d+$/.test(currentTargetString)) {
+    if (/^\d+$/.test(currentTargetString)) {
         document.getElementById('newStopCode').value = currentTargetString;
         document.getElementById('newStopName').value = '';
     }
 }
 
-function backToLink() {
-    document.getElementById('linkOptions').style.display = 'block';
-    document.getElementById('createOptions').style.display = 'none';
+// Helper to filter stops in the Link Existing view
+function filterLinkStops() {
+    const query = document.getElementById('existingStopSearch').value.toLowerCase();
+    const select = document.getElementById('existingStopSelect');
+
+    const filtered = stopsLibrary.filter(stop => {
+        return stop.name.toLowerCase().includes(query) ||
+            (stop.code && stop.code.toLowerCase().includes(query)) ||
+            (stop.aliases && stop.aliases.some(a => a.toLowerCase().includes(query)));
+    });
+
+    select.innerHTML = '<option value="">Select a stop...</option>' +
+        filtered.map(s => `<option value="${s.id}">${s.name} (${s.agency})</option>`).join('');
 }
 
 function openManualAliasModal(stopId, stopName) {
@@ -554,5 +602,92 @@ async function confirmLink() {
     } catch (error) {
         console.error('Error linking:', error);
         alert('Error linking stop: ' + error.message);
+    }
+}
+
+// ========================================
+// STOP FORM MODAL (Create/Edit)
+// ========================================
+
+let currentEditId = null;
+
+function openStopForm(mode, stopData = null) {
+    const modal = document.getElementById('stopFormModal');
+    const title = document.getElementById('stopFormTitle');
+    const saveBtn = document.getElementById('saveStopBtn');
+
+    modal.style.display = 'block';
+
+    if (mode === 'edit' && stopData) {
+        currentEditId = stopData.id;
+        title.textContent = 'Edit Stop';
+        saveBtn.textContent = 'Update Stop';
+
+        document.getElementById('editStopName').value = stopData.name || '';
+        document.getElementById('editStopCode').value = stopData.code || '';
+        document.getElementById('editStopLat').value = stopData.lat || '';
+        document.getElementById('editStopLng').value = stopData.lng || '';
+        document.getElementById('editStopAgency').value = stopData.agency || 'Other';
+    } else {
+        // Create mode
+        currentEditId = null;
+        title.textContent = 'Create New Stop';
+        saveBtn.textContent = 'Create Stop';
+
+        document.getElementById('editStopName').value = '';
+        document.getElementById('editStopCode').value = '';
+        document.getElementById('editStopLat').value = '';
+        document.getElementById('editStopLng').value = '';
+        document.getElementById('editStopAgency').value = 'TTC'; // Default
+    }
+}
+
+function closeStopFormModal() {
+    document.getElementById('stopFormModal').style.display = 'none';
+    currentEditId = null;
+}
+
+async function saveStopFromForm() {
+    const name = document.getElementById('editStopName').value.trim();
+    const code = document.getElementById('editStopCode').value.trim();
+    const lat = parseFloat(document.getElementById('editStopLat').value);
+    const lng = parseFloat(document.getElementById('editStopLng').value);
+    const agency = document.getElementById('editStopAgency').value;
+
+    if (!name) {
+        alert('Stop name is required');
+        return;
+    }
+
+    try {
+        const stopData = {
+            name: name,
+            code: code,
+            lat: isNaN(lat) ? 0 : lat,
+            lng: isNaN(lng) ? 0 : lng,
+            agency: agency
+        };
+
+        if (currentEditId) {
+            // Update existing
+            await db.collection('stops').doc(currentEditId).update(stopData);
+
+            // Also update any trips using this stop ID where data is denormalized?
+            // The batchVerifyTrips updates verified trips. If we change the Name of a stop, we might want to propagate that?
+            // For now, let's keep it simple. If name changes, historical trips might keep old name in 'startStopName' unless re-verified.
+            // But let's trigger a re-verify just in case if name changed?
+            // It's expensive. Let's start with just updating the Doc.
+        } else {
+            // Create new
+            stopData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            stopData.aliases = []; // Start with no aliases
+            await db.collection('stops').add(stopData);
+        }
+
+        closeStopFormModal();
+        loadData(); // Refresh library
+    } catch (error) {
+        console.error('Error saving stop:', error);
+        alert('Error saving stop: ' + error.message);
     }
 }
