@@ -228,17 +228,76 @@ function filterStops() {
     renderStopLibrary(filtered);
 }
 
+let selectedStopId = null;
+
 function updateStopSelect() {
-    const select = document.getElementById('existingStopSelect');
-    select.innerHTML = '<option value="">Select a stop...</option>' +
-        stopsLibrary.map(s => `<option value="${s.id}">${s.name} (${s.agency})</option>`).join('');
+    // Legacy function - kept for compatibility but no longer uses dropdown
+}
+
+function showLinkExisting() {
+    document.getElementById('existingStopSearch').style.display = 'block';
+    document.getElementById('stopSearchInput').focus();
+    document.getElementById('linkExistingBtn').classList.add('active');
+    document.getElementById('linkExistingBtn').style.background = 'rgba(255, 255, 255, 0.3)';
+    document.getElementById('createNewBtn').classList.remove('active');
+}
+
+function filterStopSearch() {
+    const query = document.getElementById('stopSearchInput').value.toLowerCase().trim();
+    const resultsContainer = document.getElementById('stopSearchResults');
+
+    if (!query) {
+        resultsContainer.style.display = 'none';
+        return;
+    }
+
+    const filtered = stopsLibrary.filter(stop =>
+        stop.name.toLowerCase().includes(query) ||
+        (stop.code && stop.code.toLowerCase().includes(query)) ||
+        (stop.aliases && stop.aliases.some(a => a.toLowerCase().includes(query)))
+    ).slice(0, 10);
+
+    if (filtered.length === 0) {
+        resultsContainer.innerHTML = '<div style="padding: 12px; color: var(--text-muted);">No stops found</div>';
+    } else {
+        resultsContainer.innerHTML = filtered.map(stop => `
+            <div class="stop-search-result" onclick="selectStop('${stop.id}', '${stop.name.replace(/'/g, "\\'")}')"
+                style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--border-light); transition: background 0.15s;"
+                onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
+                <div style="font-weight: 500;">${stop.name}</div>
+                <div style="font-size: 0.85em; color: var(--text-secondary);">${stop.agency}${stop.code ? ' • #' + stop.code : ''}</div>
+            </div>
+        `).join('');
+    }
+
+    resultsContainer.style.display = 'block';
+}
+
+function showStopResults() {
+    const query = document.getElementById('stopSearchInput').value.trim();
+    if (query) {
+        filterStopSearch();
+    }
+}
+
+function selectStop(stopId, stopName) {
+    selectedStopId = stopId;
+    document.getElementById('stopSearchInput').value = stopName;
+    document.getElementById('stopSearchResults').style.display = 'none';
 }
 
 // Modal Logic
 function openLinkModal(targetString) {
     currentTargetString = targetString;
+    selectedStopId = null;
     document.getElementById('modalTargetString').textContent = targetString;
     document.getElementById('linkModal').style.display = 'block';
+    document.getElementById('linkOptions').style.display = 'block';
+    document.getElementById('createOptions').style.display = 'none';
+    document.getElementById('existingStopSearch').style.display = 'none';
+    document.getElementById('stopSearchInput').value = '';
+    document.getElementById('stopSearchResults').style.display = 'none';
+    document.getElementById('linkExistingBtn').style.background = '';
 
     document.getElementById('stopSearch').value = targetString;
     filterStops();
@@ -462,36 +521,38 @@ async function bulkLinkSelected() {
         return;
     }
 
-    const stopId = document.getElementById('existingStopSelect').value;
+    // Open a modal to select a stop to link all selected items to
+    const selectedArray = Array.from(selectedInboxItems);
+    const firstItem = selectedArray[0];
 
-    if (!stopId) {
-        // Open a modal to select a stop to link all selected items to
-        const selectedArray = Array.from(selectedInboxItems);
-        const firstItem = selectedArray[0];
+    // Show modal with first item, but we'll link all
+    currentTargetString = firstItem;
+    selectedStopId = null;
+    document.getElementById('modalTargetString').innerHTML = `
+        <div style="margin-bottom: 8px;">${firstItem}</div>
+        ${selectedArray.length > 1 ? `<div style="font-size: 0.85em; color: var(--text-muted);">+ ${selectedArray.length - 1} more items</div>` : ''}
+    `;
+    document.getElementById('linkModal').style.display = 'block';
+    document.getElementById('linkOptions').style.display = 'block';
+    document.getElementById('createOptions').style.display = 'none';
+    document.getElementById('existingStopSearch').style.display = 'none';
+    document.getElementById('stopSearchInput').value = '';
+    document.getElementById('stopSearchResults').style.display = 'none';
+    document.getElementById('linkExistingBtn').style.background = '';
 
-        // Show modal with first item, but we'll link all
-        currentTargetString = firstItem;
-        document.getElementById('modalTargetString').innerHTML = `
-            <div style="margin-bottom: 8px;">${firstItem}</div>
-            ${selectedArray.length > 1 ? `<div style="font-size: 0.85em; color: var(--text-muted);">+ ${selectedArray.length - 1} more items</div>` : ''}
-        `;
-        document.getElementById('linkModal').style.display = 'block';
+    // Store the bulk mode flag
+    window.bulkLinkMode = true;
+    window.bulkLinkItems = selectedArray;
 
-        // Store the bulk mode flag
-        window.bulkLinkMode = true;
-        window.bulkLinkItems = selectedArray;
-
-        document.getElementById('stopSearch').value = '';
-        filterStops();
-        return;
-    }
+    document.getElementById('stopSearch').value = '';
+    filterStops();
 }
 
 // confirmLink supports both single and bulk mode
 async function confirmLink() {
-    const stopId = document.getElementById('existingStopSelect').value;
+    const stopId = selectedStopId;
     if (!stopId) {
-        alert('Please select a stop');
+        alert('Please search and select a stop first');
         return;
     }
 

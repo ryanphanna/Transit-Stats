@@ -918,7 +918,6 @@ function saveProfile() {
 
     db.collection('profiles').doc(currentUser.uid).set(profileData)
         .then(() => {
-            alert('Profile saved!');
             loadUserProfile(); // Refresh display
             closeSettings();
         })
