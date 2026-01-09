@@ -124,6 +124,12 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .inbox-item.selected {
+            border-left-color: var(--accent-primary);
+            background: var(--bg-tertiary);
         }
 
         .inbox-item .count-badge {
@@ -133,6 +139,21 @@
             border-radius: 12px;
             font-size: 0.8em;
             margin-right: 8px;
+        }
+
+        .inbox-item-checkbox {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .inbox-item-content {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            overflow: hidden;
         }
     </style>
 </head>
@@ -171,12 +192,36 @@
                         <h3 style="margin: 0;">📥 Inbox</h3>
                         <span id="pendingCount" class="badge badge-warning">0</span>
                     </div>
-                    <p style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 15px;">
-                        Unlinked stop names from recent trips. Link them to canonical stops to verify trips.
+                    <p style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 10px;">
+                        Unrecognized stop names from trips. Link them to your Stop Library to verify trips.
                     </p>
 
+                    <!-- Search & Bulk Actions -->
+                    <div style="margin-bottom: 15px;">
+                        <input type="text" id="inboxSearch" placeholder="🔍 Search inbox..."
+                            onkeyup="filterInbox()"
+                            style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-tertiary); color: var(--text-primary); font-size: 0.9em; box-sizing: border-box;">
+                    </div>
+
+                    <!-- Bulk Actions Bar -->
+                    <div id="bulkActionsBar" style="display: none; margin-bottom: 10px; padding: 8px; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--accent-primary);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span id="selectedCount" style="font-size: 0.85em; color: var(--accent-primary);">0 selected</span>
+                            <div style="display: flex; gap: 8px;">
+                                <button onclick="clearSelection()" class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8em;">Clear</button>
+                                <button onclick="bulkLinkSelected()" class="btn btn-primary" style="padding: 4px 8px; font-size: 0.8em;">Link All</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Select All Toggle -->
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-light);">
+                        <input type="checkbox" id="selectAllInbox" onchange="toggleSelectAll()" style="width: 16px; height: 16px; cursor: pointer;">
+                        <label for="selectAllInbox" style="font-size: 0.85em; color: var(--text-secondary); cursor: pointer;">Select all</label>
+                    </div>
+
                     <div id="pendingList" style="overflow-y: auto; flex: 1;">
-                        <div class="loading">checkin inbox...</div>
+                        <div class="loading">checking inbox...</div>
                     </div>
                 </div>
             </div>
@@ -188,8 +233,7 @@
                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <div>
                             <h2 style="margin: 0;">📚 Stop Library</h2>
-                            <div style="font-size: 0.9em; color: var(--text-secondary);">Manage canonical stops and
-                                their aliases</div>
+                            <div style="font-size: 0.9em; color: var(--text-secondary);">Your verified stops with alternate names/codes</div>
                         </div>
                         <button onclick="openCreateModal()" class="btn btn-primary"
                             style="width: auto; padding: 10px 20px;">+ New Stop</button>
@@ -264,7 +308,7 @@
 
             <div id="createOptions" style="display: none;">
                 <div class="form-group">
-                    <label>Canonical Name</label>
+                    <label>Stop Name</label>
                     <input type="text" id="newStopName" placeholder="e.g. Union Station">
                 </div>
                 <div class="form-group">
