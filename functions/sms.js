@@ -1030,7 +1030,7 @@ START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDispla
     phoneNumber,
     `✅ Started ${routeDisplay} from Stop ${finalStopDisplay}.
 
-END + ROUTE + STOP to finish. DISCARD to delete. INFO for help.`
+END + STOP to finish. DISCARD to delete. INFO for help.`
   );
 }
 
@@ -1087,7 +1087,7 @@ async function handleConfirmStart(phoneNumber, user, state) {
     `✅ ${oldTripRouteDisplay} marked incomplete.
 ✅ Started ${newRouteDisplay} from Stop ${newStopDisplay}.
 
-END + ROUTE + STOP to finish. DISCARD to delete. INFO for help.`
+END + STOP to finish. DISCARD to delete. INFO for help.`
   );
 }
 

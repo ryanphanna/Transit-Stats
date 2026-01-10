@@ -401,6 +401,84 @@
                 </div>
             </div>
 
+            <!-- Edit Trip Modal -->
+            <div id="editTripModal"
+                style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+                <div
+                    style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 25px; border-radius: 12px; width: 90%; max-width: 450px; border: 1px solid var(--border-color); box-shadow: 0 4px 20px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="margin: 0;">✏️ Edit Trip</h3>
+                        <button onclick="closeEditTripModal()"
+                            style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: var(--text-secondary);">×</button>
+                    </div>
+
+                    <input type="hidden" id="editTripId">
+
+                    <div class="form-group">
+                        <label>Route/Line</label>
+                        <input type="text" id="editRouteInput" placeholder="e.g., 65, Line 1, 504 King"
+                            style="font-size: 1.1em; padding: 12px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Direction (optional)</label>
+                        <input type="text" id="editDirectionInput" placeholder="e.g., Northbound, East"
+                            style="font-size: 1.1em; padding: 12px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Start Stop</label>
+                        <input type="text" id="editStartStopInput" placeholder="e.g., 6638 or King St"
+                            style="font-size: 1.1em; padding: 12px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>End Stop</label>
+                        <input type="text" id="editEndStopInput" placeholder="e.g., 6638 or King St"
+                            style="font-size: 1.1em; padding: 12px;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Agency</label>
+                        <select id="editAgencySelect"
+                            style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 1em;">
+                            <option value="TTC">TTC (Toronto)</option>
+                            <option value="OC Transpo">OC Transpo (Ottawa)</option>
+                            <option value="GO Transit">GO Transit</option>
+                            <option value="MiWay">MiWay (Mississauga)</option>
+                            <option value="YRT">YRT (York Region)</option>
+                            <option value="Brampton Transit">Brampton Transit</option>
+                            <option value="Durham Transit">Durham Transit</option>
+                            <option value="HSR">HSR (Hamilton)</option>
+                            <option value="GRT">GRT (Waterloo Region)</option>
+                            <option value="STM">STM (Montreal)</option>
+                            <option value="TransLink">TransLink (Vancouver)</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Notes (optional)</label>
+                        <textarea id="editNotesInput" placeholder="Any notes about this trip..."
+                            style="font-size: 1em; padding: 12px; min-height: 80px; resize: vertical;"></textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button class="btn btn-primary" onclick="saveEditedTrip()" style="flex: 1;">Save Changes</button>
+                        <button class="btn" onclick="closeEditTripModal()"
+                            style="flex: 1; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">Cancel</button>
+                    </div>
+
+                    <hr style="border: none; border-top: 1px solid var(--border-light); margin: 20px 0;">
+
+                    <button class="btn" onclick="deleteTrip()"
+                        style="width: 100%; background: transparent; color: var(--danger-text); border: 1px solid var(--danger-text);">
+                        Delete Trip
+                    </button>
+                </div>
+            </div>
+
             <script src="visuals.js"></script>
             <script src="app.js"></script>
 </body>

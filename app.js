@@ -1167,6 +1167,13 @@ function displayProfileTrips(trips) {
     profileTripsList.querySelectorAll('.trip-item').forEach(item => {
         const tripId = item.getAttribute('data-trip-id');
         addSwipeToDelete(item, false, tripId);
+        // Add click to edit (only if not swiping)
+        item.style.cursor = 'pointer';
+        item.addEventListener('click', (e) => {
+            // Don't open edit if swiping or clicking delete overlay
+            if (item.classList.contains('swiped') || e.target.classList.contains('delete-overlay')) return;
+            openEditTripModal(tripId);
+        });
     });
 }
 
@@ -1410,6 +1417,107 @@ function openLogTripModal() {
 
 function closeLogTripModal() {
     document.getElementById('logTripModal').style.display = 'none';
+}
+
+// ============================================================================
+// EDIT TRIP MODAL
+// ============================================================================
+
+function openEditTripModal(tripId) {
+    const modal = document.getElementById('editTripModal');
+
+    // Fetch trip data
+    db.collection('trips').doc(tripId).get()
+        .then(doc => {
+            if (!doc.exists) {
+                alert('Trip not found');
+                return;
+            }
+
+            const trip = doc.data();
+
+            // Populate fields
+            document.getElementById('editTripId').value = tripId;
+            document.getElementById('editRouteInput').value = trip.route || '';
+            document.getElementById('editDirectionInput').value = trip.direction || '';
+            document.getElementById('editStartStopInput').value = trip.startStopName || trip.startStopCode || trip.startStop || '';
+            document.getElementById('editEndStopInput').value = trip.endStopName || trip.endStopCode || trip.endStop || '';
+            document.getElementById('editAgencySelect').value = trip.agency || 'TTC';
+            document.getElementById('editNotesInput').value = trip.notes || '';
+
+            modal.style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Error loading trip:', error);
+            alert('Error loading trip data');
+        });
+}
+
+function closeEditTripModal() {
+    document.getElementById('editTripModal').style.display = 'none';
+}
+
+function saveEditedTrip() {
+    const tripId = document.getElementById('editTripId').value;
+    const route = document.getElementById('editRouteInput').value.trim();
+    const direction = document.getElementById('editDirectionInput').value.trim();
+    const startStop = document.getElementById('editStartStopInput').value.trim();
+    const endStop = document.getElementById('editEndStopInput').value.trim();
+    const agency = document.getElementById('editAgencySelect').value;
+    const notes = document.getElementById('editNotesInput').value.trim();
+
+    if (!route) {
+        alert('Route is required');
+        return;
+    }
+
+    // Determine if stops are codes (all digits) or names
+    const isStartStopCode = /^\d+$/.test(startStop);
+    const isEndStopCode = /^\d+$/.test(endStop);
+
+    const updateData = {
+        route: route,
+        direction: direction || null,
+        agency: agency,
+        notes: notes || null,
+        // Update stop fields based on whether input is a code or name
+        startStopCode: isStartStopCode ? startStop : null,
+        startStopName: isStartStopCode ? null : startStop,
+        endStopCode: isEndStopCode ? endStop : null,
+        endStopName: isEndStopCode ? null : endStop,
+        // Mark as unverified since user manually edited
+        verified: false
+    };
+
+    db.collection('trips').doc(tripId).update(updateData)
+        .then(() => {
+            closeEditTripModal();
+            loadTrips(); // Refresh the trip list
+            alert('Trip updated successfully');
+        })
+        .catch(error => {
+            console.error('Error updating trip:', error);
+            alert('Error saving changes: ' + error.message);
+        });
+}
+
+function deleteTrip() {
+    const tripId = document.getElementById('editTripId').value;
+
+    if (!confirm('Are you sure you want to delete this trip? This cannot be undone.')) {
+        return;
+    }
+
+    db.collection('trips').doc(tripId).delete()
+        .then(() => {
+            closeEditTripModal();
+            loadTrips(); // Refresh the trip list
+            alert('Trip deleted');
+        })
+        .catch(error => {
+            console.error('Error deleting trip:', error);
+            alert('Error deleting trip: ' + error.message);
+        });
 }
 
 function renderQuickTemplates() {
@@ -1879,9 +1987,11 @@ function loadTrips() {
 
                     const tripDiv = document.createElement('div');
                     tripDiv.className = 'trip-item';
+                    tripDiv.style.cursor = 'pointer';
+                    tripDiv.onclick = () => openEditTripModal(trip.id);
                     tripDiv.innerHTML = `
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                    <div>
+                                    <div style="flex: 1;">
                                         <div style="font-weight: 600; color: var(--text-primary);">${trip.route}<span class="agency-badge">${agencyDisplay}</span></div>
                                         <div style="font-size: 0.9em; color: var(--text-secondary);">${startStop} → ${endStop}</div>
                                     </div>
@@ -1889,6 +1999,7 @@ function loadTrips() {
                                         <div style="font-size: 0.85em; color: var(--text-muted);">${dateStr} ${verifiedBadge}</div>
                                         <div style="font-size: 0.85em; color: var(--text-secondary);">${duration} min</div>
                                     </div>
+                                    <div style="margin-left: 10px; color: var(--text-muted); font-size: 0.9em;">✏️</div>
                                 </div>
                                 ${notesDisplay}
                             `;
