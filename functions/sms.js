@@ -11,11 +11,11 @@
  *
  * END TRIP (multi-line):
  * Line 1: END
- * Line 2: Route (optional)
- * Line 3: Stop (required)
+ * Line 2: Stop (required)
+ * Line 3+: Notes (optional)
  *
  * Commands (anytime):
- * - END + route + stop: End active trip properly (saves with exit stop)
+ * - END + stop + notes: End active trip properly (saves with exit stop)
  * - DISCARD: Delete active trip without saving
  * - STATUS: Show active trip info
  * - INFO or ?: Show help
@@ -745,7 +745,7 @@ async function handleStatus(phoneNumber, user) {
 ${routeDisplay} from Stop ${startStopDisplay}
 Started ${timeStr} (${elapsedMin} min ago)
 
-END + ROUTE + STOP to finish. DISCARD to delete. INFO for help.`;
+END + STOP to finish. DISCARD to delete. INFO for help.`;
 
   await sendSmsReply(phoneNumber, message);
 }
@@ -1321,7 +1321,7 @@ STATUS to view active trip. INFO to view this information.`
         if (activeTrip) {
           await sendSmsReply(
             phoneNumber,
-            'Please send:\nEND\n[route]\n[exit stop]'
+            'Please send:\nEND\n[exit stop]\n[notes - optional]'
           );
         } else {
           await sendSmsReply(phoneNumber, 'No active trip to end.');
