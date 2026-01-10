@@ -28,6 +28,12 @@ let mapInitialized = false;
 let markerClusterGroup = null;
 let mapTripsData = [];
 
+// Infinite scroll state for recent trips
+let allCompletedTrips = [];
+let displayedTripsCount = 0;
+const TRIPS_PER_BATCH = 15;
+let tripsObserver = null;
+
 // DOM Elements
 const authSection = document.getElementById('authSection');
 const appContent = document.getElementById('appContent');
@@ -1944,13 +1950,23 @@ function loadLastTrip() {
 function loadTrips() {
     const recentTripsList = document.getElementById('recentTripsList');
 
+    // Reset infinite scroll state
+    allCompletedTrips = [];
+    displayedTripsCount = 0;
+
+    // Clean up previous observer
+    if (tripsObserver) {
+        tripsObserver.disconnect();
+        tripsObserver = null;
+    }
+
     // Simplified query without orderBy to avoid Firestore index issues
     db.collection('trips')
         .where('userId', '==', currentUser.uid)
         .get()
         .then((snapshot) => {
             // Filter to completed trips (with endStop, endStopCode, or endStopName) and sort in JS
-            const completedTrips = snapshot.docs
+            allCompletedTrips = snapshot.docs
                 .filter(doc => {
                     const data = doc.data();
                     return data.endStop != null || data.endStopCode != null || data.endStopName != null;
@@ -1960,51 +1976,16 @@ function loadTrips() {
                     const aTime = a.endTime?.toDate ? a.endTime.toDate() : new Date(a.endTime || 0);
                     const bTime = b.endTime?.toDate ? b.endTime.toDate() : new Date(b.endTime || 0);
                     return bTime - aTime;
-                })
-                .slice(0, 5);
+                });
 
-            if (completedTrips.length > 0) {
+            if (allCompletedTrips.length > 0) {
                 recentTripsList.innerHTML = '';
 
-                completedTrips.forEach((trip) => {
-                    const endTime = trip.endTime?.toDate ? trip.endTime.toDate() : new Date();
-                    const dateStr = endTime.toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric'
-                    });
-                    const duration = trip.duration || 0;
+                // Display initial batch
+                displayMoreTrips();
 
-                    const startStop = trip.startStopName || trip.startStop || trip.startStopCode || 'Unknown';
-                    const endStop = trip.endStopName || trip.endStop || trip.endStopCode || 'Unknown';
-                    const agencyDisplay = trip.agency ? ` • ${trip.agency}` : '';
-                    const verifiedBadge = trip.source === 'sms'
-                        ? (trip.verified
-                            ? '<span class="verified-badge verified">✓</span>'
-                            : '<span class="verified-badge unverified">?</span>')
-                        : '';
-
-                    const notesDisplay = trip.notes ? `<div style="font-size: 0.85em; color: var(--text-muted); margin-top: 4px; padding-top: 4px; border-top: 1px dotted var(--border-light);">📝 ${trip.notes}</div>` : '';
-
-                    const tripDiv = document.createElement('div');
-                    tripDiv.className = 'trip-item';
-                    tripDiv.style.cursor = 'pointer';
-                    tripDiv.onclick = () => openEditTripModal(trip.id);
-                    tripDiv.innerHTML = `
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                    <div style="flex: 1;">
-                                        <div style="font-weight: 600; color: var(--text-primary);">${trip.route}<span class="agency-badge">${agencyDisplay}</span></div>
-                                        <div style="font-size: 0.9em; color: var(--text-secondary);">${startStop} → ${endStop}</div>
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <div style="font-size: 0.85em; color: var(--text-muted);">${dateStr} ${verifiedBadge}</div>
-                                        <div style="font-size: 0.85em; color: var(--text-secondary);">${duration} min</div>
-                                    </div>
-                                    <div style="margin-left: 10px; color: var(--text-muted); font-size: 0.9em;">✏️</div>
-                                </div>
-                                ${notesDisplay}
-                            `;
-                    recentTripsList.appendChild(tripDiv);
-                });
+                // Set up infinite scroll observer
+                setupTripsInfiniteScroll();
 
                 // Load heatmap data for visuals
                 loadTripsForHeatmap();
@@ -2017,6 +1998,108 @@ function loadTrips() {
             console.error('Error loading trips:', error);
             recentTripsList.innerHTML = '<div class="empty-state"><span>⚠️</span><p>Error loading trips</p></div>';
         });
+}
+
+function renderTripItem(trip) {
+    const endTime = trip.endTime?.toDate ? trip.endTime.toDate() : new Date();
+    const dateStr = endTime.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
+    });
+    const duration = trip.duration || 0;
+
+    const startStop = trip.startStopName || trip.startStop || trip.startStopCode || 'Unknown';
+    const endStop = trip.endStopName || trip.endStop || trip.endStopCode || 'Unknown';
+    const agencyDisplay = trip.agency ? ` • ${trip.agency}` : '';
+    const verifiedBadge = trip.source === 'sms'
+        ? (trip.verified
+            ? '<span class="verified-badge verified">✓</span>'
+            : '<span class="verified-badge unverified">?</span>')
+        : '';
+
+    const notesDisplay = trip.notes ? `<div style="font-size: 0.85em; color: var(--text-muted); margin-top: 4px; padding-top: 4px; border-top: 1px dotted var(--border-light);">📝 ${trip.notes}</div>` : '';
+
+    const tripDiv = document.createElement('div');
+    tripDiv.className = 'trip-item';
+    tripDiv.style.cursor = 'pointer';
+    tripDiv.onclick = () => openEditTripModal(trip.id);
+    tripDiv.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="flex: 1;">
+                <div style="font-weight: 600; color: var(--text-primary);">${trip.route}<span class="agency-badge">${agencyDisplay}</span></div>
+                <div style="font-size: 0.9em; color: var(--text-secondary);">${startStop} → ${endStop}</div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 0.85em; color: var(--text-muted);">${dateStr} ${verifiedBadge}</div>
+                <div style="font-size: 0.85em; color: var(--text-secondary);">${duration} min</div>
+            </div>
+            <div style="margin-left: 10px; color: var(--text-muted); font-size: 0.9em;">✏️</div>
+        </div>
+        ${notesDisplay}
+    `;
+    return tripDiv;
+}
+
+function displayMoreTrips() {
+    const recentTripsList = document.getElementById('recentTripsList');
+    const nextBatch = allCompletedTrips.slice(displayedTripsCount, displayedTripsCount + TRIPS_PER_BATCH);
+
+    nextBatch.forEach(trip => {
+        recentTripsList.appendChild(renderTripItem(trip));
+    });
+
+    displayedTripsCount += nextBatch.length;
+
+    // Update or add the scroll sentinel
+    updateScrollSentinel();
+}
+
+function updateScrollSentinel() {
+    const recentTripsList = document.getElementById('recentTripsList');
+    let sentinel = document.getElementById('tripsSentinel');
+
+    // Remove existing sentinel
+    if (sentinel) {
+        sentinel.remove();
+    }
+
+    // Add new sentinel if there are more trips to load
+    if (displayedTripsCount < allCompletedTrips.length) {
+        sentinel = document.createElement('div');
+        sentinel.id = 'tripsSentinel';
+        sentinel.style.cssText = 'padding: 15px; text-align: center; color: var(--text-muted); font-size: 0.9em;';
+        sentinel.innerHTML = '<span class="loading-spinner"></span> Loading more trips...';
+        recentTripsList.appendChild(sentinel);
+    } else if (displayedTripsCount > TRIPS_PER_BATCH) {
+        // Show end message only if we've scrolled past the first batch
+        const endMsg = document.createElement('div');
+        endMsg.style.cssText = 'padding: 15px; text-align: center; color: var(--text-muted); font-size: 0.85em;';
+        endMsg.textContent = `All ${allCompletedTrips.length} trips loaded`;
+        recentTripsList.appendChild(endMsg);
+    }
+}
+
+function setupTripsInfiniteScroll() {
+    const sentinel = document.getElementById('tripsSentinel');
+    if (!sentinel) return;
+
+    tripsObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && displayedTripsCount < allCompletedTrips.length) {
+                displayMoreTrips();
+
+                // Re-observe the new sentinel if more trips remain
+                const newSentinel = document.getElementById('tripsSentinel');
+                if (newSentinel && tripsObserver) {
+                    tripsObserver.observe(newSentinel);
+                }
+            }
+        });
+    }, {
+        rootMargin: '100px' // Start loading before user reaches the bottom
+    });
+
+    tripsObserver.observe(sentinel);
 }
 
 function loadTripsForHeatmap() {
