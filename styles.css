@@ -346,6 +346,28 @@ body {
     gap: 15px;
 }
 
+@media (min-width: 1200px) {
+    .col-left,
+    .col-right {
+        position: sticky;
+        top: 20px;
+        max-height: calc(100vh - 40px);
+        overflow-y: auto;
+        scrollbar-width: thin;
+    }
+
+    .col-left::-webkit-scrollbar,
+    .col-right::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .col-left::-webkit-scrollbar-thumb,
+    .col-right::-webkit-scrollbar-thumb {
+        background: var(--border-light);
+        border-radius: 4px;
+    }
+}
+
 .col-center {
     display: flex;
     flex-direction: column;
@@ -1390,6 +1412,18 @@ body {
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--border-light);
+    border-top-color: var(--accent-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
 }
 
 .map-stat-divider {
