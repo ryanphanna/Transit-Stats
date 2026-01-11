@@ -149,22 +149,23 @@ function renderStopLibrary(stops) {
         <div class="stop-card">
             <div class="stop-card-header">
                 <div>
-                    <h4>${stop.name} <span class="agency-badge" style="font-size:0.75em; opacity:0.8; font-weight:normal;">(${stop.agency || 'Unknown'})</span></h4>
+                    <h4>${stop.name} ${stop.direction ? `<span style="font-size:0.8em; color:var(--text-secondary);">(${stop.direction})</span>` : ''} <span class="agency-badge" style="font-size:0.75em; opacity:0.8; font-weight:normal;">(${stop.agency || 'Unknown'})</span></h4>
                     <div class="stop-meta">
-                        ${stop.code ? `<span class="badge" style="background:var(--bg-tertiary);">#${stop.code}</span>` : ''} 
+                        ${stop.code ? `<span class="badge" style="background:var(--bg-tertiary);">#${stop.code}</span>` : ''}
                         ${(stop.lat && stop.lng) ? `<span style="font-size: 0.8em; color: var(--text-muted);" title="Lat: ${stop.lat}, Lng: ${stop.lng}">📍 ${parseFloat(stop.lat).toFixed(4)}, ${parseFloat(stop.lng).toFixed(4)}</span>` : ''}
                     </div>
                 </div>
             </div>
-            
+
             ${renderAliases(stop)}
-            
+
             <div style="margin-top: 15px; display:flex; justify-content:flex-end; align-items:center;">
                 <button class="btn btn-sm btn-outline" style="padding:4px 10px; font-size:0.8em; border:none; color:var(--text-secondary);"
                     onclick="openStopForm('edit', {
                         id: '${stop.id}',
                         name: '${stop.name.replace(/'/g, "\\'")}',
                         code: '${(stop.code || '').replace(/'/g, "\\'")}',
+                        direction: '${(stop.direction || '').replace(/'/g, "\\'")}',
                         agency: '${(stop.agency || 'Other').replace(/'/g, "\\'")}',
                         lat: ${stop.lat || 0},
                         lng: ${stop.lng || 0},
@@ -420,6 +421,7 @@ async function removeAlias(stopId, alias) {
 async function confirmCreate() {
     const name = document.getElementById('newStopName').value;
     const code = document.getElementById('newStopCode').value;
+    const direction = document.getElementById('newStopDirection').value || null;
     const lat = parseFloat(document.getElementById('newStopLat').value);
     const lng = parseFloat(document.getElementById('newStopLng').value);
     const agency = document.getElementById('newStopAgency').value;
@@ -430,6 +432,7 @@ async function confirmCreate() {
         const docRef = await db.collection('stops').add({
             name: name,
             code: code,
+            direction: direction,
             lat: lat || 0,
             lng: lng || 0,
             agency: agency,
@@ -679,6 +682,7 @@ function openStopForm(mode, stopData = null) {
 
         document.getElementById('editStopName').value = stopData.name || '';
         document.getElementById('editStopCode').value = stopData.code || '';
+        document.getElementById('editStopDirection').value = stopData.direction || '';
         document.getElementById('editStopLat').value = stopData.lat || '';
         document.getElementById('editStopLng').value = stopData.lng || '';
         document.getElementById('editStopAgency').value = stopData.agency || 'Other';
@@ -699,6 +703,7 @@ function openStopForm(mode, stopData = null) {
 
         document.getElementById('editStopName').value = '';
         document.getElementById('editStopCode').value = '';
+        document.getElementById('editStopDirection').value = '';
         document.getElementById('editStopLat').value = '';
         document.getElementById('editStopLng').value = '';
         document.getElementById('editStopAgency').value = 'TTC'; // Default
@@ -752,6 +757,7 @@ function closeStopFormModal() {
 async function saveStopFromForm() {
     const name = document.getElementById('editStopName').value.trim();
     const code = document.getElementById('editStopCode').value.trim();
+    const direction = document.getElementById('editStopDirection').value || null;
     const lat = parseFloat(document.getElementById('editStopLat').value);
     const lng = parseFloat(document.getElementById('editStopLng').value);
     const agency = document.getElementById('editStopAgency').value;
@@ -765,6 +771,7 @@ async function saveStopFromForm() {
         const stopData = {
             name: name,
             code: code,
+            direction: direction,
             lat: isNaN(lat) ? 0 : lat,
             lng: isNaN(lng) ? 0 : lng,
             agency: agency

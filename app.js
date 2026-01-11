@@ -1599,8 +1599,8 @@ function startNewTrip() {
         // Parse stop input to extract code and/or name
         const parsedStop = parseStopInput(stop);
 
-        // Try to look up the stop in our verified stops library
-        const matchedStop = lookupStopInLibrary(parsedStop.stopCode, parsedStop.stopName);
+        // Try to look up the stop in our verified stops library (with direction for disambiguation)
+        const matchedStop = lookupStopInLibrary(parsedStop.stopCode, parsedStop.stopName, null, direction);
 
         const tripData = {
             userId: currentUser.uid,
@@ -1993,43 +1993,97 @@ function parseStopInput(input) {
 }
 
 /**
+ * Normalize direction string for comparison
+ * @param {string|null} direction - Raw direction input
+ * @returns {string|null} Normalized direction or null
+ */
+function normalizeDirection(direction) {
+    if (!direction) return null;
+    const upper = direction.toUpperCase().trim();
+
+    // Cardinal directions
+    if (['N', 'NB', 'NORTH', 'NORTHBOUND'].includes(upper)) return 'North';
+    if (['S', 'SB', 'SOUTH', 'SOUTHBOUND'].includes(upper)) return 'South';
+    if (['E', 'EB', 'EAST', 'EASTBOUND'].includes(upper)) return 'East';
+    if (['W', 'WB', 'WEST', 'WESTBOUND'].includes(upper)) return 'West';
+
+    // Other directions
+    if (['CW', 'CLOCKWISE'].includes(upper)) return 'Clockwise';
+    if (['CCW', 'COUNTERCLOCKWISE', 'ANTICLOCKWISE'].includes(upper)) return 'Counterclockwise';
+    if (['IB', 'IN', 'INBOUND'].includes(upper)) return 'Inbound';
+    if (['OB', 'OUT', 'OUTBOUND'].includes(upper)) return 'Outbound';
+
+    // Return title case if not recognized
+    return direction.trim();
+}
+
+/**
  * Look up a stop in the stops library by code or name
  * @param {string|null} stopCode - Stop code to look up
  * @param {string|null} stopName - Stop name to look up
  * @param {string|null} agency - Agency to filter by (optional)
+ * @param {string|null} direction - Direction to filter by (optional)
  * @returns {object|null} Full stop object or null if not found
  */
-function lookupStopInLibrary(stopCode, stopName, agency = null) {
+function lookupStopInLibrary(stopCode, stopName, agency = null, direction = null) {
     if (!stopsLibrary.length) return null;
     if (!stopCode && !stopName) return null;
+
+    const normalizedDir = normalizeDirection(direction);
 
     for (const stop of stopsLibrary) {
         // Filter by agency if provided
         if (agency && stop.agency && stop.agency !== agency) continue;
 
-        // Check code match first (most reliable)
+        // Check code match first (most reliable - code is unique)
         if (stopCode && stop.code === stopCode) {
             return stop;
         }
     }
 
-    // If no code match, try name matching
+    // If no code match, try name matching with direction consideration
     if (stopName) {
         const lowerName = stopName.toLowerCase();
+        let nameMatches = [];
+
         for (const stop of stopsLibrary) {
             if (agency && stop.agency && stop.agency !== agency) continue;
 
+            let isNameMatch = false;
+
             // Exact name match
             if (stop.name && stop.name.toLowerCase() === lowerName) {
-                return stop;
+                isNameMatch = true;
             }
 
             // Alias match
-            if (stop.aliases && Array.isArray(stop.aliases)) {
+            if (!isNameMatch && stop.aliases && Array.isArray(stop.aliases)) {
                 if (stop.aliases.some(alias => alias.toLowerCase() === lowerName)) {
-                    return stop;
+                    isNameMatch = true;
                 }
             }
+
+            if (isNameMatch) {
+                nameMatches.push(stop);
+            }
+        }
+
+        // If we have matches, filter by direction if provided
+        if (nameMatches.length > 0) {
+            if (normalizedDir) {
+                // Try to find a stop with matching direction
+                const dirMatch = nameMatches.find(stop =>
+                    stop.direction && normalizeDirection(stop.direction) === normalizedDir
+                );
+                if (dirMatch) return dirMatch;
+
+                // If no direction match, prefer stops without direction (stations)
+                const noDir = nameMatches.find(stop => !stop.direction);
+                if (noDir) return noDir;
+            }
+
+            // Return first match if no direction filtering needed/possible
+            return nameMatches[0];
         }
     }
 
