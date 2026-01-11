@@ -161,16 +161,7 @@ function renderStopLibrary(stops) {
 
             <div style="margin-top: 15px; display:flex; justify-content:flex-end; align-items:center;">
                 <button class="btn btn-sm btn-outline" style="padding:4px 10px; font-size:0.8em; border:none; color:var(--text-secondary);"
-                    onclick="openStopForm('edit', {
-                        id: '${stop.id}',
-                        name: '${stop.name.replace(/'/g, "\\'")}',
-                        code: '${(stop.code || '').replace(/'/g, "\\'")}',
-                        direction: '${(stop.direction || '').replace(/'/g, "\\'")}',
-                        agency: '${(stop.agency || 'Other').replace(/'/g, "\\'")}',
-                        lat: ${stop.lat || 0},
-                        lng: ${stop.lng || 0},
-                        aliases: ${JSON.stringify(stop.aliases || [])}
-                    })">
+                    onclick="editStopById('${stop.id}')">
                     ✏️ Edit
                  </button>
             </div>
@@ -666,6 +657,18 @@ async function confirmLink() {
 // ========================================
 
 let currentEditId = null;
+
+/**
+ * Edit a stop by its ID - fetches from loaded stopsLibrary
+ */
+function editStopById(stopId) {
+    const stop = stopsLibrary.find(s => s.id === stopId);
+    if (!stop) {
+        alert('Stop not found. Try refreshing the page.');
+        return;
+    }
+    openStopForm('edit', stop);
+}
 
 function openStopForm(mode, stopData = null) {
     const modal = document.getElementById('stopFormModal');
