@@ -1566,10 +1566,12 @@ function useQuickTemplate(route, stop) {
 function startNewTrip() {
     const stopInput = document.getElementById('stopInput');
     const routeInput = document.getElementById('routeInput');
+    const directionInputEl = document.getElementById('directionInput');
     const startBtn = document.getElementById('startBtn');
 
     const stop = stopInput.value.trim();
     const route = routeInput.value.trim();
+    const direction = directionInputEl ? directionInputEl.value.trim() : '';
 
     stopInput.style.background = '';
     routeInput.style.background = '';
@@ -1594,13 +1596,24 @@ function startNewTrip() {
     startBtn.textContent = 'Starting...';
 
     getCurrentLocation((location) => {
+        // Parse stop input to extract code and/or name
+        const parsedStop = parseStopInput(stop);
+
+        // Try to look up the stop in our verified stops library
+        const matchedStop = lookupStopInLibrary(parsedStop.stopCode, parsedStop.stopName);
+
         const tripData = {
             userId: currentUser.uid,
             route: route,
-            startStop: stop,
+            direction: direction || null,
+            startStop: stop, // Keep raw input for backwards compatibility
+            startStopCode: matchedStop ? matchedStop.code : parsedStop.stopCode,
+            startStopName: matchedStop ? matchedStop.name : parsedStop.stopName,
+            verifiedStopId: matchedStop ? matchedStop.id : null,
+            verified: !!matchedStop,
             endStop: null,
             startTime: firebase.firestore.Timestamp.now(),
-            boardingLocation: location
+            boardingLocation: matchedStop && matchedStop.lat ? { lat: matchedStop.lat, lng: matchedStop.lng } : location
         };
 
         db.collection('trips').add(tripData)
@@ -1608,6 +1621,7 @@ function startNewTrip() {
                 activeTrip = { id: docRef.id, ...tripData };
                 stopInput.value = '';
                 routeInput.value = '';
+                if (directionInputEl) directionInputEl.value = '';
                 startBtn.disabled = false;
                 startBtn.textContent = 'Board Vehicle';
 
@@ -1932,6 +1946,94 @@ function resolveVerifiedStopName(stopValue, agency) {
     }
 
     return null; // No match found
+}
+
+/**
+ * Parse stop input that may contain both name and code
+ * Handles formats like:
+ * - "Spadina & Nassau 19932" (name followed by code)
+ * - "19932 Spadina & Nassau" (code followed by name)
+ * - "19932" (just code)
+ * - "Spadina & Nassau" (just name)
+ * @param {string} input - Raw stop input
+ * @returns {object} { stopCode: string|null, stopName: string|null, raw: string }
+ */
+function parseStopInput(input) {
+    if (!input) return { stopCode: null, stopName: null, raw: '' };
+
+    const trimmed = input.trim();
+
+    // Check if entire input is just a stop code (all digits)
+    if (/^\d+$/.test(trimmed)) {
+        return { stopCode: trimmed, stopName: null, raw: trimmed };
+    }
+
+    // Check for code at the end: "Spadina & Nassau 19932"
+    const codeAtEndMatch = trimmed.match(/^(.+?)\s+(\d{4,6})$/);
+    if (codeAtEndMatch) {
+        return {
+            stopCode: codeAtEndMatch[2],
+            stopName: codeAtEndMatch[1].trim(),
+            raw: trimmed
+        };
+    }
+
+    // Check for code at the start: "19932 Spadina & Nassau"
+    const codeAtStartMatch = trimmed.match(/^(\d{4,6})\s+(.+)$/);
+    if (codeAtStartMatch) {
+        return {
+            stopCode: codeAtStartMatch[1],
+            stopName: codeAtStartMatch[2].trim(),
+            raw: trimmed
+        };
+    }
+
+    // No code found, treat as name only
+    return { stopCode: null, stopName: trimmed, raw: trimmed };
+}
+
+/**
+ * Look up a stop in the stops library by code or name
+ * @param {string|null} stopCode - Stop code to look up
+ * @param {string|null} stopName - Stop name to look up
+ * @param {string|null} agency - Agency to filter by (optional)
+ * @returns {object|null} Full stop object or null if not found
+ */
+function lookupStopInLibrary(stopCode, stopName, agency = null) {
+    if (!stopsLibrary.length) return null;
+    if (!stopCode && !stopName) return null;
+
+    for (const stop of stopsLibrary) {
+        // Filter by agency if provided
+        if (agency && stop.agency && stop.agency !== agency) continue;
+
+        // Check code match first (most reliable)
+        if (stopCode && stop.code === stopCode) {
+            return stop;
+        }
+    }
+
+    // If no code match, try name matching
+    if (stopName) {
+        const lowerName = stopName.toLowerCase();
+        for (const stop of stopsLibrary) {
+            if (agency && stop.agency && stop.agency !== agency) continue;
+
+            // Exact name match
+            if (stop.name && stop.name.toLowerCase() === lowerName) {
+                return stop;
+            }
+
+            // Alias match
+            if (stop.aliases && Array.isArray(stop.aliases)) {
+                if (stop.aliases.some(alias => alias.toLowerCase() === lowerName)) {
+                    return stop;
+                }
+            }
+        }
+    }
+
+    return null;
 }
 
 // Initialize app on authentication
@@ -2289,10 +2391,19 @@ saveBtn.addEventListener('click', () => {
         const endTime = new Date();
         const duration = Math.floor((endTime - startTime) / 1000 / 60);
 
+        // Parse end stop input to extract code and/or name
+        const parsedEndStop = parseStopInput(exitStop);
+
+        // Try to look up the stop in our verified stops library
+        const matchedEndStop = lookupStopInLibrary(parsedEndStop.stopCode, parsedEndStop.stopName);
+
         const updateData = {
-            endStop: exitStop,
+            endStop: exitStop, // Keep raw input for backwards compatibility
+            endStopCode: matchedEndStop ? matchedEndStop.code : parsedEndStop.stopCode,
+            endStopName: matchedEndStop ? matchedEndStop.name : parsedEndStop.stopName,
+            verifiedEndId: matchedEndStop ? matchedEndStop.id : null,
             endTime: firebase.firestore.Timestamp.now(),
-            exitLocation: location,
+            exitLocation: matchedEndStop && matchedEndStop.lat ? { lat: matchedEndStop.lat, lng: matchedEndStop.lng } : location,
             duration: duration
         };
 
