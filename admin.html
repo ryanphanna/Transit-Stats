@@ -338,6 +338,19 @@
                     <label>Stop Code (Optional)</label>
                     <input type="text" id="newStopCode" placeholder="e.g. 1234">
                 </div>
+                <div class="form-group">
+                    <label>Direction <span style="color: var(--text-secondary); font-weight: normal;">(Optional - for surface stops)</span></label>
+                    <select id="newStopDirection"
+                        style="width: 100%; padding: 12px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                        <option value="">None (Station/Terminal)</option>
+                        <option value="North">North</option>
+                        <option value="South">South</option>
+                        <option value="East">East</option>
+                        <option value="West">West</option>
+                        <option value="Inbound">Inbound</option>
+                        <option value="Outbound">Outbound</option>
+                    </select>
+                </div>
                 <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <div class="form-group">
                         <label>Lat</label>
@@ -410,6 +423,20 @@
             <div class="form-group">
                 <label>Stop Code (Optional)</label>
                 <input type="text" id="editStopCode" placeholder="e.g. 1234">
+            </div>
+
+            <div class="form-group">
+                <label>Direction <span style="color: var(--text-secondary); font-weight: normal;">(Optional)</span></label>
+                <select id="editStopDirection"
+                    style="width: 100%; padding: 12px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                    <option value="">None (Station/Terminal)</option>
+                    <option value="North">North</option>
+                    <option value="South">South</option>
+                    <option value="East">East</option>
+                    <option value="West">West</option>
+                    <option value="Inbound">Inbound</option>
+                    <option value="Outbound">Outbound</option>
+                </select>
             </div>
 
             <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
