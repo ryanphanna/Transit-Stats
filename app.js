@@ -34,6 +34,9 @@ let displayedTripsCount = 0;
 const TRIPS_PER_BATCH = 15;
 let tripsObserver = null;
 
+// Stops library for verified name lookup
+let stopsLibrary = [];
+
 // DOM Elements
 const authSection = document.getElementById('authSection');
 const appContent = document.getElementById('appContent');
@@ -1225,8 +1228,11 @@ function generateTopRoutes(trips) {
 function generateTopStops(trips) {
     const stopCounts = {};
     trips.forEach(trip => {
-        const startStop = trip.startStopName || trip.startStop || trip.startStopCode || 'Unknown';
-        const endStop = trip.endStopName || trip.endStop || trip.endStopCode || 'Unknown';
+        // Use verified names to properly aggregate stops with aliases
+        const rawStartStop = trip.startStopName || trip.startStop || trip.startStopCode;
+        const rawEndStop = trip.endStopName || trip.endStop || trip.endStopCode;
+        const startStop = resolveVerifiedStopName(rawStartStop, trip.agency) || rawStartStop || 'Unknown';
+        const endStop = resolveVerifiedStopName(rawEndStop, trip.agency) || rawEndStop || 'Unknown';
         stopCounts[startStop] = (stopCounts[startStop] || 0) + 1;
         stopCounts[endStop] = (stopCounts[endStop] || 0) + 1;
     });
@@ -1885,8 +1891,52 @@ passwordInput.addEventListener('keypress', (e) => {
     }
 });
 
+// Load stops library for verified name lookup
+async function loadStopsLibrary() {
+    try {
+        const snapshot = await db.collection('stops').get();
+        stopsLibrary = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log(`✅ Loaded ${stopsLibrary.length} stops for name resolution`);
+    } catch (error) {
+        console.error('Error loading stops library:', error);
+        stopsLibrary = [];
+    }
+}
+
+// Resolve a stop name/code to its verified canonical name
+function resolveVerifiedStopName(stopValue, agency) {
+    if (!stopValue || !stopsLibrary.length) return null;
+
+    const lowerValue = stopValue.toLowerCase().trim();
+
+    for (const stop of stopsLibrary) {
+        // Skip if agency doesn't match (when agency is provided)
+        if (agency && stop.agency && stop.agency !== agency) continue;
+
+        // Check exact code match
+        if (stop.code && stop.code === stopValue) {
+            return stop.name;
+        }
+
+        // Check exact name match (already the canonical name)
+        if (stop.name && stop.name.toLowerCase() === lowerValue) {
+            return stop.name;
+        }
+
+        // Check aliases
+        if (stop.aliases && Array.isArray(stop.aliases)) {
+            if (stop.aliases.some(alias => alias.toLowerCase() === lowerValue)) {
+                return stop.name;
+            }
+        }
+    }
+
+    return null; // No match found
+}
+
 // Initialize app on authentication
 function initializeApp() {
+    loadStopsLibrary(); // Load stops for verified name resolution
     loadTemplates();
     checkActiveTrip();
     loadLastTrip();
@@ -2008,8 +2058,11 @@ function renderTripItem(trip) {
     });
     const duration = trip.duration || 0;
 
-    const startStop = trip.startStopName || trip.startStop || trip.startStopCode || 'Unknown';
-    const endStop = trip.endStopName || trip.endStop || trip.endStopCode || 'Unknown';
+    // Try to resolve verified names from stops library (by code or alias)
+    const rawStartStop = trip.startStopName || trip.startStop || trip.startStopCode;
+    const rawEndStop = trip.endStopName || trip.endStop || trip.endStopCode;
+    const startStop = resolveVerifiedStopName(rawStartStop, trip.agency) || rawStartStop || 'Unknown';
+    const endStop = resolveVerifiedStopName(rawEndStop, trip.agency) || rawEndStop || 'Unknown';
     const agencyDisplay = trip.agency ? ` • ${trip.agency}` : '';
     const verifiedBadge = trip.source === 'sms'
         ? (trip.verified
