@@ -163,7 +163,7 @@ auth.onAuthStateChanged(async (user) => {
                 return;
             }
 
-            console.log('✅ User authenticated:', user.email);
+            console.log('✅ User authenticated');
             updateConnectionStatus(true);
             showApp();
         } else {
@@ -1078,7 +1078,7 @@ function updateProfileStats() {
 function loadProfileTrips() {
     if (!currentUser) return;
 
-    console.log('🔍 Loading profile trips for user:', currentUser.uid);
+    console.log('🔍 Loading profile trips');
 
     // Simplified query without orderBy to avoid index issues
     db.collection('trips')
@@ -1844,7 +1844,7 @@ magicLinkBtn.addEventListener('click', () => {
     const email = emailInput.value.trim();
 
     const actionCodeSettings = {
-        url: 'https://ryanphanna.github.io/Transit-Stats/',
+        url: window.location.origin + window.location.pathname,
         handleCodeInApp: true
     };
 

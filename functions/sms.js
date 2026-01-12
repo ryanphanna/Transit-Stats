@@ -100,7 +100,7 @@ async function sendSmsReply(to, message) {
       from: from,
       to: to,
     });
-    console.log(`SMS sent to ${to}: ${message.substring(0, 50)}...`);
+    console.log('SMS sent successfully');
     return true;
   } catch (error) {
     console.error('Error sending SMS:', error);
@@ -173,7 +173,7 @@ async function isRateLimited(phoneNumber) {
 
   if (data.count >= 500) {
     // Rate limit exceeded
-    console.log(`Rate limit exceeded for ${phoneNumber}: ${data.count} messages`);
+    console.log('Rate limit exceeded');
     return true;
   }
 
@@ -238,7 +238,7 @@ async function shouldRespondToUnknown(phoneNumber) {
   await unknownRef.update({
     messageCount: admin.firestore.FieldValue.increment(1),
   });
-  console.log(`Ignoring repeat message from unknown number ${phoneNumber}`);
+  console.log('Ignoring repeat message from unknown number');
   return false;
 }
 
@@ -794,7 +794,7 @@ async function handleRegister(phoneNumber, email) {
   if (!allowed) {
     await sendSmsReply(
       phoneNumber,
-      'This app is invite-only. Contact ryan@ryanisnota.pro for access.'
+      'This app is invite-only. Visit the web app for access information.'
     );
     return;
   }
@@ -831,7 +831,7 @@ async function handleRegister(phoneNumber, email) {
   // Send email with verification code
   // Note: In production, you'd use Firebase Extensions or a service like SendGrid
   // For now, we'll store the code and instruct user to check email
-  console.log(`Verification code for ${email}: ${code}`);
+  // Verification code generated (not logged for security)
 
   // Try to send email via Firebase (if configured)
   try {
@@ -843,7 +843,7 @@ async function handleRegister(phoneNumber, email) {
         html: `<h2>TransitStats SMS Verification</h2><p>Your verification code is: <strong>${code}</strong></p><p>Reply to the SMS with this code to link your phone number.</p>`,
       },
     });
-    console.log(`Verification email queued for ${email}`);
+    console.log('Verification email queued');
   } catch (error) {
     console.error('Error queuing verification email:', error);
   }
@@ -1170,7 +1170,7 @@ async function handleSmsRequest(req, res) {
     const phoneNumber = req.body.From;
     const body = (req.body.Body || '').trim();
 
-    console.log(`SMS from ${phoneNumber}: ${body}`);
+    console.log('SMS received');
 
     if (!phoneNumber || !body) {
       res.status(400).send('Missing phone number or message body');
@@ -1180,7 +1180,7 @@ async function handleSmsRequest(req, res) {
     // Check rate limiting first - silently ignore if exceeded
     const rateLimited = await isRateLimited(phoneNumber);
     if (rateLimited) {
-      console.log(`Rate limited, ignoring message from ${phoneNumber}`);
+      console.log('Rate limited, ignoring message');
       res.type('text/xml').send(twimlResponse(''));
       return;
     }
