@@ -31,6 +31,7 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const express = require('express');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Initialize Firebase Admin SDK (only once)
 if (!admin.apps.length) {
@@ -151,7 +152,7 @@ async function isRateLimited(phoneNumber) {
     await rateLimitRef.set({
       count: 1,
       resetAt: admin.firestore.Timestamp.fromDate(
-        new Date(now.getTime() + 60 * 60 * 1000) // 1 hour from now
+        new Date(now.getTime() + 60 * 60 * 1000), // 1 hour from now
       ),
     });
     return false;
@@ -165,7 +166,7 @@ async function isRateLimited(phoneNumber) {
     await rateLimitRef.set({
       count: 1,
       resetAt: admin.firestore.Timestamp.fromDate(
-        new Date(now.getTime() + 60 * 60 * 1000)
+        new Date(now.getTime() + 60 * 60 * 1000),
       ),
     });
     return false;
@@ -213,7 +214,7 @@ async function shouldRespondToUnknown(phoneNumber) {
       firstMessageAt: admin.firestore.FieldValue.serverTimestamp(),
       messageCount: 1,
       resetAt: admin.firestore.Timestamp.fromDate(
-        new Date(now.getTime() + 60 * 60 * 1000) // 1 hour from now
+        new Date(now.getTime() + 60 * 60 * 1000), // 1 hour from now
       ),
     });
     return true; // Respond to first message
@@ -228,7 +229,7 @@ async function shouldRespondToUnknown(phoneNumber) {
       firstMessageAt: admin.firestore.FieldValue.serverTimestamp(),
       messageCount: 1,
       resetAt: admin.firestore.Timestamp.fromDate(
-        new Date(now.getTime() + 60 * 60 * 1000)
+        new Date(now.getTime() + 60 * 60 * 1000),
       ),
     });
     return true;
@@ -318,7 +319,7 @@ async function getPendingState(phoneNumber) {
  */
 async function setPendingState(phoneNumber, state) {
   const expiresAt = admin.firestore.Timestamp.fromDate(
-    new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
+    new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
   );
   await db.collection('smsState').doc(phoneNumber).set({
     ...state,
@@ -342,7 +343,7 @@ async function clearPendingState(phoneNumber) {
  */
 async function storeVerificationCode(phoneNumber, email, code) {
   const expiresAt = admin.firestore.Timestamp.fromDate(
-    new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
+    new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
   );
   await db.collection('smsVerification').doc(phoneNumber).set({
     email,
@@ -470,7 +471,7 @@ async function lookupStop(stopCode, stopName, agency) {
         for (const doc of allStops.docs) {
           const data = doc.data();
           if (data.aliases && Array.isArray(data.aliases)) {
-            if (data.aliases.some(a => a.toLowerCase() === lowerName)) {
+            if (data.aliases.some((a) => a.toLowerCase() === lowerName)) {
               return { id: doc.id, ...data, stopCode: data.code, stopName: data.name };
             }
           }
@@ -545,7 +546,7 @@ function toTitleCase(str) {
   // Replace " and " with " & " (case insensitive)
   const withAmpersand = str.replace(/\s+and\s+/gi, ' & ');
 
-  return withAmpersand.toLowerCase().split(' ').map(word => {
+  return withAmpersand.toLowerCase().split(' ').map((word) => {
     return word.charAt(0).toUpperCase() + word.slice(1);
   }).join(' ');
 }
@@ -561,7 +562,7 @@ function toTitleCase(str) {
  * @returns {object|null} Parsed trip data or null if invalid
  */
 function parseMultiLineTripFormat(body, defaultAgency) {
-  const lines = body.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  const lines = body.split('\n').map((line) => line.trim()).filter((line) => line.length > 0);
 
   // Need at least route and stop (lines 1 and 2)
   if (lines.length < 2) {
@@ -585,7 +586,7 @@ function parseMultiLineTripFormat(body, defaultAgency) {
     // Check if it's a known agency
     const potentialAgency = lines[3];
     const lowerAgency = potentialAgency.toLowerCase();
-    const knownAgency = KNOWN_AGENCIES.find(a => a.toLowerCase() === lowerAgency);
+    const knownAgency = KNOWN_AGENCIES.find((a) => a.toLowerCase() === lowerAgency);
     if (knownAgency) {
       agency = knownAgency;
     }
@@ -608,7 +609,7 @@ function parseMultiLineTripFormat(body, defaultAgency) {
  * @returns {object|null} Parsed end trip data or null if not an END command
  */
 function parseEndTripFormat(body) {
-  const lines = body.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  const lines = body.split('\n').map((line) => line.trim()).filter((line) => line.length > 0);
 
   // First line must be "END" or "STOP"
   if (lines.length === 0 || !['END', 'STOP'].includes(lines[0].toUpperCase())) {
@@ -631,7 +632,7 @@ function parseEndTripFormat(body) {
     isEnd: true,
     stop,
     route: null, // Deprecated route verification in favor of simple stop + notes
-    notes
+    notes,
   };
 }
 
@@ -733,13 +734,13 @@ async function handleStatus(phoneNumber, user) {
   const startStopDisplay = getStopDisplay(
     activeTrip.startStopCode,
     activeTrip.startStopName,
-    activeTrip.startStop
+    activeTrip.startStop,
   );
 
   // Format route with direction if available
-  const routeDisplay = activeTrip.direction
-    ? `Route ${activeTrip.route} ${activeTrip.direction}`
-    : `Route ${activeTrip.route}`;
+  const routeDisplay = activeTrip.direction ?
+    `Route ${activeTrip.route} ${activeTrip.direction}` :
+    `Route ${activeTrip.route}`;
 
   const message = `Active trip:
 ${routeDisplay} from Stop ${startStopDisplay}
@@ -762,16 +763,16 @@ async function handleDiscard(phoneNumber, user) {
   }
 
   // Format route with direction if available
-  const routeDisplay = activeTrip.direction
-    ? `Route ${activeTrip.route} ${activeTrip.direction}`
-    : `Route ${activeTrip.route}`;
+  const routeDisplay = activeTrip.direction ?
+    `Route ${activeTrip.route} ${activeTrip.direction}` :
+    `Route ${activeTrip.route}`;
 
   await db.collection('trips').doc(activeTrip.id).delete();
   await clearPendingState(phoneNumber);
 
   await sendSmsReply(
     phoneNumber,
-    `✅ Discarded ${routeDisplay}.`
+    `✅ Discarded ${routeDisplay}.`,
   );
 }
 
@@ -784,7 +785,7 @@ async function handleRegister(phoneNumber, email) {
   if (!emailRegex.test(email)) {
     await sendSmsReply(
       phoneNumber,
-      'Invalid email format. Text REGISTER [email] with a valid email address.'
+      'Invalid email format. Text REGISTER [email] with a valid email address.',
     );
     return;
   }
@@ -794,7 +795,7 @@ async function handleRegister(phoneNumber, email) {
   if (!allowed) {
     await sendSmsReply(
       phoneNumber,
-      'This app is invite-only. Visit the web app for access information.'
+      'This app is invite-only. Visit the web app for access information.',
     );
     return;
   }
@@ -804,7 +805,7 @@ async function handleRegister(phoneNumber, email) {
   if (existingUser) {
     await sendSmsReply(
       phoneNumber,
-      `This phone is already linked to ${existingUser.email}. Contact support to change.`
+      `This phone is already linked to ${existingUser.email}. Contact support to change.`,
     );
     return;
   }
@@ -819,7 +820,7 @@ async function handleRegister(phoneNumber, email) {
   if (profilesSnapshot.empty) {
     await sendSmsReply(
       phoneNumber,
-      `No TransitStats account found for ${email}. Create an account at the web app first.`
+      `No TransitStats account found for ${email}. Create an account at the web app first.`,
     );
     return;
   }
@@ -850,7 +851,7 @@ async function handleRegister(phoneNumber, email) {
 
   await sendSmsReply(
     phoneNumber,
-    `Verification code sent to ${email}. Reply with the 4-digit code.\n\nReply DISCARD to undo`
+    `Verification code sent to ${email}. Reply with the 4-digit code.\n\nReply DISCARD to undo`,
   );
 
   // Set state to wait for code
@@ -869,7 +870,7 @@ async function handleVerificationCode(phoneNumber, code) {
   if (!verificationData) {
     await sendSmsReply(
       phoneNumber,
-      'No pending registration. Text REGISTER [email] to start.'
+      'No pending registration. Text REGISTER [email] to start.',
     );
     return;
   }
@@ -880,7 +881,7 @@ async function handleVerificationCode(phoneNumber, code) {
     await clearPendingState(phoneNumber);
     await sendSmsReply(
       phoneNumber,
-      'Too many attempts. Text REGISTER [email] to try again.'
+      'Too many attempts. Text REGISTER [email] to try again.',
     );
     return;
   }
@@ -922,7 +923,7 @@ async function handleVerificationCode(phoneNumber, code) {
 
   await sendSmsReply(
     phoneNumber,
-    `Phone linked to ${email}! Text "[stop] [route]" to log trips.`
+    `Phone linked to ${email}! Text "[stop] [route]" to log trips.`,
   );
 }
 
@@ -950,18 +951,18 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
     const activeTripStartStop = getStopDisplay(
       activeTrip.startStopCode,
       activeTrip.startStopName,
-      activeTrip.startStop
+      activeTrip.startStop,
     );
 
     // Format route display for active trip
-    const activeTripRouteDisplay = activeTrip.direction
-      ? `Route ${activeTrip.route} ${activeTrip.direction}`
-      : `Route ${activeTrip.route}`;
+    const activeTripRouteDisplay = activeTrip.direction ?
+      `Route ${activeTrip.route} ${activeTrip.direction}` :
+      `Route ${activeTrip.route}`;
 
     // Format route display for new trip
-    const newTripRouteDisplay = direction
-      ? `Route ${route} ${direction}`
-      : `Route ${route}`;
+    const newTripRouteDisplay = direction ?
+      `Route ${route} ${direction}` :
+      `Route ${route}`;
 
     // User has an active trip - prompt to start new (marks old as incomplete)
     await setPendingState(phoneNumber, {
@@ -1013,6 +1014,7 @@ START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDispla
     boardingLocation: boardingLocation,
     exitLocation: null,
     agency: agency,
+    timing_reliability: 'actual', // Default for real-time SMS logging
   };
 
   await db.collection('trips').add(tripData);
@@ -1023,14 +1025,14 @@ START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDispla
   // Use the canonical display name
   const finalStopDisplay = getStopDisplay(
     stopData ? stopData.stopCode : parsedStop.stopCode,
-    stopData ? stopData.stopName : parsedStop.stopName
+    stopData ? stopData.stopName : parsedStop.stopName,
   );
 
   await sendSmsReply(
     phoneNumber,
     `✅ Started ${routeDisplay} from Stop ${finalStopDisplay}.
 
-END + STOP to finish. DISCARD to delete. INFO for help.`
+END + STOP to finish. DISCARD to delete. INFO for help.`,
   );
 }
 
@@ -1042,9 +1044,9 @@ async function handleConfirmStart(phoneNumber, user, state) {
   const newTrip = state.newTrip;
 
   // Format old trip display
-  const oldTripRouteDisplay = activeTrip.direction
-    ? `Route ${activeTrip.route} ${activeTrip.direction}`
-    : `Route ${activeTrip.route}`;
+  const oldTripRouteDisplay = activeTrip.direction ?
+    `Route ${activeTrip.route} ${activeTrip.direction}` :
+    `Route ${activeTrip.route}`;
 
   // Mark active trip as incomplete (no endTime, no exitLocation, no duration)
   await db.collection('trips').doc(activeTrip.id).update({
@@ -1070,6 +1072,7 @@ async function handleConfirmStart(phoneNumber, user, state) {
     boardingLocation: newTrip.boardingLocation || null,
     exitLocation: null,
     agency: newTrip.agency,
+    timing_reliability: determineReliability(state.expiresAt),
   };
 
   await db.collection('trips').add(tripData);
@@ -1078,16 +1081,16 @@ async function handleConfirmStart(phoneNumber, user, state) {
   // Format displays
   const newStopDisplay = getStopDisplay(newTrip.stopCode, newTrip.stopName);
   const normalizedDirection = normalizeDirection(newTrip.direction);
-  const newRouteDisplay = normalizedDirection
-    ? `Route ${newTrip.route} ${normalizedDirection}`
-    : `Route ${newTrip.route}`;
+  const newRouteDisplay = normalizedDirection ?
+    `Route ${newTrip.route} ${normalizedDirection}` :
+    `Route ${newTrip.route}`;
 
   await sendSmsReply(
     phoneNumber,
     `✅ ${oldTripRouteDisplay} marked incomplete.
 ✅ Started ${newRouteDisplay} from Stop ${newStopDisplay}.
 
-END + STOP to finish. DISCARD to delete. INFO for help.`
+END + STOP to finish. DISCARD to delete. INFO for help.`,
   );
 }
 
@@ -1111,12 +1114,12 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     const activeRoute = activeTrip.route.toString().toLowerCase();
     const verifyRoute = routeVerification.toString().toLowerCase();
     if (activeRoute !== verifyRoute) {
-      const routeDisplay = activeTrip.direction
-        ? `Route ${activeTrip.route} ${activeTrip.direction}`
-        : `Route ${activeTrip.route}`;
+      const routeDisplay = activeTrip.direction ?
+        `Route ${activeTrip.route} ${activeTrip.direction}` :
+        `Route ${activeTrip.route}`;
       await sendSmsReply(
         phoneNumber,
-        `❌ Route mismatch. Active trip is ${routeDisplay}, not Route ${routeVerification}.`
+        `❌ Route mismatch. Active trip is ${routeDisplay}, not Route ${routeVerification}.`,
       );
       return;
     }
@@ -1135,7 +1138,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
   // Get display strings for start and end stops
   const endStopDisplay = getStopDisplay(
     endStopData ? endStopData.stopCode : parsedEndStop.stopCode,
-    endStopData ? endStopData.stopName : parsedEndStop.stopName
+    endStopData ? endStopData.stopName : parsedEndStop.stopName,
   );
 
   await db.collection('trips').doc(activeTrip.id).update({
@@ -1144,18 +1147,140 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     endTime: endTime,
     exitLocation: exitLocation,
     duration: duration,
-    notes: notes || null
+    notes: notes || null,
   });
 
   // Format route display
-  const routeDisplay = activeTrip.direction
-    ? `Route ${activeTrip.route} ${activeTrip.direction}`
-    : `Route ${activeTrip.route}`;
+  const routeDisplay = activeTrip.direction ?
+    `Route ${activeTrip.route} ${activeTrip.direction}` :
+    `Route ${activeTrip.route}`;
 
   await sendSmsReply(
     phoneNumber,
-    `✅ Ended ${routeDisplay} at Stop ${endStopDisplay} (${duration} min trip)`
+    `✅ Ended ${routeDisplay} at Stop ${endStopDisplay} (${duration} min trip)`,
   );
+}
+
+// =============================================================================
+// TIMING HELPERS
+// =============================================================================
+
+/**
+ * Determine timing reliability based on prompt delay
+ * @param {Timestamp} stateExpiresAt - When the prompt expires (created + 5 mins)
+ */
+function determineReliability(stateExpiresAt) {
+  if (!stateExpiresAt) return 'actual';
+
+  // prompt was created 5 mins before expiration
+  const createdAtMs = stateExpiresAt.toDate().getTime() - (5 * 60 * 1000);
+  const nowMs = Date.now();
+  const delayMinutes = (nowMs - createdAtMs) / 1000 / 60;
+
+  return delayMinutes > 2 ? 'delayed_start' : 'actual';
+}
+
+// =============================================================================
+// NLP PARSING
+// =============================================================================
+
+/**
+ * Parse natural language trip text using Gemini Flash
+ * @param {string} text - Raw SMS text
+ * @returns {object|null} Parsed data or null if failed
+ */
+/**
+ * Handle logging a past trip (backfill)
+ * Creates a completed trip with 'estimated' timing reliability
+ */
+async function handlePastTrip(phoneNumber, user, stopInput, route, direction, agency) {
+  const parsedStop = parseStopInput(stopInput);
+
+  // Look up stop in database for verification
+  const stopData = await lookupStop(parsedStop.stopCode, parsedStop.stopName, agency);
+  const verified = stopData !== null;
+  const boardingLocation = stopData ? { lat: stopData.lat, lng: stopData.lng } : null;
+
+  // Create completed trip immediately
+  const now = admin.firestore.FieldValue.serverTimestamp();
+
+  const tripData = {
+    userId: user.userId,
+    route: route,
+    direction: direction || null,
+    startStopCode: stopData ? stopData.stopCode : parsedStop.stopCode,
+    startStopName: stopData ? stopData.stopName : parsedStop.stopName,
+    endStopCode: null, // We generally don't have the end stop for "forgot to log" unless heavily parsed, keeping simple for now
+    endStopName: null,
+    startTime: now,
+    endTime: now, // Zero duration
+    source: 'sms_backfill',
+    verified: verified,
+    boardingLocation: boardingLocation,
+    exitLocation: null,
+    agency: agency,
+    timing_reliability: 'estimated',
+    duration: 0,
+    notes: 'Logged via NLP: forgot to log'
+  };
+
+  await db.collection('trips').add(tripData);
+
+  const routeDisplay = direction ? `Route ${route} ${direction}` : `Route ${route}`;
+  const finalStopDisplay = getStopDisplay(
+    stopData ? stopData.stopCode : parsedStop.stopCode,
+    stopData ? stopData.stopName : parsedStop.stopName,
+  );
+
+  await sendSmsReply(
+    phoneNumber,
+    `✅ Logged past trip: ${routeDisplay} from ${finalStopDisplay} (Estimated).`
+  );
+}
+
+async function parseWithGemini(text) {
+  const apiKey = functions.config().gemini?.api_key;
+  if (!apiKey) {
+    console.error('Gemini API key not configured');
+    return null;
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+    const prompt = `Analyze this SMS from a transit tracker user. Determine the intent and extract data.
+    Text: "${text}"
+    
+    Possible Intents:
+    - START_TRIP: User is starting a new trip (requires route and stop).
+    - END_TRIP: User is ending the current trip (extract stop if present).
+    - DISCARD_TRIP: User wants to cancel/delete the active trip (e.g., "didn't take it", "mistake", "cancel", "didn't board").
+    - INCOMPLETE_TRIP: User forgot to end the trip earlier and wants to close it as incomplete/unknown (e.g., "forgot to end", "incomplete").
+    - LOG_PAST_TRIP: User wants to log a trip that happened in the past (e.g., "forgot to log", "took earlier", "add past trip").
+    - OTHER: Not a transit command.
+
+    Return ONLY JSON:
+    {
+      "intent": "START_TRIP" | "END_TRIP" | "DISCARD_TRIP" | "INCOMPLETE_TRIP" | "LOG_PAST_TRIP" | "OTHER",
+      "route": "string" | null,
+      "stop_name": "string" | null,
+      "stop_id": "string" | null, // Typically a 4-digit number
+      "direction": "string" | null,
+      "notes": "string" | null
+    }`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const textResponse = response.text();
+
+    // Clean up markdown code blocks if present
+    const jsonStr = textResponse.replace(/^```json\n|\n```$/g, '').trim();
+    return JSON.parse(jsonStr);
+  } catch (error) {
+    console.error('Gemini parsing error:', error);
+    return null;
+  }
 }
 
 // =============================================================================
@@ -1221,9 +1346,9 @@ async function handleSmsRequest(req, res) {
           await db.collection('trips').doc(activeTrip.id).delete();
 
           // Format route with direction if available
-          const routeDisplay = activeTrip.direction
-            ? `Route ${activeTrip.route} ${activeTrip.direction}`
-            : `Route ${activeTrip.route}`;
+          const routeDisplay = activeTrip.direction ?
+            `Route ${activeTrip.route} ${activeTrip.direction}` :
+            `Route ${activeTrip.route}`;
 
           await sendSmsReply(phoneNumber, `✅ Discarded ${routeDisplay}.`);
           res.type('text/xml').send(twimlResponse(''));
@@ -1258,7 +1383,7 @@ END
 STOP
 NOTES (optional)
 
-STATUS to view active trip. INFO to view this information.`
+STATUS to view active trip. INFO to view this information.`,
       );
       res.type('text/xml').send(twimlResponse(''));
       return;
@@ -1288,7 +1413,7 @@ STATUS to view active trip. INFO to view this information.`
       if (shouldRespond) {
         await sendSmsReply(
           phoneNumber,
-          'Text REGISTER [email] to get started'
+          'Text REGISTER [email] to get started',
         );
       }
       // Otherwise silently ignore to prevent spam costs
@@ -1321,7 +1446,7 @@ STATUS to view active trip. INFO to view this information.`
         if (activeTrip) {
           await sendSmsReply(
             phoneNumber,
-            'Please send:\nEND\n[exit stop]\n[notes - optional]'
+            'Please send:\nEND\n[exit stop]\n[notes - optional]',
           );
         } else {
           await sendSmsReply(phoneNumber, 'No active trip to end.');
@@ -1353,7 +1478,7 @@ STATUS to view active trip. INFO to view this information.`
         multiLineTrip.stop,
         multiLineTrip.route,
         multiLineTrip.direction,
-        multiLineTrip.agency
+        multiLineTrip.agency,
       );
       res.type('text/xml').send(twimlResponse(''));
       return;
@@ -1388,22 +1513,132 @@ STATUS to view active trip. INFO to view this information.`
       }
     }
 
-    // Unrecognized input
+    // Unrecognized input - Try Gemini as fallback
+    const geminiResult = await parseWithGemini(body);
+
+    if (geminiResult) {
+      switch (geminiResult.intent) {
+        case 'START_TRIP':
+          const startStop = constructStopInput(geminiResult);
+          if (geminiResult.route && startStop) {
+            await handleTripLog(
+              phoneNumber,
+              user,
+              startStop,
+              geminiResult.route,
+              geminiResult.direction || null,
+              defaultAgency,
+            );
+
+            // Add parsed_by tag to the latest trip
+            const addedTrip = await getActiveTrip(user.userId);
+            if (addedTrip) {
+              await db.collection('trips').doc(addedTrip.id).update({
+                parsed_by: 'ai',
+              });
+            }
+            res.type('text/xml').send(twimlResponse(''));
+            return;
+          }
+          break;
+
+        case 'END_TRIP':
+          const endStop = constructStopInput(geminiResult);
+          // Require at least a stop to end, or prompt if active trip exists
+          if (endStop) {
+            await handleEndTrip(
+              phoneNumber,
+              user,
+              endStop,
+              null,
+              geminiResult.notes,
+            );
+          } else {
+            const activeTrip = await getActiveTrip(user.userId);
+            if (activeTrip) {
+              await sendSmsReply(
+                phoneNumber,
+                'To end the trip, please name the stop (e.g., "End at Union").',
+              );
+            } else {
+              await sendSmsReply(phoneNumber, 'No active trip to end.');
+            }
+          }
+          res.type('text/xml').send(twimlResponse(''));
+          return;
+
+        case 'LOG_PAST_TRIP':
+          const pastStop = constructStopInput(geminiResult);
+          if (geminiResult.route && pastStop) {
+            await handlePastTrip(
+              phoneNumber,
+              user,
+              pastStop,
+              geminiResult.route,
+              geminiResult.direction || null,
+              defaultAgency
+            );
+          } else {
+            await sendSmsReply(
+              phoneNumber,
+              'To log a past trip, please provide route and stop (e.g., "Forgot to log 504 from Union").'
+            );
+          }
+          res.type('text/xml').send(twimlResponse(''));
+          return;
+
+        case 'DISCARD_TRIP':
+          await handleDiscard(phoneNumber, user);
+          res.type('text/xml').send(twimlResponse(''));
+          return;
+
+        case 'INCOMPLETE_TRIP': {
+          const activeTrip = await getActiveTrip(user.userId);
+          if (activeTrip) {
+            // Mark as incomplete
+            await db.collection('trips').doc(activeTrip.id).update({
+              incomplete: true,
+              endTime: activeTrip.startTime, // Set end time to start time (duration 0)
+              exitLocation: null,
+              duration: null,
+            });
+
+            const routeDisplay = activeTrip.direction
+              ? `Route ${activeTrip.route} ${activeTrip.direction}`
+              : `Route ${activeTrip.route}`;
+
+            await sendSmsReply(phoneNumber, `✅ Marked ${routeDisplay} as incomplete.`);
+          } else {
+            await sendSmsReply(phoneNumber, 'No active trip to mark incomplete.');
+          }
+          res.type('text/xml').send(twimlResponse(''));
+          return;
+        }
+      }
+    }
+
+    // Save failed parse for manual review
+    // Only if none of the above matched
+    if (!tripMatch && !multiLineTrip) {
+      await db.collection('trips').add({
+        userId: user.userId,
+        route: 'Unknown',
+        startStopName: 'Unknown',
+        raw_text: body,
+        needs_review: true,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        source: 'sms_error',
+      });
+    }
+
     await sendSmsReply(
       phoneNumber,
-      `❌ Invalid format.
+      `❌ Could not understand. Saved for review.
 
-START TRIP:
-Route
-Stop
-Direction (optional)
-
-END TRIP:
-END
-Route
-Stop
-
-Text INFO for help`
+Try strict format:
+[Route]
+[Stop]
+[Direction]`,
     );
     res.type('text/xml').send(twimlResponse(''));
   } catch (error) {
