@@ -1310,6 +1310,23 @@ async function handleSmsRequest(req, res) {
       return;
     }
 
+    // Idempotency check: Ignore if we've already processed this MessageSid
+    const messageSid = req.body.MessageSid;
+    if (messageSid) {
+      const msgRef = db.collection('processedMessages').doc(messageSid);
+      const msgDoc = await msgRef.get();
+      if (msgDoc.exists) {
+        console.log(`Duplicate MessageSid ${messageSid}, ignoring.`);
+        res.type('text/xml').send(twimlResponse(''));
+        return;
+      }
+      // Mark as processed (expire in 1 hour)
+      await msgRef.set({
+        processedAt: admin.firestore.FieldValue.serverTimestamp(),
+        expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 3600000)),
+      });
+    }
+
     // Parse uppercase body for command matching
     const upperBody = body.toUpperCase();
 
@@ -1438,9 +1455,23 @@ STATUS to view active trip. INFO to view this information.`,
     // =========================================================================
     // END TRIP - Multi-line format: END / Stop / Route (optional)
     // =========================================================================
+    // =========================================================================
+    // END TRIP - Multi-line format: END / Stop / Route (optional)
+    // =========================================================================
+    // Support single-line "END [Stop]" or "STOP [Stop]"
+    let singleLineEndMatch = null;
+    if (/^(END|STOP)\s+(.+)$/i.test(body)) {
+      singleLineEndMatch = body.match(/^(END|STOP)\s+(.+)$/i);
+    }
+
     const endTripData = parseEndTripFormat(body);
-    if (endTripData) {
-      if (!endTripData.stop) {
+
+    if (endTripData || singleLineEndMatch) {
+      const stopInput = singleLineEndMatch ? singleLineEndMatch[2] : endTripData?.stop;
+      const routeInput = endTripData?.route || null;
+      const notesInput = endTripData?.notes || null;
+
+      if (!stopInput) {
         // Just "END" without stop - prompt for stop
         const activeTrip = await getActiveTrip(user.userId);
         if (activeTrip) {
@@ -1453,7 +1484,7 @@ STATUS to view active trip. INFO to view this information.`,
         }
       } else {
         // END with stop (and optional route verification)
-        await handleEndTrip(phoneNumber, user, endTripData.stop, endTripData.route, endTripData.notes);
+        await handleEndTrip(phoneNumber, user, stopInput, routeInput, notesInput);
       }
       res.type('text/xml').send(twimlResponse(''));
       return;
@@ -1493,21 +1524,45 @@ STATUS to view active trip. INFO to view this information.`,
     const tripMatch = remainingMessage.match(/^(.+?)\s+(\S+)$/);
 
     if (tripMatch) {
-      const stopCode = tripMatch[1].trim();
-      const route = tripMatch[2].trim();
+      const stopCodeRaw = tripMatch[1].trim();
+      const routeRaw = tripMatch[2].trim();
 
-      // Basic validation
-      if (stopCode.length > 0 && route.length > 0) {
-        // If stop input is actually a name (not digits), Title Case it
-        // Note: parseStopInput will handle the logic, but we need to check the raw string here if it's name-like
-        // Actually, handleTripLog calls parseStopInput inside, so we just need to title case the route here
-        // But wait, the stopCode variable here is the raw first part.
-        // Let's rely on handleTripLog's internal parsing for the stop, but we should make sure we pass clean inputs?
-        // No, handleTripLog calls parseStopInput(stopInput).
-        // And parseStopInput calls toTitleCase if it's a name.
-        // So we just need to ensure the ROUTE is title cased.
+      // HEURISTIC CHECKS
 
-        await handleTripLog(phoneNumber, user, stopCode, toTitleCase(route), null, agency);
+      // 1. Sentence Starters: Reject if stop name starts with common chat words (e.g. "I'm on the 504")
+      const sentenceStarters = ['I', 'IM', "I'M", 'ILL', "I'LL", 'MY', 'THE', 'A', 'HELLO', 'HI', 'HEY', 'PLEASE', 'THANKS', 'START', 'STARTING', 'BEGIN', 'LOG'];
+      const firstWord = stopCodeRaw.split(' ')[0].toUpperCase();
+      const isSentenceStart = sentenceStarters.includes(firstWord);
+
+      // 2. Sentence Keywords: Reject if stop name contains strong motion verbs/prepositions (excluding "at", "on" which are valid in stop names)
+      // "from" is usually a separator. "going", "headed" are clear sentence indicators.
+      const isSentenceStructure = /\b(from|headed|going|to)\b/i.test(stopCodeRaw);
+
+      // 3. Bad Stop Names: Reject specific invalid stop names
+      const badStopNames = ['ROUTE', 'BUS', 'STREETCAR', 'TRAIN', 'SUBWAY', 'STOP'];
+      // Check full stop name or just first word? "Route 504" -> First word is "Route".
+      const isBadStopName = badStopNames.includes(firstWord);
+
+      const isStopTooLong = stopCodeRaw.length > 50;
+
+      // 4. Bad Routes: Reject common address suffixes/directions/words
+      const badRouteSuffixes = [
+        'ST', 'AVE', 'RD', 'DR', 'BLVD', 'WAY', 'STATION',
+        'N', 'S', 'E', 'W', 'NB', 'SB', 'EB', 'WB',
+        'NORTH', 'SOUTH', 'EAST', 'WEST', 'INBOUND', 'OUTBOUND',
+        'NORTHBOUND', 'SOUTHBOUND', 'EASTBOUND', 'WESTBOUND',
+        'TRIP', 'RIDE'
+      ];
+      const isBadRoute = badRouteSuffixes.includes(routeRaw.toUpperCase()) && !/\d/.test(routeRaw);
+
+      // Only accept if it passes all heuristics
+      if (stopCodeRaw.length > 0 && routeRaw.length > 0
+        && !isSentenceStart
+        && !isSentenceStructure
+        && !isBadStopName
+        && !isStopTooLong
+        && !isBadRoute) {
+        await handleTripLog(phoneNumber, user, stopCodeRaw, toTitleCase(routeRaw), null, agency);
         res.type('text/xml').send(twimlResponse(''));
         return;
       }
