@@ -507,16 +507,16 @@ function normalizeDirection(input) {
   const upper = input.trim().toUpperCase();
 
   // North/Northbound
-  if (['N', 'NB', 'NORTH', 'NORTHBOUND'].includes(upper)) return 'Northbound';
+  if (['N', 'NB', 'N/B', 'NORTH', 'NORTHBOUND', 'NORTHWARD'].includes(upper)) return 'Northbound';
 
   // South/Southbound
-  if (['S', 'SB', 'SOUTH', 'SOUTHBOUND'].includes(upper)) return 'Southbound';
+  if (['S', 'SB', 'S/B', 'SOUTH', 'SOUTHBOUND', 'SOUTHWARD'].includes(upper)) return 'Southbound';
 
   // East/Eastbound
-  if (['E', 'EB', 'EAST', 'EASTBOUND'].includes(upper)) return 'Eastbound';
+  if (['E', 'EB', 'E/B', 'EAST', 'EASTBOUND', 'EASTWARD'].includes(upper)) return 'Eastbound';
 
   // West/Westbound
-  if (['W', 'WB', 'WEST', 'WESTBOUND'].includes(upper)) return 'Westbound';
+  if (['W', 'WB', 'W/B', 'WEST', 'WESTBOUND', 'WESTWARD'].includes(upper)) return 'Westbound';
 
   // Clockwise
   if (['CW', 'CLOCKWISE'].includes(upper)) return 'Clockwise';
@@ -680,8 +680,57 @@ function parseAgencyOverride(message) {
     }
   }
 
+
   return { agency: null, remainingMessage: trimmed };
 }
+
+// =============================================================================
+// PARSING HELPERS
+// =============================================================================
+
+/**
+ * Common suffixes/words that should NEVER be route names
+ */
+const BAD_ROUTE_SUFFIXES = [
+  'ST', 'AVE', 'RD', 'DR', 'BLVD', 'WAY', 'STATION',
+  'N', 'S', 'E', 'W', 'NB', 'SB', 'EB', 'WB',
+  'NORTH', 'SOUTH', 'EAST', 'WEST', 'INBOUND', 'OUTBOUND',
+  'NORTHBOUND', 'SOUTHBOUND', 'EASTBOUND', 'WESTBOUND',
+  'TRIP', 'RIDE', 'STOP', 'BUS', 'STREETCAR', 'TRAIN', 'SUBWAY',
+  'FROM', 'TO', 'AT', 'ON', 'HEADED', 'GOING'
+];
+
+/**
+ * Check if a route string is valid
+ * @param {string} route - Route string to check
+ * @returns {boolean} true if valid
+ */
+function isValidRoute(route) {
+  if (!route) return false;
+
+  // Clean up
+  const cleanRoute = route.trim().toUpperCase();
+
+  // If it's a number, it's valid
+  if (/^\d+$/.test(cleanRoute)) return true;
+
+  // If it's in the bad list, it's invalid
+  if (BAD_ROUTE_SUFFIXES.includes(cleanRoute)) return false;
+
+  return true;
+}
+
+/**
+ * Construct stop input from Gemini result
+ * Prefer stop_id (code) if available, otherwise stop_name
+ * @param {object} result - Gemini result object
+ * @returns {string|null} Stop input string or null
+ */
+function constructStopInput(result) {
+  if (!result) return null;
+  return result.stop_id || result.stop_name || null;
+}
+
 
 // =============================================================================
 // COMMAND HANDLERS
@@ -767,12 +816,20 @@ async function handleDiscard(phoneNumber, user) {
     `Route ${activeTrip.route} ${activeTrip.direction}` :
     `Route ${activeTrip.route}`;
 
-  await db.collection('trips').doc(activeTrip.id).delete();
+  // Soft discard: Mark as discarded instead of deleting
+  await db.collection('trips').doc(activeTrip.id).update({
+    discarded: true,
+    endTime: admin.firestore.FieldValue.serverTimestamp(),
+    duration: 0,
+    exitLocation: null,
+    notes: 'Discarded by user'
+  });
+
   await clearPendingState(phoneNumber);
 
   await sendSmsReply(
     phoneNumber,
-    `✅ Discarded ${routeDisplay}.`,
+    `✅ Discarded ${routeDisplay} (saved to history).`,
   );
 }
 
@@ -1148,6 +1205,8 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     exitLocation: exitLocation,
     duration: duration,
     notes: notes || null,
+    // Only verify if start was verified AND end stop is known
+    verified: activeTrip.verified && (endStopData !== null)
   });
 
   // Format route display
@@ -1260,12 +1319,24 @@ async function parseWithGemini(text) {
     - LOG_PAST_TRIP: User wants to log a trip that happened in the past (e.g., "forgot to log", "took earlier", "add past trip").
     - OTHER: Not a transit command.
 
+    Extraction Rules:
+    - Direction: Normalize to full words: "Northbound", "Southbound", "Eastbound", "Westbound".
+    - Stop ID: If a 4-digit number is present, prefer it as "stop_id".
+    - Route: Extract ONLY the route identifier (e.g., "504", "Line 1"). Do not include "Route", "Line" or conversational words. A common noun like "Park" is likely part of the Stop Name, not the Route, unless it is a specific named route.
+    - Stop Name: Extract the full location name. Do not include prepositions like "from", "at", "to". 
+    - Ignore conversational text: "Just boarded", "I'm on", "taking", etc.
+    
+    Examples:
+    - "Just boarded Route 1 Northbound from Queen's Park" -> Route: "1", Stop Name: "Queen's Park", Direction: "Northbound"
+    - "504 King at Spadina" -> Route: "504", Stop Name: "King at Spadina"
+    - "I'm Headed Northbound On The 510 From The Stop At Spadina St & Nassau" -> Route: "510", Stop Name: "Spadina St & Nassau", Direction: "Northbound"
+
     Return ONLY JSON:
     {
       "intent": "START_TRIP" | "END_TRIP" | "DISCARD_TRIP" | "INCOMPLETE_TRIP" | "LOG_PAST_TRIP" | "OTHER",
       "route": "string" | null,
       "stop_name": "string" | null,
-      "stop_id": "string" | null, // Typically a 4-digit number
+      "stop_id": "string" | null,
       "direction": "string" | null,
       "notes": "string" | null
     }`;
@@ -1545,15 +1616,8 @@ STATUS to view active trip. INFO to view this information.`,
 
       const isStopTooLong = stopCodeRaw.length > 50;
 
-      // 4. Bad Routes: Reject common address suffixes/directions/words
-      const badRouteSuffixes = [
-        'ST', 'AVE', 'RD', 'DR', 'BLVD', 'WAY', 'STATION',
-        'N', 'S', 'E', 'W', 'NB', 'SB', 'EB', 'WB',
-        'NORTH', 'SOUTH', 'EAST', 'WEST', 'INBOUND', 'OUTBOUND',
-        'NORTHBOUND', 'SOUTHBOUND', 'EASTBOUND', 'WESTBOUND',
-        'TRIP', 'RIDE'
-      ];
-      const isBadRoute = badRouteSuffixes.includes(routeRaw.toUpperCase()) && !/\d/.test(routeRaw);
+      // 4. Bad Routes: Use global validator
+      const isBadRoute = !isValidRoute(routeRaw);
 
       // Only accept if it passes all heuristics
       if (stopCodeRaw.length > 0 && routeRaw.length > 0
@@ -1572,18 +1636,31 @@ STATUS to view active trip. INFO to view this information.`,
     const geminiResult = await parseWithGemini(body);
 
     if (geminiResult) {
+      if (geminiResult.intent !== 'OTHER') {
+        console.log('Gemini matched intent:', geminiResult.intent);
+      }
+
       switch (geminiResult.intent) {
         case 'START_TRIP':
           const startStop = constructStopInput(geminiResult);
+
+          // Validate route from Gemini
+          if (geminiResult.route && !isValidRoute(geminiResult.route)) {
+            console.log(`Rejecting invalid route from Gemini: ${geminiResult.route}`);
+            // Fall through to error handler
+            break;
+          }
+
           if (geminiResult.route && startStop) {
             await handleTripLog(
               phoneNumber,
               user,
               startStop,
               geminiResult.route,
-              geminiResult.direction || null,
+              normalizeDirection(geminiResult.direction), // Apply normalization
               defaultAgency,
             );
+
 
             // Add parsed_by tag to the latest trip
             const addedTrip = await getActiveTrip(user.userId);
