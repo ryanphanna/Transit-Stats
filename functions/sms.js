@@ -1273,8 +1273,8 @@ async function handlePastTrip(phoneNumber, user, stopInput, route, direction, ag
     endStopName: null,
     startTime: now,
     endTime: now, // Zero duration
-    source: 'sms_backfill',
-    verified: verified,
+    source: 'sms', // Use 'sms' so UI displays the verified/unverified badge
+    verified: false, // Strict verification requires end stop; past trips (start only) are unverified
     boardingLocation: boardingLocation,
     exitLocation: null,
     agency: agency,
