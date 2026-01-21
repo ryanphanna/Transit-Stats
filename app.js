@@ -2175,7 +2175,7 @@ function loadTrips() {
             allCompletedTrips = snapshot.docs
                 .filter(doc => {
                     const data = doc.data();
-                    return data.endStop != null || data.endStopCode != null || data.endStopName != null;
+                    return data.endStop != null || data.endStopCode != null || data.endStopName != null || data.discarded === true;
                 })
                 .map(doc => ({ id: doc.id, ...doc.data() }))
                 .sort((a, b) => {
@@ -2220,11 +2220,15 @@ function renderTripItem(trip) {
     const startStop = resolveVerifiedStopName(rawStartStop, trip.agency) || rawStartStop || 'Unknown';
     const endStop = resolveVerifiedStopName(rawEndStop, trip.agency) || rawEndStop || 'Unknown';
     const agencyDisplay = trip.agency ? ` • ${trip.agency}` : '';
-    const verifiedBadge = trip.source === 'sms'
-        ? (trip.verified
+    let verifiedBadge = '';
+
+    if (trip.discarded) {
+        verifiedBadge = '<span class="verified-badge" style="background: #fee2e2; color: #dc2626;">🚫 Discarded</span>';
+    } else if (trip.source === 'sms') {
+        verifiedBadge = trip.verified
             ? '<span class="verified-badge verified">✓</span>'
-            : '<span class="verified-badge unverified">?</span>')
-        : '';
+            : '<span class="verified-badge unverified">?</span>';
+    }
 
     const notesDisplay = trip.notes ? `<div style="font-size: 0.85em; color: var(--text-muted); margin-top: 4px; padding-top: 4px; border-top: 1px dotted var(--border-light);">📝 ${trip.notes}</div>` : '';
 
