@@ -278,10 +278,120 @@ This is a personal project, but suggestions and improvements are welcome! Please
 
 This project is provided as-is for personal use.
 
+## Recent Technical Improvements
+
+### Security Enhancements
+- **Authentication Hardening**: Fixed whitelist bypass vulnerability in password authentication
+- **Role-Based Access Control**: Added admin privilege verification for admin panel access
+- **XSS Protection**: Implemented comprehensive HTML sanitization across all user-generated content
+- **Input Validation**: Added validation for stop data, trip data, and user inputs
+- **Firestore Rules**: Enhanced security rules with detailed data model documentation
+
+### Reliability Improvements
+- **Gemini Retry Logic**: Automatic retry with exponential backoff for AI parsing failures
+- **Configuration Validation**: Cold-start validation of all required environment variables
+- **Error Handling**: Improved error logging and user-friendly error messages
+
+### Code Quality
+- **Migration Scripts**: Added database migration tools for legacy field cleanup
+- **Documentation**: Comprehensive security model and setup guides (see `SECURITY.md`, `setup-admin.md`)
+
+See commit history for detailed changelog of improvements.
+
+## Developer Documentation
+
+### Additional Documentation
+
+- **[SECURITY.md](./SECURITY.md)** - Complete security model, user management, and best practices
+- **[setup-admin.md](./setup-admin.md)** - Step-by-step guide for creating and managing admin users
+- **[migrations/README.md](./migrations/README.md)** - Database migration scripts and instructions
+
+### Code Architecture
+
+**Frontend (app.js, admin.js)**
+- No framework dependencies for maximum portability
+- Direct Firebase SDK integration
+- Event-driven architecture
+- Client-side rendering with template literals
+
+**Backend (Cloud Functions)**
+- Express.js HTTP handlers
+- Twilio webhook processing
+- Google Gemini AI integration
+- Firestore transaction management
+- Rate limiting and idempotency
+
+**Security Model**
+- Two-tier authentication (whitelist + role-based)
+- Client-side: Firestore security rules
+- Server-side: Admin SDK with rate limiting
+- All user input sanitized before rendering
+
+### Testing
+
+Currently no automated tests. Recommended areas for testing:
+- SMS parsing logic (heuristic and AI)
+- Trip verification workflows
+- Stop lookup with aliases
+- Authentication and authorization flows
+
+### Known Technical Debt
+
+- Multiple field formats for backwards compatibility (`startStop` vs `startStopCode`/`startStopName`)
+- Stops library loaded entirely into memory (use migration script to optimize)
+- No test coverage
+- Some inconsistent error handling patterns
+
+See [migrations/](./migrations/) for scripts to address technical debt.
+
+## Troubleshooting
+
+### Common Issues
+
+**"Access denied. This app is invite-only."**
+- Your email is not in the `allowedUsers` Firestore collection
+- Contact the admin to be added to the whitelist
+
+**"Access denied. Admin privileges required."**
+- You need `isAdmin: true` in your `allowedUsers` document
+- Regular users cannot access `/admin.html`
+
+**SMS messages not working**
+- Check Cloud Functions logs in Firebase Console
+- Verify Twilio webhook URL is correct
+- Ensure `functions:config` is set for Twilio and Gemini
+- Check rate limits (500 msgs/hour per phone)
+
+**Heatmap not loading**
+- Need 50+ trips with GPS data
+- Check browser console for errors
+- Verify location permissions are granted
+
+**Trips not syncing**
+- Check internet connection
+- Verify you're signed in
+- Check Firestore rules in Firebase Console
+- Review browser console for authentication errors
+
+## Performance Considerations
+
+- Infinite scroll pagination for trip history (20 trips per batch)
+- Lazy loading of map tiles
+- Client-side caching of stops library
+- Optimistic UI updates for better perceived performance
+
+For large datasets (10,000+ trips), consider:
+- Running migration scripts to normalize data
+- Implementing server-side pagination
+- Adding Firestore composite indexes
+- Using Cloud Storage for data exports
+
 ## Acknowledgments
 
 - Built with Firebase for authentication and data storage
 - Maps powered by Leaflet.js and CartoDB
+- AI parsing by Google Gemini 2.0 Flash
+- SMS integration via Twilio
 - Inspired by transit enthusiasts who love tracking their rides
 
 ---
