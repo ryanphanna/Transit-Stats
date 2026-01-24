@@ -39,16 +39,40 @@ function loadSavedTheme() {
 loadSavedTheme();
 
 // Auth Listener
-auth.onAuthStateChanged((user) => {
+auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     if (user) {
-        document.getElementById('authSection').style.display = 'none';
-        document.getElementById('adminContent').style.display = 'block';
-        const userEmailEl = document.getElementById('userEmail');
-        if (userEmailEl) userEmailEl.textContent = user.email;
-        document.getElementById('userInfo').style.display = 'flex';
+        // Check if user has admin privileges
+        try {
+            const allowedUsersRef = db.collection('allowedUsers');
+            const querySnapshot = await allowedUsersRef.where('email', '==', user.email.toLowerCase()).get();
 
-        loadData();
+            if (querySnapshot.empty) {
+                await auth.signOut();
+                alert('Access denied. This app is invite-only.');
+                return;
+            }
+
+            const userData = querySnapshot.docs[0].data();
+            if (!userData.isAdmin) {
+                await auth.signOut();
+                alert('Access denied. Admin privileges required.');
+                return;
+            }
+
+            // User is authenticated and is an admin
+            document.getElementById('authSection').style.display = 'none';
+            document.getElementById('adminContent').style.display = 'block';
+            const userEmailEl = document.getElementById('userEmail');
+            if (userEmailEl) userEmailEl.textContent = user.email;
+            document.getElementById('userInfo').style.display = 'flex';
+
+            loadData();
+        } catch (error) {
+            console.error('Error checking admin privileges:', error);
+            await auth.signOut();
+            alert('Error verifying admin access. Please try again.');
+        }
     } else {
         document.getElementById('authSection').style.display = 'block';
         document.getElementById('adminContent').style.display = 'none';
