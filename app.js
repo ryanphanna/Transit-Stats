@@ -155,7 +155,7 @@ auth.onAuthStateChanged(async (user) => {
         if (user) {
             // Check if user is in the allowedUsers whitelist
             const allowedUsersRef = db.collection('allowedUsers');
-            const querySnapshot = await allowedUsersRef.where('email', '==', user.email).get();
+            const querySnapshot = await allowedUsersRef.where('email', '==', user.email.toLowerCase()).get();
 
             if (querySnapshot.empty) {
                 await auth.signOut();
@@ -1750,18 +1750,36 @@ signInBtn.addEventListener('click', () => {
         .then(() => {
             console.log('✅ Signed in successfully');
         })
-        .catch((error) => {
+        .catch(async (error) => {
             if (error.code === 'auth/user-not-found') {
-                // Auto-create account if user doesn't exist
-                auth.createUserWithEmailAndPassword(email, password)
-                    .then(() => {
-                        console.log('✅ Account created successfully');
-                    })
-                    .catch((createError) => {
-                        showAuthError(getAuthErrorMessage(createError.code));
+                // Check whitelist before creating account
+                try {
+                    const allowedUsersRef = db.collection('allowedUsers');
+                    const querySnapshot = await allowedUsersRef.where('email', '==', email.toLowerCase()).get();
+
+                    if (querySnapshot.empty) {
+                        showAuthError('This app is invite-only. Please contact the administrator for access.');
                         signInBtn.disabled = false;
                         signInBtn.textContent = 'Sign In';
-                    });
+                        return;
+                    }
+
+                    // User is whitelisted, create account
+                    auth.createUserWithEmailAndPassword(email, password)
+                        .then(() => {
+                            console.log('✅ Account created successfully');
+                        })
+                        .catch((createError) => {
+                            showAuthError(getAuthErrorMessage(createError.code));
+                            signInBtn.disabled = false;
+                            signInBtn.textContent = 'Sign In';
+                        });
+                } catch (whitelistError) {
+                    console.error('Error checking whitelist:', whitelistError);
+                    showAuthError('Unable to verify access. Please try again.');
+                    signInBtn.disabled = false;
+                    signInBtn.textContent = 'Sign In';
+                }
             } else {
                 showAuthError(getAuthErrorMessage(error.code));
                 signInBtn.disabled = false;
@@ -1840,23 +1858,37 @@ function sendPasswordReset() {
 }
 
 // Magic link handler
-magicLinkBtn.addEventListener('click', () => {
+magicLinkBtn.addEventListener('click', async () => {
     const email = emailInput.value.trim();
 
-    const actionCodeSettings = {
-        url: window.location.origin + window.location.pathname,
-        handleCodeInApp: true
-    };
+    // Check whitelist before sending magic link
+    try {
+        const allowedUsersRef = db.collection('allowedUsers');
+        const querySnapshot = await allowedUsersRef.where('email', '==', email.toLowerCase()).get();
 
-    auth.sendSignInLinkToEmail(email, actionCodeSettings)
-        .then(() => {
-            window.localStorage.setItem('emailForSignIn', email);
-            alert('Magic link sent! Check your email.');
-            goBackToEmail();
-        })
-        .catch((error) => {
-            alert('Error sending magic link: ' + error.message);
-        });
+        if (querySnapshot.empty) {
+            showAuthError('This app is invite-only. Please contact the administrator for access.');
+            return;
+        }
+
+        const actionCodeSettings = {
+            url: window.location.origin + window.location.pathname,
+            handleCodeInApp: true
+        };
+
+        auth.sendSignInLinkToEmail(email, actionCodeSettings)
+            .then(() => {
+                window.localStorage.setItem('emailForSignIn', email);
+                alert('Magic link sent! Check your email.');
+                goBackToEmail();
+            })
+            .catch((error) => {
+                alert('Error sending magic link: ' + error.message);
+            });
+    } catch (whitelistError) {
+        console.error('Error checking whitelist:', whitelistError);
+        showAuthError('Unable to verify access. Please try again.');
+    }
 });
 
 // Check for magic link on page load
