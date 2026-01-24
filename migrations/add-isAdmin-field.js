@@ -34,11 +34,7 @@ const serviceAccount = require('../serviceAccountKey.json');
  * These users will get isAdmin: true
  * All others will get isAdmin: false
  */
-const ADMIN_EMAILS = [
-    // Add your admin email(s) here:
-    // 'your@email.com',
-    // 'admin@example.com',
-];
+const ADMIN_EMAILS = require('./admin-emails.config');
 
 const DRY_RUN = process.env.DRY_RUN !== 'false';
 
