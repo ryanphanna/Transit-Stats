@@ -24,21 +24,39 @@
 
 const admin = require('firebase-admin');
 const serviceAccount = require('../serviceAccountKey.json');
+const fs = require('fs');
+const path = require('path');
 
 // ============================================================================
-// CONFIGURATION - UPDATE THIS!
+// CONFIGURATION
 // ============================================================================
 
 /**
- * List of admin email addresses (lowercase)
- * These users will get isAdmin: true
- * All others will get isAdmin: false
+ * Load admin emails from config file
+ * Config file is NOT committed to git for privacy
  */
-const ADMIN_EMAILS = [
-    // Add your admin email(s) here:
-    // 'your@email.com',
-    // 'admin@example.com',
-];
+let ADMIN_EMAILS = [];
+
+const configPath = path.join(__dirname, 'admin-emails.config.js');
+const exampleConfigPath = path.join(__dirname, 'admin-emails.config.example.js');
+
+if (fs.existsSync(configPath)) {
+  try {
+    ADMIN_EMAILS = require('./admin-emails.config.js');
+  } catch (error) {
+    console.error('❌ Error loading admin-emails.config.js:', error.message);
+    console.error('Make sure the file exports an array of email addresses.');
+    process.exit(1);
+  }
+} else {
+  console.error('❌ Configuration file not found!');
+  console.error('');
+  console.error('Please create admin-emails.config.js by copying the example:');
+  console.error(`  cp ${exampleConfigPath} ${configPath}`);
+  console.error('');
+  console.error('Then edit admin-emails.config.js and add your admin email(s).');
+  process.exit(1);
+}
 
 const DRY_RUN = process.env.DRY_RUN !== 'false';
 
