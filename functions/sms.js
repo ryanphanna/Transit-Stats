@@ -45,6 +45,52 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 
 // =============================================================================
+// CONFIGURATION VALIDATION
+// =============================================================================
+
+/**
+ * Validate required environment configuration on cold start
+ */
+function validateConfiguration() {
+  const warnings = [];
+  const errors = [];
+
+  // Check Twilio configuration
+  const twilioAccountSid = functions.config().twilio?.account_sid;
+  const twilioAuthToken = functions.config().twilio?.auth_token;
+  const twilioPhone = functions.config().twilio?.phone_number;
+
+  if (!twilioAccountSid) errors.push('Missing twilio.account_sid');
+  if (!twilioAuthToken) errors.push('Missing twilio.auth_token');
+  if (!twilioPhone) warnings.push('Missing twilio.phone_number (SMS replies disabled)');
+
+  // Check Gemini configuration
+  const geminiApiKey = functions.config().gemini?.api_key;
+  if (!geminiApiKey) {
+    warnings.push('Missing gemini.api_key (AI parsing disabled, will use heuristics)');
+  }
+
+  // Log results
+  if (errors.length > 0) {
+    console.error('❌ Configuration errors:', errors.join(', '));
+    console.error('Set missing config with: firebase functions:config:set <key>=<value>');
+  }
+
+  if (warnings.length > 0) {
+    console.warn('⚠️  Configuration warnings:', warnings.join(', '));
+  }
+
+  if (errors.length === 0 && warnings.length === 0) {
+    console.log('✅ Configuration validated successfully');
+  }
+
+  return { errors, warnings };
+}
+
+// Validate configuration on cold start
+const configValidation = validateConfiguration();
+
+// =============================================================================
 // TWILIO CONFIGURATION
 // =============================================================================
 
@@ -1300,6 +1346,37 @@ async function handlePastTrip(phoneNumber, user, stopInput, route, direction, ag
   );
 }
 
+/**
+ * Retry helper with exponential backoff
+ */
+async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const isLastAttempt = attempt === maxRetries - 1;
+
+      // Don't retry on certain error types
+      if (error.message && (
+        error.message.includes('API key') ||
+        error.message.includes('unauthorized') ||
+        error.message.includes('invalid') && !error.message.includes('invalid response')
+      )) {
+        throw error; // Don't retry on auth/config errors
+      }
+
+      if (isLastAttempt) {
+        throw error;
+      }
+
+      // Exponential backoff: 1s, 2s, 4s
+      const delay = baseDelay * Math.pow(2, attempt);
+      console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+
 async function parseWithGemini(text) {
   const apiKey = functions.config().gemini?.api_key;
   if (!apiKey) {
@@ -1307,7 +1384,7 @@ async function parseWithGemini(text) {
     return null;
   }
 
-  try {
+  return await retryWithBackoff(async () => {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
@@ -1354,11 +1431,21 @@ async function parseWithGemini(text) {
 
     // Clean up markdown code blocks if present
     const jsonStr = textResponse.replace(/^```json\n|\n```$/g, '').trim();
-    return JSON.parse(jsonStr);
-  } catch (error) {
-    console.error('Gemini parsing error:', error);
+    const parsed = JSON.parse(jsonStr);
+
+    // Log successful API call for monitoring
+    console.log('Gemini API call successful', {
+      intent: parsed.intent,
+      hasRoute: !!parsed.route,
+      hasStop: !!(parsed.stop_name || parsed.stop_id)
+    });
+
+    return parsed;
+  }).catch((error) => {
+    console.error('Gemini parsing error after retries:', error.message);
+    // Return null to fall back to heuristic parsing
     return null;
-  }
+  });
 }
 
 // =============================================================================
