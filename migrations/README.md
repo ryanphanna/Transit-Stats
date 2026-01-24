@@ -4,6 +4,27 @@ This directory contains database migration scripts for Transit-Stats.
 
 ## Available Migrations
 
+### `add-isAdmin-field.js` ⚡ **RUN THIS FIRST**
+Adds the `isAdmin` field to all existing `allowedUsers` documents.
+
+**Problem:** Recent security updates require an `isAdmin` field to distinguish admin users from regular users. Existing users don't have this field.
+
+**Solution:** Adds `isAdmin: true` for configured admin emails, `isAdmin: false` for all others.
+
+**Status:** **REQUIRED** - Must run before deploying recent security updates
+
+**Quick Start:**
+```bash
+# 1. Edit add-isAdmin-field.js and set ADMIN_EMAILS array
+# 2. Run dry-run to preview
+node add-isAdmin-field.js
+
+# 3. Apply changes
+DRY_RUN=false node add-isAdmin-field.js
+```
+
+---
+
 ### `migrate-trip-fields.js`
 Migrates trips from legacy field format to standardized format.
 
@@ -11,7 +32,7 @@ Migrates trips from legacy field format to standardized format.
 
 **Solution:** Split into separate `startStopCode`/`startStopName` and `endStopCode`/`endStopName` fields.
 
-**Status:** Ready to run
+**Status:** Optional - Run to clean up technical debt
 
 ## Running Migrations
 
