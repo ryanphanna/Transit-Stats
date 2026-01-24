@@ -15,11 +15,16 @@ Adds the `isAdmin` field to all existing `allowedUsers` documents.
 
 **Quick Start:**
 ```bash
-# 1. Edit add-isAdmin-field.js and set ADMIN_EMAILS array
-# 2. Run dry-run to preview
+# 1. Create config file from example
+cp admin-emails.config.example.js admin-emails.config.js
+
+# 2. Edit admin-emails.config.js and add your admin email(s)
+# (This file is in .gitignore and won't be committed to git)
+
+# 3. Run dry-run to preview
 node add-isAdmin-field.js
 
-# 3. Apply changes
+# 4. Apply changes
 DRY_RUN=false node add-isAdmin-field.js
 ```
 
