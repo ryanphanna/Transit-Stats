@@ -25,6 +25,49 @@ let currentTargetString = '';
 let currentUser = null;
 let currentAliasTargetId = null;
 
+// Security: HTML sanitization to prevent XSS
+function escapeHtml(unsafe) {
+    if (unsafe === null || unsafe === undefined) return '';
+    return String(unsafe)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+// Input validation
+function validateStopData(data) {
+    const errors = [];
+
+    if (!data.name || data.name.trim().length === 0) {
+        errors.push('Stop name is required');
+    }
+    if (data.name && data.name.length > 200) {
+        errors.push('Stop name must be less than 200 characters');
+    }
+    if (data.code && !/^\d+$/.test(data.code)) {
+        errors.push('Stop code must contain only numbers');
+    }
+    if (data.code && data.code.length > 20) {
+        errors.push('Stop code must be less than 20 characters');
+    }
+    if (data.agency && data.agency.length > 100) {
+        errors.push('Agency name must be less than 100 characters');
+    }
+    if (data.lat && (isNaN(data.lat) || data.lat < -90 || data.lat > 90)) {
+        errors.push('Latitude must be between -90 and 90');
+    }
+    if (data.lng && (isNaN(data.lng) || data.lng < -180 || data.lng > 180)) {
+        errors.push('Longitude must be between -180 and 180');
+    }
+    if (data.direction && data.direction.length > 50) {
+        errors.push('Direction must be less than 50 characters');
+    }
+
+    return errors;
+}
+
 // Theme - Load saved theme from localStorage (shared with main app)
 function loadSavedTheme() {
     const savedTheme = localStorage.getItem('theme');
@@ -101,7 +144,7 @@ async function loadStopLibrary() {
     } catch (error) {
         console.error('Error loading lib:', error);
         const container = document.getElementById('stopLibrary');
-        container.innerHTML = `<div class="empty-state" style="color: var(--danger-text);">Failed to load library: ${error.message}</div>`;
+        container.innerHTML = `<div class="empty-state" style="color: var(--danger-text);">Failed to load library: ${escapeHtml(error.message)}</div>`;
     }
 }
 
@@ -149,7 +192,7 @@ async function loadProvisionalStops() {
     } catch (error) {
         console.error('Error loading pending:', error);
         const container = document.getElementById('pendingList');
-        container.innerHTML = `<div class="empty-state" style="color: var(--danger-text);">Failed to load inbox: ${error.message}</div>`;
+        container.innerHTML = `<div class="empty-state" style="color: var(--danger-text);">Failed to load inbox: ${escapeHtml(error.message)}</div>`;
     }
 }
 
@@ -169,13 +212,19 @@ function renderStopLibrary(stops) {
         return;
     }
 
-    container.innerHTML = stops.map(stop => `
+    container.innerHTML = stops.map(stop => {
+        const safeName = escapeHtml(stop.name);
+        const safeDirection = escapeHtml(stop.direction);
+        const safeAgency = escapeHtml(stop.agency || 'Unknown');
+        const safeCode = escapeHtml(stop.code);
+
+        return `
         <div class="stop-card">
             <div class="stop-card-header">
                 <div>
-                    <h4>${stop.name} ${stop.direction ? `<span style="font-size:0.8em; color:var(--text-secondary);">(${stop.direction})</span>` : ''} <span class="agency-badge" style="font-size:0.75em; opacity:0.8; font-weight:normal;">(${stop.agency || 'Unknown'})</span></h4>
+                    <h4>${safeName} ${stop.direction ? `<span style="font-size:0.8em; color:var(--text-secondary);">(${safeDirection})</span>` : ''} <span class="agency-badge" style="font-size:0.75em; opacity:0.8; font-weight:normal;">(${safeAgency})</span></h4>
                     <div class="stop-meta">
-                        ${stop.code ? `<span class="badge" style="background:var(--bg-tertiary);">#${stop.code}</span>` : ''}
+                        ${stop.code ? `<span class="badge" style="background:var(--bg-tertiary);">#${safeCode}</span>` : ''}
                         ${(stop.lat && stop.lng) ? `<span style="font-size: 0.8em; color: var(--text-muted);" title="Lat: ${stop.lat}, Lng: ${stop.lng}">📍 ${parseFloat(stop.lat).toFixed(4)}, ${parseFloat(stop.lng).toFixed(4)}</span>` : ''}
                     </div>
                 </div>
@@ -186,7 +235,7 @@ function renderStopLibrary(stops) {
             <div style="margin-top: 15px; display:flex; justify-content:flex-end; align-items:center;">
                 <button class="btn btn-sm btn-outline" style="padding:4px 10px; font-size:0.8em; border:none; color:var(--text-secondary);"
                     onclick="openStopForm('edit', {
-                        id: '${stop.id}',
+                        id: '${escapeHtml(stop.id)}',
                         name: '${stop.name.replace(/'/g, "\\'")}',
                         code: '${(stop.code || '').replace(/'/g, "\\'")}',
                         direction: '${(stop.direction || '').replace(/'/g, "\\'")}',
@@ -199,7 +248,7 @@ function renderStopLibrary(stops) {
                  </button>
             </div>
         </div>
-    `).join('');
+    `;}).join('');
 }
 
 function renderAliases(stop) {
@@ -209,7 +258,7 @@ function renderAliases(stop) {
     return `
         <div class="aliases-container">
             ${stop.aliases.map(a => `
-                <span class="alias-badge">${a}</span>
+                <span class="alias-badge">${escapeHtml(a)}</span>
             `).join('')}
         </div>
     `;
@@ -230,7 +279,9 @@ function renderPendingList(itemsToRender = null) {
         return;
     }
 
-    container.innerHTML = items.map(item => `
+    container.innerHTML = items.map(item => {
+        const safeName = escapeHtml(item.name);
+        return `
         <div class="inbox-item ${selectedInboxItems.has(item.name) ? 'selected' : ''}" data-name="${item.name.replace(/"/g, '&quot;')}">
             <div class="inbox-item-content">
                 <input type="checkbox" class="inbox-item-checkbox"
@@ -238,12 +289,12 @@ function renderPendingList(itemsToRender = null) {
                     onchange="toggleInboxSelection('${item.name.replace(/'/g, "\\'")}')">
                 <div style="overflow:hidden; text-overflow:ellipsis; flex: 1;">
                     <span class="count-badge">${item.count}</span>
-                    <strong>${item.name}</strong>
+                    <strong>${safeName}</strong>
                 </div>
             </div>
             <button class="btn btn-primary btn-sm" onclick="openLinkModal('${item.name.replace(/'/g, "\\'")}')">Link</button>
         </div>
-    `).join('');
+    `;}).join('');
 }
 
 function updatePendingCount() {
@@ -786,20 +837,23 @@ async function saveStopFromForm() {
     const lng = parseFloat(document.getElementById('editStopLng').value);
     const agency = document.getElementById('editStopAgency').value;
 
-    if (!name) {
-        alert('Stop name is required');
+    // Validate input data
+    const stopData = {
+        name: name,
+        code: code,
+        direction: direction,
+        lat: isNaN(lat) ? 0 : lat,
+        lng: isNaN(lng) ? 0 : lng,
+        agency: agency
+    };
+
+    const validationErrors = validateStopData(stopData);
+    if (validationErrors.length > 0) {
+        alert('Validation errors:\n\n' + validationErrors.join('\n'));
         return;
     }
 
     try {
-        const stopData = {
-            name: name,
-            code: code,
-            direction: direction,
-            lat: isNaN(lat) ? 0 : lat,
-            lng: isNaN(lng) ? 0 : lng,
-            agency: agency
-        };
 
         if (currentEditId) {
             // Update existing

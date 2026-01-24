@@ -146,7 +146,33 @@ function saveSettings() {
     closeSettings();
 }
 
+// Security: HTML sanitization to prevent XSS
+function escapeHtml(unsafe) {
+    if (unsafe === null || unsafe === undefined) return '';
+    return String(unsafe)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
 
+// Input validation for trip data
+function validateTripData(data) {
+    const errors = [];
+
+    if (data.route && data.route.length > 50) {
+        errors.push('Route name must be less than 50 characters');
+    }
+    if (data.direction && data.direction.length > 50) {
+        errors.push('Direction must be less than 50 characters');
+    }
+    if (data.notes && data.notes.length > 500) {
+        errors.push('Notes must be less than 500 characters');
+    }
+
+    return errors;
+}
 
 // Authentication State Management
 auth.onAuthStateChanged(async (user) => {
@@ -2262,7 +2288,7 @@ function renderTripItem(trip) {
             : '<span class="verified-badge unverified">?</span>';
     }
 
-    const notesDisplay = trip.notes ? `<div style="font-size: 0.85em; color: var(--text-muted); margin-top: 4px; padding-top: 4px; border-top: 1px dotted var(--border-light);">📝 ${trip.notes}</div>` : '';
+    const notesDisplay = trip.notes ? `<div style="font-size: 0.85em; color: var(--text-muted); margin-top: 4px; padding-top: 4px; border-top: 1px dotted var(--border-light);">📝 ${escapeHtml(trip.notes)}</div>` : '';
 
     let tagsDisplay = '';
     if (trip.tags && Array.isArray(trip.tags) && trip.tags.length > 0) {
@@ -2274,7 +2300,7 @@ function renderTripItem(trip) {
                 ? 'background: #fee2e2; color: #dc2626; border: 1px solid #fecaca;'
                 : 'background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-light);';
 
-            tagsDisplay += `<span style="font-size: 0.75em; padding: 1px 6px; border-radius: 12px; ${style}">${tag}</span>`;
+            tagsDisplay += `<span style="font-size: 0.75em; padding: 1px 6px; border-radius: 12px; ${style}">${escapeHtml(tag)}</span>`;
         });
         tagsDisplay += '</div>';
     }
@@ -2286,8 +2312,8 @@ function renderTripItem(trip) {
     tripDiv.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div style="flex: 1;">
-                <div style="font-weight: 600; color: var(--text-primary);">${trip.route}<span class="agency-badge">${agencyDisplay}</span></div>
-                <div style="font-size: 0.9em; color: var(--text-secondary);">${startStop} → ${endStop}</div>
+                <div style="font-weight: 600; color: var(--text-primary);">${escapeHtml(trip.route)}<span class="agency-badge">${escapeHtml(agencyDisplay)}</span></div>
+                <div style="font-size: 0.9em; color: var(--text-secondary);">${escapeHtml(startStop)} → ${escapeHtml(endStop)}</div>
                 ${tagsDisplay}
             </div>
             <div style="text-align: right;">
