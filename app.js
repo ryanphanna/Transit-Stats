@@ -2232,6 +2232,21 @@ function renderTripItem(trip) {
 
     const notesDisplay = trip.notes ? `<div style="font-size: 0.85em; color: var(--text-muted); margin-top: 4px; padding-top: 4px; border-top: 1px dotted var(--border-light);">📝 ${trip.notes}</div>` : '';
 
+    let tagsDisplay = '';
+    if (trip.tags && Array.isArray(trip.tags) && trip.tags.length > 0) {
+        tagsDisplay = '<div style="margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap;">';
+        trip.tags.forEach(tag => {
+            // Check for negative sentiment keywords to style them differently (optional), typically tags like "crowded" or "delayed"
+            const isNegative = ['crowded', 'late', 'delayed', 'slow', 'packed'].some(k => tag.toLowerCase().includes(k));
+            const style = isNegative
+                ? 'background: #fee2e2; color: #dc2626; border: 1px solid #fecaca;'
+                : 'background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-light);';
+
+            tagsDisplay += `<span style="font-size: 0.75em; padding: 1px 6px; border-radius: 12px; ${style}">${tag}</span>`;
+        });
+        tagsDisplay += '</div>';
+    }
+
     const tripDiv = document.createElement('div');
     tripDiv.className = 'trip-item';
     tripDiv.style.cursor = 'pointer';
@@ -2241,6 +2256,7 @@ function renderTripItem(trip) {
             <div style="flex: 1;">
                 <div style="font-weight: 600; color: var(--text-primary);">${trip.route}<span class="agency-badge">${agencyDisplay}</span></div>
                 <div style="font-size: 0.9em; color: var(--text-secondary);">${startStop} → ${endStop}</div>
+                ${tagsDisplay}
             </div>
             <div style="text-align: right;">
                 <div style="font-size: 0.85em; color: var(--text-muted);">${dateStr} ${verifiedBadge}</div>

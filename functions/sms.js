@@ -992,8 +992,9 @@ async function handleVerificationCode(phoneNumber, code) {
  * @param {string} route - Route number/name
  * @param {string|null} direction - Direction (optional)
  * @param {string} agency - Transit agency
+ * @param {object} options - Optional { sentiment, tags }
  */
-async function handleTripLog(phoneNumber, user, stopInput, route, direction, agency) {
+async function handleTripLog(phoneNumber, user, stopInput, route, direction, agency, options = {}) {
   const activeTrip = await getActiveTrip(user.userId);
   const parsedStop = parseStopInput(stopInput);
   const stopDisplay = getStopDisplay(parsedStop.stopCode, parsedStop.stopName);
@@ -1072,6 +1073,8 @@ START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDispla
     exitLocation: null,
     agency: agency,
     timing_reliability: 'actual', // Default for real-time SMS logging
+    sentiment: options.sentiment || null,
+    tags: options.tags || [],
   };
 
   await db.collection('trips').add(tripData);
@@ -1306,7 +1309,7 @@ async function parseWithGemini(text) {
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const prompt = `Analyze this SMS from a transit tracker user. Determine the intent and extract data.
     Text: "${text}"
@@ -1325,11 +1328,14 @@ async function parseWithGemini(text) {
     - Route: Extract ONLY the route identifier (e.g., "504", "Line 1"). Do not include "Route", "Line" or conversational words. A common noun like "Park" is likely part of the Stop Name, not the Route, unless it is a specific named route.
     - Stop Name: Extract the full location name. Do not include prepositions like "from", "at", "to". 
     - Ignore conversational text: "Just boarded", "I'm on", "taking", etc.
-    
+    - Sentiment: Determine if the user's experience is POSITIVE, NEGATIVE, or NEUTRAL based on adjectives (e.g., "slow", "crowded", "fast", "clean").
+    - Tags: Extract 1-3 keyword tags describing conditions (e.g., "crowded", "delayed", "raining", "clean", "fast").
+
     Examples:
-    - "Just boarded Route 1 Northbound from Queen's Park" -> Route: "1", Stop Name: "Queen's Park", Direction: "Northbound"
-    - "504 King at Spadina" -> Route: "504", Stop Name: "King at Spadina"
-    - "I'm Headed Northbound On The 510 From The Stop At Spadina St & Nassau" -> Route: "510", Stop Name: "Spadina St & Nassau", Direction: "Northbound"
+    - "Just boarded Route 1 Northbound from Queen's Park" -> Route: "1", Stop: "Queen's Park", Dir: "Northbound", Sentiment: "NEUTRAL", Tags: []
+    - "504 King at Spadina" -> Route: "504", Stop: "King at Spadina", Sentiment: "NEUTRAL", Tags: []
+    - "Packed 504 from King/Spadina, running late" -> Route: "504", Stop: "King/Spadina", Sentiment: "NEGATIVE", Tags: ["crowded", "late"]
+    - "Smooth ride on the 510 from Spadina Station, very clean" -> Route: "510", Stop: "Spadina Station", Sentiment: "POSITIVE", Tags: ["smooth", "clean"]
 
     Return ONLY JSON:
     {
@@ -1338,7 +1344,8 @@ async function parseWithGemini(text) {
       "stop_name": "string" | null,
       "stop_id": "string" | null,
       "direction": "string" | null,
-      "notes": "string" | null
+      "sentiment": "POSITIVE" | "NEGATIVE" | "NEUTRAL",
+      "tags": ["string"]
     }`;
 
     const result = await model.generateContent(prompt);
@@ -1659,6 +1666,10 @@ STATUS to view active trip. INFO to view this information.`,
               geminiResult.route,
               normalizeDirection(geminiResult.direction), // Apply normalization
               defaultAgency,
+              {
+                sentiment: geminiResult.sentiment,
+                tags: geminiResult.tags
+              }
             );
 
 
