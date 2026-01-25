@@ -54,11 +54,9 @@ Track trips without opening the app by texting the TransitStats number.
 
 ---
 
-## ⚖️ License & Usage
+## ⚖️ License
 
-This is a personal project. All rights reserved. 
-
-The code is provided for portfolio and review purposes only. I am not granting permission to clone, redistribute, or use this code for other transit-related applications at this time.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
