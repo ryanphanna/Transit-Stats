@@ -53,4 +53,13 @@ Track trips without opening the app by texting the TransitStats number.
 - **[migrations/](./migrations/)** - Database maintenance scripts.
 
 ---
+
+## ⚖️ License & Usage
+
+This is a personal project. All rights reserved. 
+
+The code is provided for portfolio and review purposes only. I am not granting permission to clone, redistribute, or use this code for other transit-related applications at this time.
+
+---
+
 **Happy Tracking! 🚌🚇🚊**
