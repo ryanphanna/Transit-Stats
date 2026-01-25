@@ -23,9 +23,15 @@ TransitStats is a web-based application to track, analyze, and visualize your pu
 - **Riding Streaks**: Build daily streaks and track your all-time records with visual indicators.
 - **Multi-Agency**: Badge support for TTC, OC Transpo, GO Transit, and many more.
 
+### 🧠 AI Intelligence
+- **Natural Language Parsing**: Text the way you talk. Gemini AI extracts routes, stops, and directions from conversational SMS messages.
+- **Sentiment & Incidents**: Automatically tags trips with keywords (e.g., "crowded", "delayed") and tracks rider sentiment.
+- **Smart Disambiguation**: Intelligently matches messy text inputs to official transit stop databases for accurate logging.
+
 ### 📱 SMS Integration
-Track trips without opening the app by texting the TransitStats number.
-- **Format**: `Route / Stop / [Direction] / [Agency]`
+Track trips without opening the app by texting the TransitStats number. Powered by Gemini AI for human-like understanding.
+- **Natural Language**: Send messages like "Just boarded the 504 at Spadina" or "Taking the line 1 north from Union".
+- **Structured Format**: Still supports manual format: `Route / Stop / [Direction] / [Agency]`
 - **Commands**: `STATUS`, `END`, `DISCARD`, `INFO`
 - **Verification**: Trips are automatically verified against a community stop database.
 - **Registration**: Text `REGISTER [email]` to link your phone via a verification code.
