@@ -39,17 +39,9 @@ Track trips without opening the app by texting the TransitStats number.
 
 ## 🛠️ Getting Started
 
-### For Users
 1. Open the app and sign in via **Email Sign-in** (Password or Magic Link).
 2. [Optional] Grant location permissions for mapping features.
 3. Start tracking!
-
-### For Developers
-1. Clone the repository and update `firebaseConfig` in `index.html`.
-2. Configure Firebase Authentication (Email) and Firestore.
-3. Run or deploy the app. See [setup-admin.md](./setup-admin.md) for admin features.
-
-**Firebase collections required**: `profiles`, `trips`, `templates`, `allowedUsers`, `stops`, `phoneNumbers`, `smsState`, `smsVerification`.
 
 ---
 
