@@ -2,13 +2,19 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Profiles - users can read/write their own profile
+    // ANYONE can read a profile if isPublic is true
     match /profiles/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if (request.auth != null && request.auth.uid == userId) || resource.data.isPublic == true;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
 
     // Trips - users can read/write their own trips
+    // Trips - users can read/write their own trips
+    // Public access allows reading trips if the trip owner's profile is public
     match /trips/{tripId} {
-      allow read, write: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow read: if (request.auth != null && resource.data.userId == request.auth.uid) || 
+                  get(/databases/$(database)/documents/profiles/$(resource.data.userId)).data.isPublic == true;
+      allow write: if request.auth != null && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
     }
 
@@ -58,9 +64,20 @@ service cloud.firestore {
     // Data model: { email: string, isAdmin: boolean }
     // Users can read to check whitelist status and admin privileges
     // Write operations must be done via Admin SDK only
+    // Allowed users whitelist - only cloud functions can write
+    // Data model: { email: string, isAdmin: boolean }
+    // Users can read to check whitelist status and admin privileges
+    // Write operations must be done via Admin SDK only
     match /allowedUsers/{email} {
       allow read: if request.auth != null;
       allow write: if false;
+    }
+
+    // Usernames - for public profiles
+    match /usernames/{username} {
+      allow read: if true; // Needed to check availability
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false; // Usernames are permanent for now
     }
   }
 }

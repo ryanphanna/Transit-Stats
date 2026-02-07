@@ -256,6 +256,32 @@ function loadUserProfile() {
                     document.getElementById('shuffleEmojiBtn').style.display = 'block';
                     currentEmoji = emoji;
                 }
+
+                // Public Profile Settings
+                const usernameInput = document.getElementById('usernameInput');
+                const publicProfileToggle = document.getElementById('publicProfileToggle');
+                const publicLinkContainer = document.getElementById('publicLinkContainer');
+                const publicLink = document.getElementById('publicLink');
+
+                if (usernameInput) {
+                    usernameInput.value = profile.username || '';
+                    if (profile.username) usernameInput.disabled = true; // Cannot change once set for now
+                }
+
+                if (publicProfileToggle) {
+                    publicProfileToggle.checked = profile.isPublic || false;
+                }
+
+                if (publicLinkContainer && profile.username) {
+                    publicLinkContainer.style.display = 'block';
+                    // Use relative path so it works on file:// protocol and hosted domains
+                    const url = `public.html?user=${profile.username}`;
+                    publicLink.href = url;
+                    // For display, show the full path if possible, or just the filename for simplicity
+                    publicLink.textContent = "Open Public Profile 🔗";
+                } else if (publicLinkContainer) {
+                    publicLinkContainer.style.display = 'none';
+                }
             }
         })
         .catch((error) => {
@@ -920,33 +946,80 @@ function shuffleEmoji() {
     document.getElementById('settingsAvatar').textContent = newEmoji;
 }
 
+
 function saveProfile() {
     const name = document.getElementById('nameInput').value.trim();
     const emoji = document.getElementById('settingsAvatar').textContent;
     const defaultAgency = document.getElementById('defaultAgencySelect').value;
+    const username = document.getElementById('usernameInput').value.trim().toLowerCase();
+    const isPublic = document.getElementById('publicProfileToggle').checked;
 
     if (!name) {
         alert('Please enter your name');
         return;
     }
 
-    const profileData = {
-        name: name,
-        emoji: emoji,
-        defaultAgency: defaultAgency,
-        userId: currentUser.uid,
-        updatedAt: firebase.firestore.Timestamp.now()
-    };
+    // If username is being set for the first time
+    if (username && !document.getElementById('usernameInput').disabled) {
+        // Check if username is taken
+        db.collection('usernames').doc(username).get()
+            .then(doc => {
+                if (doc.exists) {
+                    alert('Username is already taken. Please choose another.');
+                    return;
+                }
 
-    db.collection('profiles').doc(currentUser.uid).set(profileData)
-        .then(() => {
-            loadUserProfile(); // Refresh display
-            closeSettings();
-        })
-        .catch((error) => {
-            console.error('Error saving profile:', error);
-            alert('Error saving profile. Please try again.');
-        });
+                // Reserve username
+                const batch = db.batch();
+
+                const profileRef = db.collection('profiles').doc(currentUser.uid);
+                batch.set(profileRef, {
+                    name: name,
+                    emoji: emoji,
+                    defaultAgency: defaultAgency,
+                    userId: currentUser.uid,
+                    updatedAt: firebase.firestore.Timestamp.now(),
+                    username: username,
+                    isPublic: isPublic
+                }, { merge: true });
+
+                const usernameRef = db.collection('usernames').doc(username);
+                batch.set(usernameRef, {
+                    uid: currentUser.uid
+                });
+
+                return batch.commit();
+            })
+            .then(() => {
+                alert('Profile saved and username claimed!');
+                loadUserProfile();
+                closeSettings();
+            })
+            .catch(error => {
+                console.error('Error saving profile:', error);
+                alert('Error saving profile: ' + error.message);
+            });
+    } else {
+        // Just update profile
+        const profileData = {
+            name: name,
+            emoji: emoji,
+            defaultAgency: defaultAgency,
+            userId: currentUser.uid,
+            updatedAt: firebase.firestore.Timestamp.now(),
+            isPublic: isPublic
+        };
+
+        db.collection('profiles').doc(currentUser.uid).set(profileData, { merge: true })
+            .then(() => {
+                loadUserProfile();
+                closeSettings();
+            })
+            .catch((error) => {
+                console.error('Error saving profile:', error);
+                alert('Error saving profile. Please try again.');
+            });
+    }
 }
 
 function signOut() {

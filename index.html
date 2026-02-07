@@ -22,8 +22,8 @@
             <div class="header-row">
                 <h1 class="header-title" onclick="goHome()">TransitStats</h1>
                 <div id="userInfo" class="user-info" style="display: none;">
-                    <button id="adminBtn" class="header-btn text-btn"
-                        onclick="window.location.href='admin.html'">Data Manager</button>
+                    <button id="adminBtn" class="header-btn text-btn" onclick="window.location.href='admin.html'">Data
+                        Manager</button>
                     <button id="mapsBtn" class="header-btn" onclick="showMaps()">🗺️<span>Map</span></button>
                     <button id="settingsBtn" class="header-btn"
                         onclick="openSettings()">⚙️<span>Settings</span></button>
@@ -242,251 +242,253 @@
                     </div>
 
 
+                </div>
 
-                    <div id="endModal"
-                        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+
+
+                <div id="endModal"
+                    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+                    <div
+                        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 20px; border-radius: 8px; width: 90%; max-width: 400px; border: 1px solid var(--border-color);">
+                        <h3>End Trip</h3>
+                        <div class="form-group">
+                            <label>Exit Stop</label>
+                            <input type="text" id="exitInput" placeholder="e.g., 1234 or King Station">
+                        </div>
+                        <div class="save-template-checkbox">
+                            <input type="checkbox" id="saveAsTemplate">
+                            <label for="saveAsTemplate">⭐ Save route + start stop as template</label>
+                        </div>
+                        <button id="saveBtn" class="btn btn-primary">Save Trip</button>
+                        <button id="cancelBtn" class="btn" style="background: var(--border-color);">Cancel</button>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+
+        <!-- Log Trip Modal -->
+        <div id="logTripModal"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+            <div
+                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 25px; border-radius: 12px; width: 90%; max-width: 450px; border: 1px solid var(--border-color); box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0;">🚌 Start New Trip</h3>
+                    <button onclick="closeLogTripModal()"
+                        style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: var(--text-secondary);">×</button>
+                </div>
+
+                <div class="form-group">
+                    <label>Route/Line</label>
+                    <input type="text" id="routeInput" placeholder="e.g., 65, Line 1, 504 King"
+                        style="font-size: 1.1em; padding: 12px;">
+                </div>
+
+                <div class="form-group">
+                    <label>Boarding Stop</label>
+                    <input type="text" id="stopInput" placeholder="e.g., 6638 or King St"
+                        style="font-size: 1.1em; padding: 12px;">
+                    <div id="stopPreview" class="preview-box" style="display: none;"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Direction <span
+                            style="color: var(--text-secondary); font-weight: normal;">(optional)</span></label>
+                    <input type="text" id="directionInput" placeholder="e.g., North, Eastbound, to Finch"
+                        style="font-size: 1.1em; padding: 12px;">
+                </div>
+
+                <!-- Quick Templates -->
+                <div id="quickTemplates"
+                    style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px;">
+                    <!-- Templates injected here -->
+                </div>
+
+                <button id="startBtn" class="btn btn-primary"
+                    style="width: 100%; padding: 14px; font-size: 1.1em;">Board Vehicle 🚌</button>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+            <div
+                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 25px; border-radius: 12px; width: 90%; max-width: 450px; border: 1px solid var(--border-color); max-height: 90vh; overflow-y: auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0;">⚙️ Settings</h3>
+                    <button onclick="closeSettings()"
+                        style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: var(--text-secondary);">×</button>
+                </div>
+
+                <h4
+                    style="margin-bottom: 15px; color: var(--text-secondary); text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.5px;">
+                    Profile</h4>
+
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div
+                        style="font-size: 3em; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <span id="settingsAvatar">🚌</span>
+                        <button id="shuffleEmojiBtn" onclick="shuffleEmoji()"
+                            style="background: var(--bg-tertiary); border: 2px solid var(--border-color); border-radius: 50%; padding: 8px; font-size: 0.5em; cursor: pointer; width: 30px; height: 30px; display: none;">🎲</button>
+                    </div>
+                    <div id="emojiSelector">
+                        <label
+                            style="display: block; margin-bottom: 10px; font-size: 0.9em; color: var(--text-secondary);">Choose
+                            Avatar</label>
                         <div
-                            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%; -50%); background: var(--bg-secondary); padding: 20px; border-radius: 8px; width: 90%; max-width: 400px; border: 1px solid var(--border-color);">
-                            <h3>End Trip</h3>
-                            <div class="form-group">
-                                <label>Exit Stop</label>
-                                <input type="text" id="exitInput" placeholder="e.g., 1234 or King Station">
-                            </div>
-                            <div class="save-template-checkbox">
-                                <input type="checkbox" id="saveAsTemplate">
-                                <label for="saveAsTemplate">⭐ Save route + start stop as template</label>
-                            </div>
-                            <button id="saveBtn" class="btn btn-primary">Save Trip</button>
-                            <button id="cancelBtn" class="btn" style="background: var(--border-color);">Cancel</button>
+                            style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
+                            <button class="emoji-btn" onclick="selectEmoji('🚌')">🚌</button>
+                            <button class="emoji-btn" onclick="selectEmoji('🚇')">🚇</button>
+                            <button class="emoji-btn" onclick="selectEmoji('🚊')">🚊</button>
+                            <button class="emoji-btn" onclick="selectEmoji('🚋')">🚋</button>
+                            <button class="emoji-btn" onclick="selectEmoji('🚞')">🚞</button>
+                            <button class="emoji-btn" onclick="selectEmoji('🚝')">🚝</button>
+                            <button class="emoji-btn" onclick="selectEmoji('🚄')">🚄</button>
+                            <button class="emoji-btn" onclick="selectEmoji('✈️')">✈️</button>
                         </div>
                     </div>
-
-
                 </div>
-            </div>
 
-            <!-- Log Trip Modal -->
-            <div id="logTripModal"
-                style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-                <div
-                    style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 25px; border-radius: 12px; width: 90%; max-width: 450px; border: 1px solid var(--border-color); box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h3 style="margin: 0;">🚌 Start New Trip</h3>
-                        <button onclick="closeLogTripModal()"
-                            style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: var(--text-secondary);">×</button>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Route/Line</label>
-                        <input type="text" id="routeInput" placeholder="e.g., 65, Line 1, 504 King"
-                            style="font-size: 1.1em; padding: 12px;">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Boarding Stop</label>
-                        <input type="text" id="stopInput" placeholder="e.g., 6638 or King St"
-                            style="font-size: 1.1em; padding: 12px;">
-                        <div id="stopPreview" class="preview-box" style="display: none;"></div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Direction <span style="color: var(--text-secondary); font-weight: normal;">(optional)</span></label>
-                        <input type="text" id="directionInput" placeholder="e.g., North, Eastbound, to Finch"
-                            style="font-size: 1.1em; padding: 12px;">
-                    </div>
-
-                    <!-- Quick Templates -->
-                    <div id="quickTemplates"
-                        style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px;">
-                        <!-- Templates injected here -->
-                    </div>
-
-                    <button id="startBtn" class="btn btn-primary"
-                        style="width: 100%; padding: 14px; font-size: 1.1em;">Board Vehicle 🚌</button>
+                <div class="form-group">
+                    <label>Display Name</label>
+                    <input type="text" id="nameInput" placeholder="Your name (e.g., Ryan)">
                 </div>
-            </div>
 
-            <!-- Settings Modal -->
-            <div id="settingsModal"
-                style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-                <div
-                    style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 25px; border-radius: 12px; width: 90%; max-width: 450px; border: 1px solid var(--border-color); max-height: 90vh; overflow-y: auto;">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h3 style="margin: 0;">⚙️ Settings</h3>
-                        <button onclick="closeSettings()"
-                            style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: var(--text-secondary);">×</button>
-                    </div>
-
-                    <h4
-                        style="margin-bottom: 15px; color: var(--text-secondary); text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.5px;">
-                        Profile</h4>
-
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <div
-                            style="font-size: 3em; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                            <span id="settingsAvatar">🚌</span>
-                            <button id="shuffleEmojiBtn" onclick="shuffleEmoji()"
-                                style="background: var(--bg-tertiary); border: 2px solid var(--border-color); border-radius: 50%; padding: 8px; font-size: 0.5em; cursor: pointer; width: 30px; height: 30px; display: none;">🎲</button>
-                        </div>
-                        <div id="emojiSelector">
-                            <label
-                                style="display: block; margin-bottom: 10px; font-size: 0.9em; color: var(--text-secondary);">Choose
-                                Avatar</label>
-                            <div
-                                style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
-                                <button class="emoji-btn" onclick="selectEmoji('🚌')">🚌</button>
-                                <button class="emoji-btn" onclick="selectEmoji('🚇')">🚇</button>
-                                <button class="emoji-btn" onclick="selectEmoji('🚊')">🚊</button>
-                                <button class="emoji-btn" onclick="selectEmoji('🚋')">🚋</button>
-                                <button class="emoji-btn" onclick="selectEmoji('🚞')">🚞</button>
-                                <button class="emoji-btn" onclick="selectEmoji('🚝')">🚝</button>
-                                <button class="emoji-btn" onclick="selectEmoji('🚄')">🚄</button>
-                                <button class="emoji-btn" onclick="selectEmoji('✈️')">✈️</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Display Name</label>
-                        <input type="text" id="nameInput" placeholder="Your name (e.g., Ryan)">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Default Agency</label>
-                        <select id="defaultAgencySelect"
-                            style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 1em;">
-                            <option value="TTC">TTC (Toronto)</option>
-                            <option value="OC Transpo">OC Transpo (Ottawa)</option>
-                            <option value="GO Transit">GO Transit</option>
-                            <option value="MiWay">MiWay (Mississauga)</option>
-                            <option value="YRT">YRT (York Region)</option>
-                            <option value="Brampton Transit">Brampton Transit</option>
-                            <option value="Durham Transit">Durham Transit</option>
-                            <option value="HSR">HSR (Hamilton)</option>
-                            <option value="GRT">GRT (Waterloo Region)</option>
-                            <option value="STM">STM (Montreal)</option>
-                            <option value="TransLink">TransLink (Vancouver)</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-
-                    <hr style="border: none; border-top: 1px solid var(--border-light); margin: 25px 0;">
-
-                    <h4
-                        style="margin-bottom: 15px; color: var(--text-secondary); text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.5px;">
-                        Appearance</h4>
-
-                    <div class="form-group">
-                        <label>Theme</label>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                            <button id="themeLightBtn" class="btn btn-outline" onclick="setTheme('light')"
-                                style="margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                                ☀️ Light
-                            </button>
-                            <button id="themeDarkBtn" class="btn btn-outline" onclick="setTheme('dark')"
-                                style="margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                                🌙 Dark
-                            </button>
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 30px; display: flex; gap: 10px;">
-                        <button class="btn btn-primary" onclick="saveSettings()" style="flex: 1;">Save Changes</button>
-                        <button class="btn" onclick="closeSettings()"
-                            style="flex: 1; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">Cancel</button>
-                    </div>
-
-                    <hr style="border: none; border-top: 1px solid var(--border-light); margin: 25px 0;">
-
-                    <button class="btn" onclick="signOut()"
-                        style="width: 100%; background: transparent; color: var(--danger-text); border: 1px solid var(--danger-text);">
-                        Log Out
-                    </button>
+                <div class="form-group">
+                    <label>Default Agency</label>
+                    <select id="defaultAgencySelect"
+                        style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 1em;">
+                        <option value="TTC">TTC (Toronto)</option>
+                        <option value="OC Transpo">OC Transpo (Ottawa)</option>
+                        <option value="GO Transit">GO Transit</option>
+                        <option value="MiWay">MiWay (Mississauga)</option>
+                        <option value="YRT">YRT (York Region)</option>
+                        <option value="Brampton Transit">Brampton Transit</option>
+                        <option value="Durham Transit">Durham Transit</option>
+                        <option value="HSR">HSR (Hamilton)</option>
+                        <option value="GRT">GRT (Waterloo Region)</option>
+                        <option value="STM">STM (Montreal)</option>
+                        <option value="TransLink">TransLink (Vancouver)</option>
+                        <option value="Other">Other</option>
+                    </select>
                 </div>
-            </div>
 
-            <!-- Edit Trip Modal -->
-            <div id="editTripModal"
-                style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-                <div
-                    style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 25px; border-radius: 12px; width: 90%; max-width: 450px; border: 1px solid var(--border-color); box-shadow: 0 4px 20px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h3 style="margin: 0;">✏️ Edit Trip</h3>
-                        <button onclick="closeEditTripModal()"
-                            style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: var(--text-secondary);">×</button>
+                <hr style="border: none; border-top: 1px solid var(--border-light); margin: 25px 0;">
+
+                <h4
+                    style="margin-bottom: 15px; color: var(--text-secondary); text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.5px;">
+                    Appearance</h4>
+
+                <div class="form-group">
+                    <label>Theme</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <button id="themeLightBtn" class="btn btn-outline" onclick="setTheme('light')"
+                            style="margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            ☀️ Light
+                        </button>
+                        <button id="themeDarkBtn" class="btn btn-outline" onclick="setTheme('dark')"
+                            style="margin: 0; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            🌙 Dark
+                        </button>
                     </div>
-
-                    <input type="hidden" id="editTripId">
-
-                    <div class="form-group">
-                        <label>Route/Line</label>
-                        <input type="text" id="editRouteInput" placeholder="e.g., 65, Line 1, 504 King"
-                            style="font-size: 1.1em; padding: 12px;">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Direction (optional)</label>
-                        <input type="text" id="editDirectionInput" placeholder="e.g., Northbound, East"
-                            style="font-size: 1.1em; padding: 12px;">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Start Stop</label>
-                        <input type="text" id="editStartStopInput" placeholder="e.g., 6638 or King St"
-                            style="font-size: 1.1em; padding: 12px;">
-                    </div>
-
-                    <div class="form-group">
-                        <label>End Stop</label>
-                        <input type="text" id="editEndStopInput" placeholder="e.g., 6638 or King St"
-                            style="font-size: 1.1em; padding: 12px;">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Agency</label>
-                        <select id="editAgencySelect"
-                            style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 1em;">
-                            <option value="TTC">TTC (Toronto)</option>
-                            <option value="OC Transpo">OC Transpo (Ottawa)</option>
-                            <option value="GO Transit">GO Transit</option>
-                            <option value="MiWay">MiWay (Mississauga)</option>
-                            <option value="YRT">YRT (York Region)</option>
-                            <option value="Brampton Transit">Brampton Transit</option>
-                            <option value="Durham Transit">Durham Transit</option>
-                            <option value="HSR">HSR (Hamilton)</option>
-                            <option value="GRT">GRT (Waterloo Region)</option>
-                            <option value="STM">STM (Montreal)</option>
-                            <option value="TransLink">TransLink (Vancouver)</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Notes (optional)</label>
-                        <textarea id="editNotesInput" placeholder="Any notes about this trip..."
-                            style="font-size: 1em; padding: 12px; min-height: 80px; resize: vertical;"></textarea>
-                    </div>
-
-                    <div style="display: flex; gap: 10px; margin-top: 20px;">
-                        <button class="btn btn-primary" onclick="saveEditedTrip()" style="flex: 1;">Save Changes</button>
-                        <button class="btn" onclick="closeEditTripModal()"
-                            style="flex: 1; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">Cancel</button>
-                    </div>
-
-                    <hr style="border: none; border-top: 1px solid var(--border-light); margin: 20px 0;">
-
-                    <button class="btn" onclick="deleteTrip()"
-                        style="width: 100%; background: transparent; color: var(--danger-text); border: 1px solid var(--danger-text);">
-                        Delete Trip
-                    </button>
                 </div>
-            </div>
 
-            <script src="visuals.js"></script>
-            <script src="app.js"></script>
+                <div style="margin-top: 30px; display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="saveSettings()" style="flex: 1;">Save Changes</button>
+                    <button class="btn" onclick="closeSettings()"
+                        style="flex: 1; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">Cancel</button>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid var(--border-light); margin: 25px 0;">
+
+                <button class="btn" onclick="signOut()"
+                    style="width: 100%; background: transparent; color: var(--danger-text); border: 1px solid var(--danger-text);">
+                    Log Out
+                </button>
+            </div>
+        </div>
+
+        <!-- Edit Trip Modal -->
+        <div id="editTripModal"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+            <div
+                style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 25px; border-radius: 12px; width: 90%; max-width: 450px; border: 1px solid var(--border-color); box-shadow: 0 4px 20px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0;">✏️ Edit Trip</h3>
+                    <button onclick="closeEditTripModal()"
+                        style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: var(--text-secondary);">×</button>
+                </div>
+
+                <input type="hidden" id="editTripId">
+
+                <div class="form-group">
+                    <label>Route/Line</label>
+                    <input type="text" id="editRouteInput" placeholder="e.g., 65, Line 1, 504 King"
+                        style="font-size: 1.1em; padding: 12px;">
+                </div>
+
+                <div class="form-group">
+                    <label>Direction (optional)</label>
+                    <input type="text" id="editDirectionInput" placeholder="e.g., Northbound, East"
+                        style="font-size: 1.1em; padding: 12px;">
+                </div>
+
+                <div class="form-group">
+                    <label>Start Stop</label>
+                    <input type="text" id="editStartStopInput" placeholder="e.g., 6638 or King St"
+                        style="font-size: 1.1em; padding: 12px;">
+                </div>
+
+                <div class="form-group">
+                    <label>End Stop</label>
+                    <input type="text" id="editEndStopInput" placeholder="e.g., 6638 or King St"
+                        style="font-size: 1.1em; padding: 12px;">
+                </div>
+
+                <div class="form-group">
+                    <label>Agency</label>
+                    <select id="editAgencySelect"
+                        style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 1em;">
+                        <option value="TTC">TTC (Toronto)</option>
+                        <option value="OC Transpo">OC Transpo (Ottawa)</option>
+                        <option value="GO Transit">GO Transit</option>
+                        <option value="MiWay">MiWay (Mississauga)</option>
+                        <option value="YRT">YRT (York Region)</option>
+                        <option value="Brampton Transit">Brampton Transit</option>
+                        <option value="Durham Transit">Durham Transit</option>
+                        <option value="HSR">HSR (Hamilton)</option>
+                        <option value="GRT">GRT (Waterloo Region)</option>
+                        <option value="STM">STM (Montreal)</option>
+                        <option value="TransLink">TransLink (Vancouver)</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Notes (optional)</label>
+                    <textarea id="editNotesInput" placeholder="Any notes about this trip..."
+                        style="font-size: 1em; padding: 12px; min-height: 80px; resize: vertical;"></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="saveEditedTrip()" style="flex: 1;">Save
+                        Changes</button>
+                    <button class="btn" onclick="closeEditTripModal()"
+                        style="flex: 1; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">Cancel</button>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid var(--border-light); margin: 20px 0;">
+
+                <button class="btn" onclick="deleteTrip()"
+                    style="width: 100%; background: transparent; color: var(--danger-text); border: 1px solid var(--danger-text);">
+                    Delete Trip
+                </button>
+            </div>
+        </div>
+
+        <script src="visuals.js"></script>
+        <script src="app.js"></script>
 </body>
 
 </html>

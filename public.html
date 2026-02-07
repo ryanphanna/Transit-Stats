@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transit Stats Profile</title>
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Leaflet & Clusters -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+
+<body>
+    <div class="main-content">
+        <!-- Minimal Header -->
+        <div class="header" role="banner">
+            <div class="header-row" style="justify-content: center;">
+                <div class="header-title" onclick="window.location.href='/'">
+                    🚇 TransitStats
+                </div>
+            </div>
+        </div>
+
+        <div class="content-wrapper">
+            <div class="container" style="max-width: 1000px; margin: 0 auto; padding-top: 40px;">
+
+                <!-- User Header -->
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <div id="userEmoji" style="font-size: 4em; margin-bottom: 10px;">👤</div>
+                    <h1 id="userName" style="margin-bottom: 10px;">Loading Profile...</h1>
+                    <div class="agency-badge" id="userAgency"></div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalTrips">0</div>
+                        <div class="stat-label">Total Trips</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalHours">0</div>
+                        <div class="stat-label">Hours on Transit</div>
+                    </div>
+                </div>
+
+                <!-- Map -->
+                <div id="publicMapContainer"
+                    style="height: 500px; width: 100%; border-radius: 12px; margin-bottom: 30px; border: 1px solid var(--border-color); z-index: 1;">
+                </div>
+
+                <!-- Top Routes -->
+                <h3 style="margin-bottom: 20px;">🏆 Top Routes</h3>
+                <div id="topRoutesList">
+                    <div class="loading">Loading stats...</div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="status-footer" style="justify-content: center; margin-top: 40px;">
+            <div style="font-size: 0.9em; opacity: 0.8;">
+                Powered by <a href="/" style="color: white; font-weight: bold; text-decoration: none;">TransitStats</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="visuals.js"></script>
+    <script src="public.js"></script>
+</body>
+
+</html>
