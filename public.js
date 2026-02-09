@@ -130,7 +130,7 @@ function initPublicMap(trips) {
     }).addTo(map);
 
     if (trips.length > 0 && Visuals && Visuals.renderHeatmap) {
-        Visuals.renderHeatmap(trips, map);
+        Visuals.renderPointHeatmap(trips, map);
 
         // Fit bounds logic from visuals.js usually handles this, 
         // but let's ensure we fit to the points found

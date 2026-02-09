@@ -1109,6 +1109,7 @@ function updateStatsSection() {
 
             generateTopRoutes(trips);
             generateTopStops(trips);
+            generateTimeOfDayStats(trips);
         })
         .catch((error) => {
             console.error('Error updating stats:', error);
@@ -1149,6 +1150,7 @@ function updateStatsSection() {
 
                 generateTopRoutes(trips);
                 generateTopStops(trips);
+                generateTimeOfDayStats(trips);
             });
         });
 }
@@ -1363,6 +1365,69 @@ function generateTopStops(trips) {
     }
 }
 
+function generateTimeOfDayStats(trips) {
+    const buckets = {
+        'Morning': 0, // 5am - 11am
+        'Day': 0,     // 11am - 5pm
+        'Evening': 0, // 5pm - 9pm
+        'Night': 0    // 9pm - 5am
+    };
+
+    trips.forEach(trip => {
+        let date;
+        if (trip.startTime?.toDate) {
+            date = trip.startTime.toDate();
+        } else if (trip.startTime) {
+            date = new Date(trip.startTime);
+        } else {
+            return;
+        }
+
+        const hour = date.getHours();
+
+        if (hour >= 5 && hour < 11) {
+            buckets['Morning']++;
+        } else if (hour >= 11 && hour < 17) {
+            buckets['Day']++;
+        } else if (hour >= 17 && hour < 21) {
+            buckets['Evening']++;
+        } else {
+            buckets['Night']++;
+        }
+    });
+
+    const maxCount = Math.max(...Object.values(buckets));
+    const container = document.getElementById('timeOfDayChart');
+
+    if (maxCount === 0) {
+        container.innerHTML = '<div class="empty-state">No trips yet</div>';
+        return;
+    }
+
+    let html = '';
+    const labels = {
+        'Morning': 'Morning (5-11)',
+        'Day': 'Day (11-5)',
+        'Evening': 'Evening (5-9)',
+        'Night': 'Night (9-5)'
+    };
+
+    for (const [key, count] of Object.entries(buckets)) {
+        const percentage = maxCount > 0 ? (count / maxCount) * 100 : 0;
+        html += `
+            <div class="time-bar-row">
+                <div class="time-label">${key}</div>
+                <div class="time-bar-bg">
+                    <div class="time-bar-fill" style="width: ${percentage}%"></div>
+                </div>
+                <div class="time-count">${count}</div>
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+}
+
 function calculateUserRank(userTripCount, allTrips) {
     const userCounts = {};
     allTrips.forEach(trip => {
@@ -1377,64 +1442,84 @@ function calculateUserRank(userTripCount, allTrips) {
 function calculateStreaks(trips) {
     if (trips.length === 0) return { current: 0, best: 0 };
 
-    const sortedTrips = trips.sort((a, b) => {
-        const dateA = a.startTime?.toDate ? a.startTime.toDate() : new Date(a.startTime);
-        const dateB = b.startTime?.toDate ? b.startTime.toDate() : new Date(b.startTime);
-        return dateB - dateA;
+    // 1. Get all unique dates (normalized to midnight)
+    const tripDates = new Set();
+    trips.forEach(trip => {
+        let date;
+        if (trip.startTime?.toDate) {
+            date = trip.startTime.toDate();
+        } else if (trip.startTime) {
+            date = new Date(trip.startTime);
+        } else {
+            return; // Skip invalid dates
+        }
+
+        // Normalize to local midnight
+        const normalized = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        tripDates.add(normalized.getTime());
     });
 
-    const tripDays = new Set();
-    sortedTrips.forEach(trip => {
-        const date = trip.startTime?.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
-        const dayString = date.toDateString();
-        tripDays.add(dayString);
-    });
+    const sortedTimestamps = Array.from(tripDates).sort((a, b) => b - a); // Newest first
 
-    const uniqueDays = Array.from(tripDays).sort((a, b) => new Date(b) - new Date(a));
+    if (sortedTimestamps.length === 0) return { current: 0, best: 0 };
 
+    // 2. Logic to determine "Current Streak"
+    // Valid if largest timestamp is Today OR Yesterday
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayString = today.toDateString();
+    const todayTs = today.getTime();
 
-    if (uniqueDays.length === 1 && uniqueDays[0] === todayString) {
-        return { current: 0, best: 0 };
-    }
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayTs = yesterday.getTime();
+
+    const latestTripTs = sortedTimestamps[0];
+
+    // If the last trip was before yesterday, the streak is broken (0).
+    // Unless we want to be generous and show the *previous* streak? 
+    // Standard logic: if you didn't ride today or yesterday, your current streak is 0.
+    let isStreakActive = (latestTripTs === todayTs || latestTripTs === yesterdayTs);
 
     let currentStreak = 0;
-    let bestStreak = 0;
-    let tempStreak = 0;
+    let tempStreak = 1;
+    let bestStreak = 1;
 
-    for (let i = 0; i < uniqueDays.length; i++) {
-        const currentDay = new Date(uniqueDays[i]);
-        currentDay.setHours(0, 0, 0, 0);
+    // 3. Iterate to find streaks
+    for (let i = 0; i < sortedTimestamps.length - 1; i++) {
+        const current = sortedTimestamps[i];
+        const next = sortedTimestamps[i + 1]; // older date
 
-        if (i === 0) {
-            const diffDays = Math.floor((today - currentDay) / (1000 * 60 * 60 * 24));
-            if (diffDays <= 1) {
-                currentStreak = 1;
-                tempStreak = 1;
-            }
+        const diffTime = current - next;
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 1) {
+            tempStreak++;
         } else {
-            const prevDay = new Date(uniqueDays[i - 1]);
-            prevDay.setHours(0, 0, 0, 0);
-            const diffDays = Math.floor((prevDay - currentDay) / (1000 * 60 * 60 * 24));
+            bestStreak = Math.max(bestStreak, tempStreak);
+            tempStreak = 1;
+        }
+    }
+    bestStreak = Math.max(bestStreak, tempStreak);
+
+    // If active, the current streak is the first sequence found
+    if (isStreakActive) {
+        // Recalculate just the head streak for accuracy
+        currentStreak = 1;
+        for (let i = 0; i < sortedTimestamps.length - 1; i++) {
+            const current = sortedTimestamps[i];
+            const next = sortedTimestamps[i + 1];
+            const diffTime = current - next;
+            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
             if (diffDays === 1) {
-                tempStreak++;
-                if (i === 0 || currentStreak > 0) {
-                    currentStreak = tempStreak;
-                }
+                currentStreak++;
             } else {
-                bestStreak = Math.max(bestStreak, tempStreak);
-                tempStreak = 1;
-                if (currentStreak > 0 && i > 0) {
-                    currentStreak = 0;
-                }
+                break;
             }
         }
     }
 
-    bestStreak = Math.max(bestStreak, tempStreak, currentStreak);
+    console.log(`🔥 Streak Calc: Active? ${isStreakActive}, Current: ${currentStreak}, Best: ${bestStreak}`);
     return { current: currentStreak, best: bestStreak };
 }
 
