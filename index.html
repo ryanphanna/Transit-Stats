@@ -4,7 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TransitStats</title>
+    <title>TransitStats | Your Personal Transit Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -20,13 +23,21 @@
     <div class="main-content">
         <div class="header">
             <div class="header-row">
-                <h1 class="header-title" onclick="goHome()">TransitStats</h1>
+                <div class="header-left">
+                    <h1 class="header-title" onclick="goHome()">
+                        <span style="color: var(--accent-primary);">Transit</span>Stats
+                    </h1>
+                </div>
                 <div id="userInfo" class="user-info" style="display: none;">
-                    <button id="adminBtn" class="header-btn text-btn" onclick="window.location.href='admin.html'">Data
-                        Manager</button>
-                    <button id="mapsBtn" class="header-btn" onclick="showMaps()">🗺️<span>Map</span></button>
-                    <button id="settingsBtn" class="header-btn"
-                        onclick="openSettings()">⚙️<span>Settings</span></button>
+                    <button id="adminBtn" class="header-btn text-btn" onclick="window.location.href='admin.html'">
+                        Data Manager
+                    </button>
+                    <button id="mapsBtn" class="header-btn" onclick="showMaps()">
+                        🗺️ <span>Map</span>
+                    </button>
+                    <button id="settingsBtn" class="header-btn" onclick="openSettings()">
+                        ⚙️ <span>Settings</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -81,32 +92,34 @@
 
                         <!-- LEFT COLUMN: Profile & Context -->
                         <div class="col-left">
-                            <div id="profileSection" class="section">
-                                <h2 style="white-space: nowrap; margin-bottom: 20px;">👤 Profile</h2>
+                            <div id="profileSection" class="section profile-section">
+                                <h3 class="section-title">👤 Profile</h3>
 
                                 <div class="profile-dashboard-grid">
-                                    <!-- Identity Card -->
-                                    <div class="profile-card identity-card"
-                                        style="background: var(--bg-tertiary); border-radius: 12px; padding: 20px; text-align: center; border: 1px solid var(--border-light);">
-                                        <div style="font-size: 3em; margin-bottom: 8px;" id="displayAvatar">🚌</div>
-                                        <h2 id="displayName" style="margin-bottom: 0; font-size: 1.5em;">User</h2>
-                                        <div id="displayAgency" style="display: none;">TTC</div>
+                                    <div class="profile-card identity-card">
+                                        <div class="avatar-wrapper">
+                                            <div id="displayAvatar" class="avatar-emoji">🚌</div>
+                                        </div>
+                                        <div class="identity-info">
+                                            <h2 id="displayName" class="user-name">User</h2>
+                                            <div id="displayAgency" class="agency-badge">TTC</div>
+                                        </div>
                                     </div>
 
-                                    <!-- Streak Stats -->
-                                    <div class="profile-card"
-                                        style="background: linear-gradient(135deg, #ff6b6b 0%, #ff8e6b 100%); border-radius: 10px; padding: 12px 16px; color: white; text-align: center;">
-                                        <div style="display: flex; justify-content: space-around; align-items: center;">
-                                            <div>
-                                                <div style="font-size: 1.4em; font-weight: bold;"
-                                                    id="profileCurrentStreak">0</div>
-                                                <div style="font-size: 0.75em; opacity: 0.85;">Current</div>
+                                    <div class="profile-card streak-card">
+                                        <div class="streak-header">
+                                            <span class="streak-icon">🔥</span>
+                                            <span class="streak-label">Riding Streak</span>
+                                        </div>
+                                        <div class="streak-stats-row">
+                                            <div class="streak-stat">
+                                                <div id="profileCurrentStreak" class="streak-val">0</div>
+                                                <div class="streak-sub">Current</div>
                                             </div>
-                                            <div style="font-size: 1em; opacity: 0.9;">🔥</div>
-                                            <div>
-                                                <div style="font-size: 1.4em; font-weight: bold;"
-                                                    id="profileBestStreak">0</div>
-                                                <div style="font-size: 0.75em; opacity: 0.85;">Best</div>
+                                            <div class="streak-divider"></div>
+                                            <div class="streak-stat">
+                                                <div id="profileBestStreak" class="streak-val">0</div>
+                                                <div class="streak-sub">Best</div>
                                             </div>
                                         </div>
                                     </div>
@@ -132,12 +145,16 @@
                                 </div>
                             </div>
 
-                            <!-- Repeat Last Trip Section -->
-                            <div id="repeatLastTripSection" style="display: none; margin-bottom: 15px;">
-                                <button id="repeatLastTripBtn" class="btn btn-primary"
-                                    style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);">
-                                    🔄 Repeat Last Trip
+                            <!-- Actions Area -->
+                            <div class="action-card section">
+                                <button id="startTripBtn" class="btn btn-primary" onclick="openLogTripModal()">
+                                    <span>➕</span> Start New Trip
                                 </button>
+                                <div id="repeatLastTripSection" style="display: none; margin-top: 12px;">
+                                    <button id="repeatLastTripBtn" class="btn btn-outline">
+                                        <span>🔄</span> Repeat Last Trip
+                                    </button>
+                                </div>
                             </div>
 
 
@@ -152,17 +169,14 @@
 
                         <!-- RIGHT COLUMN: Stats & Leaderboards -->
                         <div class="col-right">
-                            <div id="statsSection" class="section">
-                                <div
-                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                                    <h2>📊 Stats</h2>
-                                    <div style="display: flex; align-items: center; gap: 5px;">
-                                        <div
-                                            style="background: var(--bg-tertiary); border-radius: 20px; padding: 4px; display: flex;">
-                                            <button id="statsToggle30" class="btn"
-                                                style="background: var(--accent-primary); color: white; padding: 6px 12px; margin: 0; border-radius: 16px; font-size: 0.8em;">30d</button>
-                                            <button id="statsToggleAll" class="btn btn-outline"
-                                                style="padding: 6px 12px; margin: 0; border: none; font-size: 0.8em;">All</button>
+                            <div id="statsSection" class="section stats-section">
+                                <div class="section-header">
+                                    <h3 class="section-title">📊 Stats</h3>
+                                    <div class="stats-controls">
+                                        <div class="toggle-group">
+                                            <button id="statsToggle30" class="toggle-btn active"
+                                                data-stats="30">30d</button>
+                                            <button id="statsToggleAll" class="toggle-btn" data-stats="all">All</button>
                                         </div>
                                     </div>
                                 </div>

@@ -1,0 +1,12 @@
+{
+    "name": "transit-stats",
+    "version": "1.1.0",
+    "description": "Personal transit trip tracker for enthusiasts to analyze ridership patterns.",
+    "private": true,
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/TransitStats/TransitStats.git"
+    },
+    "author": "Antigravity & Ryan",
+    "license": "MIT"
+}

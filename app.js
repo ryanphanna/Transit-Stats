@@ -216,10 +216,11 @@ function showAuth() {
 function showApp() {
     authSection.style.display = 'none';
     appContent.style.display = 'block';
-    userInfo.style.display = 'block';
+    userInfo.style.display = 'flex'; // Use flex for better alignment
     updateConnectionStatus(true);
     loadUserProfile();
     initializeApp();
+    fadeInSection(appContent);
 }
 
 // Profile Management
@@ -291,17 +292,18 @@ function loadUserProfile() {
 
 function showProfile() {
     hideAllSections();
-    dashboardGrid.style.display = 'grid'; // Restore dashboard if returning from Map
+    dashboardGrid.style.display = 'grid';
     profileSection.style.display = 'block';
     startSection.style.display = 'none';
     updateTripIndicator();
     updateProfileStats();
     loadProfileTrips();
+    fadeInSection(profileSection);
 }
 
 function showStats() {
     hideAllSections();
-    dashboardGrid.style.display = 'grid'; // Restore dashboard if returning from Map
+    dashboardGrid.style.display = 'grid';
     statsSection.style.display = 'block';
     startSection.style.display = 'none';
     updateTripIndicator();
@@ -312,6 +314,7 @@ function showStats() {
     }
 
     updateStatsSection();
+    fadeInSection(statsSection);
 }
 
 function showMaps() {
@@ -1031,27 +1034,23 @@ function initializeStatsToggle() {
     const toggle30 = document.getElementById('statsToggle30');
     const toggleAll = document.getElementById('statsToggleAll');
 
+    if (!toggle30 || !toggleAll) return;
+
     toggle30.addEventListener('click', () => {
         if (currentStatsView !== '30days') {
             currentStatsView = '30days';
-            toggle30.style.background = 'var(--accent-primary)';
-            toggle30.style.color = 'white';
-            toggleAll.style.background = 'transparent';
-            toggleAll.style.color = 'var(--text-secondary)';
+            toggle30.classList.add('active');
+            toggleAll.classList.remove('active');
             updateStatsSection();
-
         }
     });
 
     toggleAll.addEventListener('click', () => {
         if (currentStatsView !== 'alltime') {
             currentStatsView = 'alltime';
-            toggleAll.style.background = 'var(--accent-primary)';
-            toggleAll.style.color = 'white';
-            toggle30.style.background = 'transparent';
-            toggle30.style.color = 'var(--text-secondary)';
+            toggleAll.classList.add('active');
+            toggle30.classList.remove('active');
             updateStatsSection();
-
         }
     });
 }
@@ -2919,6 +2918,18 @@ function addSwipeToDelete(element, isTemplate, id) {
         }
 
         isSwiping = false;
+    });
+}
+
+function fadeInSection(element) {
+    if (!element) return;
+    element.style.opacity = '0';
+    element.style.transform = 'translateY(10px)';
+    element.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+
+    requestAnimationFrame(() => {
+        element.style.opacity = '1';
+        element.style.transform = 'translateY(0)';
     });
 }
 
