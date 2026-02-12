@@ -242,13 +242,14 @@ function renderStopLibrary(stops) {
                         agency: '${(stop.agency || 'Other').replace(/'/g, "\\'")}',
                         lat: ${stop.lat || 0},
                         lng: ${stop.lng || 0},
-                        aliases: ${JSON.stringify(stop.aliases || [])}
+                        aliases: ${escapeHtml(JSON.stringify(stop.aliases || []))}
                     })">
                     ✏️ Edit
                  </button>
             </div>
         </div>
-    `;}).join('');
+    `;
+    }).join('');
 }
 
 function renderAliases(stop) {
@@ -294,7 +295,8 @@ function renderPendingList(itemsToRender = null) {
             </div>
             <button class="btn btn-primary btn-sm" onclick="openLinkModal('${item.name.replace(/'/g, "\\'")}')">Link</button>
         </div>
-    `;}).join('');
+    `;
+    }).join('');
 }
 
 function updatePendingCount() {

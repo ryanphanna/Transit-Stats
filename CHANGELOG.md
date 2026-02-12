@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.1] - 2026-02-12
+
+### Bug Fixes
+- **Crash Prevention**: Fixed critical crashes in `calculateFounderStats` and `generateTimeOfDayStats` by adding null checks for missing DOM elements.
+- **Admin Panel**: Fixed HTML attribute injection vulnerability in the stop editor that caused syntax errors when editing stops with aliases.
+
+### reliability
+- **Map Interaction**: Improved stability of map interactions by preventing re-initialization errors.
+
+
 ## Recent Technical Improvements
 
 ### Security Enhancements

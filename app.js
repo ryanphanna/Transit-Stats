@@ -1287,8 +1287,10 @@ function displayProfileTrips(trips) {
 }
 
 function calculateFounderStats(trips) {
-    document.getElementById('profileFounderRoutes').textContent = '0';
-    document.getElementById('profileFounderStops').textContent = '0';
+    const routesEl = document.getElementById('profileFounderRoutes');
+    const stopsEl = document.getElementById('profileFounderStops');
+    if (routesEl) routesEl.textContent = '0';
+    if (stopsEl) stopsEl.textContent = '0';
 }
 
 function generateTopRoutes(trips) {
@@ -1397,6 +1399,7 @@ function generateTimeOfDayStats(trips) {
 
     const maxCount = Math.max(...Object.values(buckets));
     const container = document.getElementById('timeOfDayChart');
+    if (!container) return;
 
     if (maxCount === 0) {
         container.innerHTML = '<div class="empty-state">No trips yet</div>';
