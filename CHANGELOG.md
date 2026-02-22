@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.2] - 2026-02-22
+
+### Documentation
+- **Roadmap**: Added `ROADMAP.md` to outline future development phases, including "Wrapped" visualizations and PRESTO data integration.
+
 ## [1.1.1] - 2026-02-12
 
 ### Bug Fixes
