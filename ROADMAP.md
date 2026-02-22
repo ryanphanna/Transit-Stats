@@ -12,7 +12,7 @@ To be the ultimate companion for transit enthusiasts, providing deep insights in
 - [x] Dark/Light mode support.
 
 ## 🚀 Phase 2: "Wrapped" & Data Storytelling (Planned)
-- [ ] **Transit Wrapped 2024/2025**:
+- [ ] **Transit Wrapped**:
     - Visual year-in-review based on internal app data.
     - Interactive "Bubble Pop" highlights for Top Agency, Route, and Hours.
     - Shareable summary cards.

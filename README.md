@@ -53,11 +53,15 @@ Track trips without opening the app by texting the TransitStats number. Powered 
 
 ## 📄 Documentation & Links
 
+- **[ROADMAP.md](./ROADMAP.md)** - Future development phases and vision.
 - **[SECURITY.md](./SECURITY.md)** - Security model and access control.
 - **[CHANGELOG.md](./CHANGELOG.md)** - Recent improvements and technical history.
 - **[setup-admin.md](./setup-admin.md)** - Admin panel setup guide.
 - **[migrations/](./migrations/)** - Database maintenance scripts.
 
 
-**Happy Tracking! 🚌🚇🚊**
+**Happy Tracking! 🚌🚇**
 
+<br />
+
+Built by [Ryan Hanna](https://github.com/ryanphanna)
