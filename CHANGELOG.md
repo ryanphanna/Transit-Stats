@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.3] - 2026-02-23
+
+### Bug Fixes
+- **Dashboard**: Fixed "Take your first trip" banner incorrectly showing for users with existing trips.
+- **Streak Logic**: Improved streak calculation to handle non-indexed Firestore queries and ensured stats update on login.
+
 ## [1.1.2] - 2026-02-22
 
 ### Documentation

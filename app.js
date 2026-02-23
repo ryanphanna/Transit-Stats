@@ -1710,6 +1710,7 @@ function deleteTrip() {
         .then(() => {
             closeEditTripModal();
             loadTrips(); // Refresh the trip list
+            updateStreakStatus();
             alert('Trip deleted');
         })
         .catch(error => {
@@ -1868,6 +1869,7 @@ function deleteTrip(tripId) {
                 loadTrips();
                 loadProfileTrips();
                 updateProfileStats();
+                updateStreakStatus();
             })
             .catch((error) => {
                 console.error('Error deleting trip:', error);
@@ -2319,6 +2321,7 @@ function initializeApp() {
     // Dashboard Data Initialization
     updateProfileStats();
     updateStatsSection();
+    updateStreakStatus();
 
     if (!statsInitialized) {
         initializeStatsToggle();
@@ -2843,33 +2846,38 @@ function toggleLogoutMode() {
 }
 
 function updateStreakStatus() {
+    if (!currentUser) return;
+
     db.collection('trips')
         .where('userId', '==', currentUser.uid)
-        .orderBy('endTime', 'desc')
         .get()
         .then((snapshot) => {
+            if (snapshot.empty) {
+                // Truly no trips at all
+                streakStatus.style.display = 'block';
+                streakStatus.textContent = '⚡ Take your first trip to start tracking!';
+                return;
+            }
+
             // Filter to completed trips (with endStop, endStopCode, or endStopName) in JS to avoid Firestore index issues
-            const trips = snapshot.docs
+            const completedTrips = snapshot.docs
                 .filter(doc => {
                     const data = doc.data();
-                    return data.endStop != null || data.endStopCode != null || data.endStopName != null;
+                    return (data.endStop != null || data.endStopCode != null || data.endStopName != null) && !data.discarded;
                 })
                 .map(doc => ({
                     id: doc.id,
                     ...doc.data()
                 }));
 
-            const streaks = calculateStreaks(trips);
+            const streaks = calculateStreaks(completedTrips);
 
             if (streaks.current > 0) {
                 streakStatus.style.display = 'block';
                 streakStatus.textContent = `🔥 ${streaks.current} day streak!`;
-            } else if (trips.length === 0) {
-                // Only show "take your first trip" if user has no trips at all
-                streakStatus.style.display = 'block';
-                streakStatus.textContent = '⚡ Take your first trip to start tracking!';
             } else {
-                // User has trips but no current streak - hide the banner
+                // User has trips but no current streak OR no completed trips - hide the banner
+                // We don't want to show "Take your first trip" if they have 125 trips already
                 streakStatus.style.display = 'none';
             }
         })
