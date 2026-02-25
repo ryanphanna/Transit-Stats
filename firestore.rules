@@ -44,10 +44,12 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Stops collection - authenticated users can read and create
+    // Stops collection - authenticated users can read, admins can write
     match /stops/{stopId} {
       allow read: if request.auth != null;
-      allow write: if false; // Only Admin SDK (cloud functions) can write
+      allow write: if request.auth != null && 
+                    exists(/databases/$(database)/documents/allowedUsers/$(request.auth.token.email.lower())) &&
+                    get(/databases/$(database)/documents/allowedUsers/$(request.auth.token.email.lower())).data.isAdmin == true;
     }
 
     // Rate limits - only cloud functions can read/write
@@ -60,10 +62,6 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Allowed users whitelist - only cloud functions can write
-    // Data model: { email: string, isAdmin: boolean }
-    // Users can read to check whitelist status and admin privileges
-    // Write operations must be done via Admin SDK only
     // Allowed users whitelist - only cloud functions can write
     // Data model: { email: string, isAdmin: boolean }
     // Users can read to check whitelist status and admin privileges
