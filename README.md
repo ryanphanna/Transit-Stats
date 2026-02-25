@@ -1,67 +1,29 @@
-# TransitStats
+# Transit Stats
 
-Personal transit trip tracker for enthusiasts to analyze ridership patterns.
+A premium transit trip tracker for enthusiasts to analyze ridership patterns and visualize personal transit usage using Google Gemini.
 
-TransitStats is a web-based application to track, analyze, and visualize your public transit usage.
+## Problem
 
-## 🚀 Key Features
+Transit riders lack a unified, personal way to track their journeys across multiple agencies. Official apps are often siloed, focus only on real-time arrivals, and provide no long-term historical analysis or visualization of personal transit habits.
 
-### 🚌 Trip Tracking
-- **Real-time Recording**: Start and end trips to capture routes (e.g., Bus 65, Line 1), stops, and duration.
-- **GPS Mapping**: Capture boarding and alighting locations to unlock beautiful heatmaps (requires 50+ trips).
-- **Active Trip Banner**: Always know when you have a trip in progress.
-- **Recent Activity**: Quick access to your last 5 trips on the home page.
+## Features
 
-### ⚡ Efficiency Tools
-- **Templates**: Save frequent route/stop combos for one-tap starts.
-- **Auto-save**: Frequently used routes are automatically suggested as templates.
-- **Repeat Last Trip**: One-click repeat for your most recent journey.
-- **Swipe-to-Delete**: Intuitive touch gestures for managing your history on mobile.
+- **Real-time Recording**: Start and end trips to capture routes, stops, and durations with GPS-backed boarding/alighting data.
+- **AI-Powered SMS**: Log trips using natural language via Twilio and Gemini AI, extracting routes and stops from simple text messages.
+- **Analytics & Heatmaps**: Visualize transit usage through personal stats, riding streaks, and geographic heatmaps.
+- **Multi-Agency Support**: Native support for TTC, OC Transpo, GO Transit, and other North American transit agencies.
 
-### 📊 Analytics & Streaks
-- **Personal Stats**: Track total trips, unique routes, total hours, and top stops/routes.
-- **Riding Streaks**: Build daily streaks and track your all-time records with visual indicators.
-- **Multi-Agency**: Badge support for TTC, OC Transpo, GO Transit, and many more.
+## Stack
 
-### 🧠 AI Intelligence
-- **Natural Language Parsing**: Text the way you talk. Gemini AI extracts routes, stops, and directions from conversational SMS messages.
-- **Sentiment & Incidents**: Automatically tags trips with keywords (e.g., "crowded", "delayed") and tracks rider sentiment.
-- **Smart Disambiguation**: Intelligently matches messy text inputs to official transit stop databases for accurate logging.
-
-### 📱 SMS Integration
-Track trips without opening the app by texting the TransitStats number. Powered by Gemini AI for human-like understanding.
-- **Natural Language**: Send messages like "Just boarded the 504 at Spadina" or "Taking the line 1 north from Union".
-- **Structured Format**: Still supports manual format: `Route / Stop / [Direction] / [Agency]`
-- **Commands**: `STATUS`, `END`, `DISCARD`, `INFO`
-- **Verification**: Trips are automatically verified against a community stop database.
-- **Registration**: Text `REGISTER [email]` to link your phone via a verification code.
-
-### 🌓 Modern Experience
-- **Theme Support**: Seamless switching between Light and Dark modes.
-- **Privacy First**: GPS is only captured when you explicitly start/end a trip; data is private to your account.
-- **Device Sync**: Cloud sync via Firebase keeps your data available everywhere.
+- **AI**: Google Gemini (Flash & Pro)
+- **Frontend**: Vanilla JS, HTML5, CSS3, Leaflet (Mapping)
+- **Backend**: Firebase (Auth, Firestore, Hosting)
+- **Communications**: Twilio SMS API
 
 ---
 
-## 🛠️ Getting Started
+- [Roadmap](./ROADMAP.md)
+- [Changelog](./CHANGELOG.md)
+- [Security](./SECURITY.md)
 
-1. Open the app and sign in via **Email Sign-in** (Password or Magic Link).
-2. [Optional] Grant location permissions for mapping features.
-3. Start tracking!
-
----
-
-## 📄 Documentation & Links
-
-- **[ROADMAP.md](./ROADMAP.md)** - Future development phases and vision.
-- **[SECURITY.md](./SECURITY.md)** - Security model and access control.
-- **[CHANGELOG.md](./CHANGELOG.md)** - Recent improvements and technical history.
-- **[setup-admin.md](./setup-admin.md)** - Admin panel setup guide.
-- **[migrations/](./migrations/)** - Database maintenance scripts.
-
-
-**Happy Tracking! 🚌🚇**
-
-<br />
-
-Built by [Ryan Hanna](https://github.com/ryanphanna)
+Created by [Ryan Hanna](https://github.com/ryanphanna) | [ryanisnota.pro](https://ryanisnota.pro)
