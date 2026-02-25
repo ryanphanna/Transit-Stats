@@ -1,5 +1,37 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+## [1.2.0] - 2026-02-25
+
+### Added
+- **Admin**: "Divvy Up" feature for resolving ambiguous stop names by assigning individual trips to specific stops.
+- **Admin**: "Delete Stop" functionality for verified stops.
+- **Admin**: Instant "un-verification" of historical trips when an alias is unlinked from a stop.
+- **Map**: "Spider Map" visualization (path lines between stops) is now enabled by default.
+- **SMS**: Support for `sentiment`, `tags`, and `parsed_by` in `LOG_PAST_TRIP` (backfill) commands.
+- **SMS**: Standardized `parsed_by: 'ai'` metadata for all Gemini-processed trips.
+
+### Changed
+- **UI/UX**: Single, integrated Dashboard/Map view (removed the sidebar-hiding toggle for a more stable experience).
+- **UI/UX**: Slimmed down the Dashboard sidebar to 280px to maximize map visibility.
+- **UI/UX**: Modernized navigation bar with minimalist SVG icons for Settings and Log Out.
+- **UI/UX**: Improved Dashboard layout with left-aligned title and 4-column statistics grid.
+- **UI/UX**: Full-color, high-contrast map and permanent marker interactivity.
+- **Admin**: Removed confirmation popups for common actions (deleting stops/aliases) to enable a faster workflow.
+
+### Fixed
+- **SMS**: Resolved critical bug in `handleConfirmStart` where AI-extracted metadata (`sentiment`, `tags`) was lost during trip confirmation.
+- **SMS**: Optimized TwiML responses to return a clean `<Response/>` when no reply is sent, preventing ghost SMS messages.
+- **SMS**: Improved stability by upgrading `firebase-functions` to `^7.0.5`.
+- **SMS**: Removed redundant and inefficient database updates after trip creation.
+
+
+### Security
+- **Firestore**: Updated security rules to allow administrators to manage the stops library directly from the web interface.
+
 ## [1.1.3] - 2026-02-23
 
 ### Bug Fixes

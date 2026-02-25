@@ -165,9 +165,12 @@
                 <span style="font-weight: normal; opacity: 0.9;">Data Manager</span>
             </h1>
             <div id="userInfo" class="user-info" style="display: none;">
-                <button id="adminBtn" class="header-btn text-btn" style="background: rgba(255, 255, 255, 0.3);">Data Manager</button>
-                <button id="mapsBtn" class="header-btn" onclick="window.location.href='index.html#map'">🗺️<span>Map</span></button>
-                <button id="settingsBtn" class="header-btn" onclick="window.location.href='index.html#settings'">⚙️<span>Settings</span></button>
+                <button id="adminBtn" class="header-btn text-btn" style="background: rgba(255, 255, 255, 0.3);">Data
+                    Manager</button>
+                <button id="mapsBtn" class="header-btn"
+                    onclick="window.location.href='index.html#map'">🗺️<span>Map</span></button>
+                <button id="settingsBtn" class="header-btn"
+                    onclick="window.location.href='index.html#settings'">⚙️<span>Settings</span></button>
             </div>
         </div>
     </div>
@@ -271,9 +274,8 @@
                     </div>
 
 
-                    <!-- Grid -->
                     <div id="stopLibrary"
-                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; overflow-y: auto; padding-bottom: 20px;">
+                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; overflow-y: auto; padding-bottom: 20px;">
                         <div class="loading">Loading library...</div>
                     </div>
                 </div>
@@ -303,10 +305,12 @@
 
             <div id="linkOptions">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
-                    <button id="linkExistingBtn" onclick="showLinkExisting()" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <button id="linkExistingBtn" onclick="showLinkExisting()" class="btn btn-primary"
+                        style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
                         <span style="font-size: 1.1em;">&#128279;</span> Link to Existing Stop
                     </button>
-                    <button id="createNewBtn" onclick="showCreateNew()" class="btn btn-outline" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <button id="createNewBtn" onclick="showCreateNew()" class="btn btn-outline"
+                        style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
                         <span style="font-size: 1.1em;">+</span> Create New Stop
                     </button>
                 </div>
@@ -320,7 +324,8 @@
                             style="display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: var(--bg-primary); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 8px 8px; z-index: 10;">
                         </div>
                     </div>
-                    <button onclick="confirmLink()" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Link as Alias</button>
+                    <button onclick="confirmLink()" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Link
+                        as Alias</button>
                 </div>
             </div>
 
@@ -339,7 +344,8 @@
                     <input type="text" id="newStopCode" placeholder="e.g. 1234">
                 </div>
                 <div class="form-group">
-                    <label>Direction <span style="color: var(--text-secondary); font-weight: normal;">(Optional - for surface stops)</span></label>
+                    <label>Direction <span style="color: var(--text-secondary); font-weight: normal;">(Optional - for
+                            surface stops)</span></label>
                     <select id="newStopDirection"
                         style="width: 100%; padding: 12px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
                         <option value="">None (Station/Terminal)</option>
@@ -426,7 +432,8 @@
             </div>
 
             <div class="form-group">
-                <label>Direction <span style="color: var(--text-secondary); font-weight: normal;">(Optional)</span></label>
+                <label>Direction <span
+                        style="color: var(--text-secondary); font-weight: normal;">(Optional)</span></label>
                 <select id="editStopDirection"
                     style="width: 100%; padding: 12px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
                     <option value="">None (Station/Terminal)</option>
@@ -464,20 +471,42 @@
             </div>
 
             <!-- Aliases Section (only shown in edit mode) -->
-            <div id="editAliasesSection" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-light);">
+            <div id="editAliasesSection"
+                style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-light);">
                 <label style="display: block; margin-bottom: 8px;">Linked Aliases</label>
                 <div id="editAliasesList" style="display: flex; flex-wrap: wrap; gap: 6px; min-height: 30px;">
                 </div>
             </div>
 
             <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="deleteStop()" id="deleteStopBtn" class="btn btn-outline"
+                    style="flex: 1; border-color: #ef4444; color: #ef4444; display: none;">Delete Stop</button>
                 <button onclick="saveStopFromForm()" id="saveStopBtn" class="btn btn-primary" style="flex: 1;">Save
                     Changes</button>
             </div>
         </div>
     </div>
 
-    <script src="admin.js"></script>
-</body>
+    <!-- Divvy Up Modal (Individual Trip Verification) -->
+    <div id="divvyModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-secondary); padding: 25px; border-radius: 12px; width: 90%; max-width: 600px; border: 1px solid var(--border-color); max-height: 85vh; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                <div>
+                    <h3 style="margin: 0; font-size: 1.4em;">Divvy up trips</h3>
+                    <p style="font-size: 0.9em; color: var(--text-secondary); margin-top: 5px;">Ambiguous name: <strong
+                            id="divvyTargetString" style="color: var(--accent-primary);"></strong></p>
+                </div>
+                <button onclick="closeDivvyModal()"
+                    style="background:none; border:none; cursor:pointer; font-size:2em; color:var(--text-muted); line-height: 0.5;">&times;</button>
+            </div>
+
+            <div id="divvyTripsList"
+                style="flex: 1; overflow-y: auto; padding-right: 5px; display: flex; flex-direction: column; gap: 12px;">
+                <!-- Individual trips will be rendered here -->
+            </div>
+        </div>
+    </div>
 
 </html>

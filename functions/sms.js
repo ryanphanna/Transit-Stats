@@ -161,6 +161,9 @@ async function sendSmsReply(to, message) {
  * @returns {string} TwiML XML
  */
 function twimlResponse(message) {
+  if (!message) {
+    return '<?xml version="1.0" encoding="UTF-8"?><Response/>';
+  }
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>${escapeXml(message)}</Message>
@@ -1090,6 +1093,9 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
         agency,
         verified,
         boardingLocation,
+        sentiment: options.sentiment || null,
+        tags: options.tags || [],
+        parsed_by: options.parsed_by || 'manual',
       },
     });
 
@@ -1121,6 +1127,7 @@ START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDispla
     timing_reliability: 'actual', // Default for real-time SMS logging
     sentiment: options.sentiment || null,
     tags: options.tags || [],
+    parsed_by: options.parsed_by || 'manual',
   };
 
   await db.collection('trips').add(tripData);
@@ -1179,6 +1186,9 @@ async function handleConfirmStart(phoneNumber, user, state) {
     exitLocation: null,
     agency: newTrip.agency,
     timing_reliability: determineReliability(state.expiresAt),
+    sentiment: newTrip.sentiment || null,
+    tags: newTrip.tags || [],
+    parsed_by: newTrip.parsed_by || 'manual',
   };
 
   await db.collection('trips').add(tripData);
@@ -1299,9 +1309,15 @@ function determineReliability(stateExpiresAt) {
  */
 /**
  * Handle logging a past trip (backfill)
- * Creates a completed trip with 'estimated' timing reliability
+ * @param {string} phoneNumber - Phone number
+ * @param {object} user - User object
+ * @param {string} stopInput - Stop code or name
+ * @param {string} route - Route identifier
+ * @param {string|null} direction - Direction
+ * @param {string} agency - Agency name
+ * @param {object} options - Optional parameters { sentiment, tags, parsed_by }
  */
-async function handlePastTrip(phoneNumber, user, stopInput, route, direction, agency) {
+async function handlePastTrip(phoneNumber, user, stopInput, route, direction, agency, options = {}) {
   const parsedStop = parseStopInput(stopInput);
 
   // Look up stop in database for verification
@@ -1316,20 +1332,24 @@ async function handlePastTrip(phoneNumber, user, stopInput, route, direction, ag
     userId: user.userId,
     route: route,
     direction: direction || null,
+    // Use resolved data if available, otherwise fall back to parsed input
     startStopCode: stopData ? stopData.stopCode : parsedStop.stopCode,
     startStopName: stopData ? stopData.stopName : parsedStop.stopName,
-    endStopCode: null, // We generally don't have the end stop for "forgot to log" unless heavily parsed, keeping simple for now
+    endStopCode: null, // Past trips only have start stop usually
     endStopName: null,
     startTime: now,
-    endTime: now, // Zero duration
-    source: 'sms', // Use 'sms' so UI displays the verified/unverified badge
-    verified: false, // Strict verification requires end stop; past trips (start only) are unverified
+    endTime: now, // Zero duration (completed)
+    source: 'sms',
+    verified: false, // Legacy verification requires both ends
     boardingLocation: boardingLocation,
     exitLocation: null,
     agency: agency,
     timing_reliability: 'estimated',
     duration: 0,
-    notes: 'Logged via NLP: forgot to log'
+    sentiment: options.sentiment || null,
+    tags: options.tags || [],
+    parsed_by: options.parsed_by || 'manual',
+    notes: options.notes || 'Logged via SMS (backfill)',
   };
 
   await db.collection('trips').add(tripData);
@@ -1755,18 +1775,11 @@ STATUS to view active trip. INFO to view this information.`,
               defaultAgency,
               {
                 sentiment: geminiResult.sentiment,
-                tags: geminiResult.tags
+                tags: geminiResult.tags,
+                parsed_by: 'ai',
               }
             );
 
-
-            // Add parsed_by tag to the latest trip
-            const addedTrip = await getActiveTrip(user.userId);
-            if (addedTrip) {
-              await db.collection('trips').doc(addedTrip.id).update({
-                parsed_by: 'ai',
-              });
-            }
             res.type('text/xml').send(twimlResponse(''));
             return;
           }
@@ -1806,7 +1819,13 @@ STATUS to view active trip. INFO to view this information.`,
               pastStop,
               geminiResult.route,
               geminiResult.direction || null,
-              defaultAgency
+              defaultAgency,
+              {
+                sentiment: geminiResult.sentiment,
+                tags: geminiResult.tags,
+                parsed_by: 'ai',
+                notes: 'Logged via Gemini Flash (forgot to log)',
+              }
             );
           } else {
             await sendSmsReply(
