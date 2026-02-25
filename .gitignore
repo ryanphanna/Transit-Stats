@@ -40,3 +40,7 @@ build/
 
 # Test coverage
 coverage/
+
+# Cache
+.npm-cache/
+**/ .npm-cache/
