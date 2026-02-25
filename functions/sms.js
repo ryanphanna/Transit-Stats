@@ -88,7 +88,12 @@ function validateConfiguration() {
 }
 
 // Validate configuration on cold start
-const configValidation = validateConfiguration();
+let configValidation = { errors: [], warnings: [] };
+try {
+  configValidation = validateConfiguration();
+} catch (error) {
+  console.warn('⚠️  Configuration validation skipped or failed:', error.message);
+}
 
 // =============================================================================
 // TWILIO CONFIGURATION
