@@ -4,6 +4,19 @@
 
 ### Added
 
+## [1.3.0] - 2026-02-28
+
+### Added
+- **SMS**: AI-powered natural language Q&A — ask any question about your trip history and get an answer via SMS (e.g. "How long does my commute usually take?").
+- **SMS**: `STATS` command — returns a 30-day rolling summary (trips, routes, hours) with a percentage comparison vs. the previous 30 days and a month-to-date trip count.
+- **SMS**: `INCOMPLETE` command — marks an active trip as incomplete when you forgot to send END. Keeps the trip start but leaves the end unknown.
+
+### Changed
+- **SMS**: `DISCARD` now permanently deletes the active trip (for when you never actually boarded). Previously it soft-deleted with `discarded: true`.
+- **SMS**: Consolidated `HELP`, `INFO`, `COMMANDS`, and `?` into a single shared function so the message is always consistent.
+- **SMS**: Updated trip confirmation and STATUS messages to mention both `INCOMPLETE` and `DISCARD` with clear descriptions.
+- **SMS**: Removed `LOG_PAST_TRIP` intent — logging past trips via SMS was too tedious and is better handled elsewhere.
+
 ## [1.2.0] - 2026-02-25
 
 ### Added
