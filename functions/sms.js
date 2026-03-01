@@ -794,7 +794,8 @@ function constructStopInput(result) {
  * Handle HELP command
  */
 async function handleHelp(phoneNumber) {
-  const message = `TransitStats
+  await sendSmsReply(phoneNumber,
+    `TransitStats
 
 To start a trip, send:
 
@@ -808,10 +809,15 @@ END
 STOP
 NOTES (optional)
 
-STATUS to view active trip. INFO to view this information.
-REGISTER [email] - Link account`;
+Commands:
+STATUS - view active trip
+STATS - your last 30 days
+INCOMPLETE - forgot to end a trip
+DISCARD - didn't board, delete the trip
+REGISTER [email] - link account
 
-  await sendSmsReply(phoneNumber, message);
+Ask me anything about your trips, e.g. "How long does my commute usually take?"`
+  );
 }
 
 /**
@@ -849,13 +855,13 @@ async function handleStatus(phoneNumber, user) {
 ${routeDisplay} from Stop ${startStopDisplay}
 Started ${timeStr} (${elapsedMin} min ago)
 
-END + STOP to finish. DISCARD to delete. INFO for help.`;
+END + STOP to finish. INCOMPLETE if you forgot to end. DISCARD if you didn't board. INFO for help.`;
 
   await sendSmsReply(phoneNumber, message);
 }
 
 /**
- * Handle DISCARD command - deletes active trip without saving
+ * Handle DISCARD command - permanently deletes active trip (never boarded)
  */
 async function handleDiscard(phoneNumber, user) {
   const activeTrip = await getActiveTrip(user.userId);
@@ -865,26 +871,39 @@ async function handleDiscard(phoneNumber, user) {
     return;
   }
 
-  // Format route with direction if available
   const routeDisplay = activeTrip.direction ?
     `Route ${activeTrip.route} ${activeTrip.direction}` :
     `Route ${activeTrip.route}`;
 
-  // Soft discard: Mark as discarded instead of deleting
-  await db.collection('trips').doc(activeTrip.id).update({
-    discarded: true,
-    endTime: admin.firestore.FieldValue.serverTimestamp(),
-    duration: 0,
-    exitLocation: null,
-    notes: 'Discarded by user'
-  });
-
+  await db.collection('trips').doc(activeTrip.id).delete();
   await clearPendingState(phoneNumber);
 
-  await sendSmsReply(
-    phoneNumber,
-    `✅ Discarded ${routeDisplay} (saved to history).`,
-  );
+  await sendSmsReply(phoneNumber, `✅ Deleted ${routeDisplay}.`);
+}
+
+/**
+ * Handle INCOMPLETE command - keeps trip start, marks end as unknown
+ */
+async function handleIncomplete(phoneNumber, user) {
+  const activeTrip = await getActiveTrip(user.userId);
+
+  if (!activeTrip) {
+    await sendSmsReply(phoneNumber, 'No active trip to mark incomplete.');
+    return;
+  }
+
+  const routeDisplay = activeTrip.direction ?
+    `Route ${activeTrip.route} ${activeTrip.direction}` :
+    `Route ${activeTrip.route}`;
+
+  await db.collection('trips').doc(activeTrip.id).update({
+    incomplete: true,
+    endTime: activeTrip.startTime,
+    exitLocation: null,
+    duration: null,
+  });
+
+  await sendSmsReply(phoneNumber, `✅ Marked ${routeDisplay} as incomplete.`);
 }
 
 /**
@@ -1150,7 +1169,7 @@ START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDispla
     phoneNumber,
     `✅ Started ${routeDisplay} from Stop ${finalStopDisplay}.
 
-END + STOP to finish. DISCARD to delete. INFO for help.`,
+END + STOP to finish. INCOMPLETE if you forgot to end. DISCARD if you didn't board. INFO for help.`,
   );
 }
 
@@ -1211,7 +1230,7 @@ async function handleConfirmStart(phoneNumber, user, state) {
     `✅ ${oldTripRouteDisplay} marked incomplete.
 ✅ Started ${newRouteDisplay} from Stop ${newStopDisplay}.
 
-END + STOP to finish. DISCARD to delete. INFO for help.`,
+END + STOP to finish. INCOMPLETE if you forgot to end. DISCARD if you didn't board. INFO for help.`,
   );
 }
 
@@ -1312,64 +1331,6 @@ function determineReliability(stateExpiresAt) {
  * @param {string} text - Raw SMS text
  * @returns {object|null} Parsed data or null if failed
  */
-/**
- * Handle logging a past trip (backfill)
- * @param {string} phoneNumber - Phone number
- * @param {object} user - User object
- * @param {string} stopInput - Stop code or name
- * @param {string} route - Route identifier
- * @param {string|null} direction - Direction
- * @param {string} agency - Agency name
- * @param {object} options - Optional parameters { sentiment, tags, parsed_by }
- */
-async function handlePastTrip(phoneNumber, user, stopInput, route, direction, agency, options = {}) {
-  const parsedStop = parseStopInput(stopInput);
-
-  // Look up stop in database for verification
-  const stopData = await lookupStop(parsedStop.stopCode, parsedStop.stopName, agency);
-  const verified = stopData !== null;
-  const boardingLocation = stopData ? { lat: stopData.lat, lng: stopData.lng } : null;
-
-  // Create completed trip immediately
-  const now = admin.firestore.FieldValue.serverTimestamp();
-
-  const tripData = {
-    userId: user.userId,
-    route: route,
-    direction: direction || null,
-    // Use resolved data if available, otherwise fall back to parsed input
-    startStopCode: stopData ? stopData.stopCode : parsedStop.stopCode,
-    startStopName: stopData ? stopData.stopName : parsedStop.stopName,
-    endStopCode: null, // Past trips only have start stop usually
-    endStopName: null,
-    startTime: now,
-    endTime: now, // Zero duration (completed)
-    source: 'sms',
-    verified: false, // Legacy verification requires both ends
-    boardingLocation: boardingLocation,
-    exitLocation: null,
-    agency: agency,
-    timing_reliability: 'estimated',
-    duration: 0,
-    sentiment: options.sentiment || null,
-    tags: options.tags || [],
-    parsed_by: options.parsed_by || 'manual',
-    notes: options.notes || 'Logged via SMS (backfill)',
-  };
-
-  await db.collection('trips').add(tripData);
-
-  const routeDisplay = direction ? `Route ${route} ${direction}` : `Route ${route}`;
-  const finalStopDisplay = getStopDisplay(
-    stopData ? stopData.stopCode : parsedStop.stopCode,
-    stopData ? stopData.stopName : parsedStop.stopName,
-  );
-
-  await sendSmsReply(
-    phoneNumber,
-    `✅ Logged past trip: ${routeDisplay} from ${finalStopDisplay} (Estimated).`
-  );
-}
 
 /**
  * Retry helper with exponential backoff
@@ -1402,6 +1363,155 @@ async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
   }
 }
 
+// =============================================================================
+// STATS QUERY HELPERS
+// =============================================================================
+
+/**
+ * Aggregate trip data into summary stats for AI context
+ */
+function aggregateTripStats(trips) {
+  const routeMap = {};
+  const pairMap = {};
+
+  trips.forEach(trip => {
+    const route = trip.route || 'Unknown';
+    const dur = trip.duration || 0;
+    const startStop = trip.startStopName || trip.startStop || trip.startStopCode || 'Unknown';
+    const endStop = trip.endStopName || trip.endStop || trip.endStopCode || 'Unknown';
+    const pairKey = `${startStop} → ${endStop}`;
+
+    if (!routeMap[route]) routeMap[route] = { count: 0, durations: [] };
+    routeMap[route].count++;
+    if (dur > 0) routeMap[route].durations.push(dur);
+
+    if (!pairMap[pairKey]) pairMap[pairKey] = { route, count: 0, durations: [] };
+    pairMap[pairKey].count++;
+    if (dur > 0) pairMap[pairKey].durations.push(dur);
+  });
+
+  const avg = (arr) => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
+
+  const routeStats = Object.entries(routeMap).map(([route, data]) => ({
+    route,
+    count: data.count,
+    avgDuration: avg(data.durations),
+    minDuration: data.durations.length ? Math.min(...data.durations) : null,
+    maxDuration: data.durations.length ? Math.max(...data.durations) : null,
+  })).sort((a, b) => b.count - a.count).slice(0, 10);
+
+  const pairStats = Object.entries(pairMap).map(([pair, data]) => ({
+    pair,
+    route: data.route,
+    count: data.count,
+    avgDuration: avg(data.durations),
+    minDuration: data.durations.length ? Math.min(...data.durations) : null,
+    maxDuration: data.durations.length ? Math.max(...data.durations) : null,
+  })).sort((a, b) => b.count - a.count).slice(0, 20);
+
+  return { total: trips.length, routeStats, pairStats };
+}
+
+/**
+ * Use Gemini to answer a natural-language question given aggregated trip stats
+ */
+async function answerQueryWithGemini(question, stats) {
+  const apiKey = functions.config().gemini?.api_key;
+  if (!apiKey) return 'AI unavailable right now.';
+
+  return await retryWithBackoff(async () => {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+    const prompt = `You are a transit stats assistant for TransitStats. Answer the user's question using their personal transit data below. Be concise and friendly. Keep the response under 300 characters if possible so it fits in an SMS.
+
+User question: "${question}"
+
+Their transit data:
+- Total completed trips: ${stats.total}
+- Top routes: ${JSON.stringify(stats.routeStats.slice(0, 5))}
+- Top stop pairs: ${JSON.stringify(stats.pairStats.slice(0, 10))}
+
+If the data doesn't contain enough info to answer, say so briefly.`;
+
+    const result = await model.generateContent(prompt);
+    return result.response.text().trim();
+  }).catch(() => 'Sorry, I had trouble answering that. Try again?');
+}
+
+/**
+ * Handle a natural-language query about the user's trip history
+ */
+async function handleQuery(phoneNumber, user, question) {
+  const snapshot = await db.collection('trips')
+    .where('userId', '==', user.userId)
+    .where('endStop', '!=', null)
+    .limit(500)
+    .get();
+
+  const trips = snapshot.docs.map(d => d.data());
+
+  if (trips.length === 0) {
+    await sendSmsReply(phoneNumber, "You don't have any completed trips yet!");
+    return;
+  }
+
+  const stats = aggregateTripStats(trips);
+  const answer = await answerQueryWithGemini(question, stats);
+  await sendSmsReply(phoneNumber, answer);
+}
+
+/**
+ * Handle the STATS command — quick summary without a specific question
+ */
+async function handleStatsCommand(phoneNumber, user) {
+  const now = new Date();
+
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const sixtyDaysAgo = new Date(now);
+  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+  const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const snapshot = await db.collection('trips')
+    .where('userId', '==', user.userId)
+    .where('startTime', '>=', admin.firestore.Timestamp.fromDate(sixtyDaysAgo))
+    .get();
+
+  const toDate = (t) => t.startTime?.toDate ? t.startTime.toDate() : new Date(t.startTime);
+  const allTrips = snapshot.docs.map(d => d.data()).filter(t => t.endStop != null);
+
+  const recent = allTrips.filter(t => toDate(t) >= thirtyDaysAgo);
+  const previous = allTrips.filter(t => {
+    const d = toDate(t);
+    return d >= sixtyDaysAgo && d < thirtyDaysAgo;
+  });
+  const thisMonth = allTrips.filter(t => toDate(t) >= firstOfMonth);
+
+  if (recent.length === 0 && thisMonth.length === 0) {
+    await sendSmsReply(phoneNumber, "No trips logged in the last 60 days.");
+    return;
+  }
+
+  const totalMins = recent.reduce((sum, t) => sum + (t.duration || 0), 0);
+  const totalHours = (totalMins / 60).toFixed(1);
+  const uniqueRoutes = new Set(recent.map(t => t.route).filter(Boolean)).size;
+  const monthName = now.toLocaleString('en-US', { month: 'short' });
+
+  let comparison = '';
+  if (previous.length > 0) {
+    const pct = Math.round(((recent.length - previous.length) / previous.length) * 100);
+    const arrow = pct >= 0 ? '↑' : '↓';
+    comparison = `\n${arrow} ${Math.abs(pct)}% more trips vs prev 30 days`;
+  }
+
+  await sendSmsReply(phoneNumber,
+    `📊 Last 30 Days\n${recent.length} trips • ${uniqueRoutes} routes • ${totalHours} hrs${comparison}\n${thisMonth.length} trips so far in ${monthName}`
+  );
+}
+
 async function parseWithGemini(text) {
   const apiKey = functions.config().gemini?.api_key;
   if (!apiKey) {
@@ -1421,7 +1531,7 @@ async function parseWithGemini(text) {
     - END_TRIP: User is ending the current trip (extract stop if present).
     - DISCARD_TRIP: User wants to cancel/delete the active trip (e.g., "didn't take it", "mistake", "cancel", "didn't board").
     - INCOMPLETE_TRIP: User forgot to end the trip earlier and wants to close it as incomplete/unknown (e.g., "forgot to end", "incomplete").
-    - LOG_PAST_TRIP: User wants to log a trip that happened in the past (e.g., "forgot to log", "took earlier", "add past trip").
+    - QUERY: User is asking a question or requesting statistics about their own transit history (e.g., "how many trips have I taken?", "how long does my commute usually take?", "what's my most used route?").
     - OTHER: Not a transit command.
 
     Extraction Rules:
@@ -1441,13 +1551,14 @@ async function parseWithGemini(text) {
 
     Return ONLY JSON:
     {
-      "intent": "START_TRIP" | "END_TRIP" | "DISCARD_TRIP" | "INCOMPLETE_TRIP" | "LOG_PAST_TRIP" | "OTHER",
+      "intent": "START_TRIP" | "END_TRIP" | "DISCARD_TRIP" | "INCOMPLETE_TRIP" | "QUERY" | "OTHER",
       "route": "string" | null,
       "stop_name": "string" | null,
       "stop_id": "string" | null,
       "direction": "string" | null,
       "sentiment": "POSITIVE" | "NEGATIVE" | "NEUTRAL",
-      "tags": ["string"]
+      "tags": ["string"],
+      "question": "string" | null
     }`;
 
     const result = await model.generateContent(prompt);
@@ -1575,23 +1686,7 @@ async function handleSmsRequest(req, res) {
 
     // INFO/? command - show SMS help
     if (upperBody === 'INFO' || upperBody === 'COMMANDS' || upperBody === '?') {
-      await sendSmsReply(phoneNumber,
-        `TransitStats
-
-To start a trip, send:
-
-ROUTE
-STOP
-DIRECTION (optional)
-AGENCY (optional)
-
-To end a trip, send:
-END
-STOP
-NOTES (optional)
-
-STATUS to view active trip. INFO to view this information.`,
-      );
+      await handleHelp(phoneNumber);
       res.type('text/xml').send(twimlResponse(''));
       return;
     }
@@ -1635,9 +1730,23 @@ STATUS to view active trip. INFO to view this information.`,
       return;
     }
 
+    // STATS command - quick trip summary
+    if (upperBody === 'STATS') {
+      await handleStatsCommand(phoneNumber, user);
+      res.type('text/xml').send(twimlResponse(''));
+      return;
+    }
+
     // DISCARD command (no pending state)
     if (upperBody === 'DISCARD') {
       await handleDiscard(phoneNumber, user);
+      res.type('text/xml').send(twimlResponse(''));
+      return;
+    }
+
+    // INCOMPLETE command - trip started but forgot to end
+    if (upperBody === 'INCOMPLETE') {
+      await handleIncomplete(phoneNumber, user);
       res.type('text/xml').send(twimlResponse(''));
       return;
     }
@@ -1815,56 +1924,20 @@ STATUS to view active trip. INFO to view this information.`,
           res.type('text/xml').send(twimlResponse(''));
           return;
 
-        case 'LOG_PAST_TRIP':
-          const pastStop = constructStopInput(geminiResult);
-          if (geminiResult.route && pastStop) {
-            await handlePastTrip(
-              phoneNumber,
-              user,
-              pastStop,
-              geminiResult.route,
-              geminiResult.direction || null,
-              defaultAgency,
-              {
-                sentiment: geminiResult.sentiment,
-                tags: geminiResult.tags,
-                parsed_by: 'ai',
-                notes: 'Logged via Gemini Flash (forgot to log)',
-              }
-            );
-          } else {
-            await sendSmsReply(
-              phoneNumber,
-              'To log a past trip, please provide route and stop (e.g., "Forgot to log 504 from Union").'
-            );
-          }
-          res.type('text/xml').send(twimlResponse(''));
-          return;
 
         case 'DISCARD_TRIP':
           await handleDiscard(phoneNumber, user);
           res.type('text/xml').send(twimlResponse(''));
           return;
 
-        case 'INCOMPLETE_TRIP': {
-          const activeTrip = await getActiveTrip(user.userId);
-          if (activeTrip) {
-            // Mark as incomplete
-            await db.collection('trips').doc(activeTrip.id).update({
-              incomplete: true,
-              endTime: activeTrip.startTime, // Set end time to start time (duration 0)
-              exitLocation: null,
-              duration: null,
-            });
+        case 'INCOMPLETE_TRIP':
+          await handleIncomplete(phoneNumber, user);
+          res.type('text/xml').send(twimlResponse(''));
+          return;
 
-            const routeDisplay = activeTrip.direction
-              ? `Route ${activeTrip.route} ${activeTrip.direction}`
-              : `Route ${activeTrip.route}`;
-
-            await sendSmsReply(phoneNumber, `✅ Marked ${routeDisplay} as incomplete.`);
-          } else {
-            await sendSmsReply(phoneNumber, 'No active trip to mark incomplete.');
-          }
+        case 'QUERY': {
+          const question = geminiResult.question || body;
+          await handleQuery(phoneNumber, user, question);
           res.type('text/xml').send(twimlResponse(''));
           return;
         }
