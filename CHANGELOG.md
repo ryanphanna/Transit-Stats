@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **UI/UX**: Premium High-Contrast redesign of the landing page and authentication portal.
+- **UI/UX**: Depth-layered surface system with custom elevation shadows and solid-contrast borders.
+- **UI/UX**: Subtle dot-grid background pattern with radial glow effect for a more immersive feel.
+
+### Changed
+- **UI/UX**: Transitioned primary action buttons to "Electric Indigo" with glow-effect shadows.
+- **UI/UX**: Improved visual feedback for disabled button states (gray-out + not-allowed cursor).
+- **UI/UX**: Modernized typography across the sign-in flow using high-contrast 'Inter' weights.
+
+### Fixed
+- **UI/UX**: Resolved an issue where the "Continue" button appeared active but was non-responsive when opened via the `file://` protocol (added clearer state handling).
+
 ## [1.3.0] - 2026-02-28
 
 ### Added
@@ -37,28 +52,27 @@
 - **SMS**: Improved stability by upgrading `firebase-functions` to `^7.0.5`.
 - **SMS**: Removed redundant and inefficient database updates after trip creation.
 
-
 ### Security
 - **Firestore**: Updated security rules to allow administrators to manage the stops library directly from the web interface.
 
 ## [1.1.3] - 2026-02-23
 
-### Bug Fixes
+### Fixed
 - **Dashboard**: Fixed "Take your first trip" banner incorrectly showing for users with existing trips.
 - **Streak Logic**: Improved streak calculation to handle non-indexed Firestore queries and ensured stats update on login.
 
 ## [1.1.2] - 2026-02-22
 
-### Documentation
+### Added
 - **Roadmap**: Added `ROADMAP.md` to outline future development phases, including "Wrapped" visualizations and PRESTO data integration.
 
 ## [1.1.1] - 2026-02-12
 
-### Bug Fixes
+### Fixed
 - **Crash Prevention**: Fixed critical crashes in `calculateFounderStats` and `generateTimeOfDayStats` by adding null checks for missing DOM elements.
 - **Admin Panel**: Fixed HTML attribute injection vulnerability in the stop editor that caused syntax errors when editing stops with aliases.
 
-### Reliability
+### Changed
 - **Map Interaction**: Improved stability of map interactions by preventing re-initialization errors.
 
 ## [1.1.0] - 2026-01-25
@@ -70,12 +84,12 @@
 - **Input Validation**: Added validation for stop data, trip data, and user inputs.
 - **Firestore Rules**: Enhanced security rules with detailed data model documentation.
 
-### Reliability
+### Changed
 - **Gemini Retry Logic**: Automatic retry with exponential backoff for AI parsing failures.
 - **Configuration Validation**: Cold-start validation of all required environment variables.
 - **Error Handling**: Improved error logging and user-friendly error messages.
 
-### Code Quality
+### Added
 - **Migration Scripts**: Added database migration tools for legacy field cleanup.
 - **Documentation**: Comprehensive security model and setup guides (`SECURITY.md`, `setup-admin.md`).
 
