@@ -15,7 +15,7 @@ import { MapEngine } from './map-engine.js';
 import { Visuals } from './visuals.js';
 
 
-console.log('🚀 TransitStats Loading...');
+console.log('TransitStats Loading...');
 
 // Global Error Boundary
 window.onerror = function (message, source, lineno, colno, error) {
@@ -42,7 +42,6 @@ window.stopsLibrary = [];
 document.addEventListener('DOMContentLoaded', () => {
     UI.loadSavedTheme();
     Auth.init();
-    loadStopsLibrary();
     setupGlobalStateHandlers();
 });
 
@@ -50,6 +49,8 @@ document.addEventListener('DOMContentLoaded', () => {
  * Global initialization called after successful authentication
  */
 window.initializeApp = function () {
+    loadStopsLibrary(); // Load stops after successful auth
+    MapEngine.init();   // Initialize map for the current user
     Trips.init();
     Templates.init();
     Stats.init();
@@ -63,7 +64,7 @@ async function loadStopsLibrary() {
     try {
         const snapshot = await db.collection('stops').get();
         window.stopsLibrary = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log(`✅ Loaded ${window.stopsLibrary.length} stops for resolution`);
+        console.log(`Loaded ${window.stopsLibrary.length} stops for resolution`);
     } catch (error) {
         console.error('Error loading stops library:', error);
     }
@@ -137,10 +138,10 @@ function navigateTo(screen) {
 // Dev Bypass logic
 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     window.bypassLogin = () => {
-        console.log('🛠️ Bypassing Authentication...');
+        console.log('Bypassing Authentication...');
         window.currentUser = { uid: 'dev-user', email: 'ryan@transitstats.dev' };
         Auth.showApp();
     };
 }
 
-console.log('✅ TransitStats Ready!');
+console.log('TransitStats Ready!');

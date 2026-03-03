@@ -99,7 +99,12 @@ export const Trips = {
                     // Update stats in real-time
                     if (window.Stats) Stats.updateProfileStats();
                 } else {
-                    recentTripsList.innerHTML = '<div class="empty-state"><span>🚌</span><p>Take your first trip to get started!</p></div>';
+                    recentTripsList.innerHTML = `
+                        <div class="empty-state" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                            <div style="font-size: 1.1em; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary);">No trips recorded yet</div>
+                            <p style="font-size: 0.9em; max-width: 240px; margin: 0 auto; line-height: 1.4;">Your transit journey starts here. Add your first trip to see your dashboard come to life.</p>
+                        </div>
+                    `;
                 }
             }, (error) => {
                 console.error('Error in trips listener:', error);

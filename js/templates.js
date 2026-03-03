@@ -65,9 +65,13 @@ export const Templates = {
 
         const templatesHtml = templates.slice(0, 3).map(template => `
             <div class="template-card" onclick="Trips.startFromTemplate('${template.route}', '${template.startStop}')">
-                <span class="template-icon">⭐</span>
-                <div class="route-name">${template.route}</div>
-                <div class="stop-name">From ${template.startStop}</div>
+                <div class="template-icon" style="margin-bottom: 12px; color: var(--accent-electric);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+                    </svg>
+                </div>
+                <div class="route-name" style="font-weight: 700; font-size: 1.1em; color: var(--text-primary); margin-bottom: 4px;">${template.route}</div>
+                <div class="stop-name" style="font-size: 0.9em; color: var(--text-secondary);">From ${template.startStop}</div>
             </div>
         `).join('');
 
@@ -88,7 +92,12 @@ export const Templates = {
                 <div class="delete-overlay">Delete</div>
                 <div><strong>${template.route}</strong></div>
                 <div>From ${template.startStop}</div>
-                <div style="font-size: 0.9em; color: var(--text-secondary);">⭐ Quick start template</div>
+                <div style="font-size: 0.9em; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
+                    </svg>
+                    <span>Quick start template</span>
+                </div>
             </div>
         `).join('');
 

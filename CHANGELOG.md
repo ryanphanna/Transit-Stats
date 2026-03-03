@@ -1,19 +1,39 @@
 # Changelog
 
-## [Unreleased]
+## [1.4.0] - 2026-03-03
 
 ### Added
+- **UI/UX**: Professional SVG iconography system replacing legacy emojis across all modals, headers, and navigation.
+- **UI/UX**: Premium brand identity on the login portal featuring a custom SVG transit icon with a vibrant gradient container.
+- **UI/UX**: New `--accent-gradient` design token for consistent high-end branding.
+- **UI/UX**: Professional empty-state layouts with improved descriptive text and minimalist styling.
+- **Map**: Complete redesign of the background map using an "Apple Maps" inspired aesthetic. Transitioned to a "No-Labels" base layer with a permanent transit-focused OpenRailwayMap overlay.
+- **Map**: Intelligent map theme switching—automatically toggles between minimalist Light and Dark base tiles based on application theme.
+- **Map**: Refined visual paths (Spider Map) with subtler dashed indigo lines and high-contrast, premium stop markers.
+- **Map**: New `MapEngine.refresh` logic to ensure the map updates immediately when switching themes or filters.
+- **UI/UX**: Added smooth CSS transitions for map markers and interactive elements.
+
+### Changed
 - **UI/UX**: Premium High-Contrast redesign of the landing page and authentication portal.
 - **UI/UX**: Depth-layered surface system with custom elevation shadows and solid-contrast borders.
 - **UI/UX**: Subtle dot-grid background pattern with radial glow effect for a more immersive feel.
-
-### Changed
+- **UI/UX**: Removed simulated vehicle emojis from the login map to ensure a cleaner, more professional presentation.
+- **Map**: Enhanced transit network visibility by increasing the opacity of the OpenRailwayMap architectural layer.
+- **UI/UX**: Enabled interactive panning and zooming on the dashboard map while maintaining a static background for the login screen.
 - **UI/UX**: Transitioned primary action buttons to "Electric Indigo" with glow-effect shadows.
 - **UI/UX**: Improved visual feedback for disabled button states (gray-out + not-allowed cursor).
 - **UI/UX**: Modernized typography across the sign-in flow using high-contrast 'Inter' weights.
+- **Auth**: Hardened the whitelist check to attempt both collection queries and direct document lookups, ensuring compatibility with strict Firestore rules.
+- **Admin**: Streamlined admin access by unifying the magic-link authentication flow across the entire platform.
+- **Build**: Optimized Vite configuration to exclude heavy Firebase dependencies from pre-bundling, improving dev server start times.
+- **Build**: Set `server.open: false` in Vite to prevent intrusive browser auto-opening during development.
 
 ### Fixed
-- **UI/UX**: Resolved an issue where the "Continue" button appeared active but was non-responsive when opened via the `file://` protocol (added clearer state handling).
+- **Auth**: Resolved "Missing or insufficient permissions" errors on the login screen by deferring metadata loading until after successful authentication.
+- **UI/UX**: Fixed a state management bug where the `user-logged-in` body class was not correctly toggled during the sign-out flow.
+- **UI/UX**: Resolved an issue where the "Continue" button appeared active but was non-responsive when opened via the `file://` protocol.
+- **UI/UX**: Improved mobile experience by hiding map attribution tiles on screens smaller than 480px.
+- **Map**: Optimized geolocation performance by removing redundant high-accuracy overhead when not required.
 
 ## [1.3.0] - 2026-02-28
 

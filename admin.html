@@ -167,19 +167,33 @@
             <div id="userInfo" class="user-info" style="display: none;">
                 <button id="adminBtn" class="header-btn text-btn" style="background: rgba(255, 255, 255, 0.3);">Data
                     Manager</button>
-                <button id="mapsBtn" class="header-btn"
-                    onclick="window.location.href='index.html#map'">🗺️<span>Map</span></button>
-                <button id="settingsBtn" class="header-btn"
-                    onclick="window.location.href='index.html#settings'">⚙️<span>Settings</span></button>
+                <button id="mapsBtn" class="header-btn" onclick="window.location.href='index.html#map'">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    <span>Map</span>
+                </button>
+                <button id="settingsBtn" class="header-btn" onclick="window.location.href='index.html#settings'">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                        </path>
+                    </svg>
+                    <span>Settings</span>
+                </button>
             </div>
         </div>
     </div>
 
     <!-- Auth View -->
-    <div id="authSection" class="section auth-section" style="max-width: 400px; margin: 50px auto;">
+    <div id="authSection" class="section auth-section" style="max-width: 400px; margin: 50px auto; text-align: center;">
         <h2>🔐 Admin Access</h2>
-        <p>Restricted area. Please sign in.</p>
-        <button onclick="login()" class="btn btn-primary">Sign In with Google</button>
+        <p>Restricted area. Please sign in via the main dashboard.</p>
+        <button onclick="window.location.href='index.html'" class="btn btn-primary">Go to Dashboard to Sign In</button>
     </div>
 
     <!-- Main Admin View -->
@@ -200,7 +214,7 @@
 
                     <!-- Search & Bulk Actions -->
                     <div style="margin-bottom: 15px;">
-                        <input type="text" id="inboxSearch" placeholder="🔍 Search inbox..." onkeyup="filterInbox()"
+                        <input type="text" id="inboxSearch" placeholder="Search inbox..." onkeyup="filterInbox()"
                             style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-tertiary); color: var(--text-primary); font-size: 0.9em; box-sizing: border-box;">
                     </div>
 
@@ -250,7 +264,7 @@
 
                     <!-- Filters -->
                     <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                        <input type="text" id="stopSearch" placeholder="🔍 Search by name, code, or alias..."
+                        <input type="text" id="stopSearch" placeholder="Search by name, code, or alias..."
                             onkeyup="filterStops()"
                             style="padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-tertiary); color: var(--text-primary);">
 
@@ -305,13 +319,11 @@
 
             <div id="linkOptions">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
-                    <button id="linkExistingBtn" onclick="showLinkExisting()" class="btn btn-primary"
-                        style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <span style="font-size: 1.1em;">&#128279;</span> Link to Existing Stop
+                    Link to Existing Stop
                     </button>
                     <button id="createNewBtn" onclick="showCreateNew()" class="btn btn-outline"
                         style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <span style="font-size: 1.1em;">+</span> Create New Stop
+                        Create New Stop
                     </button>
                 </div>
 
