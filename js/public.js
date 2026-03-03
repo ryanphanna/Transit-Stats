@@ -125,8 +125,16 @@ function renderStats(trips) {
 function initPublicMap(trips) {
     // Basic Leaflet Map
     const map = L.map('publicMapContainer').setView([43.70, -79.42], 12); // Default Toronto
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap &copy; CARTO'
+    // Cleaner 'No Labels' version for a premium look
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+        className: 'map-base-layer'
+    }).addTo(map);
+
+    // Transit Routes Overlay: Memomaps for colored route paths
+    L.tileLayer('https://{s}.tile.memomaps.de/tilegen/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        opacity: 0.7,
+        className: 'map-transit-layer'
     }).addTo(map);
 
     if (trips.length > 0 && Visuals && Visuals.renderHeatmap) {

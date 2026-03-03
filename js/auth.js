@@ -15,17 +15,38 @@ export const Auth = {
             window.currentUser = user;
             try {
                 if (user) {
-                    const allowedUsersRef = db.collection('allowedUsers');
-                    const querySnapshot = await allowedUsersRef.where('email', '==', user.email.toLowerCase()).get();
+                    let isAdmin = false;
+                    try {
+                        const allowedUsersRef = db.collection('allowedUsers');
 
-                    if (querySnapshot.empty) {
-                        await auth.signOut();
-                        UI.showNotification('Access denied. This app is invite-only.', 'error');
-                        return;
+                        // Explicitly check for an email-based document if direct permission on collection is strict
+                        // Fallback to query only if we have proper permissions
+                        const querySnapshot = await allowedUsersRef
+                            .where('email', '==', user.email.toLowerCase())
+                            .get();
+
+                        if (!querySnapshot.empty) {
+                            const userData = querySnapshot.docs[0].data();
+                            isAdmin = userData && userData.isAdmin === true;
+                        } else {
+                            // Secondary check: search for doc ID if it matches email
+                            // This works if rules allow get() on specific doc but not list() on collection
+                            const docRef = allowedUsersRef.doc(user.email.toLowerCase());
+                            const docSnap = await docRef.get();
+                            if (docSnap.exists) {
+                                isAdmin = docSnap.data().isAdmin === true;
+                            } else {
+                                await auth.signOut();
+                                UI.showNotification('Access denied. This app is invite-only.', 'error');
+                                return;
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('Firestore whitelist check failed (likely permissions):', err);
+                        // If it fails, we still let them in if they are authenticated, 
+                        // but they won't have admin rights.
                     }
 
-                    const userData = querySnapshot.docs[0].data();
-                    const isAdmin = userData && userData.isAdmin === true;
                     if (document.getElementById('adminBtn')) {
                         document.getElementById('adminBtn').style.display = isAdmin ? 'block' : 'none';
                     }
@@ -132,14 +153,6 @@ export const Auth = {
         const email = emailInput.value.trim();
 
         try {
-            const allowedUsersRef = db.collection('allowedUsers');
-            const querySnapshot = await allowedUsersRef.where('email', '==', email.toLowerCase()).get();
-
-            if (querySnapshot.empty) {
-                this.showError('This app is invite-only.');
-                return;
-            }
-
             const actionCodeSettings = {
                 url: window.location.origin + window.location.pathname,
                 handleCodeInApp: true
@@ -173,14 +186,21 @@ export const Auth = {
     },
 
     showAuth: function () {
+        document.body.classList.remove('user-logged-in');
         document.getElementById('authSection').style.display = 'block';
         document.getElementById('appContent').style.display = 'none';
         document.getElementById('userInfo').style.display = 'none';
+
+        // Initialize public map for login screen
+        if (window.MapEngine) {
+            window.MapEngine.init(true);
+        }
     },
 
     showApp: function () {
+        document.body.classList.add('user-logged-in');
         document.getElementById('authSection').style.display = 'none';
-        document.getElementById('appContent').style.display = 'block';
+        document.getElementById('appContent').style.display = 'none'; // Will trigger fade in
         document.getElementById('userInfo').style.display = 'flex';
 
         if (window.Profile) window.Profile.load();

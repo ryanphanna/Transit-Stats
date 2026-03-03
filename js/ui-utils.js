@@ -27,6 +27,11 @@ export const UI = {
             localStorage.setItem('theme', 'light');
         }
         this.updateThemeButtons(theme);
+
+        // Refresh map if it exists to pick up new theme tiles
+        if (window.MapEngine && typeof window.MapEngine.refresh === 'function') {
+            window.MapEngine.refresh();
+        }
     },
 
     /**

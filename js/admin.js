@@ -123,12 +123,7 @@ auth.onAuthStateChanged(async (user) => {
     }
 });
 
-function login() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(error => {
-        alert('Login failed: ' + error.message);
-    });
-}
+
 
 async function loadData() {
     await loadStopLibrary();

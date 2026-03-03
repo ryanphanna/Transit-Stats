@@ -1,42 +1,59 @@
 :root {
-    --bg-primary: #f8fafc;
+    /* Bold High-Contrast Palette */
+    --bg-primary: #fcfcfd;
     --bg-secondary: #ffffff;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
+    --bg-tertiary: #f1f5f9;
+
+    --text-primary: #020617;
+    /* Deep Midnight */
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+
+    --accent-primary: #020617;
+    --accent-electric: #6366f1;
+    /* Electric Indigo */
+    --accent-vibrant: #818cf8;
+    --accent-glow: rgba(99, 102, 241, 0.12);
+    --accent-gradient: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+
     --border-color: #e2e8f0;
-    --accent-primary: #0f172a;
-    --radius-pill: 50px;
-    --radius-card: 16px;
+    --border-strong: #020617;
+    --border-ink: rgba(2, 6, 23, 0.1);
+
+    --radius-pill: 100px;
+    --radius-card: 20px;
     --radius-md: 12px;
     --radius-sm: 8px;
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+    /* Solid Tactile Shadows - No Glass */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+    --shadow-tactile: 0 8px 30px rgba(0, 0, 0, 0.1);
+
     --spacing-unit: 8px;
+    --transition-snappy: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 [data-theme="dark"] {
     --bg-primary: #020617;
+    /* Slate 950 */
     --bg-secondary: #0f172a;
+    /* Slate 900 */
     --bg-tertiary: #1e293b;
+
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
+
+    --accent-primary: #ffffff;
+    --accent-electric: #818cf8;
+    --accent-glow: rgba(129, 140, 248, 0.15);
+    --accent-gradient: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+
     --border-color: #1e293b;
-    --border-light: #334155;
-    --accent-primary: #818cf8;
-    --accent-secondary: #a78bfa;
-    --accent-vibrant: #6366f1;
-    --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a78bfa 100%);
-    --glass-bg: rgba(15, 23, 42, 0.8);
-    --glass-border: rgba(255, 255, 255, 0.05);
-    --success-bg: rgba(16, 185, 129, 0.2);
-    --success-text: #34d399;
-    --warning-bg: rgba(245, 158, 11, 0.2);
-    --warning-text: #fbbf24;
-    --danger-bg: rgba(239, 68, 68, 0.2);
-    --danger-text: #f87171;
-    --info-bg: rgba(129, 140, 248, 0.2);
-    --info-text: #a5b4fc;
+    --border-strong: #ffffff;
+    --border-ink: rgba(255, 255, 255, 0.1);
 }
 
 * {
@@ -58,7 +75,6 @@ body {
         color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden;
 }
 
 /* Hide scrollbar but keep functionality */

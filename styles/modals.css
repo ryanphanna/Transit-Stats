@@ -1,0 +1,180 @@
+/* Modals */
+.modal-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--bg-secondary);
+    padding: 25px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 450px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Modal Headers */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal-title {
+    margin: 0;
+}
+
+.modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+/* Modal Typography & Dividers */
+.modal-section-title {
+    margin-bottom: 15px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    font-size: 0.85em;
+    letter-spacing: 0.5px;
+}
+
+.modal-divider {
+    border: none;
+    border-top: 1px solid var(--border-light);
+    margin: 25px 0;
+}
+
+.text-optional {
+    color: var(--text-secondary);
+    font-weight: normal;
+}
+
+/* Modal Inputs */
+.modal-input-large {
+    font-size: 1.1em;
+    padding: 12px;
+    text-align: left;
+    /* Override centered default from login */
+}
+
+.modal-select {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 1em;
+}
+
+.modal-textarea {
+    font-size: 1em;
+    padding: 12px;
+    min-height: 80px;
+    resize: vertical;
+}
+
+/* Modal Actions */
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.modal-actions .btn {
+    flex: 1;
+}
+
+.btn-cancel {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-danger-outline {
+    width: 100%;
+    background: transparent;
+    color: var(--danger-text);
+    border: 1px solid var(--danger-text);
+}
+
+.btn-accent-outline {
+    width: 100%;
+    background: transparent;
+    color: var(--accent-primary);
+    border: 1px solid var(--accent-primary);
+    margin-bottom: 12px;
+}
+
+/* Specific Modal Elements */
+.modal-avatar-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.modal-avatar-display {
+    font-size: 3em;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.btn-shuffle-emoji {
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-color);
+    border-radius: 50%;
+    padding: 8px;
+    font-size: 0.5em;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    display: none;
+}
+
+.modal-emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.modal-theme-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.btn-theme {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+#quickTemplates {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}

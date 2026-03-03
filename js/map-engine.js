@@ -8,9 +8,41 @@ export const MapEngine = {
     mapFilter: 'boarding',
     mapLayers: [],
 
-    init: function () {
-        if (!window.currentUser) return;
-        this.loadData();
+    init: function (isPublic = false) {
+        if (!isPublic && !window.currentUser) return;
+
+        if (isPublic) {
+            this.createPublicMap();
+        } else {
+            this.loadData();
+        }
+    },
+
+    createPublicMap: function () {
+        // Default to Toronto coordinates
+        const toronto = [43.6532, -79.3832];
+
+        // Attempt silent IP-based geolocation
+        const fetchWithTimeout = (url, timeout = 1000) => {
+            return Promise.race([
+                fetch(url).then(res => res.json()),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeout))
+            ]);
+        };
+
+        fetchWithTimeout('https://ipapi.co/json/')
+            .then(data => {
+                if (data && data.latitude && data.longitude) {
+                    console.log(`📍 Silent location detected: ${data.city}, ${data.region}`);
+                    this.createFullMap([], 0, [data.latitude, data.longitude]);
+                } else {
+                    this.createFullMap([], 0, toronto);
+                }
+            })
+            .catch(err => {
+                console.warn('Geolocation fetch failed or timed out, falling back to Toronto:', err.message);
+                this.createFullMap([], 0, toronto);
+            });
     },
 
     loadData: function () {
@@ -39,7 +71,7 @@ export const MapEngine = {
             });
     },
 
-    createFullMap: function (trips, totalTrips) {
+    createFullMap: function (trips, totalTrips, center) {
         const container = document.getElementById('fullMapContainer');
         if (!container) return;
 
@@ -102,11 +134,12 @@ export const MapEngine = {
 
         const locations = Array.from(stopMap.values());
 
-        if (locations.length === 0) {
+        // Only show the "No data" placeholder if we're not specifically trying to show a base map (like on the login screen)
+        if (locations.length === 0 && !center) {
             container.innerHTML = `
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary);">
-                    <div style="font-size: 3em; margin-bottom: 15px;">🗺️</div>
-                    <div style="font-size: 1.1em; margin-bottom: 8px;">No location data yet</div>
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary);">
+                    <div style="font-size: 1.1em; margin-bottom: 8px; font-weight: 600;">No location data yet</div>
                     <div style="font-size: 0.9em; opacity: 0.7;">Take trips with GPS enabled to see them on the map</div>
                 </div>
             `;
@@ -132,45 +165,53 @@ export const MapEngine = {
 
         this.map = L.map('fullMapContainer', {
             zoomControl: false,
-            doubleClickZoom: true,
-            scrollWheelZoom: true,
-            dragging: true,
-            touchZoom: true,
-            tap: false
-        }).setView([avgLat, avgLon], 12);
+            doubleClickZoom: !center,
+            scrollWheelZoom: !center,
+            dragging: !center,
+            touchZoom: !center,
+            tap: !center,
+            attributionControl: false
+        }).setView(center || [avgLat, avgLon], 13);
 
-        L.control.zoom({ position: 'bottomright' }).addTo(this.map);
+        if (!center) {
+            L.control.zoom({ position: 'bottomright' }).addTo(this.map);
+        }
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '© OpenStreetMap © CartoDB',
+        const isDark = document.body.getAttribute('data-theme') === 'dark';
+        const baseTileUrl = isDark
+            ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
+            : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+
+        // Base Layer: Cleaner 'No Labels' version for a more premium look
+        this.baseLayer = L.tileLayer(baseTileUrl, {
             subdomains: 'abcd',
-            maxZoom: 19
+            maxZoom: 19,
+            className: isDark ? 'map-base-layer-dark' : 'map-base-layer'
+        }).addTo(this.map);
+
+        // Transit Routes Overlay: Shows actual colored lines (Subway, Train, etc) 
+        // unlike the infrastructure-focused OpenRailwayMap
+        this.transitLayer = L.tileLayer('https://{s}.tile.memomaps.de/tilegen/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: 'Map &copy; [memomaps.de](https://memomaps.de/); Transit data &copy; [OpenStreetMap](https://www.openstreetmap.org/copyright)',
+            className: 'map-transit-layer',
+            opacity: isDark ? 0.8 : 0.7  // Higher opacity for visibility
         }).addTo(this.map);
 
         // Add markers
         locations.forEach(loc => {
             const isBoarding = loc.type === 'boarding';
-            const icon = L.divIcon({
-                className: 'custom-marker',
-                html: `<div style="width: 12px; height: 12px; border-radius: 50%; background: ${isBoarding ? '#1e293b' : '#64748b'}; border: 2px solid white; box-shadow: 0 0 0 1px #1e293b; cursor: pointer;"></div>`,
-                iconSize: [12, 12],
-                iconAnchor: [6, 6]
-            });
+            const color = isBoarding ? 'var(--accent-electric)' : 'var(--text-muted)';
 
-            const marker = L.marker([loc.lat, loc.lon], { icon: icon });
-            const tripText = loc.count === 1 ? 'Trip' : 'Trips';
-            const routesBadges = Array.from(loc.routes).map(r => `<span style="background: var(--bg-primary); padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700; color: var(--text-primary); border: 1px solid var(--border-color);">${r}</span>`).join(' ');
-
-            const popupContent = `
-                <div style="padding: 4px;">
-                    <div style="font-weight: 800; font-size: 14px; margin-bottom: 4px; color: var(--text-primary);">${loc.stop}</div>
-                    <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">${loc.count} ${tripText} ${isBoarding ? 'Boarded' : 'Exited'}</div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 4px;">${routesBadges}</div>
-                </div>`;
-
-            marker.bindPopup(popupContent, { closeButton: false, className: 'minimal-popup' });
-            marker.addTo(this.map);
-            this.mapLayers.push(marker);
+            L.circleMarker([loc.lat, loc.lon], {
+                radius: isBoarding ? 8 : 6,
+                fillColor: isBoarding ? '#FFFFFF' : color, // White center for boarding
+                fillOpacity: isBoarding ? 1 : 0.6,
+                color: color,
+                weight: isBoarding ? 4 : 2,
+                className: `map-marker-${loc.type}`,
+                bubblingMouseEvents: true
+            }).addTo(this.map).bindPopup(loc.name);
         });
 
         // DRAW SPIDER LINES
@@ -180,10 +221,11 @@ export const MapEngine = {
                     [trip.boardingLocation.lat, trip.boardingLocation.lng],
                     [trip.exitLocation.lat, trip.exitLocation.lng]
                 ], {
-                    color: '#1e293b',
-                    weight: 2,
-                    opacity: 0.15,
-                    smoothFactor: 1
+                    color: '#6366f1', // Electric Indigo
+                    weight: 1.5,
+                    opacity: 0.1,
+                    smoothFactor: 1.5,
+                    dashArray: '4, 4' // Dashed lines look cleaner for transit connections
                 }).addTo(this.map);
                 this.mapLayers.push(line);
             }
@@ -252,7 +294,7 @@ export const MapEngine = {
                         fillOpacity: 0.8
                     }).addTo(this.map);
 
-                    currentLocMarker.bindPopup('📍 You are here').openPopup();
+                    currentLocMarker.bindPopup('You are here').openPopup();
                     setTimeout(() => {
                         this.map.removeLayer(currentLocMarker);
                     }, 10000);
@@ -264,8 +306,14 @@ export const MapEngine = {
                 alert('Unable to get your location');
                 if (btn) btn.classList.remove('locating');
             },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
         );
+    },
+    refresh: function () {
+        if (this.mapTripsData.length > 0) {
+            this.createFullMap(this.mapTripsData, this.mapTripsData.length);
+        } else if (this.map && this.map.getCenter()) {
+            this.createFullMap([], 0, this.map.getCenter());
+        }
     }
 };
 
@@ -274,3 +322,4 @@ window.MapEngine = MapEngine;
 window.initializeFullMap = MapEngine.init.bind(MapEngine);
 window.setMapFilter = MapEngine.setFilter.bind(MapEngine);
 window.locateUser = MapEngine.locateUser.bind(MapEngine);
+window.refreshMap = MapEngine.refresh.bind(MapEngine);

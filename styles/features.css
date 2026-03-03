@@ -1,11 +1,38 @@
-/* Map Specific Styles */
 #fullMapContainer {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    z-index: 1;
+    z-index: 0;
+    /* Base level */
+    pointer-events: auto;
+    /* Map itself can be interacted with when not covered */
+    background: #fcfcfd;
+}
+
+.map-base-layer {
+    /* Land: #F2F2F7, Water: #AADAFF (via filters) */
+    filter: brightness(1.05) contrast(0.95) saturate(0.8) sepia(0.05) hue-rotate(-10deg);
+}
+
+.map-base-layer-dark {
+    filter: brightness(0.6) contrast(1.1) saturate(0.6);
+}
+
+.map-transit-layer {
+    /* Boost saturation of the actual transit lines while keeping them slightly transparent */
+    filter: saturate(1.4);
+    z-index: 2;
+}
+
+[data-theme="dark"] .map-transit-layer {
+    filter: saturate(1.8) brightness(1.2);
+}
+
+/* Marker Refinement */
+.leaflet-interactive {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .map-floating-controls {
@@ -87,4 +114,18 @@
     border-top-color: var(--accent-primary);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
+}
+
+/* Simulated Vehicles on Login Map */
+.simulated-vehicle div {
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8),
+        0 0 5px rgba(255, 255, 255, 0.5);
+    z-index: 1000;
+}
+
+/* Hide map attribution on mobile if it gets too crowded */
+@media (max-width: 480px) {
+    .leaflet-control-attribution {
+        display: none;
+    }
 }
