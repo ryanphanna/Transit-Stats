@@ -1,10 +1,16 @@
 # Changelog
 
 **Current Project Versions:**
-- **Web App**: `v1.4.4`
-- **Cloud Functions**: `v1.1.2`
+- **Web App**: `v1.4.5`
+- **Cloud Functions**: `v1.1.4`
 
 ---
+
+## [1.4.5] - 2026-03-04
+
+### Fixed
+- **SMS Security**: Fixed a critical issue where inbound SMS requests were being rejected with a 403 Forbidden error due to Twilio signature validation failures. The validation now robustly checks both Secret Manager and legacy config tokens if both are present.
+- **SMS Debugging**: Added explicit URL logging to failure conditions to help diagnose environment-specific webhook misconfigurations.
 
 ## [1.4.4] - 2026-03-04
 

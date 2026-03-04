@@ -94,8 +94,10 @@ function validateTwilioSignature(req) {
     return true;
   }
 
-  const authToken = twilioAuthToken.value() || functions.config().twilio?.auth_token;
-  if (!authToken) {
+  const authTokenSecret = twilioAuthToken.value();
+  const authTokenConfig = functions.config().twilio?.auth_token;
+
+  if (!authTokenSecret && !authTokenConfig) {
     console.error('Twilio auth token secret/config not available');
     return false;
   }
@@ -110,10 +112,20 @@ function validateTwilioSignature(req) {
   const host = req.headers['x-forwarded-host'] || req.headers.host;
   const url = `${protocol}://${host}${req.originalUrl}`;
 
-  const isValid = twilio.validateRequest(authToken, twilioSignature, url, req.body);
+  // Try the secret first
+  let isValid = false;
+  if (authTokenSecret) {
+    isValid = twilio.validateRequest(authTokenSecret, twilioSignature, url, req.body);
+  }
+
+  // Fallback to config if secret fails and they are different
+  if (!isValid && authTokenConfig && authTokenConfig !== authTokenSecret) {
+    console.info('Retrying validation with config auth token...');
+    isValid = twilio.validateRequest(authTokenConfig, twilioSignature, url, req.body);
+  }
 
   if (!isValid) {
-    console.warn('Invalid Twilio webhook signature - possible forgery attempt');
+    console.warn('Invalid Twilio webhook signature - possible forgery attempt', { url });
     return false;
   }
 
