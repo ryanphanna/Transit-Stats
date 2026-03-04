@@ -87,16 +87,16 @@ auth.onAuthStateChanged(async (user) => {
     if (user) {
         // Check if user has admin privileges
         try {
-            const allowedUsersRef = db.collection('allowedUsers');
-            const querySnapshot = await allowedUsersRef.where('email', '==', user.email.toLowerCase()).get();
+            const docRef = db.collection('allowedUsers').doc(user.email.toLowerCase());
+            const docSnap = await docRef.get();
 
-            if (querySnapshot.empty) {
+            if (!docSnap.exists) {
                 await auth.signOut();
                 alert('Access denied. This app is invite-only.');
                 return;
             }
 
-            const userData = querySnapshot.docs[0].data();
+            const userData = docSnap.data();
             if (!userData.isAdmin) {
                 await auth.signOut();
                 alert('Access denied. Admin privileges required.');

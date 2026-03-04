@@ -1561,6 +1561,54 @@ async function handleStatsCommand(phoneNumber, user) {
   );
 }
 
+/**
+ * Sanitize Gemini output to prevent prompt injection attacks.
+ * Validates intent, strips HTML, and caps string lengths.
+ */
+function sanitizeGeminiOutput(parsed) {
+  if (!parsed || typeof parsed !== 'object') return null;
+
+  const VALID_INTENTS = ['START_TRIP', 'END_TRIP', 'DISCARD_TRIP', 'INCOMPLETE_TRIP', 'QUERY', 'OTHER'];
+  const MAX_FIELD_LENGTH = 100;
+
+  // Strip HTML tags from a string
+  const stripHtml = (str) => {
+    if (typeof str !== 'string') return str;
+    return str.replace(/<[^>]*>/g, '').trim();
+  };
+
+  // Sanitize and cap a string field
+  const sanitizeField = (val, maxLen = MAX_FIELD_LENGTH) => {
+    if (val == null) return null;
+    if (typeof val !== 'string') return null;
+    return stripHtml(val).slice(0, maxLen) || null;
+  };
+
+  // Validate intent
+  const intent = VALID_INTENTS.includes(parsed.intent) ? parsed.intent : 'OTHER';
+
+  // Validate sentiment
+  const VALID_SENTIMENTS = ['POSITIVE', 'NEGATIVE', 'NEUTRAL'];
+  const sentiment = VALID_SENTIMENTS.includes(parsed.sentiment) ? parsed.sentiment : 'NEUTRAL';
+
+  // Sanitize tags array
+  const tags = Array.isArray(parsed.tags)
+    ? parsed.tags.filter(t => typeof t === 'string').map(t => stripHtml(t).slice(0, 30)).slice(0, 5)
+    : [];
+
+  return {
+    intent,
+    route: sanitizeField(parsed.route, 50),
+    stop_name: sanitizeField(parsed.stop_name),
+    stop_id: sanitizeField(parsed.stop_id, 20),
+    direction: sanitizeField(parsed.direction, 30),
+    sentiment,
+    tags,
+    question: sanitizeField(parsed.question, 300),
+    notes: sanitizeField(parsed.notes, 300),
+  };
+}
+
 async function parseWithGemini(text) {
   const apiKey = geminiApiKey.value();
   if (!apiKey) {
@@ -1568,12 +1616,15 @@ async function parseWithGemini(text) {
     return null;
   }
 
+  // Truncate input to prevent prompt injection via very long messages
+  const truncatedText = text.length > 500 ? text.slice(0, 500) : text;
+
   return await retryWithBackoff(async () => {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const prompt = `Analyze this SMS from a transit tracker user. Determine the intent and extract data.
-    Text: "${text}"
+    Text: "${truncatedText}"
     
     Possible Intents:
     - START_TRIP: User is starting a new trip (requires route and stop).
@@ -1618,14 +1669,17 @@ async function parseWithGemini(text) {
     const jsonStr = textResponse.replace(/^```json\n|\n```$/g, '').trim();
     const parsed = JSON.parse(jsonStr);
 
+    // Sanitize output to prevent prompt injection
+    const sanitized = sanitizeGeminiOutput(parsed);
+
     // Log successful API call for monitoring
     console.log('Gemini API call successful', {
-      intent: parsed.intent,
-      hasRoute: !!parsed.route,
-      hasStop: !!(parsed.stop_name || parsed.stop_id)
+      intent: sanitized?.intent,
+      hasRoute: !!sanitized?.route,
+      hasStop: !!(sanitized?.stop_name || sanitized?.stop_id)
     });
 
-    return parsed;
+    return sanitized;
   }).catch((error) => {
     console.error('Gemini parsing error after retries:', error.message);
     // Return null to fall back to heuristic parsing

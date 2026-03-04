@@ -73,8 +73,12 @@ service cloud.firestore {
 
     // Usernames - for public profiles
     match /usernames/{username} {
-      allow read: if true; // Needed to check availability
-      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow read: if request.auth != null; // Require auth to check availability
+      allow create: if request.auth != null 
+        && request.resource.data.uid == request.auth.uid
+        && username.size() >= 3
+        && username.size() <= 20
+        && username.matches('^[a-z0-9_]+$');
       allow update, delete: if false; // Usernames are permanent for now
     }
   }
