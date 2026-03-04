@@ -63,21 +63,13 @@ During the v1.4.2 security audit, a `functions/.env.transitstats-21ba4` file con
 
 The credentials above are now inert. The Auth Token was rotated on March 4, 2026, and the system was redeployed with the new secure configuration.
 
-### Completed: Twilio Auth Token Rotation
+The following actions were taken to secure the system after the credential exposure was identified:
 
-1. Log in to [twilio.com/console](https://www.twilio.com/console).
-2. Navigate to **Account → Keys & Credentials → Auth Tokens**.
-3. Click **Rotate** (or **Revoke & generate a new primary token**) on the live auth token for Account SID `ACd65b7ea0ab0bc98a24e5a805de6458cd`.
-4. Update the new auth token in Firebase Functions config:
-   ```
-   firebase functions:config:set twilio.auth_token="NEW_TOKEN"
-   ```
-5. Redeploy the Cloud Function:
-   ```
-   firebase deploy --only functions
-   ```
+1. **Credential Rotation**: A new Auth Token was generated in the Twilio Console for Account SID `ACd65b7ea0ab0bc98a24e5a805de6458cd`.
+2. **Secure Configuration**: The new token was stored using `firebase functions:config:set` to ensure it is handled as a secret by the production environment.
+3. **Redeployment**: The Cloud Functions were redeployed with the latest security patches (v1.4.2) and the new secure configuration.
 
-Once the auth token is rotated, the exposed credentials in git history become inert — they reference an account but the token that authorises actions against it no longer works.
+This process rendered the exposed credentials in git history inert, as they no longer have a valid Auth Token associated with them.
 
 ### Optional: Purge git history
 
