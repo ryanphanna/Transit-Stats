@@ -59,11 +59,11 @@ During the v1.4.2 security audit, a `functions/.env.transitstats-21ba4` file con
 **What was fixed (already done):**
 - `functions/.env` and `functions/.env.*` added to `.gitignore` to prevent future commits.
 
-**What the maintainer must still do:**
+**Status: Remediation Complete**
 
-> ⚠️ The credentials above are still readable in git history. Anyone who cloned this repository before or after this fix can recover them.
+The credentials above are now inert. The Auth Token was rotated on March 4, 2026, and the system was redeployed with the new secure configuration.
 
-### Required: Rotate the Twilio Auth Token
+### Completed: Twilio Auth Token Rotation
 
 1. Log in to [twilio.com/console](https://www.twilio.com/console).
 2. Navigate to **Account → Keys & Credentials → Auth Tokens**.

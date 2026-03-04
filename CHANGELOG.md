@@ -9,7 +9,7 @@
 - **`allowedUsers` Over-Read (High)**: Any authenticated user could previously read the entire `allowedUsers` collection, exposing every registered user's email and admin status. The Firestore rule now restricts reads to the user's own document only (`request.auth.token.email.lower() == email`). The `auth.js` whitelist check was simplified to a direct `doc.get()` to match the tighter rule.
 - **Email Enumeration (Medium)**: `auth/wrong-password` and `auth/user-not-found` returned distinct error messages, allowing attackers to determine whether an email address exists. Both now return the same message: *"Incorrect email or password."*
 - **Missing HTTP Security Headers (Medium)**: Added `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 1; mode=block`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Permissions-Policy: geolocation=self, camera=(), microphone=()` to all hosted pages via `firebase.json`.
-- **Credentials in Git (Low)**: `functions/.env` and `functions/.env.*` added to `.gitignore` to prevent future accidental commits of Firebase Functions environment files. See **[Credential Exposure Incident](SECURITY.md#credential-exposure-incident-march-2026)** in `SECURITY.md` for the required credential-rotation steps.
+- **Credentials in Git (Low)**: `functions/.env` and `functions/.env.*` added to `.gitignore` to prevent future accidental commits. **Twilio Auth Token successfully rotated** and manual rotation steps documented in **[Credential Exposure Incident](SECURITY.md#credential-exposure-incident-march-2026)**.
 
 ## [1.4.1] - 2026-03-04
 
