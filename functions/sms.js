@@ -33,6 +33,7 @@ const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const twilio = require('twilio');
 
 // Define Gemini API key secret
 const geminiApiKey = defineSecret('GEMINI_API_KEY');
@@ -47,6 +48,50 @@ const app = express();
 
 // Parse URL-encoded bodies (Twilio sends form data)
 app.use(express.urlencoded({ extended: true }));
+
+// =============================================================================
+// TWILIO SIGNATURE VALIDATION
+// =============================================================================
+
+/**
+ * Middleware to validate that POST requests genuinely originate from Twilio.
+ * Prevents forged webhook requests from malicious third parties.
+ */
+function validateTwilioSignature(req, res, next) {
+  // Allow bypass in Firebase emulator for local development
+  if (process.env.FUNCTIONS_EMULATOR === 'true') {
+    console.warn('⚠️  Twilio signature validation skipped (emulator mode)');
+    return next();
+  }
+
+  const authToken = functions.config().twilio?.auth_token;
+  if (!authToken) {
+    console.error('Twilio auth token not configured - rejecting request');
+    res.status(403).send('Forbidden');
+    return;
+  }
+
+  const twilioSignature = req.headers['x-twilio-signature'];
+  if (!twilioSignature) {
+    console.warn('Missing X-Twilio-Signature header');
+    res.status(403).send('Forbidden');
+    return;
+  }
+
+  const protocol = req.headers['x-forwarded-proto'] || 'https';
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  const url = `${protocol}://${host}${req.originalUrl}`;
+
+  const isValid = twilio.validateRequest(authToken, twilioSignature, url, req.body);
+
+  if (!isValid) {
+    console.warn('Invalid Twilio webhook signature - possible forgery attempt');
+    res.status(403).send('Forbidden');
+    return;
+  }
+
+  next();
+}
 
 // =============================================================================
 // CONFIGURATION VALIDATION
@@ -117,8 +162,8 @@ function getTwilioClient() {
       return null;
     }
 
-    const twilio = require('twilio');
-    return twilio(accountSid, authToken);
+    const client = twilio(accountSid, authToken);
+    return client;
   } catch (error) {
     console.error('Error initializing Twilio client:', error);
     return null;
@@ -1982,8 +2027,8 @@ Try strict format:
 // EXPRESS ROUTES
 // =============================================================================
 
-// POST /sms - Twilio webhook endpoint
-app.post('/', handleSmsRequest);
+// POST /sms - Twilio webhook endpoint (signature validated before processing)
+app.post('/', validateTwilioSignature, handleSmsRequest);
 
 // GET /sms - Health check
 app.get('/', (req, res) => {
