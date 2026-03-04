@@ -18,33 +18,21 @@ export const Auth = {
                     let isAdmin = false;
                     try {
                         const allowedUsersRef = db.collection('allowedUsers');
+                        const docRef = allowedUsersRef.doc(user.email.toLowerCase());
+                        const docSnap = await docRef.get();
 
-                        // Explicitly check for an email-based document if direct permission on collection is strict
-                        // Fallback to query only if we have proper permissions
-                        const querySnapshot = await allowedUsersRef
-                            .where('email', '==', user.email.toLowerCase())
-                            .get();
-
-                        if (!querySnapshot.empty) {
-                            const userData = querySnapshot.docs[0].data();
-                            isAdmin = userData && userData.isAdmin === true;
+                        if (docSnap.exists) {
+                            isAdmin = docSnap.data().isAdmin === true;
                         } else {
-                            // Secondary check: search for doc ID if it matches email
-                            // This works if rules allow get() on specific doc but not list() on collection
-                            const docRef = allowedUsersRef.doc(user.email.toLowerCase());
-                            const docSnap = await docRef.get();
-                            if (docSnap.exists) {
-                                isAdmin = docSnap.data().isAdmin === true;
-                            } else {
-                                await auth.signOut();
-                                UI.showNotification('Access denied. This app is invite-only.', 'error');
-                                return;
-                            }
+                            await auth.signOut();
+                            UI.showNotification('Access denied. This app is invite-only.', 'error');
+                            return;
                         }
                     } catch (err) {
-                        console.warn('Firestore whitelist check failed (likely permissions):', err);
-                        // If it fails, we still let them in if they are authenticated, 
-                        // but they won't have admin rights.
+                        console.error('Whitelist check failed:', err);
+                        await auth.signOut();
+                        UI.showNotification('Access verification failed. Please try again.', 'error');
+                        return;
                     }
 
                     if (document.getElementById('adminBtn')) {
@@ -237,8 +225,8 @@ export const Auth = {
 
     getErrorMessage: function (code) {
         switch (code) {
-            case 'auth/wrong-password': return 'Incorrect password.';
-            case 'auth/user-not-found': return 'No account found.';
+            case 'auth/wrong-password':
+            case 'auth/user-not-found': return 'Incorrect email or password.';
             default: return 'An error occurred. Please try again.';
         }
     }
