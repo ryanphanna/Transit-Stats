@@ -25,7 +25,8 @@ Security is enforced at the database level using Firestore Rules:
 ### Server-Side Security (Cloud Functions)
 - **SMS Security**: All incoming webhooks from Twilio are validated to prevent spoofing.
 - **Rate Limiting**: Automatic rate limiting is applied to SMS processing to prevent abuse.
-- **Environment Isolation**: API keys (Gemini, Twilio) are stored in secure environment variables and are never exposed to the client or committed to the repository.
+- **Secret Management**: API keys for sensitive services (Gemini, Twilio) are stored in Google Cloud Secret Manager. On the server side, they are accessed via `defineSecret` and never exposed via environment variables or hardcoded in source.
+- **API Restriction**: Frontend API keys (Firebase, Google Maps) must be strictly restricted in the Google Cloud Console to only the specific services they require. This prevents leaked keys from being used to access costly APIs like Gemini (Generative Language API).
 
 ## Data Model (Security Critical)
 
@@ -38,6 +39,14 @@ Security is enforced at the database level using Firestore Rules:
 *User-owned data; isolated by userId.*
 - `userId`: string
 - `boardingLocation/exitLocation`: GPS coordinates (captured only during active tracking)
+
+## Gemini API Key Security
+
+Following the guidance from [TruffleSecurity](https://trufflesecurity.com/blog/google-api-keys-werent-secrets-but-then-gemini-changed-the-rules), we have audited our API key usage:
+
+1. **Server-Side Integration**: Our Gemini integration is now moved to use Firebase Secrets Manager (`defineSecret`). This ensures the key is protected in TransitStats' GCP infrastructure and is not public.
+2. **Client-Side Risks**: Because legacy Google API keys (like those used for Firebase) can now gain Gemini access automatically if the "Generative Language API" is enabled, **it is CRITICAL that any frontend API keys be restricted to only Firebase/Firestore services.**
+3. **Audit Rule**: Never enable "Generative Language API" in a GCP project that uses unrestricted API keys in a public or client-side application.
 
 ## Reporting a Vulnerability
 

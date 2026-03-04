@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.4.1] - 2026-03-04
+
+### Added
+- Security hardening for Gemini API integration.
+- Automated API key auditing guidelines in `SECURITY.md`.
+
+### Changed
+- Migrated Gemini API key management to Google Cloud Secret Manager.
+- Refactored `functions/sms.js` to use `defineSecret` for enhanced environment isolation.
+- Strictly restricted the frontend API key to ONLY Cloud Firestore and Identity Toolkit services.
+
 ## [1.4.0] - 2026-03-03
 
 ### Added
