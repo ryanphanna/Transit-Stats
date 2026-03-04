@@ -29,9 +29,13 @@
  */
 
 const functions = require('firebase-functions');
+const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+// Define Gemini API key secret
+const geminiApiKey = defineSecret('GEMINI_API_KEY');
 
 // Initialize Firebase Admin SDK (only once)
 if (!admin.apps.length) {
@@ -1416,7 +1420,7 @@ function aggregateTripStats(trips) {
  * Use Gemini to answer a natural-language question given aggregated trip stats
  */
 async function answerQueryWithGemini(question, stats) {
-  const apiKey = functions.config().gemini?.api_key;
+  const apiKey = geminiApiKey.value();
   if (!apiKey) return 'AI unavailable right now.';
 
   return await retryWithBackoff(async () => {
@@ -1513,7 +1517,7 @@ async function handleStatsCommand(phoneNumber, user) {
 }
 
 async function parseWithGemini(text) {
-  const apiKey = functions.config().gemini?.api_key;
+  const apiKey = geminiApiKey.value();
   if (!apiKey) {
     console.error('Gemini API key not configured');
     return null;
@@ -1994,4 +1998,8 @@ app.get('/', (req, res) => {
 // EXPORT CLOUD FUNCTION
 // =============================================================================
 
-exports.sms = functions.https.onRequest(app);
+exports.sms = functions
+  .runWith({
+    secrets: [geminiApiKey]
+  })
+  .https.onRequest(app);

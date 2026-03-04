@@ -2,12 +2,12 @@
 
 // Firebase Config (Matches app.js)
 const firebaseConfig = {
-    apiKey: "AIzaSyBgY37b_aUorxdEW6DnocFoo8ekbTTFpao",
-    authDomain: "transitstats-21ba4.firebaseapp.com",
-    projectId: "transitstats-21ba4",
-    storageBucket: "transitstats-21ba4.firebasestorage.app",
-    messagingSenderId: "756203797723",
-    appId: "1:756203797723:web:2e5aab94a6de20cf06a0fe"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 firebase.initializeApp(firebaseConfig);
