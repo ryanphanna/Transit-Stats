@@ -71,16 +71,11 @@ The following actions were taken to secure the system after the credential expos
 
 This process rendered the exposed credentials in git history inert, as they no longer have a valid Auth Token associated with them.
 
-### Optional: Purge git history
+### Historical Data Persistence
 
-If you want to erase the file from git history entirely (e.g., to comply with a secret-scanning policy):
+While the active credentials have been rotated and the system is secure, the original exposed `.env` file remains in the project's git history. Organizations requiring strict compliance (e.g., zero-tolerance for secrets in history) may choose to perform a history purge using tools like `git-filter-repo`.
 
-```bash
-# Install git-filter-repo, then:
-git filter-repo --path functions/.env.transitstats-21ba4 --invert-paths
-```
-
-This rewrites history and requires a force push. Coordinate with any collaborators who have local clones before doing this.
+However, because the credentials themselves are now invalid (revoked at the source), this history purge is considered a secondary cleanup step. It was identified as an optional measure during the March 2026 audit, as it requires a repository-wide force push and coordination with all collaborators.
 
 ---
 
