@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.4.2] - 2026-03-04
+
+### Security
+
+- **Twilio Webhook Forgery (Critical)**: Added `validateTwilioSignature` middleware to the SMS Cloud Function. All inbound `POST /sms` requests are now verified against the `X-Twilio-Signature` header using `twilio.validateRequest()`. Requests that fail validation are rejected with HTTP 403. Validation is bypassed only in the Firebase emulator (`FUNCTIONS_EMULATOR=true`).
+- **Auth Bypass on Firestore Error (High)**: The `catch` block in the whitelist check (`js/auth.js`) previously allowed users through when the Firestore check threw an error. It now signs the user out and surfaces an error message instead, closing the silent bypass.
+- **`allowedUsers` Over-Read (High)**: Any authenticated user could previously read the entire `allowedUsers` collection, exposing every registered user's email and admin status. The Firestore rule now restricts reads to the user's own document only (`request.auth.token.email.lower() == email`). The `auth.js` whitelist check was simplified to a direct `doc.get()` to match the tighter rule.
+- **Email Enumeration (Medium)**: `auth/wrong-password` and `auth/user-not-found` returned distinct error messages, allowing attackers to determine whether an email address exists. Both now return the same message: *"Incorrect email or password."*
+- **Missing HTTP Security Headers (Medium)**: Added `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 1; mode=block`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Permissions-Policy: geolocation=self, camera=(), microphone=()` to all hosted pages via `firebase.json`.
+- **Credentials in Git (Low)**: `functions/.env` and `functions/.env.*` added to `.gitignore` to prevent future accidental commits of Firebase Functions environment files. See **[Credential Exposure Incident](SECURITY.md#credential-exposure-incident-march-2026)** in `SECURITY.md` for the required credential-rotation steps.
+
 ## [1.4.1] - 2026-03-04
 
 ### Added
