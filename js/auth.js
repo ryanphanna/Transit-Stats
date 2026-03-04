@@ -74,12 +74,20 @@ export const Auth = {
         }
 
         if (emailInput) {
-            emailInput.addEventListener('input', () => {
-                if (continueBtn) continueBtn.disabled = !emailInput.value.trim().includes('@');
-            });
+            const validate = () => {
+                const val = emailInput.value.trim();
+                if (continueBtn) continueBtn.disabled = !val.includes('@');
+            };
+
+            emailInput.addEventListener('input', validate);
+            emailInput.addEventListener('change', validate); // Catch autofill
             emailInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter' && continueBtn && !continueBtn.disabled) continueBtn.click();
             });
+
+            // Initial check if pre-filled
+            setTimeout(validate, 100);
+            validate();
         }
 
         if (passwordBtn) {

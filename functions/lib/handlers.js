@@ -1,0 +1,522 @@
+/**
+ * SMS Command Handlers for transit tracking
+ */
+const admin = require('firebase-admin');
+const {
+  sendSmsReply,
+} = require('./twilio');
+const {
+  getActiveTrip,
+  setPendingState,
+  clearPendingState,
+  storeVerificationCode,
+  getVerificationData,
+  isEmailAllowed,
+  getUserByPhone,
+  lookupStop,
+  db,
+  isGeminiRateLimited,
+  createTrip,
+} = require('./db');
+const {
+  getStopDisplay,
+  normalizeDirection,
+  generateVerificationCode,
+  determineReliability,
+} = require('./utils');
+const {
+  aggregateTripStats,
+  answerQueryWithGemini,
+} = require('./gemini');
+const { parseStopInput } = require('./parsing');
+
+/**
+ * Handle HELP command
+ */
+async function handleHelp(phoneNumber) {
+  await sendSmsReply(phoneNumber,
+    `TransitStats
+
+To start a trip, send:
+
+ROUTE
+STOP
+DIRECTION (optional)
+AGENCY (optional)
+
+To end a trip, send:
+END
+STOP
+NOTES (optional)
+
+Commands:
+STATUS - view active trip
+STATS - your last 30 days
+INCOMPLETE - forgot to end a trip
+DISCARD - didn't board, delete the trip
+REGISTER [email] - link account
+
+Ask me anything about your trips, e.g. "How long does my commute usually take?"`,
+  );
+}
+
+/**
+ * Handle STATUS command
+ */
+async function handleStatus(phoneNumber, user) {
+  const activeTrip = await getActiveTrip(user.userId);
+
+  if (!activeTrip) {
+    await sendSmsReply(phoneNumber, 'No active trip.');
+    return;
+  }
+
+  const startTime = activeTrip.startTime.toDate();
+  const elapsedMs = Date.now() - startTime.getTime();
+  const elapsedMin = Math.round(elapsedMs / 60000);
+  const timeStr = startTime.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+
+  const startStopDisplay = getStopDisplay(
+    activeTrip.startStopCode,
+    activeTrip.startStopName,
+    activeTrip.startStop,
+  );
+
+  const routeDisplay = activeTrip.direction ?
+    `Route ${activeTrip.route} ${activeTrip.direction}` :
+    `Route ${activeTrip.route}`;
+
+  const message = `Active trip:
+${routeDisplay} from Stop ${startStopDisplay}
+Started ${timeStr} (${elapsedMin} min ago)
+
+END + STOP to finish. INCOMPLETE if you forgot to end. DISCARD if you didn't board. INFO for help.`;
+
+  await sendSmsReply(phoneNumber, message);
+}
+
+/**
+ * Handle DISCARD command - permanently deletes active trip
+ */
+async function handleDiscard(phoneNumber, user) {
+  const activeTrip = await getActiveTrip(user.userId);
+
+  if (!activeTrip) {
+    await sendSmsReply(phoneNumber, 'No active trip to discard.');
+    return;
+  }
+
+  const routeDisplay = activeTrip.direction ?
+    `Route ${activeTrip.route} ${activeTrip.direction}` :
+    `Route ${activeTrip.route}`;
+
+  await db.collection('trips').doc(activeTrip.id).delete();
+  await clearPendingState(phoneNumber);
+
+  await sendSmsReply(phoneNumber, `✅ Deleted ${routeDisplay}.`);
+}
+
+/**
+ * Handle INCOMPLETE command - marks end as unknown
+ */
+async function handleIncomplete(phoneNumber, user) {
+  const activeTrip = await getActiveTrip(user.userId);
+
+  if (!activeTrip) {
+    await sendSmsReply(phoneNumber, 'No active trip to mark incomplete.');
+    return;
+  }
+
+  const routeDisplay = activeTrip.direction ?
+    `Route ${activeTrip.route} ${activeTrip.direction}` :
+    `Route ${activeTrip.route}`;
+
+  await db.collection('trips').doc(activeTrip.id).update({
+    incomplete: true,
+    endTime: activeTrip.startTime,
+    exitLocation: null,
+    duration: null,
+  });
+
+  await sendSmsReply(phoneNumber, `✅ Marked ${routeDisplay} as incomplete.`);
+}
+
+/**
+ * Handle REGISTER command
+ */
+async function handleRegister(phoneNumber, email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    await sendSmsReply(phoneNumber, 'Invalid email format. Text REGISTER [email].');
+    return;
+  }
+
+  const allowed = await isEmailAllowed(email);
+  if (!allowed) {
+    await sendSmsReply(phoneNumber, 'Invite-only. Visit web app for access info.');
+    return;
+  }
+
+  const existingUser = await getUserByPhone(phoneNumber);
+  if (existingUser) {
+    await sendSmsReply(phoneNumber, `Phone already linked to ${existingUser.email}.`);
+    return;
+  }
+
+  const profilesSnapshot = await db.collection('profiles')
+    .where('email', '==', email.toLowerCase())
+    .limit(1).get();
+
+  if (profilesSnapshot.empty) {
+    await sendSmsReply(phoneNumber, `No TransitStats account for ${email}. Create one in web app.`);
+    return;
+  }
+
+  const code = generateVerificationCode();
+  await storeVerificationCode(phoneNumber, email.toLowerCase(), code);
+
+  try {
+    await db.collection('mail').add({
+      to: email.toLowerCase(),
+      message: {
+        subject: 'TransitStats SMS Verification Code',
+        text: `Your code is: ${code}\n\nReply to SMS with this code.`,
+        html: `<p>Your code is: <strong>${code}</strong></p>`,
+      },
+    });
+  } catch (error) {
+    console.error('Error queuing verification email:', error);
+  }
+
+  await sendSmsReply(phoneNumber, `Code sent to ${email}. Reply with the 6-digit code.`);
+
+  await setPendingState(phoneNumber, {
+    type: 'awaiting_verification',
+    email: email.toLowerCase(),
+  });
+}
+
+/**
+ * Handle verification code input
+ */
+async function handleVerificationCode(phoneNumber, code) {
+  const verificationData = await getVerificationData(phoneNumber);
+
+  if (!verificationData) {
+    await sendSmsReply(phoneNumber, 'No pending registration.');
+    return;
+  }
+
+  if (verificationData.attempts >= 3) {
+    await db.collection('smsVerification').doc(phoneNumber).delete();
+    await clearPendingState(phoneNumber);
+    await sendSmsReply(phoneNumber, 'Too many attempts. Text REGISTER [email].');
+    return;
+  }
+
+  if (code !== verificationData.code) {
+    await db.collection('smsVerification').doc(phoneNumber).update({
+      attempts: admin.firestore.FieldValue.increment(1),
+    });
+    await sendSmsReply(phoneNumber, 'Invalid code.');
+    return;
+  }
+
+  const profilesSnapshot = await db.collection('profiles')
+    .where('email', '==', verificationData.email)
+    .limit(1).get();
+
+  if (profilesSnapshot.empty) {
+    await sendSmsReply(phoneNumber, 'Account not found.');
+    return;
+  }
+
+  const userId = profilesSnapshot.docs[0].id;
+
+  await db.collection('phoneNumbers').doc(phoneNumber).set({
+    userId,
+    email: verificationData.email,
+    registeredAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  await db.collection('smsVerification').doc(phoneNumber).delete();
+  await clearPendingState(phoneNumber);
+
+  await sendSmsReply(phoneNumber, `Phone linked! Text "[stop] [route]" to log trips.`);
+}
+
+/**
+ * Handle trip logging
+ */
+async function handleTripLog(phoneNumber, user, stopInput, route, direction, agency, options = {}) {
+  const activeTrip = await getActiveTrip(user.userId);
+  const parsedStop = parseStopInput(stopInput);
+  const stopDisplay = getStopDisplay(parsedStop.stopCode, parsedStop.stopName);
+
+  const stopData = await lookupStop(parsedStop.stopCode, parsedStop.stopName, agency);
+  const verified = stopData !== null;
+  const boardingLocation = stopData ? { lat: stopData.lat, lng: stopData.lng } : null;
+
+  if (activeTrip) {
+    const activeTripRouteDisplay = activeTrip.direction ?
+      `Route ${activeTrip.route} ${activeTrip.direction}` :
+      `Route ${activeTrip.route}`;
+
+    const newTripRouteDisplay = direction ?
+      `Route ${route} ${direction}` :
+      `Route ${route}`;
+
+    await setPendingState(phoneNumber, {
+      type: 'confirm_start',
+      activeTrip: {
+        id: activeTrip.id,
+        route: activeTrip.route,
+        direction: activeTrip.direction || null,
+        startStopCode: activeTrip.startStopCode || null,
+        startStopName: activeTrip.startStopName || null,
+        startStop: activeTrip.startStop || null,
+        startTime: activeTrip.startTime,
+        agency: activeTrip.agency || null,
+      },
+      newTrip: {
+        stopCode: stopData ? stopData.stopCode : parsedStop.stopCode,
+        stopName: stopData ? stopData.stopName : parsedStop.stopName,
+        route,
+        direction,
+        agency,
+        verified,
+        boardingLocation,
+        sentiment: options.sentiment || null,
+        tags: options.tags || [],
+        parsed_by: options.parsed_by || 'manual',
+      },
+    });
+
+    const message = `${activeTripRouteDisplay} from ` +
+      `${getStopDisplay(activeTrip.startStopCode, activeTrip.startStopName, activeTrip.startStop)} ` +
+      `was not ended. ⚠️
+
+START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDisplay}. DISCARD to delete.`;
+
+    await sendSmsReply(phoneNumber, message);
+    return;
+  }
+
+  // No active trip - create new one
+  await createTrip({
+    userId: user.userId,
+    route,
+    direction: direction || null,
+    startStopCode: stopData ? stopData.stopCode : parsedStop.stopCode,
+    startStopName: stopData ? stopData.stopName : parsedStop.stopName,
+    verified,
+    boardingLocation,
+    agency,
+    sentiment: options.sentiment || null,
+    tags: options.tags || [],
+    parsed_by: options.parsed_by || 'manual',
+  });
+
+  const routeDisplay = direction ? `Route ${route} ${direction}` : `Route ${route}`;
+  const finalStopDisplay = getStopDisplay(
+    stopData ? stopData.stopCode : parsedStop.stopCode,
+    stopData ? stopData.stopName : parsedStop.stopName,
+  );
+
+  await sendSmsReply(phoneNumber, `✅ Started ${routeDisplay} from Stop ${finalStopDisplay}.
+
+END + STOP to finish. INCOMPLETE if you forgot to end. DISCARD if you didn't board. INFO for help.`);
+}
+
+/**
+ * Handle confirmation of start after active trip
+ */
+async function handleConfirmStart(phoneNumber, user, state) {
+  const activeTrip = state.activeTrip;
+  const newTrip = state.newTrip;
+
+  const oldTripRouteDisplay = activeTrip.direction ?
+    `Route ${activeTrip.route} ${activeTrip.direction}` :
+    `Route ${activeTrip.route}`;
+
+  await db.collection('trips').doc(activeTrip.id).update({
+    incomplete: true,
+    endTime: activeTrip.startTime,
+    exitLocation: null,
+    duration: null,
+  });
+
+  await createTrip({
+    userId: user.userId,
+    route: newTrip.route,
+    direction: newTrip.direction || null,
+    startStopCode: newTrip.stopCode,
+    startStopName: newTrip.stopName,
+    verified: newTrip.verified || false,
+    boardingLocation: newTrip.boardingLocation || null,
+    agency: newTrip.agency,
+    timing_reliability: determineReliability(state.expiresAt),
+    sentiment: newTrip.sentiment || null,
+    tags: newTrip.tags || [],
+    parsed_by: newTrip.parsed_by || 'manual',
+  });
+  await clearPendingState(phoneNumber);
+
+  const newStopDisplay = getStopDisplay(newTrip.stopCode, newTrip.stopName);
+  const normalizedDirection = normalizeDirection(newTrip.direction);
+  const newRouteDisplay = normalizedDirection ?
+    `Route ${newTrip.route} ${normalizedDirection}` :
+    `Route ${newTrip.route}`;
+
+  await sendSmsReply(phoneNumber, `✅ ${oldTripRouteDisplay} marked incomplete.
+✅ Started ${newRouteDisplay} from Stop ${newStopDisplay}.
+
+END + STOP to finish. INCOMPLETE if you forgot to end. DISCARD if you didn't board. INFO for help.`);
+}
+
+/**
+ * Handle ending a trip
+ */
+async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification = null, notes = null) {
+  const activeTrip = await getActiveTrip(user.userId);
+
+  if (!activeTrip) {
+    await sendSmsReply(phoneNumber, 'No active trip to end.');
+    return;
+  }
+
+  if (routeVerification) {
+    const activeRoute = activeTrip.route.toString().toLowerCase();
+    const verifyRoute = routeVerification.toString().toLowerCase();
+    if (activeRoute !== verifyRoute) {
+      const routeDisplay = activeTrip.direction ?
+        `Route ${activeTrip.route} ${activeTrip.direction}` :
+        `Route ${activeTrip.route}`;
+      await sendSmsReply(
+        phoneNumber,
+        `❌ Route mismatch. Active trip is ${routeDisplay}, not Route ${routeVerification}.`,
+      );
+      return;
+    }
+  }
+
+  const parsedEndStop = parseStopInput(endStopInput);
+  const endTime = admin.firestore.Timestamp.now();
+  const startTime = activeTrip.startTime.toDate();
+  const duration = Math.round((endTime.toDate().getTime() - startTime.getTime()) / 60000);
+
+  const agency = activeTrip.agency || 'TTC';
+  const endStopData = await lookupStop(parsedEndStop.stopCode, parsedEndStop.stopName, agency);
+  const exitLocation = endStopData ? { lat: endStopData.lat, lng: endStopData.lng } : null;
+
+  const endStopDisplay = getStopDisplay(
+    endStopData ? endStopData.stopCode : parsedEndStop.stopCode,
+    endStopData ? endStopData.stopName : parsedEndStop.stopName,
+  );
+
+  await db.collection('trips').doc(activeTrip.id).update({
+    endStopCode: endStopData ? endStopData.stopCode : parsedEndStop.stopCode,
+    endStopName: endStopData ? endStopData.stopName : parsedEndStop.stopName,
+    endTime: endTime,
+    exitLocation: exitLocation,
+    duration: duration,
+    notes: notes || null,
+    verified: activeTrip.verified && (endStopData !== null),
+  });
+
+  const routeDisplay = activeTrip.direction ?
+    `Route ${activeTrip.route} ${activeTrip.direction}` :
+    `Route ${activeTrip.route}`;
+
+  await sendSmsReply(phoneNumber, `✅ Ended ${routeDisplay} at Stop ${endStopDisplay} (${duration} min trip)`);
+}
+
+/**
+ * Handle natural-language query
+ */
+async function handleQuery(phoneNumber, user, question) {
+  const snapshot = await db.collection('trips')
+    .where('userId', '==', user.userId)
+    .where('endStopName', '!=', null) // Corrected from endStop to endStopName to match schema
+    .limit(100).get();
+
+  const trips = snapshot.docs.map((d) => d.data());
+
+  if (trips.length === 0) {
+    await sendSmsReply(phoneNumber, 'You don\'t have any completed trips yet!');
+    return;
+  }
+
+  const stats = aggregateTripStats(trips);
+  if (await isGeminiRateLimited(phoneNumber)) {
+    await sendSmsReply(phoneNumber, 'AI limit reached. Try again later.');
+    return;
+  }
+  const answer = await answerQueryWithGemini(question, stats);
+  await sendSmsReply(phoneNumber, answer);
+}
+
+/**
+ * Handle STATS command
+ */
+async function handleStatsCommand(phoneNumber, user) {
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const sixtyDaysAgo = new Date(now); sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+  const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const snapshot = await db.collection('trips')
+    .where('userId', '==', user.userId)
+    .where('startTime', '>=', admin.firestore.Timestamp.fromDate(sixtyDaysAgo))
+    .get();
+
+  const toDate = (t) => t.startTime?.toDate ? t.startTime.toDate() : new Date(t.startTime);
+  const allTrips = snapshot.docs.map((d) => d.data()).filter((t) => t.endStopName != null || t.endStopCode != null);
+
+  const recent = allTrips.filter((t) => toDate(t) >= thirtyDaysAgo);
+  const previous = allTrips.filter((t) => {
+    const d = toDate(t);
+    return d >= sixtyDaysAgo && d < thirtyDaysAgo;
+  });
+  const thisMonth = allTrips.filter((t) => toDate(t) >= firstOfMonth);
+
+  if (recent.length === 0 && thisMonth.length === 0) {
+    await sendSmsReply(phoneNumber, 'No trips logged in the last 60 days.');
+    return;
+  }
+
+  const totalMins = recent.reduce((sum, t) => sum + (t.duration || 0), 0);
+  const totalHours = (totalMins / 60).toFixed(1);
+  const uniqueRoutes = new Set(recent.map((t) => t.route).filter(Boolean)).size;
+  const monthName = now.toLocaleString('en-US', { month: 'short' });
+
+  let comparison = '';
+  if (previous.length > 0) {
+    const pct = Math.round(((recent.length - previous.length) / previous.length) * 100);
+    const arrow = pct >= 0 ? '↑' : '↓';
+    comparison = `\n${arrow} ${Math.abs(pct)}% more trips vs prev 30 days`;
+  }
+
+  await sendSmsReply(
+    phoneNumber,
+    `📊 Last 30 Days\n${recent.length} trips • ${uniqueRoutes} routes • ` +
+    `${totalHours} hrs${comparison}\n${thisMonth.length} trips so far in ${monthName}`,
+  );
+}
+
+module.exports = {
+  handleHelp,
+  handleStatus,
+  handleDiscard,
+  handleIncomplete,
+  handleRegister,
+  handleVerificationCode,
+  handleTripLog,
+  handleConfirmStart,
+  handleEndTrip,
+  handleQuery,
+  handleStatsCommand,
+};

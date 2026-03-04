@@ -1,5 +1,16 @@
 // Public Profile Logic
 
+// Security: HTML sanitization to prevent XSS
+function escapeHtml(unsafe) {
+    if (unsafe === null || unsafe === undefined) return '';
+    return String(unsafe)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 // Firebase Config (Matches app.js)
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -56,6 +67,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 4. Fetch Trips
         const tripsSnapshot = await db.collection('trips')
             .where('userId', '==', userId)
+            .limit(200)
             .get();
 
         const trips = [];
@@ -74,13 +86,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function showError(msg) {
-    document.querySelector('.container').innerHTML = `
+    const container = document.querySelector('.container');
+    container.innerHTML = `
         <div style="text-align: center; margin-top: 100px;">
             <div style="font-size: 3em; margin-bottom: 20px;">😕</div>
-            <h2>${msg}</h2>
+            <h2></h2>
             <p><a href="/" style="color: var(--accent-primary);">Go Home</a></p>
         </div>
     `;
+    container.querySelector('h2').textContent = msg;
 }
 
 function renderStats(trips) {
@@ -109,8 +123,8 @@ function renderStats(trips) {
         topRoutesList.innerHTML = sortedRoutes.map(item => `
             <div class="stat-card" style="text-align: left; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
                 <div>
-                    <div style="font-weight: 600; font-size: 1.1em;">${item.route}</div>
-                    <div style="font-size: 0.85em; color: var(--text-secondary);">${item.count} trips</div>
+                    <div style="font-weight: 600; font-size: 1.1em;">${escapeHtml(item.route)}</div>
+                    <div style="font-size: 0.85em; color: var(--text-secondary);">${escapeHtml(item.count)} trips</div>
                 </div>
                 <div style="width: 100px; height: 6px; background: var(--bg-primary); border-radius: 3px; overflow: hidden;">
                     <div style="height: 100%; width: ${(item.count / maxTrips) * 100}%; background: var(--accent-primary);"></div>

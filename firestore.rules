@@ -57,6 +57,16 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Gemini rate limits - only cloud functions can read/write
+    match /geminiRateLimits/{phoneNumber} {
+      allow read, write: if false;
+    }
+
+    // Gemini rate limits - only cloud functions can read/write
+    match /geminiRateLimits/{phoneNumber} {
+      allow read, write: if false;
+    }
+
     // Unknown numbers tracking - only cloud functions can read/write
     match /unknownNumbers/{phoneNumber} {
       allow read, write: if false;

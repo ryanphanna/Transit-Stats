@@ -2,1910 +2,190 @@
  * SMS Webhook Handler for Transit Stats
  *
  * Receives POST webhooks from Twilio and handles transit trip tracking via SMS.
- *
- * START TRIP (multi-line):
- * Line 1: Route (required)
- * Line 2: Stop (required)
- * Line 3: Direction (optional)
- * Line 4: Agency (optional)
- *
- * END TRIP (multi-line):
- * Line 1: END
- * Line 2: Stop (required)
- * Line 3+: Notes (optional)
- *
- * Commands (anytime):
- * - END + stop + notes: End active trip properly (saves with exit stop)
- * - DISCARD: Delete active trip without saving
- * - STATUS: Show active trip info
- * - INFO or ?: Show help
- *
- * Prompt-only commands:
- * - START: Confirm starting new trip (only appears in prompts)
- *
- * Stop identification:
- * - If stop is all digits (e.g., "6036"), saved as stopCode
- * - If stop contains letters (e.g., "Spadina & Nassau"), saved as stopName
  */
 
 const functions = require('firebase-functions');
-const { defineSecret } = require('firebase-functions/params');
-const admin = require('firebase-admin');
 const express = require('express');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-const twilio = require('twilio');
+const { defineSecret } = require('firebase-functions/params');
 
-// Define Gemini API key secret
+// Modules
+const logger = require('./lib/logger');
+const { validateConfiguration } = require('./lib/config');
+const {
+  admin,
+  db,
+  isRateLimited,
+  checkIdempotency,
+  getPendingState,
+  getUserByPhone,
+  getUserProfile,
+  getActiveTrip,
+  clearPendingState,
+  shouldRespondToUnknown,
+} = require('./lib/db');
+const {
+  validateTwilioSignature,
+  twimlResponse,
+  sendSmsReply,
+} = require('./lib/twilio');
+const {
+  parseWithGemini,
+  constructStopInput,
+} = require('./lib/gemini');
+const {
+  parseMultiLineTripFormat,
+  parseEndTripFormat,
+  parseAgencyOverride,
+  isHeuristicLogValid,
+} = require('./lib/parsing');
+const {
+  toTitleCase,
+  isValidRoute,
+  normalizeDirection,
+} = require('./lib/utils');
+const handlers = require('./lib/handlers');
+
+// Secrets
 const geminiApiKey = defineSecret('GEMINI_API_KEY');
+const twilioAuthToken = defineSecret('TWILIO_AUTH_TOKEN');
 
-// Initialize Firebase Admin SDK (only once)
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
-
-const db = admin.firestore();
 const app = express();
-
-// Parse URL-encoded bodies (Twilio sends form data)
 app.use(express.urlencoded({ extended: true }));
 
-// =============================================================================
-// TWILIO SIGNATURE VALIDATION
-// =============================================================================
-
 /**
- * Middleware to validate that POST requests genuinely originate from Twilio.
- * Prevents forged webhook requests from malicious third parties.
- */
-function validateTwilioSignature(req, res, next) {
-  // Allow bypass in Firebase emulator for local development
-  if (process.env.FUNCTIONS_EMULATOR === 'true') {
-    console.warn('⚠️  Twilio signature validation skipped (emulator mode)');
-    return next();
-  }
-
-  const authToken = functions.config().twilio?.auth_token;
-  if (!authToken) {
-    console.error('Twilio auth token not configured - rejecting request');
-    res.status(403).send('Forbidden');
-    return;
-  }
-
-  const twilioSignature = req.headers['x-twilio-signature'];
-  if (!twilioSignature) {
-    console.warn('Missing X-Twilio-Signature header');
-    res.status(403).send('Forbidden');
-    return;
-  }
-
-  const protocol = req.headers['x-forwarded-proto'] || 'https';
-  const host = req.headers['x-forwarded-host'] || req.headers.host;
-  const url = `${protocol}://${host}${req.originalUrl}`;
-
-  const isValid = twilio.validateRequest(authToken, twilioSignature, url, req.body);
-
-  if (!isValid) {
-    console.warn('Invalid Twilio webhook signature - possible forgery attempt');
-    res.status(403).send('Forbidden');
-    return;
-  }
-
-  next();
-}
-
-// =============================================================================
-// CONFIGURATION VALIDATION
-// =============================================================================
-
-/**
- * Validate required environment configuration on cold start
- */
-function validateConfiguration() {
-  const warnings = [];
-  const errors = [];
-
-  // Check Twilio configuration
-  const twilioAccountSid = functions.config().twilio?.account_sid;
-  const twilioAuthToken = functions.config().twilio?.auth_token;
-  const twilioPhone = functions.config().twilio?.phone_number;
-
-  if (!twilioAccountSid) errors.push('Missing twilio.account_sid');
-  if (!twilioAuthToken) errors.push('Missing twilio.auth_token');
-  if (!twilioPhone) warnings.push('Missing twilio.phone_number (SMS replies disabled)');
-
-  // Check Gemini configuration
-  const geminiApiKey = functions.config().gemini?.api_key;
-  if (!geminiApiKey) {
-    warnings.push('Missing gemini.api_key (AI parsing disabled, will use heuristics)');
-  }
-
-  // Log results
-  if (errors.length > 0) {
-    console.error('❌ Configuration errors:', errors.join(', '));
-    console.error('Set missing config with: firebase functions:config:set <key>=<value>');
-  }
-
-  if (warnings.length > 0) {
-    console.warn('⚠️  Configuration warnings:', warnings.join(', '));
-  }
-
-  if (errors.length === 0 && warnings.length === 0) {
-    console.log('✅ Configuration validated successfully');
-  }
-
-  return { errors, warnings };
-}
-
-// Validate configuration on cold start
-let configValidation = { errors: [], warnings: [] };
-try {
-  configValidation = validateConfiguration();
-} catch (error) {
-  console.warn('⚠️  Configuration validation skipped or failed:', error.message);
-}
-
-// =============================================================================
-// TWILIO CONFIGURATION
-// =============================================================================
-
-/**
- * Get Twilio client. Returns null if credentials are not configured.
- */
-function getTwilioClient() {
-  try {
-    const accountSid = functions.config().twilio?.account_sid;
-    const authToken = functions.config().twilio?.auth_token;
-
-    if (!accountSid || !authToken) {
-      console.error('Twilio credentials not configured. Set them with:');
-      console.error('firebase functions:config:set twilio.account_sid="XXX" twilio.auth_token="XXX" twilio.phone_number="+1XXXXXXXXXX"');
-      return null;
-    }
-
-    const client = twilio(accountSid, authToken);
-    return client;
-  } catch (error) {
-    console.error('Error initializing Twilio client:', error);
-    return null;
-  }
-}
-
-/**
- * Get the Twilio phone number to send from
- */
-function getTwilioPhoneNumber() {
-  return functions.config().twilio?.phone_number || null;
-}
-
-// =============================================================================
-// SMS RESPONSE HELPER
-// =============================================================================
-
-/**
- * Send an SMS reply via Twilio
- * @param {string} to - Recipient phone number
- * @param {string} message - Message body
- */
-async function sendSmsReply(to, message) {
-  const client = getTwilioClient();
-  const from = getTwilioPhoneNumber();
-
-  if (!client || !from) {
-    console.error('Cannot send SMS - Twilio not configured');
-    return false;
-  }
-
-  try {
-    await client.messages.create({
-      body: message,
-      from: from,
-      to: to,
-    });
-    console.log('SMS sent successfully');
-    return true;
-  } catch (error) {
-    console.error('Error sending SMS:', error);
-    return false;
-  }
-}
-
-/**
- * Generate TwiML response (fallback if Twilio API fails)
- * @param {string} message - Message body
- * @returns {string} TwiML XML
- */
-function twimlResponse(message) {
-  if (!message) {
-    return '<?xml version="1.0" encoding="UTF-8"?><Response/>';
-  }
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${escapeXml(message)}</Message>
-</Response>`;
-}
-
-/**
- * Escape XML special characters
- */
-function escapeXml(text) {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
-
-// =============================================================================
-// FIRESTORE HELPERS
-// =============================================================================
-
-/**
- * Check if a phone number is rate limited
- * @param {string} phoneNumber - Phone number
- * @returns {boolean} true if rate limited (should ignore message)
- */
-async function isRateLimited(phoneNumber) {
-  const rateLimitRef = db.collection('rateLimits').doc(phoneNumber);
-  const doc = await rateLimitRef.get();
-  const now = new Date();
-
-  if (!doc.exists) {
-    // First message - create rate limit record
-    await rateLimitRef.set({
-      count: 1,
-      resetAt: admin.firestore.Timestamp.fromDate(
-        new Date(now.getTime() + 60 * 60 * 1000), // 1 hour from now
-      ),
-    });
-    return false;
-  }
-
-  const data = doc.data();
-  const resetAt = data.resetAt.toDate();
-
-  if (now >= resetAt) {
-    // Reset period expired - reset counter
-    await rateLimitRef.set({
-      count: 1,
-      resetAt: admin.firestore.Timestamp.fromDate(
-        new Date(now.getTime() + 60 * 60 * 1000),
-      ),
-    });
-    return false;
-  }
-
-  if (data.count >= 500) {
-    // Rate limit exceeded
-    console.log('Rate limit exceeded');
-    return true;
-  }
-
-  // Increment counter
-  await rateLimitRef.update({
-    count: admin.firestore.FieldValue.increment(1),
-  });
-  return false;
-}
-
-/**
- * Check if email is in the allowedUsers whitelist
- * @param {string} email - Email address to check
- * @returns {boolean} true if email is allowed
- */
-async function isEmailAllowed(email) {
-  const allowedDoc = await db
-    .collection('allowedUsers')
-    .doc(email.toLowerCase())
-    .get();
-  return allowedDoc.exists;
-}
-
-/**
- * Track unknown number messages and check if should respond
- * @param {string} phoneNumber - Phone number
- * @returns {boolean} true if this is the first message in the hour (should respond)
- */
-async function shouldRespondToUnknown(phoneNumber) {
-  const unknownRef = db.collection('unknownNumbers').doc(phoneNumber);
-  const doc = await unknownRef.get();
-  const now = new Date();
-
-  if (!doc.exists) {
-    // First ever message from this number
-    await unknownRef.set({
-      firstMessageAt: admin.firestore.FieldValue.serverTimestamp(),
-      messageCount: 1,
-      resetAt: admin.firestore.Timestamp.fromDate(
-        new Date(now.getTime() + 60 * 60 * 1000), // 1 hour from now
-      ),
-    });
-    return true; // Respond to first message
-  }
-
-  const data = doc.data();
-  const resetAt = data.resetAt.toDate();
-
-  if (now >= resetAt) {
-    // Reset period expired - treat as first message again
-    await unknownRef.set({
-      firstMessageAt: admin.firestore.FieldValue.serverTimestamp(),
-      messageCount: 1,
-      resetAt: admin.firestore.Timestamp.fromDate(
-        new Date(now.getTime() + 60 * 60 * 1000),
-      ),
-    });
-    return true;
-  }
-
-  // Not first message in this hour - increment and ignore
-  await unknownRef.update({
-    messageCount: admin.firestore.FieldValue.increment(1),
-  });
-  console.log('Ignoring repeat message from unknown number');
-  return false;
-}
-
-/**
- * Get user info by phone number
- * @param {string} phoneNumber - Phone number (e.g., "+16471234567")
- * @returns {object|null} User data or null if not registered
- */
-async function getUserByPhone(phoneNumber) {
-  const phoneDoc = await db.collection('phoneNumbers').doc(phoneNumber).get();
-  if (!phoneDoc.exists) {
-    return null;
-  }
-  return phoneDoc.data();
-}
-
-/**
- * Get user's profile (including defaultAgency)
- * @param {string} userId - User ID
- * @returns {object|null} Profile data or null
- */
-async function getUserProfile(userId) {
-  const profileDoc = await db.collection('profiles').doc(userId).get();
-  if (!profileDoc.exists) {
-    return null;
-  }
-  return profileDoc.data();
-}
-
-/**
- * Get active trip for a user (trip with no endTime)
- * @param {string} userId - User ID
- * @returns {object|null} Active trip data with ID or null
- */
-async function getActiveTrip(userId) {
-  const tripsRef = db.collection('trips');
-  const snapshot = await tripsRef
-    .where('userId', '==', userId)
-    .where('endTime', '==', null)
-    .orderBy('startTime', 'desc')
-    .limit(1)
-    .get();
-
-  if (snapshot.empty) {
-    return null;
-  }
-
-  const doc = snapshot.docs[0];
-  return { id: doc.id, ...doc.data() };
-}
-
-/**
- * Get pending state for a phone number (for disambiguation)
- * @param {string} phoneNumber - Phone number
- * @returns {object|null} Pending state or null
- */
-async function getPendingState(phoneNumber) {
-  const stateDoc = await db.collection('smsState').doc(phoneNumber).get();
-  if (!stateDoc.exists) {
-    return null;
-  }
-  const data = stateDoc.data();
-
-  // Check if state is expired (5 minutes)
-  if (data.expiresAt && data.expiresAt.toDate() < new Date()) {
-    await db.collection('smsState').doc(phoneNumber).delete();
-    return null;
-  }
-
-  return data;
-}
-
-/**
- * Set pending state for a phone number
- * @param {string} phoneNumber - Phone number
- * @param {object} state - State object
- */
-async function setPendingState(phoneNumber, state) {
-  const expiresAt = admin.firestore.Timestamp.fromDate(
-    new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
-  );
-  await db.collection('smsState').doc(phoneNumber).set({
-    ...state,
-    expiresAt,
-  });
-}
-
-/**
- * Clear pending state for a phone number
- * @param {string} phoneNumber - Phone number
- */
-async function clearPendingState(phoneNumber) {
-  await db.collection('smsState').doc(phoneNumber).delete();
-}
-
-/**
- * Store registration verification code
- * @param {string} phoneNumber - Phone number
- * @param {string} email - Email address
- * @param {string} code - 4-digit verification code
- */
-async function storeVerificationCode(phoneNumber, email, code) {
-  const expiresAt = admin.firestore.Timestamp.fromDate(
-    new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
-  );
-  await db.collection('smsVerification').doc(phoneNumber).set({
-    email,
-    code,
-    expiresAt,
-    attempts: 0,
-  });
-}
-
-/**
- * Get verification data for a phone number
- * @param {string} phoneNumber - Phone number
- * @returns {object|null} Verification data or null
- */
-async function getVerificationData(phoneNumber) {
-  const doc = await db.collection('smsVerification').doc(phoneNumber).get();
-  if (!doc.exists) {
-    return null;
-  }
-  const data = doc.data();
-
-  // Check if expired
-  if (data.expiresAt && data.expiresAt.toDate() < new Date()) {
-    await db.collection('smsVerification').doc(phoneNumber).delete();
-    return null;
-  }
-
-  return data;
-}
-
-/**
- * Generate a random 4-digit code
- */
-function generateVerificationCode() {
-  return Math.floor(1000 + Math.random() * 9000).toString();
-}
-
-/**
- * Parse stop input to determine if it's a stop code (all digits) or stop name (contains letters)
- * @param {string} input - The stop input string
- * @returns {object} Object with stopCode and stopName fields (only one will be set)
- */
-function parseStopInput(input) {
-  const trimmed = input.trim();
-  // Check if the input is all digits (stop code)
-  if (/^\d+$/.test(trimmed)) {
-    return { stopCode: trimmed, stopName: null };
-  }
-  // Contains letters - it's a stop name
-  return { stopCode: null, stopName: toTitleCase(trimmed) };
-}
-
-/**
- * Get display string for a stop (handles both code and name fields)
- * @param {string|null} stopCode - Stop code (numeric)
- * @param {string|null} stopName - Stop name (text)
- * @param {string|null} legacyStop - Legacy startStop/endStop field for backward compatibility
- * @returns {string} Display string for the stop
- */
-function getStopDisplay(stopCode, stopName, legacyStop = null) {
-  if (stopCode) return stopCode;
-  if (stopName) return stopName;
-  if (legacyStop) return legacyStop;
-  return 'Unknown';
-}
-
-/**
- * Look up a stop in the stops database
- * Returns stop data with lat/lng if found, null otherwise
- * @param {string|null} stopCode - Stop code (numeric)
- * @param {string|null} stopName - Stop name (text)
- * @param {string} agency - Transit agency
- * @returns {object|null} Stop data or null
- */
-async function lookupStop(stopCode, stopName, agency) {
-  try {
-    let snapshot;
-
-    if (stopCode) {
-      // Look up by stop code and agency
-      snapshot = await db.collection('stops')
-        .where('agency', '==', agency)
-        .where('code', '==', stopCode) // Corrected from stopCode to code
-        .limit(1)
-        .get();
-    } else if (stopName) {
-      // Look up by stop name and agency (case-sensitive exact match)
-      snapshot = await db.collection('stops')
-        .where('agency', '==', agency)
-        .where('name', '==', stopName) // Corrected from stopName to name
-        .limit(1)
-        .get();
-
-      // If no exact match (or code lookup failed)
-      if (snapshot.empty) {
-        // 1. Try case-insensitive name match
-        const allStops = await db.collection('stops')
-          .where('agency', '==', agency)
-          .get();
-
-        const lowerName = stopName.toLowerCase();
-        for (const doc of allStops.docs) {
-          const data = doc.data();
-          // Check 'name' field
-          if (data.name && data.name.toLowerCase() === lowerName) {
-            return { id: doc.id, ...data, stopCode: data.code, stopName: data.name }; // Map back to internal format
-          }
-        }
-
-        // 2. Try ALIAS match (exact)
-        const aliasSnapshot = await db.collection('stops')
-          .where('agency', '==', agency)
-          .where('aliases', 'array-contains', stopName)
-          .limit(1)
-          .get();
-
-        if (!aliasSnapshot.empty) {
-          const doc = aliasSnapshot.docs[0];
-          const data = doc.data();
-          return { id: doc.id, ...data, stopCode: data.code, stopName: data.name };
-        }
-
-        // 3. Try ALIAS match (case-insensitive loop)
-        // Since we already fetched allStops above, we can reuse it
-        for (const doc of allStops.docs) {
-          const data = doc.data();
-          if (data.aliases && Array.isArray(data.aliases)) {
-            if (data.aliases.some((a) => a.toLowerCase() === lowerName)) {
-              return { id: doc.id, ...data, stopCode: data.code, stopName: data.name };
-            }
-          }
-        }
-
-        return null; // Finally give up
-      }
-    } else {
-      return null;
-    }
-
-    if (snapshot.empty) {
-      return null;
-    }
-
-    const doc = snapshot.docs[0];
-    const data = doc.data();
-    return { id: doc.id, ...data, stopCode: data.code, stopName: data.name };
-  } catch (error) {
-    console.error('Error looking up stop:', error);
-    return null;
-  }
-}
-
-/**
- * Normalize direction input to standard full-word format
- * @param {string} input - Raw direction input (e.g. "SB", "North", "CW")
- * @returns {string} Normalized direction (e.g. "Southbound", "Northbound", "Clockwise") or original input
- */
-function normalizeDirection(input) {
-  if (!input) return null;
-
-  const upper = input.trim().toUpperCase();
-
-  // North/Northbound
-  if (['N', 'NB', 'N/B', 'NORTH', 'NORTHBOUND', 'NORTHWARD'].includes(upper)) return 'Northbound';
-
-  // South/Southbound
-  if (['S', 'SB', 'S/B', 'SOUTH', 'SOUTHBOUND', 'SOUTHWARD'].includes(upper)) return 'Southbound';
-
-  // East/Eastbound
-  if (['E', 'EB', 'E/B', 'EAST', 'EASTBOUND', 'EASTWARD'].includes(upper)) return 'Eastbound';
-
-  // West/Westbound
-  if (['W', 'WB', 'W/B', 'WEST', 'WESTBOUND', 'WESTWARD'].includes(upper)) return 'Westbound';
-
-  // Clockwise
-  if (['CW', 'CLOCKWISE'].includes(upper)) return 'Clockwise';
-
-  // Counterclockwise
-  if (['CCW', 'COUNTERCLOCKWISE', 'ANTICLOCKWISE', 'ANTI-CLOCKWISE'].includes(upper)) return 'Counterclockwise';
-
-  // Inbound
-  if (['IB', 'IN', 'INBOUND'].includes(upper)) return 'Inbound';
-
-  // Outbound
-  if (['OB', 'OUT', 'OUTBOUND'].includes(upper)) return 'Outbound';
-
-  // Return original if no match (e.g. specific destination name)
-  return input.trim();
-}
-
-/**
- * Convert string to Title Case
- * Also normalizes " and " to " & " for intersections
- * @param {string} str - Input string
- * @returns {string} Title Cased String
- */
-function toTitleCase(str) {
-  if (!str) return str;
-
-  // Replace " and " with " & " (case insensitive)
-  const withAmpersand = str.replace(/\s+and\s+/gi, ' & ');
-
-  return withAmpersand.toLowerCase().split(' ').map((word) => {
-    return word.charAt(0).toUpperCase() + word.slice(1);
-  }).join(' ');
-}
-
-/**
- * Parse multi-line trip format
- * Line 1: Route (required)
- * Line 2: Stop (required)
- * Line 3: Direction (optional)
- * Line 4: Agency (optional)
- * @param {string} body - Message body
- * @param {string} defaultAgency - User's default agency
- * @returns {object|null} Parsed trip data or null if invalid
- */
-function parseMultiLineTripFormat(body, defaultAgency) {
-  const lines = body.split('\n').map((line) => line.trim()).filter((line) => line.length > 0);
-
-  // Need at least route and stop (lines 1 and 2)
-  if (lines.length < 2) {
-    return null;
-  }
-
-  // If first line is a command, don't parse as trip
-  const firstLineUpper = lines[0].toUpperCase();
-  if (['END', 'STATUS', 'DISCARD', 'INFO', '?', 'START', 'HELP'].includes(firstLineUpper)) {
-    return null;
-  }
-
-  const route = toTitleCase(lines[0]);
-  const stop = toTitleCase(lines[1]);
-  // Normalize direction if present
-  const direction = lines.length > 2 ? normalizeDirection(lines[2]) : null;
-
-  // Check if line 4 is an agency
-  let agency = defaultAgency;
-  if (lines.length > 3) {
-    // Check if it's a known agency
-    const potentialAgency = lines[3];
-    const lowerAgency = potentialAgency.toLowerCase();
-    const knownAgency = KNOWN_AGENCIES.find((a) => a.toLowerCase() === lowerAgency);
-    if (knownAgency) {
-      agency = knownAgency;
-    }
-  }
-
-  return {
-    route,
-    stop,
-    direction,
-    agency,
-  };
-}
-
-/**
- * Parse multi-line END trip format
- * Line 1: END
- * Line 2: Route (optional, for verification)
- * Line 3: Stop (required)
- * @param {string} body - Message body
- * @returns {object|null} Parsed end trip data or null if not an END command
- */
-function parseEndTripFormat(body) {
-  const lines = body.split('\n').map((line) => line.trim()).filter((line) => line.length > 0);
-
-  // First line must be "END" or "STOP"
-  if (lines.length === 0 || !['END', 'STOP'].includes(lines[0].toUpperCase())) {
-    return null;
-  }
-
-  // Just "END" - no stop provided
-  if (lines.length < 2) {
-    return { isEnd: true, stop: null, route: null, notes: null };
-  }
-
-  // Format:
-  // Line 1: END/STOP
-  // Line 2: Stop Name
-  // Line 3+: Notes
-  const stop = lines[1];
-  const notes = lines.length > 2 ? lines.slice(2).join('\n') : null;
-
-  return {
-    isEnd: true,
-    stop,
-    route: null, // Deprecated route verification in favor of simple stop + notes
-    notes,
-  };
-}
-
-// =============================================================================
-// AGENCY HANDLING
-// =============================================================================
-
-/**
- * Known transit agencies for override parsing
- * Case-insensitive matching
- */
-const KNOWN_AGENCIES = [
-  'TTC',
-  'OC Transpo',
-  'GO Transit',
-  'GO',
-  'MiWay',
-  'YRT',
-  'Brampton Transit',
-  'Durham Transit',
-  'HSR',
-  'GRT',
-  'STM',
-  'TransLink',
-];
-
-/**
- * Parse agency override from end of message
- * Checks if the message ends with a known agency name
- * @param {string} message - The full message
- * @returns {object} { agency: string|null, remainingMessage: string }
- */
-function parseAgencyOverride(message) {
-  const trimmed = message.trim();
-  const lowerMessage = trimmed.toLowerCase();
-
-  // Check each known agency (case-insensitive)
-  for (const agency of KNOWN_AGENCIES) {
-    const lowerAgency = agency.toLowerCase();
-    if (lowerMessage.endsWith(' ' + lowerAgency)) {
-      // Remove agency from end of message
-      const remainingMessage = trimmed.slice(0, -(agency.length + 1)).trim();
-      // Return the canonical agency name (properly cased)
-      return { agency, remainingMessage };
-    }
-  }
-
-
-  return { agency: null, remainingMessage: trimmed };
-}
-
-// =============================================================================
-// PARSING HELPERS
-// =============================================================================
-
-/**
- * Common suffixes/words that should NEVER be route names
- */
-const BAD_ROUTE_SUFFIXES = [
-  'ST', 'AVE', 'RD', 'DR', 'BLVD', 'WAY', 'STATION',
-  'N', 'S', 'E', 'W', 'NB', 'SB', 'EB', 'WB',
-  'NORTH', 'SOUTH', 'EAST', 'WEST', 'INBOUND', 'OUTBOUND',
-  'NORTHBOUND', 'SOUTHBOUND', 'EASTBOUND', 'WESTBOUND',
-  'TRIP', 'RIDE', 'STOP', 'BUS', 'STREETCAR', 'TRAIN', 'SUBWAY',
-  'FROM', 'TO', 'AT', 'ON', 'HEADED', 'GOING'
-];
-
-/**
- * Check if a route string is valid
- * @param {string} route - Route string to check
- * @returns {boolean} true if valid
- */
-function isValidRoute(route) {
-  if (!route) return false;
-
-  // Clean up
-  const cleanRoute = route.trim().toUpperCase();
-
-  // If it's a number, it's valid
-  if (/^\d+$/.test(cleanRoute)) return true;
-
-  // If it's in the bad list, it's invalid
-  if (BAD_ROUTE_SUFFIXES.includes(cleanRoute)) return false;
-
-  return true;
-}
-
-/**
- * Construct stop input from Gemini result
- * Prefer stop_id (code) if available, otherwise stop_name
- * @param {object} result - Gemini result object
- * @returns {string|null} Stop input string or null
- */
-function constructStopInput(result) {
-  if (!result) return null;
-  return result.stop_id || result.stop_name || null;
-}
-
-
-// =============================================================================
-// COMMAND HANDLERS
-// =============================================================================
-
-/**
- * Handle HELP command
- */
-async function handleHelp(phoneNumber) {
-  await sendSmsReply(phoneNumber,
-    `TransitStats
-
-To start a trip, send:
-
-ROUTE
-STOP
-DIRECTION (optional)
-AGENCY (optional)
-
-To end a trip, send:
-END
-STOP
-NOTES (optional)
-
-Commands:
-STATUS - view active trip
-STATS - your last 30 days
-INCOMPLETE - forgot to end a trip
-DISCARD - didn't board, delete the trip
-REGISTER [email] - link account
-
-Ask me anything about your trips, e.g. "How long does my commute usually take?"`
-  );
-}
-
-/**
- * Handle STATUS command
- */
-async function handleStatus(phoneNumber, user) {
-  const activeTrip = await getActiveTrip(user.userId);
-
-  if (!activeTrip) {
-    await sendSmsReply(phoneNumber, 'No active trip.');
-    return;
-  }
-
-  const startTime = activeTrip.startTime.toDate();
-  const elapsedMs = Date.now() - startTime.getTime();
-  const elapsedMin = Math.round(elapsedMs / 60000);
-  const timeStr = startTime.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-
-  // Get display for start stop (handles both old and new schema)
-  const startStopDisplay = getStopDisplay(
-    activeTrip.startStopCode,
-    activeTrip.startStopName,
-    activeTrip.startStop,
-  );
-
-  // Format route with direction if available
-  const routeDisplay = activeTrip.direction ?
-    `Route ${activeTrip.route} ${activeTrip.direction}` :
-    `Route ${activeTrip.route}`;
-
-  const message = `Active trip:
-${routeDisplay} from Stop ${startStopDisplay}
-Started ${timeStr} (${elapsedMin} min ago)
-
-END + STOP to finish. INCOMPLETE if you forgot to end. DISCARD if you didn't board. INFO for help.`;
-
-  await sendSmsReply(phoneNumber, message);
-}
-
-/**
- * Handle DISCARD command - permanently deletes active trip (never boarded)
- */
-async function handleDiscard(phoneNumber, user) {
-  const activeTrip = await getActiveTrip(user.userId);
-
-  if (!activeTrip) {
-    await sendSmsReply(phoneNumber, 'No active trip to discard.');
-    return;
-  }
-
-  const routeDisplay = activeTrip.direction ?
-    `Route ${activeTrip.route} ${activeTrip.direction}` :
-    `Route ${activeTrip.route}`;
-
-  await db.collection('trips').doc(activeTrip.id).delete();
-  await clearPendingState(phoneNumber);
-
-  await sendSmsReply(phoneNumber, `✅ Deleted ${routeDisplay}.`);
-}
-
-/**
- * Handle INCOMPLETE command - keeps trip start, marks end as unknown
- */
-async function handleIncomplete(phoneNumber, user) {
-  const activeTrip = await getActiveTrip(user.userId);
-
-  if (!activeTrip) {
-    await sendSmsReply(phoneNumber, 'No active trip to mark incomplete.');
-    return;
-  }
-
-  const routeDisplay = activeTrip.direction ?
-    `Route ${activeTrip.route} ${activeTrip.direction}` :
-    `Route ${activeTrip.route}`;
-
-  await db.collection('trips').doc(activeTrip.id).update({
-    incomplete: true,
-    endTime: activeTrip.startTime,
-    exitLocation: null,
-    duration: null,
-  });
-
-  await sendSmsReply(phoneNumber, `✅ Marked ${routeDisplay} as incomplete.`);
-}
-
-/**
- * Handle REGISTER command
- */
-async function handleRegister(phoneNumber, email) {
-  // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    await sendSmsReply(
-      phoneNumber,
-      'Invalid email format. Text REGISTER [email] with a valid email address.',
-    );
-    return;
-  }
-
-  // Check if email is in the allowedUsers whitelist
-  const allowed = await isEmailAllowed(email);
-  if (!allowed) {
-    await sendSmsReply(
-      phoneNumber,
-      'This app is invite-only. Visit the web app for access information.',
-    );
-    return;
-  }
-
-  // Check if phone is already registered
-  const existingUser = await getUserByPhone(phoneNumber);
-  if (existingUser) {
-    await sendSmsReply(
-      phoneNumber,
-      `This phone is already linked to ${existingUser.email}. Contact support to change.`,
-    );
-    return;
-  }
-
-  // Check if user exists with this email
-  const profilesSnapshot = await db
-    .collection('profiles')
-    .where('email', '==', email.toLowerCase())
-    .limit(1)
-    .get();
-
-  if (profilesSnapshot.empty) {
-    await sendSmsReply(
-      phoneNumber,
-      `No TransitStats account found for ${email}. Create an account at the web app first.`,
-    );
-    return;
-  }
-
-  // Generate verification code
-  const code = generateVerificationCode();
-  await storeVerificationCode(phoneNumber, email.toLowerCase(), code);
-
-  // Send email with verification code
-  // Note: In production, you'd use Firebase Extensions or a service like SendGrid
-  // For now, we'll store the code and instruct user to check email
-  // Verification code generated (not logged for security)
-
-  // Try to send email via Firebase (if configured)
-  try {
-    await db.collection('mail').add({
-      to: email.toLowerCase(),
-      message: {
-        subject: 'TransitStats SMS Verification Code',
-        text: `Your verification code is: ${code}\n\nEnter this code by replying to the SMS to link your phone number.`,
-        html: `<h2>TransitStats SMS Verification</h2><p>Your verification code is: <strong>${code}</strong></p><p>Reply to the SMS with this code to link your phone number.</p>`,
-      },
-    });
-    console.log('Verification email queued');
-  } catch (error) {
-    console.error('Error queuing verification email:', error);
-  }
-
-  await sendSmsReply(
-    phoneNumber,
-    `Verification code sent to ${email}. Reply with the 4-digit code.\n\nReply DISCARD to undo`,
-  );
-
-  // Set state to wait for code
-  await setPendingState(phoneNumber, {
-    type: 'awaiting_verification',
-    email: email.toLowerCase(),
-  });
-}
-
-/**
- * Handle verification code input
- */
-async function handleVerificationCode(phoneNumber, code) {
-  const verificationData = await getVerificationData(phoneNumber);
-
-  if (!verificationData) {
-    await sendSmsReply(
-      phoneNumber,
-      'No pending registration. Text REGISTER [email] to start.',
-    );
-    return;
-  }
-
-  // Check attempts
-  if (verificationData.attempts >= 3) {
-    await db.collection('smsVerification').doc(phoneNumber).delete();
-    await clearPendingState(phoneNumber);
-    await sendSmsReply(
-      phoneNumber,
-      'Too many attempts. Text REGISTER [email] to try again.',
-    );
-    return;
-  }
-
-  // Verify code
-  if (code !== verificationData.code) {
-    await db.collection('smsVerification').doc(phoneNumber).update({
-      attempts: admin.firestore.FieldValue.increment(1),
-    });
-    await sendSmsReply(phoneNumber, 'Invalid code. Please try again.');
-    return;
-  }
-
-  // Code is correct - link phone to user
-  const email = verificationData.email;
-  const profilesSnapshot = await db
-    .collection('profiles')
-    .where('email', '==', email)
-    .limit(1)
-    .get();
-
-  if (profilesSnapshot.empty) {
-    await sendSmsReply(phoneNumber, 'Account not found. Please try again.');
-    return;
-  }
-
-  const userId = profilesSnapshot.docs[0].id;
-
-  // Create phone number mapping
-  await db.collection('phoneNumbers').doc(phoneNumber).set({
-    userId,
-    email,
-    registeredAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
-
-  // Clean up
-  await db.collection('smsVerification').doc(phoneNumber).delete();
-  await clearPendingState(phoneNumber);
-
-  await sendSmsReply(
-    phoneNumber,
-    `Phone linked to ${email}! Text "[stop] [route]" to log trips.`,
-  );
-}
-
-/**
- * Handle trip logging with multi-line format
- * @param {string} phoneNumber - Phone number
- * @param {object} user - User object with userId
- * @param {string} stopInput - Stop code or name
- * @param {string} route - Route number/name
- * @param {string|null} direction - Direction (optional)
- * @param {string} agency - Transit agency
- * @param {object} options - Optional { sentiment, tags }
- */
-async function handleTripLog(phoneNumber, user, stopInput, route, direction, agency, options = {}) {
-  const activeTrip = await getActiveTrip(user.userId);
-  const parsedStop = parseStopInput(stopInput);
-  const stopDisplay = getStopDisplay(parsedStop.stopCode, parsedStop.stopName);
-
-  // Look up stop in database for verification
-  const stopData = await lookupStop(parsedStop.stopCode, parsedStop.stopName, agency);
-  const verified = stopData !== null;
-  const boardingLocation = stopData ? { lat: stopData.lat, lng: stopData.lng } : null;
-
-  if (activeTrip) {
-    // Get display for active trip's start stop (handles both old and new schema)
-    const activeTripStartStop = getStopDisplay(
-      activeTrip.startStopCode,
-      activeTrip.startStopName,
-      activeTrip.startStop,
-    );
-
-    // Format route display for active trip
-    const activeTripRouteDisplay = activeTrip.direction ?
-      `Route ${activeTrip.route} ${activeTrip.direction}` :
-      `Route ${activeTrip.route}`;
-
-    // Format route display for new trip
-    const newTripRouteDisplay = direction ?
-      `Route ${route} ${direction}` :
-      `Route ${route}`;
-
-    // User has an active trip - prompt to start new (marks old as incomplete)
-    await setPendingState(phoneNumber, {
-      type: 'confirm_start',
-      activeTrip: {
-        id: activeTrip.id,
-        route: activeTrip.route,
-        direction: activeTrip.direction || null,
-        startStopCode: activeTrip.startStopCode || null,
-        startStopName: activeTrip.startStopName || null,
-        startStop: activeTrip.startStop || null, // Legacy field
-        startTime: activeTrip.startTime,
-        agency: activeTrip.agency || null,
-      },
-      newTrip: {
-        // Use resolved data if available
-        stopCode: stopData ? stopData.stopCode : parsedStop.stopCode,
-        stopName: stopData ? stopData.stopName : parsedStop.stopName,
-        route,
-        direction,
-        agency,
-        verified,
-        boardingLocation,
-        sentiment: options.sentiment || null,
-        tags: options.tags || [],
-        parsed_by: options.parsed_by || 'manual',
-      },
-    });
-
-    const message = `${activeTripRouteDisplay} from ${activeTripStartStop} was not ended. ⚠️
-
-START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDisplay}. DISCARD to delete. INFO for help.`;
-
-    await sendSmsReply(phoneNumber, message);
-    return;
-  }
-
-  // No active trip - create new one
-  const tripData = {
-    userId: user.userId,
-    route: route,
-    direction: direction || null,
-    // Use resolved stop data if available, otherwise fall back to parsed input
-    startStopCode: stopData ? stopData.stopCode : parsedStop.stopCode,
-    startStopName: stopData ? stopData.stopName : parsedStop.stopName,
-    endStopCode: null,
-    endStopName: null,
-    startTime: admin.firestore.FieldValue.serverTimestamp(),
-    endTime: null,
-    source: 'sms',
-    verified: verified,
-    boardingLocation: boardingLocation,
-    exitLocation: null,
-    agency: agency,
-    timing_reliability: 'actual', // Default for real-time SMS logging
-    sentiment: options.sentiment || null,
-    tags: options.tags || [],
-    parsed_by: options.parsed_by || 'manual',
-  };
-
-  await db.collection('trips').add(tripData);
-
-  // Format route display
-  const routeDisplay = direction ? `Route ${route} ${direction}` : `Route ${route}`;
-
-  // Use the canonical display name
-  const finalStopDisplay = getStopDisplay(
-    stopData ? stopData.stopCode : parsedStop.stopCode,
-    stopData ? stopData.stopName : parsedStop.stopName,
-  );
-
-  await sendSmsReply(
-    phoneNumber,
-    `✅ Started ${routeDisplay} from Stop ${finalStopDisplay}.
-
-END + STOP to finish. INCOMPLETE if you forgot to end. DISCARD if you didn't board. INFO for help.`,
-  );
-}
-
-/**
- * Handle START confirmation response (when user confirms starting new trip)
- */
-async function handleConfirmStart(phoneNumber, user, state) {
-  const activeTrip = state.activeTrip;
-  const newTrip = state.newTrip;
-
-  // Format old trip display
-  const oldTripRouteDisplay = activeTrip.direction ?
-    `Route ${activeTrip.route} ${activeTrip.direction}` :
-    `Route ${activeTrip.route}`;
-
-  // Mark active trip as incomplete (no endTime, no exitLocation, no duration)
-  await db.collection('trips').doc(activeTrip.id).update({
-    incomplete: true,
-    endTime: activeTrip.startTime,
-    exitLocation: null,
-    duration: null,
-  });
-
-  // Create new trip with direction field
-  const tripData = {
-    userId: user.userId,
-    route: newTrip.route,
-    direction: newTrip.direction || null,
-    startStopCode: newTrip.stopCode,
-    startStopName: newTrip.stopName,
-    endStopCode: null,
-    endStopName: null,
-    startTime: admin.firestore.FieldValue.serverTimestamp(),
-    endTime: null,
-    source: 'sms',
-    verified: newTrip.verified || false,
-    boardingLocation: newTrip.boardingLocation || null,
-    exitLocation: null,
-    agency: newTrip.agency,
-    timing_reliability: determineReliability(state.expiresAt),
-    sentiment: newTrip.sentiment || null,
-    tags: newTrip.tags || [],
-    parsed_by: newTrip.parsed_by || 'manual',
-  };
-
-  await db.collection('trips').add(tripData);
-  await clearPendingState(phoneNumber);
-
-  // Format displays
-  const newStopDisplay = getStopDisplay(newTrip.stopCode, newTrip.stopName);
-  const normalizedDirection = normalizeDirection(newTrip.direction);
-  const newRouteDisplay = normalizedDirection ?
-    `Route ${newTrip.route} ${normalizedDirection}` :
-    `Route ${newTrip.route}`;
-
-  await sendSmsReply(
-    phoneNumber,
-    `✅ ${oldTripRouteDisplay} marked incomplete.
-✅ Started ${newRouteDisplay} from Stop ${newStopDisplay}.
-
-END + STOP to finish. INCOMPLETE if you forgot to end. DISCARD if you didn't board. INFO for help.`,
-  );
-}
-
-/**
- * Handle ending a trip
- * @param {string} phoneNumber - Phone number
- * @param {object} user - User object with userId
- * @param {string} endStopInput - Stop code or name
- * @param {string|null} routeVerification - Optional route to verify against active trip
- */
-async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification = null, notes = null) {
-  const activeTrip = await getActiveTrip(user.userId);
-
-  if (!activeTrip) {
-    await sendSmsReply(phoneNumber, 'No active trip to end.');
-    return;
-  }
-
-  // If route verification provided, check it matches active trip
-  if (routeVerification) {
-    const activeRoute = activeTrip.route.toString().toLowerCase();
-    const verifyRoute = routeVerification.toString().toLowerCase();
-    if (activeRoute !== verifyRoute) {
-      const routeDisplay = activeTrip.direction ?
-        `Route ${activeTrip.route} ${activeTrip.direction}` :
-        `Route ${activeTrip.route}`;
-      await sendSmsReply(
-        phoneNumber,
-        `❌ Route mismatch. Active trip is ${routeDisplay}, not Route ${routeVerification}.`,
-      );
-      return;
-    }
-  }
-
-  const parsedEndStop = parseStopInput(endStopInput);
-  const endTime = admin.firestore.Timestamp.now();
-  const startTime = activeTrip.startTime.toDate();
-  const duration = Math.round((endTime.toDate().getTime() - startTime.getTime()) / 60000);
-
-  // Look up end stop for verification
-  const agency = activeTrip.agency || 'TTC';
-  const endStopData = await lookupStop(parsedEndStop.stopCode, parsedEndStop.stopName, agency);
-  const exitLocation = endStopData ? { lat: endStopData.lat, lng: endStopData.lng } : null;
-
-  // Get display strings for start and end stops
-  const endStopDisplay = getStopDisplay(
-    endStopData ? endStopData.stopCode : parsedEndStop.stopCode,
-    endStopData ? endStopData.stopName : parsedEndStop.stopName,
-  );
-
-  await db.collection('trips').doc(activeTrip.id).update({
-    endStopCode: endStopData ? endStopData.stopCode : parsedEndStop.stopCode,
-    endStopName: endStopData ? endStopData.stopName : parsedEndStop.stopName,
-    endTime: endTime,
-    exitLocation: exitLocation,
-    duration: duration,
-    notes: notes || null,
-    // Only verify if start was verified AND end stop is known
-    verified: activeTrip.verified && (endStopData !== null)
-  });
-
-  // Format route display
-  const routeDisplay = activeTrip.direction ?
-    `Route ${activeTrip.route} ${activeTrip.direction}` :
-    `Route ${activeTrip.route}`;
-
-  await sendSmsReply(
-    phoneNumber,
-    `✅ Ended ${routeDisplay} at Stop ${endStopDisplay} (${duration} min trip)`,
-  );
-}
-
-// =============================================================================
-// TIMING HELPERS
-// =============================================================================
-
-/**
- * Determine timing reliability based on prompt delay
- * @param {Timestamp} stateExpiresAt - When the prompt expires (created + 5 mins)
- */
-function determineReliability(stateExpiresAt) {
-  if (!stateExpiresAt) return 'actual';
-
-  // prompt was created 5 mins before expiration
-  const createdAtMs = stateExpiresAt.toDate().getTime() - (5 * 60 * 1000);
-  const nowMs = Date.now();
-  const delayMinutes = (nowMs - createdAtMs) / 1000 / 60;
-
-  return delayMinutes > 2 ? 'delayed_start' : 'actual';
-}
-
-// =============================================================================
-// NLP PARSING
-// =============================================================================
-
-/**
- * Parse natural language trip text using Gemini Flash
- * @param {string} text - Raw SMS text
- * @returns {object|null} Parsed data or null if failed
- */
-
-/**
- * Retry helper with exponential backoff
- */
-async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      const isLastAttempt = attempt === maxRetries - 1;
-
-      // Don't retry on certain error types
-      if (error.message && (
-        error.message.includes('API key') ||
-        error.message.includes('unauthorized') ||
-        error.message.includes('invalid') && !error.message.includes('invalid response')
-      )) {
-        throw error; // Don't retry on auth/config errors
-      }
-
-      if (isLastAttempt) {
-        throw error;
-      }
-
-      // Exponential backoff: 1s, 2s, 4s
-      const delay = baseDelay * Math.pow(2, attempt);
-      console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-}
-
-// =============================================================================
-// STATS QUERY HELPERS
-// =============================================================================
-
-/**
- * Aggregate trip data into summary stats for AI context
- */
-function aggregateTripStats(trips) {
-  const routeMap = {};
-  const pairMap = {};
-
-  trips.forEach(trip => {
-    const route = trip.route || 'Unknown';
-    const dur = trip.duration || 0;
-    const startStop = trip.startStopName || trip.startStop || trip.startStopCode || 'Unknown';
-    const endStop = trip.endStopName || trip.endStop || trip.endStopCode || 'Unknown';
-    const pairKey = `${startStop} → ${endStop}`;
-
-    if (!routeMap[route]) routeMap[route] = { count: 0, durations: [] };
-    routeMap[route].count++;
-    if (dur > 0) routeMap[route].durations.push(dur);
-
-    if (!pairMap[pairKey]) pairMap[pairKey] = { route, count: 0, durations: [] };
-    pairMap[pairKey].count++;
-    if (dur > 0) pairMap[pairKey].durations.push(dur);
-  });
-
-  const avg = (arr) => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
-
-  const routeStats = Object.entries(routeMap).map(([route, data]) => ({
-    route,
-    count: data.count,
-    avgDuration: avg(data.durations),
-    minDuration: data.durations.length ? Math.min(...data.durations) : null,
-    maxDuration: data.durations.length ? Math.max(...data.durations) : null,
-  })).sort((a, b) => b.count - a.count).slice(0, 10);
-
-  const pairStats = Object.entries(pairMap).map(([pair, data]) => ({
-    pair,
-    route: data.route,
-    count: data.count,
-    avgDuration: avg(data.durations),
-    minDuration: data.durations.length ? Math.min(...data.durations) : null,
-    maxDuration: data.durations.length ? Math.max(...data.durations) : null,
-  })).sort((a, b) => b.count - a.count).slice(0, 20);
-
-  return { total: trips.length, routeStats, pairStats };
-}
-
-/**
- * Use Gemini to answer a natural-language question given aggregated trip stats
- */
-async function answerQueryWithGemini(question, stats) {
-  const apiKey = geminiApiKey.value();
-  if (!apiKey) return 'AI unavailable right now.';
-
-  return await retryWithBackoff(async () => {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
-    const prompt = `You are a transit stats assistant for TransitStats. Answer the user's question using their personal transit data below. Be concise and friendly. Keep the response under 300 characters if possible so it fits in an SMS.
-
-User question: "${question}"
-
-Their transit data:
-- Total completed trips: ${stats.total}
-- Top routes: ${JSON.stringify(stats.routeStats.slice(0, 5))}
-- Top stop pairs: ${JSON.stringify(stats.pairStats.slice(0, 10))}
-
-If the data doesn't contain enough info to answer, say so briefly.`;
-
-    const result = await model.generateContent(prompt);
-    return result.response.text().trim();
-  }).catch(() => 'Sorry, I had trouble answering that. Try again?');
-}
-
-/**
- * Handle a natural-language query about the user's trip history
- */
-async function handleQuery(phoneNumber, user, question) {
-  const snapshot = await db.collection('trips')
-    .where('userId', '==', user.userId)
-    .where('endStop', '!=', null)
-    .limit(500)
-    .get();
-
-  const trips = snapshot.docs.map(d => d.data());
-
-  if (trips.length === 0) {
-    await sendSmsReply(phoneNumber, "You don't have any completed trips yet!");
-    return;
-  }
-
-  const stats = aggregateTripStats(trips);
-  const answer = await answerQueryWithGemini(question, stats);
-  await sendSmsReply(phoneNumber, answer);
-}
-
-/**
- * Handle the STATS command — quick summary without a specific question
- */
-async function handleStatsCommand(phoneNumber, user) {
-  const now = new Date();
-
-  const thirtyDaysAgo = new Date(now);
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-  const sixtyDaysAgo = new Date(now);
-  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-
-  const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-  const snapshot = await db.collection('trips')
-    .where('userId', '==', user.userId)
-    .where('startTime', '>=', admin.firestore.Timestamp.fromDate(sixtyDaysAgo))
-    .get();
-
-  const toDate = (t) => t.startTime?.toDate ? t.startTime.toDate() : new Date(t.startTime);
-  const allTrips = snapshot.docs.map(d => d.data()).filter(t => t.endStop != null);
-
-  const recent = allTrips.filter(t => toDate(t) >= thirtyDaysAgo);
-  const previous = allTrips.filter(t => {
-    const d = toDate(t);
-    return d >= sixtyDaysAgo && d < thirtyDaysAgo;
-  });
-  const thisMonth = allTrips.filter(t => toDate(t) >= firstOfMonth);
-
-  if (recent.length === 0 && thisMonth.length === 0) {
-    await sendSmsReply(phoneNumber, "No trips logged in the last 60 days.");
-    return;
-  }
-
-  const totalMins = recent.reduce((sum, t) => sum + (t.duration || 0), 0);
-  const totalHours = (totalMins / 60).toFixed(1);
-  const uniqueRoutes = new Set(recent.map(t => t.route).filter(Boolean)).size;
-  const monthName = now.toLocaleString('en-US', { month: 'short' });
-
-  let comparison = '';
-  if (previous.length > 0) {
-    const pct = Math.round(((recent.length - previous.length) / previous.length) * 100);
-    const arrow = pct >= 0 ? '↑' : '↓';
-    comparison = `\n${arrow} ${Math.abs(pct)}% more trips vs prev 30 days`;
-  }
-
-  await sendSmsReply(phoneNumber,
-    `📊 Last 30 Days\n${recent.length} trips • ${uniqueRoutes} routes • ${totalHours} hrs${comparison}\n${thisMonth.length} trips so far in ${monthName}`
-  );
-}
-
-/**
- * Sanitize Gemini output to prevent prompt injection attacks.
- * Validates intent, strips HTML, and caps string lengths.
- */
-function sanitizeGeminiOutput(parsed) {
-  if (!parsed || typeof parsed !== 'object') return null;
-
-  const VALID_INTENTS = ['START_TRIP', 'END_TRIP', 'DISCARD_TRIP', 'INCOMPLETE_TRIP', 'QUERY', 'OTHER'];
-  const MAX_FIELD_LENGTH = 100;
-
-  // Strip HTML tags from a string
-  const stripHtml = (str) => {
-    if (typeof str !== 'string') return str;
-    return str.replace(/<[^>]*>/g, '').trim();
-  };
-
-  // Sanitize and cap a string field
-  const sanitizeField = (val, maxLen = MAX_FIELD_LENGTH) => {
-    if (val == null) return null;
-    if (typeof val !== 'string') return null;
-    return stripHtml(val).slice(0, maxLen) || null;
-  };
-
-  // Validate intent
-  const intent = VALID_INTENTS.includes(parsed.intent) ? parsed.intent : 'OTHER';
-
-  // Validate sentiment
-  const VALID_SENTIMENTS = ['POSITIVE', 'NEGATIVE', 'NEUTRAL'];
-  const sentiment = VALID_SENTIMENTS.includes(parsed.sentiment) ? parsed.sentiment : 'NEUTRAL';
-
-  // Sanitize tags array
-  const tags = Array.isArray(parsed.tags)
-    ? parsed.tags.filter(t => typeof t === 'string').map(t => stripHtml(t).slice(0, 30)).slice(0, 5)
-    : [];
-
-  return {
-    intent,
-    route: sanitizeField(parsed.route, 50),
-    stop_name: sanitizeField(parsed.stop_name),
-    stop_id: sanitizeField(parsed.stop_id, 20),
-    direction: sanitizeField(parsed.direction, 30),
-    sentiment,
-    tags,
-    question: sanitizeField(parsed.question, 300),
-    notes: sanitizeField(parsed.notes, 300),
-  };
-}
-
-async function parseWithGemini(text) {
-  const apiKey = geminiApiKey.value();
-  if (!apiKey) {
-    console.error('Gemini API key not configured');
-    return null;
-  }
-
-  // Truncate input to prevent prompt injection via very long messages
-  const truncatedText = text.length > 500 ? text.slice(0, 500) : text;
-
-  return await retryWithBackoff(async () => {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
-    const prompt = `Analyze this SMS from a transit tracker user. Determine the intent and extract data.
-    Text: "${truncatedText}"
-    
-    Possible Intents:
-    - START_TRIP: User is starting a new trip (requires route and stop).
-    - END_TRIP: User is ending the current trip (extract stop if present).
-    - DISCARD_TRIP: User wants to cancel/delete the active trip (e.g., "didn't take it", "mistake", "cancel", "didn't board").
-    - INCOMPLETE_TRIP: User forgot to end the trip earlier and wants to close it as incomplete/unknown (e.g., "forgot to end", "incomplete").
-    - QUERY: User is asking a question or requesting statistics about their own transit history (e.g., "how many trips have I taken?", "how long does my commute usually take?", "what's my most used route?").
-    - OTHER: Not a transit command.
-
-    Extraction Rules:
-    - Direction: Normalize to full words: "Northbound", "Southbound", "Eastbound", "Westbound".
-    - Stop ID: If a 4-digit number is present, prefer it as "stop_id".
-    - Route: Extract ONLY the route identifier (e.g., "504", "Line 1"). Do not include "Route", "Line" or conversational words. A common noun like "Park" is likely part of the Stop Name, not the Route, unless it is a specific named route.
-    - Stop Name: Extract the full location name. Do not include prepositions like "from", "at", "to". 
-    - Ignore conversational text: "Just boarded", "I'm on", "taking", etc.
-    - Sentiment: Determine if the user's experience is POSITIVE, NEGATIVE, or NEUTRAL based on adjectives (e.g., "slow", "crowded", "fast", "clean").
-    - Tags: Extract 1-3 keyword tags describing conditions (e.g., "crowded", "delayed", "raining", "clean", "fast").
-
-    Examples:
-    - "Just boarded Route 1 Northbound from Queen's Park" -> Route: "1", Stop: "Queen's Park", Dir: "Northbound", Sentiment: "NEUTRAL", Tags: []
-    - "504 King at Spadina" -> Route: "504", Stop: "King at Spadina", Sentiment: "NEUTRAL", Tags: []
-    - "Packed 504 from King/Spadina, running late" -> Route: "504", Stop: "King/Spadina", Sentiment: "NEGATIVE", Tags: ["crowded", "late"]
-    - "Smooth ride on the 510 from Spadina Station, very clean" -> Route: "510", Stop: "Spadina Station", Sentiment: "POSITIVE", Tags: ["smooth", "clean"]
-
-    Return ONLY JSON:
-    {
-      "intent": "START_TRIP" | "END_TRIP" | "DISCARD_TRIP" | "INCOMPLETE_TRIP" | "QUERY" | "OTHER",
-      "route": "string" | null,
-      "stop_name": "string" | null,
-      "stop_id": "string" | null,
-      "direction": "string" | null,
-      "sentiment": "POSITIVE" | "NEGATIVE" | "NEUTRAL",
-      "tags": ["string"],
-      "question": "string" | null
-    }`;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const textResponse = response.text();
-
-    // Clean up markdown code blocks if present
-    const jsonStr = textResponse.replace(/^```json\n|\n```$/g, '').trim();
-    const parsed = JSON.parse(jsonStr);
-
-    // Sanitize output to prevent prompt injection
-    const sanitized = sanitizeGeminiOutput(parsed);
-
-    // Log successful API call for monitoring
-    console.log('Gemini API call successful', {
-      intent: sanitized?.intent,
-      hasRoute: !!sanitized?.route,
-      hasStop: !!(sanitized?.stop_name || sanitized?.stop_id)
-    });
-
-    return sanitized;
-  }).catch((error) => {
-    console.error('Gemini parsing error after retries:', error.message);
-    // Return null to fall back to heuristic parsing
-    return null;
-  });
-}
-
-// =============================================================================
-// MAIN REQUEST HANDLER
-// =============================================================================
-
-/**
- * Parse incoming SMS body and route to appropriate handler
+ * Main Webhook Coordinator
  */
 async function handleSmsRequest(req, res) {
   try {
     const phoneNumber = req.body.From;
     const body = (req.body.Body || '').trim();
 
-    console.log('SMS received');
+    logger.info('SMS received', { From: phoneNumber, Body: body });
 
     if (!phoneNumber || !body) {
       res.status(400).send('Missing phone number or message body');
       return;
     }
 
-    // Check rate limiting first - silently ignore if exceeded
-    const rateLimited = await isRateLimited(phoneNumber);
-    if (rateLimited) {
-      console.log('Rate limited, ignoring message');
+    // 1. Rate Limiting
+    if (await isRateLimited(phoneNumber)) {
+      logger.info('Rate limited, ignoring message', { From: phoneNumber });
       res.type('text/xml').send(twimlResponse(''));
       return;
     }
 
-    // Idempotency check: Ignore if we've already processed this MessageSid
-    const messageSid = req.body.MessageSid;
-    if (messageSid) {
-      const msgRef = db.collection('processedMessages').doc(messageSid);
-      const msgDoc = await msgRef.get();
-      if (msgDoc.exists) {
-        console.log(`Duplicate MessageSid ${messageSid}, ignoring.`);
-        res.type('text/xml').send(twimlResponse(''));
-        return;
-      }
-      // Mark as processed (expire in 1 hour)
-      await msgRef.set({
-        processedAt: admin.firestore.FieldValue.serverTimestamp(),
-        expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 3600000)),
-      });
+    // 2. Idempotency
+    if (await checkIdempotency(req.body.MessageSid)) {
+      logger.info('Duplicate MessageSid, ignoring.', { MessageSid: req.body.MessageSid });
+      res.type('text/xml').send(twimlResponse(''));
+      return;
     }
 
-    // Parse uppercase body for command matching
     const upperBody = body.toUpperCase();
-
-    // Check for pending state first
     const pendingState = await getPendingState(phoneNumber);
 
-    // Handle verification code (4-digit number when awaiting verification)
-    if (pendingState?.type === 'awaiting_verification' && /^\d{4}$/.test(body)) {
-      await handleVerificationCode(phoneNumber, body);
+    // 3. Handle Context-Aware Responses (Verification/Confirmation)
+    if (pendingState?.type === 'awaiting_verification' && /^\d{4,6}$/.test(body)) {
+      await handlers.handleVerificationCode(phoneNumber, body);
       res.type('text/xml').send(twimlResponse(''));
       return;
     }
 
-    // Handle START command (only valid during confirm_start prompt)
     if (pendingState?.type === 'confirm_start' && upperBody === 'START') {
       const user = await getUserByPhone(phoneNumber);
-      if (user) {
-        await handleConfirmStart(phoneNumber, user, pendingState);
-      }
+      if (user) await handlers.handleConfirmStart(phoneNumber, user, pendingState);
       res.type('text/xml').send(twimlResponse(''));
       return;
     }
 
-    // Handle DISCARD at any time as escape hatch (discard pending state AND delete active trip)
-    if (upperBody === 'DISCARD' && pendingState) {
-      // Clear the pending state AND delete any active trip
-      await clearPendingState(phoneNumber);
+    // 4. Handle Escape Hatch: DISCARD
+    if (upperBody === 'DISCARD' && (pendingState || true)) {
+      // Also handle case where there's no pending state but user wants to discard active trip
+      if (pendingState) await clearPendingState(phoneNumber);
 
-      // Get the user and delete their active trip
       const user = await getUserByPhone(phoneNumber);
       if (user) {
         const activeTrip = await getActiveTrip(user.userId);
         if (activeTrip) {
-          await db.collection('trips').doc(activeTrip.id).delete();
-
-          // Format route with direction if available
-          const routeDisplay = activeTrip.direction ?
-            `Route ${activeTrip.route} ${activeTrip.direction}` :
-            `Route ${activeTrip.route}`;
-
-          await sendSmsReply(phoneNumber, `✅ Discarded ${routeDisplay}.`);
+          await handlers.handleDiscard(phoneNumber, user);
           res.type('text/xml').send(twimlResponse(''));
           return;
         }
       }
 
-      // No active trip found, just acknowledge the discard
-      await sendSmsReply(phoneNumber, 'No active trip to discard.');
-      res.type('text/xml').send(twimlResponse(''));
-      return;
-    }
-
-    // =========================================================================
-    // PARSE COMMANDS FIRST (before any other handling)
-    // =========================================================================
-
-    // INFO/? command - show SMS help
-    if (upperBody === 'INFO' || upperBody === 'COMMANDS' || upperBody === '?') {
-      await handleHelp(phoneNumber);
-      res.type('text/xml').send(twimlResponse(''));
-      return;
-    }
-
-    // HELP command
-    if (upperBody === 'HELP') {
-      await handleHelp(phoneNumber);
-      res.type('text/xml').send(twimlResponse(''));
-      return;
-    }
-
-    // REGISTER command
-    if (upperBody.startsWith('REGISTER ')) {
-      const email = body.substring(9).trim();
-      await handleRegister(phoneNumber, email);
-      res.type('text/xml').send(twimlResponse(''));
-      return;
-    }
-
-    // Check if user is registered for remaining commands
-    const user = await getUserByPhone(phoneNumber);
-
-    if (!user) {
-      // Unknown number - only respond to first message in the hour
-      const shouldRespond = await shouldRespondToUnknown(phoneNumber);
-      if (shouldRespond) {
-        await sendSmsReply(
-          phoneNumber,
-          'Text REGISTER [email] to get started',
-        );
+      if (upperBody === 'DISCARD') {
+        await sendSmsReply(phoneNumber, 'No active trip to discard.');
+        res.type('text/xml').send(twimlResponse(''));
+        return;
       }
-      // Otherwise silently ignore to prevent spam costs
+    }
+
+    // 5. Handle Global Commands
+    if (['INFO', 'COMMANDS', '?', 'HELP'].includes(upperBody)) {
+      await handlers.handleHelp(phoneNumber);
       res.type('text/xml').send(twimlResponse(''));
       return;
     }
 
-    // STATUS command
+    if (upperBody.startsWith('REGISTER ')) {
+      await handlers.handleRegister(phoneNumber, body.substring(9).trim());
+      res.type('text/xml').send(twimlResponse(''));
+      return;
+    }
+
+    // 6. User Verification
+    const user = await getUserByPhone(phoneNumber);
+    if (!user) {
+      if (await shouldRespondToUnknown(phoneNumber)) {
+        await sendSmsReply(phoneNumber, 'Text REGISTER [email] to get started');
+      }
+      res.type('text/xml').send(twimlResponse(''));
+      return;
+    }
+
+    // 7. Register User Commands
     if (upperBody === 'STATUS') {
-      await handleStatus(phoneNumber, user);
+      await handlers.handleStatus(phoneNumber, user);
       res.type('text/xml').send(twimlResponse(''));
       return;
     }
 
-    // STATS command - quick trip summary
     if (upperBody === 'STATS') {
-      await handleStatsCommand(phoneNumber, user);
+      await handlers.handleStatsCommand(phoneNumber, user);
       res.type('text/xml').send(twimlResponse(''));
       return;
     }
 
-    // DISCARD command (no pending state)
-    if (upperBody === 'DISCARD') {
-      await handleDiscard(phoneNumber, user);
-      res.type('text/xml').send(twimlResponse(''));
-      return;
-    }
-
-    // INCOMPLETE command - trip started but forgot to end
     if (upperBody === 'INCOMPLETE') {
-      await handleIncomplete(phoneNumber, user);
+      await handlers.handleIncomplete(phoneNumber, user);
       res.type('text/xml').send(twimlResponse(''));
       return;
     }
 
-    // =========================================================================
-    // END TRIP - Multi-line format: END / Stop / Route (optional)
-    // =========================================================================
-    // =========================================================================
-    // END TRIP - Multi-line format: END / Stop / Route (optional)
-    // =========================================================================
-    // Support single-line "END [Stop]" or "STOP [Stop]"
-    let singleLineEndMatch = null;
-    if (/^(END|STOP)\s+(.+)$/i.test(body)) {
-      singleLineEndMatch = body.match(/^(END|STOP)\s+(.+)$/i);
-    }
-
+    // 8. END TRIP Handling
     const endTripData = parseEndTripFormat(body);
+    const singleLineEndMatch = body.match(/^(END|STOP)\s+(.+)$/i);
 
     if (endTripData || singleLineEndMatch) {
       const stopInput = singleLineEndMatch ? singleLineEndMatch[2] : endTripData?.stop;
-      const routeInput = endTripData?.route || null;
-      const notesInput = endTripData?.notes || null;
-
       if (!stopInput) {
-        // Just "END" without stop - prompt for stop
         const activeTrip = await getActiveTrip(user.userId);
-        if (activeTrip) {
-          await sendSmsReply(
-            phoneNumber,
-            'Please send:\nEND\n[exit stop]\n[notes - optional]',
-          );
-        } else {
-          await sendSmsReply(phoneNumber, 'No active trip to end.');
-        }
+        await sendSmsReply(phoneNumber, activeTrip ? 'Please send:\nEND\n[exit stop]' : 'No active trip to end.');
       } else {
-        // END with stop (and optional route verification)
-        await handleEndTrip(phoneNumber, user, stopInput, routeInput, notesInput);
+        await handlers.handleEndTrip(phoneNumber, user, stopInput, endTripData?.route, endTripData?.notes);
       }
       res.type('text/xml').send(twimlResponse(''));
       return;
     }
 
-    // =========================================================================
-    // START TRIP - Multi-line format: Route / Stop / Direction / Agency
-    // =========================================================================
-
-    // Get user's profile for defaultAgency
+    // 9. START TRIP (Heuristic) Handling
     const userProfile = await getUserProfile(user.userId);
     const defaultAgency = userProfile?.defaultAgency || 'TTC';
 
-    // Try parsing as multi-line trip format
+    // Multi-line start
     const multiLineTrip = parseMultiLineTripFormat(body, defaultAgency);
-
     if (multiLineTrip) {
-      // Valid multi-line format
-      await handleTripLog(
+      await handlers.handleTripLog(
         phoneNumber,
         user,
         multiLineTrip.stop,
@@ -1917,188 +197,115 @@ async function handleSmsRequest(req, res) {
       return;
     }
 
-    // Parse agency override from message (e.g., "6036 65 OC Transpo")
+    // Single-line heuristic ([stop] [route])
     const { agency: agencyOverride, remainingMessage } = parseAgencyOverride(body);
     const agency = agencyOverride || defaultAgency;
-
-    // Trip logging: "[stopCode] [route]" pattern (backward compatibility)
-    // Match patterns like "York Mills 97", "123 504", "Union Station Line 1"
     const tripMatch = remainingMessage.match(/^(.+?)\s+(\S+)$/);
 
     if (tripMatch) {
-      const stopCodeRaw = tripMatch[1].trim();
-      const routeRaw = tripMatch[2].trim();
-
-      // HEURISTIC CHECKS
-
-      // 1. Sentence Starters: Reject if stop name starts with common chat words (e.g. "I'm on the 504")
-      const sentenceStarters = ['I', 'IM', "I'M", 'ILL', "I'LL", 'MY', 'THE', 'A', 'HELLO', 'HI', 'HEY', 'PLEASE', 'THANKS', 'START', 'STARTING', 'BEGIN', 'LOG'];
-      const firstWord = stopCodeRaw.split(' ')[0].toUpperCase();
-      const isSentenceStart = sentenceStarters.includes(firstWord);
-
-      // 2. Sentence Keywords: Reject if stop name contains strong motion verbs/prepositions (excluding "at", "on" which are valid in stop names)
-      // "from" is usually a separator. "going", "headed" are clear sentence indicators.
-      const isSentenceStructure = /\b(from|headed|going|to)\b/i.test(stopCodeRaw);
-
-      // 3. Bad Stop Names: Reject specific invalid stop names
-      const badStopNames = ['ROUTE', 'BUS', 'STREETCAR', 'TRAIN', 'SUBWAY', 'STOP'];
-      // Check full stop name or just first word? "Route 504" -> First word is "Route".
-      const isBadStopName = badStopNames.includes(firstWord);
-
-      const isStopTooLong = stopCodeRaw.length > 50;
-
-      // 4. Bad Routes: Use global validator
-      const isBadRoute = !isValidRoute(routeRaw);
-
-      // Only accept if it passes all heuristics
-      if (stopCodeRaw.length > 0 && routeRaw.length > 0
-        && !isSentenceStart
-        && !isSentenceStructure
-        && !isBadStopName
-        && !isStopTooLong
-        && !isBadRoute) {
-        await handleTripLog(phoneNumber, user, stopCodeRaw, toTitleCase(routeRaw), null, agency);
+      const stopInput = tripMatch[1].trim();
+      const routeInput = tripMatch[2].trim();
+      if (isHeuristicLogValid(stopInput, routeInput) && isValidRoute(routeInput)) {
+        await handlers.handleTripLog(
+          phoneNumber,
+          user,
+          stopInput,
+          toTitleCase(routeInput),
+          null,
+          agency,
+        );
         res.type('text/xml').send(twimlResponse(''));
         return;
       }
     }
 
-    // Unrecognized input - Try Gemini as fallback
+    // 10. AI Fallback (Gemini)
     const geminiResult = await parseWithGemini(body);
-
-    if (geminiResult) {
-      if (geminiResult.intent !== 'OTHER') {
-        console.log('Gemini matched intent:', geminiResult.intent);
-      }
+    if (geminiResult && geminiResult.intent !== 'OTHER') {
+      logger.info('Gemini matched intent', { intent: geminiResult.intent, From: phoneNumber });
 
       switch (geminiResult.intent) {
-        case 'START_TRIP':
+        case 'START_TRIP': {
           const startStop = constructStopInput(geminiResult);
-
-          // Validate route from Gemini
-          if (geminiResult.route && !isValidRoute(geminiResult.route)) {
-            console.log(`Rejecting invalid route from Gemini: ${geminiResult.route}`);
-            // Fall through to error handler
-            break;
-          }
-
-          if (geminiResult.route && startStop) {
-            await handleTripLog(
+          if (geminiResult.route && startStop && isValidRoute(geminiResult.route)) {
+            await handlers.handleTripLog(
               phoneNumber,
               user,
               startStop,
               geminiResult.route,
-              normalizeDirection(geminiResult.direction), // Apply normalization
+              normalizeDirection(geminiResult.direction),
               defaultAgency,
               {
                 sentiment: geminiResult.sentiment,
                 tags: geminiResult.tags,
                 parsed_by: 'ai',
-              }
+              },
             );
-
             res.type('text/xml').send(twimlResponse(''));
             return;
           }
           break;
-
-        case 'END_TRIP':
+        }
+        case 'END_TRIP': {
           const endStop = constructStopInput(geminiResult);
-          // Require at least a stop to end, or prompt if active trip exists
           if (endStop) {
-            await handleEndTrip(
-              phoneNumber,
-              user,
-              endStop,
-              null,
-              geminiResult.notes,
-            );
+            await handlers.handleEndTrip(phoneNumber, user, endStop, null, geminiResult.notes);
           } else {
             const activeTrip = await getActiveTrip(user.userId);
-            if (activeTrip) {
-              await sendSmsReply(
-                phoneNumber,
-                'To end the trip, please name the stop (e.g., "End at Union").',
-              );
-            } else {
-              await sendSmsReply(phoneNumber, 'No active trip to end.');
-            }
+            const msg = activeTrip ?
+              'To end the trip, please name the stop.' :
+              'No active trip to end.';
+            await sendSmsReply(phoneNumber, msg);
           }
           res.type('text/xml').send(twimlResponse(''));
           return;
-
-
-        case 'DISCARD_TRIP':
-          await handleDiscard(phoneNumber, user);
-          res.type('text/xml').send(twimlResponse(''));
-          return;
-
-        case 'INCOMPLETE_TRIP':
-          await handleIncomplete(phoneNumber, user);
-          res.type('text/xml').send(twimlResponse(''));
-          return;
-
-        case 'QUERY': {
-          const question = geminiResult.question || body;
-          await handleQuery(phoneNumber, user, question);
-          res.type('text/xml').send(twimlResponse(''));
-          return;
         }
+        case 'DISCARD_TRIP':
+          await handlers.handleDiscard(phoneNumber, user);
+          res.type('text/xml').send(twimlResponse(''));
+          return;
+        case 'INCOMPLETE_TRIP':
+          await handlers.handleIncomplete(phoneNumber, user);
+          res.type('text/xml').send(twimlResponse(''));
+          return;
+        case 'QUERY':
+          await handlers.handleQuery(phoneNumber, user, geminiResult.question || body);
+          res.type('text/xml').send(twimlResponse(''));
+          return;
       }
     }
 
-    // Save failed parse for manual review
-    // Only if none of the above matched
-    if (!tripMatch && !multiLineTrip) {
-      await db.collection('trips').add({
-        userId: user.userId,
-        route: 'Unknown',
-        startStopName: 'Unknown',
-        raw_text: body,
-        needs_review: true,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-        source: 'sms_error',
-      });
-    }
+    // 11. Error Case: Save for review
+    await db.collection('trips').add({
+      userId: user.userId,
+      route: 'Unknown',
+      startStopName: 'Unknown',
+      raw_text: body,
+      needs_review: true,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      source: 'sms_error',
+    });
 
-    await sendSmsReply(
-      phoneNumber,
-      `❌ Could not understand. Saved for review.
-
-Try strict format:
-[Route]
-[Stop]
-[Direction]`,
-    );
+    await sendSmsReply(phoneNumber, `❌ Could not understand. Saved for review.\n\nTry:\n[Route]\n[Stop]`);
     res.type('text/xml').send(twimlResponse(''));
   } catch (error) {
-    console.error('Error handling SMS:', error);
+    logger.error('Error handling SMS', error);
     res.status(500).send('Internal server error');
   }
 }
 
-// =============================================================================
-// EXPRESS ROUTES
-// =============================================================================
+// Routes
+app.post('/', (req, res, next) => {
+  if (validateTwilioSignature(req)) return next();
+  res.status(403).send('Forbidden');
+}, handleSmsRequest);
 
-// POST /sms - Twilio webhook endpoint (signature validated before processing)
-app.post('/', validateTwilioSignature, handleSmsRequest);
+app.get('/', (req, res) => res.json({ status: 'ok', service: 'TransitStats SMS' }));
 
-// GET /sms - Health check
-app.get('/', (req, res) => {
-  res.json({
-    status: 'ok',
-    service: 'TransitStats SMS',
-    endpoint: 'POST /sms for Twilio webhooks',
-  });
-});
+// Cold start validation
+validateConfiguration();
 
-// =============================================================================
-// EXPORT CLOUD FUNCTION
-// =============================================================================
-
+// Export
 exports.sms = functions
-  .runWith({
-    secrets: [geminiApiKey]
-  })
+  .runWith({ secrets: [geminiApiKey, twilioAuthToken] })
   .https.onRequest(app);

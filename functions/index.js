@@ -6,11 +6,10 @@
  */
 
 const admin = require('firebase-admin');
-const functions = require('firebase-functions');
 
 // Initialize Admin SDK if not already initialized
 if (admin.apps.length === 0) {
-    admin.initializeApp();
+  admin.initializeApp();
 }
 
 const { sms } = require('./sms');

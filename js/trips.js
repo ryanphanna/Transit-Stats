@@ -345,18 +345,35 @@ export const Trips = {
         tripDiv.className = 'trip-item';
         tripDiv.style.cursor = 'pointer';
         tripDiv.onclick = () => this.openEditTripModal(trip.id);
-        tripDiv.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 16px;">
-                <div style="flex: 1; min-width: 0;">
-                    <div style="font-weight: 700;">${trip.route}</div>
-                    <div style="font-size: 0.9em; color: var(--text-secondary);">${startStop} → ${endStop}</div>
-                </div>
-                <div style="text-align: right; font-size: 0.85em;">
-                    <div>${dateStr}</div>
-                    <div style="color: var(--text-secondary);">${duration} min</div>
-                </div>
-            </div>
-        `;
+
+        // Build trip item using safe DOM APIs (textContent auto-escapes)
+        const row = document.createElement('div');
+        row.style.cssText = 'display: flex; align-items: center; gap: 16px;';
+
+        const info = document.createElement('div');
+        info.style.cssText = 'flex: 1; min-width: 0;';
+        const routeEl = document.createElement('div');
+        routeEl.style.fontWeight = '700';
+        routeEl.textContent = trip.route;
+        const stopsEl = document.createElement('div');
+        stopsEl.style.cssText = 'font-size: 0.9em; color: var(--text-secondary);';
+        stopsEl.textContent = `${startStop} → ${endStop}`;
+        info.appendChild(routeEl);
+        info.appendChild(stopsEl);
+
+        const meta = document.createElement('div');
+        meta.style.cssText = 'text-align: right; font-size: 0.85em;';
+        const dateEl = document.createElement('div');
+        dateEl.textContent = dateStr;
+        const durEl = document.createElement('div');
+        durEl.style.color = 'var(--text-secondary)';
+        durEl.textContent = `${duration} min`;
+        meta.appendChild(dateEl);
+        meta.appendChild(durEl);
+
+        row.appendChild(info);
+        row.appendChild(meta);
+        tripDiv.appendChild(row);
         return tripDiv;
     },
 

@@ -1,5 +1,45 @@
 # Changelog
 
+**Current Project Versions:**
+- **Web App**: `v1.4.4`
+- **Cloud Functions**: `v1.1.3`
+
+---
+
+## [1.4.4] - 2026-03-04
+
+### Documentation
+- **Manifest Header**: Added explicit version tracking for both the Web App and Cloud Functions at the top of the changelog to clarify the independent versioning of the frontend and backend projects.
+
+## [1.4.3] - 2026-03-04
+
+### Added
+- **Modular Architecture**: Refactored the monolithic `sms.js` into a clean, modular structure under `functions/lib/`. New modules include `db.js`, `handlers.js`, `parsing.js`, `gemini.js`, `twilio.js`, `utils.js`, `logger.js`, and `config.js`.
+- **PII-Safe Logger**: Added a dedicated `lib/logger.js` utility that automatically masks phone numbers (e.g., `+1647***4567`) and redacts message bodies in system logs to prevent accidental PII leaks.
+- **Centralized Trip Creation**: Added a reusable `createTrip` helper in `db.js` to ensure consistent data schema and meta-tagging across all trip logging flows.
+- **Parsing Test Suite**: Created a comprehensive test suite in `tests/parsing.test.js` (verified via `/tmp/test_parsing.js`) covering edge cases for stop codes, multi-line formats, agency overrides, and unicode/emoji support.
+
+### Changed
+- **SMS Reliability**: Fixed Twilio credential retrieval to support both Secret Manager (`twilioAuthToken`) and legacy `functions:config`. This ensures the rotated token is correctly identified.
+- **Login UX**: Fixed a bug where the "Continue" button remained disabled during email autofill. Added `change` event listener and immediate validation on load to handle pre-filled states.
+- **Code Quality**: Fixed over 1,000 linting issues (indentation, quotes, long lines) and consolidated redundant logic across the SMS service.
+- **Firebase Initialization**: Unified Firebase Admin SDK initialization into a single point of entry in `db.js`, reducing cold-start overhead.
+- **Robust Heuristic Parsing**: Significant improvements to `lib/parsing.js`:
+    - **Regex Overrides**: Migrated agency detection to regex to support overrides separated by spaces, tabs, or **newlines**.
+    - **Flexible Multi-line**: Added support for the `Route\nStop\nAgency` format (detecting agency on line 3 if direction is omitted).
+    - **Whitespace Resilience**: `toTitleCase` now collapses multiple spaces/tabs into a single space and handles empty/whitespace-only inputs gracefully.
+    - **Natural Language Filtering**: Refined heuristics to prioritize transit-related "The" and "Route" names while still blocking common conversational starters.
+
+### Security
+- **PII Redaction (High)**: Automated redaction of sensitive user data from all `logger.info` calls.
+- **AI Rate Limiting (High)**: Implemented a dedicated Gemini AI rate limit (10 calls/hour per user) to protect against resource abuse and cost exhaustion. Added `isGeminiRateLimited` check to all AI-powered handlers.
+- **Verification Security (High)**: Migrated verification code generation from `Math.random()` to Node's cryptographically secure `crypto.randomInt()`.
+- **Secret Management (High)**: Migrated `TWILIO_AUTH_TOKEN` from environment variables to Google Cloud Secret Manager via `defineSecret`.
+
+### Reliability & Resilience
+- **AI Fail-Safe (Medium)**: Added comprehensive error handling to Gemini Q&A and parsing modules. The system now falls back to standard heuristic responses if the AI service is unavailable, preventing function crashes.
+- **Resource Capping (Medium)**: Added a 100-trip history limit to AI queries and a 500-character cap on AI responses to optimize token usage and prevent excessive Twilio costs.
+
 ## [1.4.2] - 2026-03-04
 
 ### Security
@@ -137,4 +177,3 @@
 
 ---
 *See [migrations/](./migrations/) for scripts to address technical debt.*
-
