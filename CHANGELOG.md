@@ -2,7 +2,7 @@
 
 **Current Project Versions:**
 - **Web App**: `v1.4.4`
-- **Cloud Functions**: `v1.1.3`
+- **Cloud Functions**: `v1.1.2`
 
 ---
 
