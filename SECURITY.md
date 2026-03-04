@@ -48,6 +48,50 @@ Following the guidance from [TruffleSecurity](https://trufflesecurity.com/blog/g
 2. **Client-Side Risks**: Because legacy Google API keys (like those used for Firebase) can now gain Gemini access automatically if the "Generative Language API" is enabled, **it is CRITICAL that any frontend API keys be restricted to only Firebase/Firestore services.**
 3. **Audit Rule**: Never enable "Generative Language API" in a GCP project that uses unrestricted API keys in a public or client-side application.
 
+## Credential Exposure Incident (March 2026)
+
+During the v1.4.2 security audit, a `functions/.env.transitstats-21ba4` file containing live Twilio credentials was found to be tracked in git history.
+
+**What was exposed:**
+- `TWILIO_ACCOUNT_SID` (Account SID `ACd65b7ea0ab0bc98a24e5a805de6458cd`)
+- `TWILIO_PHONE_NUMBER` (+13433160660)
+
+**What was fixed (already done):**
+- `functions/.env` and `functions/.env.*` added to `.gitignore` to prevent future commits.
+
+**What the maintainer must still do:**
+
+> ⚠️ The credentials above are still readable in git history. Anyone who cloned this repository before or after this fix can recover them.
+
+### Required: Rotate the Twilio Auth Token
+
+1. Log in to [twilio.com/console](https://www.twilio.com/console).
+2. Navigate to **Account → Keys & Credentials → Auth Tokens**.
+3. Click **Rotate** (or **Revoke & generate a new primary token**) on the live auth token for Account SID `ACd65b7ea0ab0bc98a24e5a805de6458cd`.
+4. Update the new auth token in Firebase Functions config:
+   ```
+   firebase functions:config:set twilio.auth_token="NEW_TOKEN"
+   ```
+5. Redeploy the Cloud Function:
+   ```
+   firebase deploy --only functions
+   ```
+
+Once the auth token is rotated, the exposed credentials in git history become inert — they reference an account but the token that authorises actions against it no longer works.
+
+### Optional: Purge git history
+
+If you want to erase the file from git history entirely (e.g., to comply with a secret-scanning policy):
+
+```bash
+# Install git-filter-repo, then:
+git filter-repo --path functions/.env.transitstats-21ba4 --invert-paths
+```
+
+This rewrites history and requires a force push. Coordinate with any collaborators who have local clones before doing this.
+
+---
+
 ## Reporting a Vulnerability
 
 If you discover a security vulnerability in this project, please open a GitHub Issue or contact the maintainer directly.
