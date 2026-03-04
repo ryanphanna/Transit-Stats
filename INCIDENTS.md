@@ -9,8 +9,8 @@ This document tracks historical security incidents and the remediation steps tak
 During the v1.4.2 security audit, a `functions/.env.transitstats-21ba4` file containing live Twilio credentials was found to be tracked in git history.
 
 **What was exposed:**
-- `TWILIO_ACCOUNT_SID` (`ACd65b7ea0ab0bc98a24e5a805de6458cd`)
-- `TWILIO_PHONE_NUMBER` (`+13433160660`)
+- `TWILIO_ACCOUNT_SID` (`ACd65b...458cd`)
+- `TWILIO_PHONE_NUMBER` (`+1343•••0660`)
 
 **Remediation Steps:**
 1. **Credential Rotation**: A new Auth Token was generated in the Twilio Console.
