@@ -41,7 +41,3 @@ If you discover a security vulnerability, please do NOT open a public GitHub Iss
 2. Click **Vulnerability reporting**.
 3. Click **Report a vulnerability**.
 
----
-
-- [Admin Setup Guide](setup-admin.md)
-- [README](./README.md)
