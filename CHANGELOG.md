@@ -12,6 +12,9 @@
 - **SMS Security**: Fixed a critical issue where inbound SMS requests were being rejected with a 403 Forbidden error due to Twilio signature validation failures. The validation now robustly checks both Secret Manager and legacy config tokens if both are present.
 - **SMS Debugging**: Added explicit URL logging to failure conditions to help diagnose environment-specific webhook misconfigurations.
 
+### Security
+- **Repository Scanning Settings**: Fully enabled Private vulnerability reporting, Dependabot updates (version & security), and CodeQL scanning via newly created configuration files (`.github/dependabot.yml` and `.github/workflows/codeql.yml`).
+
 ## [1.4.4] - 2026-03-04
 
 ### Documentation
