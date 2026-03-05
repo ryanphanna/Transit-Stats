@@ -24,6 +24,10 @@ TransitStats uses a two-tier security model to enforce access control.
 - **Secret Management**: API keys (Gemini, Twilio) are stored in Google Cloud Secret Manager via `defineSecret`.
 - **API Key Restriction**: All frontend keys (Firebase, Google Maps) are strictly restricted in the Google Cloud Console to prevent unauthorized usage of costly APIs.
 
+### Repository Security (GitHub)
+- **Dependency Scanning**: Dependabot is enabled for automated detection and patching of vulnerable npm packages.
+- **Static Testing**: CodeQL is configured to automatically scan the JavaScript codebase for common vulnerabilities on every push and pull request.
+
 ---
 
 ## Security Incidents
@@ -32,7 +36,10 @@ For history of security audits and incident remediation reports, please see **[I
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability, please open a GitHub Issue or contact the maintainer directly.
+If you discover a security vulnerability, please do NOT open a public GitHub Issue. Instead, use the **Private Vulnerability Reporting** feature.
+1. Go to the repository's **Security** tab.
+2. Click **Vulnerability reporting**.
+3. Click **Report a vulnerability**.
 
 ---
 
