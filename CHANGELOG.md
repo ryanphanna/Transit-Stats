@@ -1,10 +1,22 @@
 # Changelog
 
 **Current Project Versions:**
-- **Web App**: `v1.4.5`
+- **Web App**: `v1.4.6`
 - **Cloud Functions**: `v1.1.4`
 
 ---
+
+## [1.4.6] - 2026-03-05
+
+### Added
+- **Automation**: Implemented **GitHub Actions** for seamless CI/CD. The application now automatically builds and deploys to Firebase Hosting on every push to the `main` branch.
+- **Automation**: Added a secondary GitHub Action for **Preview Deployments** on Pull Requests, allowing verification of changes before they hit production.
+- **Infrastructure**: Configured **Vite** as the primary build engine to generate optimized production assets in the `/dist` directory.
+
+### Changed
+- **UI/UX**: Complete dashboard refactor to a "Centered Card" layout, focusing data density and improving visual hierarchy.
+- **UI/UX**: Modularized the monolithic CSS architecture into a scalable system: `base.css`, `components.css`, `layout.css`, `features.css`, and `modals.css`.
+- **Hosting**: Updated Firebase Hosting configuration to serve exclusively from the optimized `/dist` folder for enhanced performance and security.
 
 ## [1.4.5] - 2026-03-04
 
