@@ -10,6 +10,7 @@ To be the ultimate companion for transit enthusiasts, providing deep insights in
 - [x] SMS-based tracking via Gemini AI.
 - [x] Riding streaks and basic analytics.
 - [x] Dark/Light mode support.
+- [x] Automated Firebase Deployment via GitHub Actions.
 
 ## 🚀 Phase 2: "Wrapped" & Data Storytelling (Planned)
 - [ ] **Transit Wrapped**:
