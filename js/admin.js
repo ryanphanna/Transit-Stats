@@ -310,6 +310,11 @@ function renderAliases(stop) {
     `;
 }
 
+function escapeJsSingleQuoted(str) {
+    // Escape backslashes first, then single quotes for safe embedding in single-quoted JS strings
+    return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
 function renderPendingList(itemsToRender = null) {
     const container = document.getElementById('pendingList');
     const items = itemsToRender || filteredPendingStops;
@@ -338,7 +343,7 @@ function renderPendingList(itemsToRender = null) {
                 <span style="font-size:0.8em; color:var(--text-secondary);">→ ${escapeHtml(item.suggestion.stop.name)}</span>
                 <span style="font-size:0.75em; padding:1px 6px; border-radius:4px; background:${isHighConf ? '#dcfce7' : '#fef9c3'}; color:${isHighConf ? '#166534' : '#854d0e'};">${item.suggestion.confidence}%</span>
                 <button class="btn btn-sm" style="font-size:0.78em; padding:2px 8px; background:var(--accent-electric); color:#fff; border:none; border-radius:4px; cursor:pointer;"
-                    onclick="acceptSuggestion('${item.name.replace(/'/g, "\\'")}', '${item.suggestion.stop.id}')">Accept</button>
+                    onclick="acceptSuggestion('${escapeJsSingleQuoted(item.name)}', '${item.suggestion.stop.id}')">Accept</button>
             </div>` : '';
 
         return `
@@ -346,7 +351,7 @@ function renderPendingList(itemsToRender = null) {
             <div class="inbox-item-content">
                 <input type="checkbox" class="inbox-item-checkbox"
                     ${selectedInboxItems.has(item.name) ? 'checked' : ''}
-                    onchange="toggleInboxSelection('${item.name.replace(/'/g, "\\'")}')">
+                    onchange="toggleInboxSelection('${escapeJsSingleQuoted(item.name)}')">
                 <div style="overflow:hidden; flex:1; min-width:0;">
                     <div style="display:flex; align-items:center; gap:6px;">
                         <span class="count-badge">${item.totalCount}</span>
@@ -357,8 +362,8 @@ function renderPendingList(itemsToRender = null) {
                 </div>
             </div>
             <div style="display:flex; gap:8px; flex-shrink:0;">
-                ${item.totalCount > 1 ? `<button class="btn btn-outline btn-sm" onclick="openDivvyModal('${item.name.replace(/'/g, "\\'")}')" style="font-size:0.8em; padding:4px 8px;">Divvy Up</button>` : ''}
-                <button class="btn btn-primary btn-sm" onclick="openLinkModal('${item.name.replace(/'/g, "\\'")}')">Link</button>
+                ${item.totalCount > 1 ? `<button class="btn btn-outline btn-sm" onclick="openDivvyModal('${escapeJsSingleQuoted(item.name)}')" style="font-size:0.8em; padding:4px 8px;">Divvy Up</button>` : ''}
+                <button class="btn btn-primary btn-sm" onclick="openLinkModal('${escapeJsSingleQuoted(item.name)}')">Link</button>
             </div>
         </div>
     `;
