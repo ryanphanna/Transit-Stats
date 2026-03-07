@@ -110,7 +110,10 @@ function validateTwilioSignature(req) {
 
   const protocol = req.headers['x-forwarded-proto'] || 'https';
   const host = req.headers['x-forwarded-host'] || req.headers.host;
-  const url = `${protocol}://${host}${req.originalUrl}`;
+  // Firebase strips the function name (/sms) from req.originalUrl before Express sees it,
+  // so we must reconstruct the full URL that Twilio actually signed.
+  const configuredUrl = functions.config().twilio?.webhook_url;
+  const url = configuredUrl || `${protocol}://${host}/sms`;
 
   // Try the secret first
   let isValid = false;

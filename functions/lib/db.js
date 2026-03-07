@@ -425,6 +425,23 @@ async function createTrip(tripData) {
   return docRef.id;
 }
 
+/**
+ * Get recent completed trips for a user
+ * @param {string} userId - User ID
+ * @param {number} limit - Max number of trips
+ * @returns {Promise<Array>} Array of trip data
+ */
+async function getRecentCompletedTrips(userId, limit = 50) {
+  const snapshot = await db.collection('trips')
+    .where('userId', '==', userId)
+    .where('endTime', '!=', null)
+    .orderBy('endTime', 'desc')
+    .limit(limit)
+    .get();
+
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
 module.exports = {
   admin,
   db,
@@ -443,4 +460,5 @@ module.exports = {
   lookupStop,
   checkIdempotency,
   createTrip,
+  getRecentCompletedTrips,
 };

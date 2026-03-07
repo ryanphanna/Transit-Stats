@@ -148,36 +148,35 @@ async function loadProvisionalStops() {
         const snapshot = await db.collection('trips')
             .where('userId', '==', currentUser.uid)
             .orderBy('startTime', 'desc')
-            .limit(100)
+            .limit(200)
             .get();
 
-        const uniquePending = new Set();
-        const pendingCounts = {};
+        // Group by stop name → { route+direction → count }
+        const stopMap = {};
+
+        const addStop = (rawName, trip) => {
+            if (!rawName || typeof rawName !== 'string') return;
+            const trimmed = rawName.trim();
+            if (!trimmed || findStopByAlias(trimmed)) return;
+            if (!stopMap[trimmed]) stopMap[trimmed] = {};
+            const routeKey = [trip.route, trip.direction].filter(Boolean).join(' ');
+            stopMap[trimmed][routeKey] = (stopMap[trimmed][routeKey] || 0) + 1;
+        };
 
         snapshot.docs.forEach(doc => {
             const trip = doc.data();
-
-            // Check Start Stop
-            const startRaw = trip.startStop || trip.startStopName || trip.startStopCode;
-            if (startRaw && typeof startRaw === 'string') {
-                const trimmed = startRaw.trim();
-                uniquePending.add(trimmed);
-                pendingCounts[trimmed] = (pendingCounts[trimmed] || 0) + 1;
-            }
-
-            // Check End Stop
-            const endRaw = trip.endStop || trip.endStopName || trip.endStopCode;
-            if (endRaw && typeof endRaw === 'string') {
-                const trimmed = endRaw.trim();
-                uniquePending.add(trimmed);
-                pendingCounts[trimmed] = (pendingCounts[trimmed] || 0) + 1;
-            }
+            addStop(trip.startStopName || trip.startStop, trip);
+            addStop(trip.endStopName || trip.endStop, trip);
         });
 
-        pendingStops = Array.from(uniquePending)
-            .filter(str => !findStopByAlias(str))
-            .map(str => ({ name: str, count: pendingCounts[str] }))
-            .sort((a, b) => b.count - a.count);
+        pendingStops = Object.entries(stopMap).map(([name, routes]) => {
+            const totalCount = Object.values(routes).reduce((a, b) => a + b, 0);
+            const routeList = Object.entries(routes)
+                .sort((a, b) => b[1] - a[1])
+                .map(([route, count]) => ({ route, count }));
+            const suggestion = suggestCanonicalStop(name);
+            return { name, routes: routeList, totalCount, suggestion };
+        }).sort((a, b) => b.totalCount - a.totalCount);
 
         filteredPendingStops = [...pendingStops];
         selectedInboxItems.clear();
@@ -197,6 +196,54 @@ function findStopByAlias(str) {
         (stop.code === str) ||
         (stop.aliases && stop.aliases.includes(str))
     );
+}
+
+/**
+ * Fuzzy-match a raw stop string against the stops library.
+ * Catches abbreviations, missing spaces, and partial names.
+ * Returns { stop, confidence (0-100) } or null if no good match.
+ */
+function suggestCanonicalStop(rawName) {
+    const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const normRaw = norm(rawName);
+    if (!normRaw) return null;
+
+    let bestMatch = null;
+    let bestScore = 0;
+
+    for (const stop of stopsLibrary) {
+        const candidates = [stop.name, ...(stop.aliases || [])];
+        for (const candidate of candidates) {
+            const normCand = norm(candidate);
+            if (!normCand) continue;
+
+            let score = 0;
+            if (normRaw === normCand) {
+                score = 1.0;
+            } else if (normCand.startsWith(normRaw) || normRaw.startsWith(normCand)) {
+                const shorter = Math.min(normRaw.length, normCand.length);
+                const longer = Math.max(normRaw.length, normCand.length);
+                score = 0.9 * (shorter / longer) + 0.05;
+            } else if (normCand.includes(normRaw) || normRaw.includes(normCand)) {
+                const shorter = Math.min(normRaw.length, normCand.length);
+                const longer = Math.max(normRaw.length, normCand.length);
+                score = 0.7 * (shorter / longer);
+            } else {
+                const tokA = new Set(rawName.toLowerCase().match(/[a-z0-9]+/g) || []);
+                const tokB = new Set(candidate.toLowerCase().match(/[a-z0-9]+/g) || []);
+                const intersection = [...tokA].filter(t => tokB.has(t)).length;
+                const union = new Set([...tokA, ...tokB]).size;
+                score = union > 0 ? intersection / union : 0;
+            }
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestMatch = stop;
+            }
+        }
+    }
+
+    return bestScore >= 0.65 ? { stop: bestMatch, confidence: Math.round(bestScore * 100) } : null;
 }
 
 // Rendering
@@ -280,19 +327,37 @@ function renderPendingList(itemsToRender = null) {
 
     container.innerHTML = items.map(item => {
         const safeName = escapeHtml(item.name);
+
+        const routeBreakdown = item.routes.map(r =>
+            `<span style="font-size:0.78em; color:var(--text-secondary); margin-right:6px;">${escapeHtml(r.route)} <span style="opacity:0.6;">(${r.count})</span></span>`
+        ).join('');
+
+        const isHighConf = item.suggestion && item.suggestion.confidence >= 85;
+        const suggestionHtml = item.suggestion ? `
+            <div style="margin-top:5px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <span style="font-size:0.8em; color:var(--text-secondary);">→ ${escapeHtml(item.suggestion.stop.name)}</span>
+                <span style="font-size:0.75em; padding:1px 6px; border-radius:4px; background:${isHighConf ? '#dcfce7' : '#fef9c3'}; color:${isHighConf ? '#166534' : '#854d0e'};">${item.suggestion.confidence}%</span>
+                <button class="btn btn-sm" style="font-size:0.78em; padding:2px 8px; background:var(--accent-electric); color:#fff; border:none; border-radius:4px; cursor:pointer;"
+                    onclick="acceptSuggestion('${item.name.replace(/'/g, "\\'")}', '${item.suggestion.stop.id}')">Accept</button>
+            </div>` : '';
+
         return `
         <div class="inbox-item ${selectedInboxItems.has(item.name) ? 'selected' : ''}" data-name="${item.name.replace(/"/g, '&quot;')}">
             <div class="inbox-item-content">
                 <input type="checkbox" class="inbox-item-checkbox"
                     ${selectedInboxItems.has(item.name) ? 'checked' : ''}
                     onchange="toggleInboxSelection('${item.name.replace(/'/g, "\\'")}')">
-                <div style="overflow:hidden; text-overflow:ellipsis; flex: 1;">
-                    <span class="count-badge">${item.count}</span>
-                    <strong>${safeName}</strong>
+                <div style="overflow:hidden; flex:1; min-width:0;">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span class="count-badge">${item.totalCount}</span>
+                        <strong>${safeName}</strong>
+                    </div>
+                    <div style="margin-top:3px;">${routeBreakdown}</div>
+                    ${suggestionHtml}
                 </div>
             </div>
-            <div style="display: flex; gap: 8px;">
-                ${item.count > 1 ? `<button class="btn btn-outline btn-sm" onclick="openDivvyModal('${item.name.replace(/'/g, "\\'")}')" style="font-size: 0.8em; padding: 4px 8px;">Divvy Up</button>` : ''}
+            <div style="display:flex; gap:8px; flex-shrink:0;">
+                ${item.totalCount > 1 ? `<button class="btn btn-outline btn-sm" onclick="openDivvyModal('${item.name.replace(/'/g, "\\'")}')" style="font-size:0.8em; padding:4px 8px;">Divvy Up</button>` : ''}
                 <button class="btn btn-primary btn-sm" onclick="openLinkModal('${item.name.replace(/'/g, "\\'")}')">Link</button>
             </div>
         </div>
@@ -542,55 +607,75 @@ async function batchVerifyTrips(rawString, stopId) {
     const stopDoc = await db.collection('stops').doc(stopId).get();
     const stopData = stopDoc.data();
 
-    // Find trips where this string is the Start Stop
-    const startSnapshot = await db.collection('trips')
-        .where('userId', '==', currentUser.uid)
-        .where('startStop', '==', rawString)
-        .get();
-
-    // Find trips where this string is the End Stop
-    const endSnapshot = await db.collection('trips')
-        .where('userId', '==', currentUser.uid)
-        .where('endStop', '==', rawString)
-        .get();
+    // Query both field names — startStop (web legacy) and startStopName (SMS)
+    const [startByStop, startByStopName, endByStop, endByStopName] = await Promise.all([
+        db.collection('trips').where('userId', '==', currentUser.uid).where('startStop', '==', rawString).get(),
+        db.collection('trips').where('userId', '==', currentUser.uid).where('startStopName', '==', rawString).get(),
+        db.collection('trips').where('userId', '==', currentUser.uid).where('endStop', '==', rawString).get(),
+        db.collection('trips').where('userId', '==', currentUser.uid).where('endStopName', '==', rawString).get(),
+    ]);
 
     const batch = db.batch();
     let updateCount = 0;
+    const seenStart = new Set();
+    const seenEnd = new Set();
 
-    // Update Start Stops
-    startSnapshot.docs.forEach(doc => {
+    [...startByStop.docs, ...startByStopName.docs].forEach(doc => {
+        if (seenStart.has(doc.id)) return;
+        seenStart.add(doc.id);
         batch.update(doc.ref, {
             verified: true,
             startStopName: stopData.name,
-            boardingLocation: {
-                lat: stopData.lat,
-                lng: stopData.lng
-            },
-            verifiedStopId: stopId
+            boardingLocation: { lat: stopData.lat, lng: stopData.lng },
+            verifiedStopId: stopId,
         });
         updateCount++;
     });
 
-    // Update End Stops
-    endSnapshot.docs.forEach(doc => {
+    [...endByStop.docs, ...endByStopName.docs].forEach(doc => {
+        if (seenEnd.has(doc.id)) return;
+        seenEnd.add(doc.id);
         batch.update(doc.ref, {
-            // We don't necessarily mark verified=true just for end stop unless start is also known, 
-            // but for now let's assume if we are linking data we are improving verification status.
-            // If the start stop was unknown, it remains unknown, but at least we fix the end stop.
             endStopName: stopData.name,
-            exitLocation: {
-                lat: stopData.lat,
-                lng: stopData.lng
-            },
-            verifiedEndId: stopId
+            exitLocation: { lat: stopData.lat, lng: stopData.lng },
+            verifiedEndId: stopId,
         });
         updateCount++;
     });
 
     if (updateCount > 0) {
         await batch.commit();
-        console.log(`Updated ${updateCount} trips (Start/End set to ${rawString}).`);
+        console.log(`Updated ${updateCount} trips for "${rawString}".`);
     }
+}
+
+async function acceptSuggestion(rawString, stopId) {
+    try {
+        await db.collection('stops').doc(stopId).update({
+            aliases: firebase.firestore.FieldValue.arrayUnion(rawString)
+        });
+        await batchVerifyTrips(rawString, stopId);
+        loadData();
+    } catch (error) {
+        console.error('Error accepting suggestion:', error);
+        alert('Failed to accept: ' + error.message);
+    }
+}
+
+async function acceptAllSuggestions() {
+    const highConf = filteredPendingStops.filter(item => item.suggestion && item.suggestion.confidence >= 85);
+    if (highConf.length === 0) {
+        alert('No high-confidence suggestions to accept.');
+        return;
+    }
+    if (!confirm(`Accept ${highConf.length} suggestion(s)?`)) return;
+    for (const item of highConf) {
+        await db.collection('stops').doc(item.suggestion.stop.id).update({
+            aliases: firebase.firestore.FieldValue.arrayUnion(item.name)
+        });
+        await batchVerifyTrips(item.name, item.suggestion.stop.id);
+    }
+    loadData();
 }
 
 async function batchUnverifyTrips(rawString, stopId) {

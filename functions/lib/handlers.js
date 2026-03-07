@@ -17,7 +17,9 @@ const {
   db,
   isGeminiRateLimited,
   createTrip,
+  getRecentCompletedTrips,
 } = require('./db');
+const { PredictionEngine } = require('./predict.js');
 const {
   getStopDisplay,
   normalizeDirection,
@@ -417,6 +419,9 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     endStopData ? endStopData.stopName : parsedEndStop.stopName,
   );
 
+  // Fetch history before ending the trip so the current trip isn't included
+  const historyBeforeEnd = await getRecentCompletedTrips(user.userId, 100);
+
   await db.collection('trips').doc(activeTrip.id).update({
     endStopCode: endStopData ? endStopData.stopCode : parsedEndStop.stopCode,
     endStopName: endStopData ? endStopData.stopName : parsedEndStop.stopName,
@@ -430,6 +435,29 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
   const routeDisplay = activeTrip.direction ?
     `Route ${activeTrip.route} ${activeTrip.direction}` :
     `Route ${activeTrip.route}`;
+
+  // Silent evaluation: log predicted vs actual
+  try {
+    const history = historyBeforeEnd;
+    const actualTrip = {
+      ...activeTrip,
+      endStopName: endStopData ? endStopData.stopName : parsedEndStop.stopName,
+      endStopCode: endStopData ? endStopData.stopCode : parsedEndStop.stopCode,
+      endTime: endTime
+    };
+
+    const result = PredictionEngine.evaluate(history, actualTrip);
+    await db.collection('predictionStats').add({
+      userId: user.userId,
+      ...result,
+      route: actualTrip.route,
+      source: 'sms',
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+    console.log(`Silent SMS Prediction Accuracy Logged for ${user.userId}: ${result.isHit ? 'HIT' : 'MISS'}`);
+  } catch (predictionErr) {
+    console.error('Error logging prediction accuracy for SMS:', predictionErr);
+  }
 
   await sendSmsReply(phoneNumber, `✅ Ended ${routeDisplay} at Stop ${endStopDisplay} (${duration} min trip)`);
 }

@@ -1,10 +1,36 @@
 # Changelog
 
 **Current Project Versions:**
-- **Web App**: `v1.4.6`
-- **Cloud Functions**: `v1.1.4`
+- **Web App**: `v1.4.8`
+- **Cloud Functions**: `v1.1.6`
 
 ---
+
+## [1.4.8] - 2026-03-07
+
+### Fixed
+- **SMS Outage (Critical)**: Fixed a complete SMS outage caused by Twilio webhook signature validation always failing. Firebase strips the function name (`/sms`) from `req.originalUrl` before passing to Express, so the constructed validation URL was `https://.../` instead of `https://.../sms`. Every inbound message returned 403, silently dropping all replies.
+- **Login**: Removed hardcoded `disabled` attribute on the Continue button that prevented login when the email field was autofilled by the browser. The `input` event doesn't fire on autofill so the button was never re-enabled.
+- **Deploy**: Removed orphaned `postinstall: patch-package` script from `functions/package.json`. No patches directory exists, causing every deploy to fail with `sh: patch-package: not found`.
+
+### Changed
+- **Prediction Engine v2** (`functions/lib/predict.js` + `js/predict.js`): Complete rewrite from additive point scoring to stop-first filtering with multiplicative weighted voting. Each past trip votes for its (route, direction) pair with weight = `recency × time_similarity × day_similarity`. Sequence boost applies when the last trip ended at the current stop. Versioned as `VERSION: 2`.
+- **Prediction Accuracy**: Added `isPartialHit` to evaluation — base route correct but variant wrong (e.g. predicted `510`, actual `510a`) counts as partial credit rather than a full miss.
+- **Prediction Normalization**: Added `_normalizeDirection()` helper to both predict.js files. Vote keys now normalize direction variants (`"SOUTH"`, `"Southbound"`, `"SB"` → `"Southbound"`) and lowercase route names (`"510A"` = `"510a"`) so fragmented data doesn't split vote weight.
+- **History Contamination Fix**: In `handlers.js`, trip history is now fetched *before* the active trip's `endTime` is written, so the current trip is never included in its own prediction evaluation.
+
+## [Unreleased]
+
+### Security
+- **Dependency Update (Critical)**: Upgraded `minimatch` to `^3.1.5` via `overrides` in Cloud Functions to resolve a high-severity Regular Expression Denial of Service (ReDoS) vulnerability (CVE-2026-27903) that caused unbounded recursive backtracking.
+- **Hardening (Critical)**: Upgraded `fast-xml-parser` to `^5.4.2` in Cloud Functions to resolve multiple vulnerabilities:
+    - **CVE-2026-26278 / GHSA-jmr7-xgp7-cmfj**: Denial of Service (DoS) via unlimited entity expansion. Verified fix with local PoC scripts ensuring total expanded content size is capped.
+    - **CVE-2026-25896 / GHSA-p7r7-862r-f24w**: Entity encoding bypass via regex injection in DOCTYPE entity names.
+- **Dependency Update (High)**: Upgraded `axios` to `^1.13.5` in Cloud Functions to resolve a Denial of Service vulnerability via `__proto__` key in configuration objects.
+- **Hardening (Critical)**: Addressed a Denial of Service (DoS) vulnerability in the `qs` library (CVE-2025-15284 bypass) where `arrayLimit` was not enforced for comma-separated values in the object parsing path. 
+    - Upgraded to `^6.15.0` and implemented a custom core patch via **`patch-package`** to ensure full coverage of array limit enforcement.
+    - Verified the fix with a local PoC for both string and object input methods.
+- **Dependency Audit**: Performed a comprehensive security audit on Cloud Function dependencies and implemented `overrides` in `package.json` to enforce secure versions of transitive dependencies.
 
 ## [1.4.6] - 2026-03-05
 

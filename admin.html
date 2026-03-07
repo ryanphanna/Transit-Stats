@@ -239,7 +239,9 @@
                         <input type="checkbox" id="selectAllInbox" onchange="toggleSelectAll()"
                             style="width: 16px; height: 16px; cursor: pointer;">
                         <label for="selectAllInbox"
-                            style="font-size: 0.85em; color: var(--text-secondary); cursor: pointer;">Select all</label>
+                            style="font-size: 0.85em; color: var(--text-secondary); cursor: pointer; flex: 1;">Select all</label>
+                        <button onclick="acceptAllSuggestions()" class="btn btn-outline"
+                            style="padding: 3px 8px; font-size: 0.78em;">Accept All High Confidence</button>
                     </div>
 
                     <div id="pendingList" style="overflow-y: auto; flex: 1;">
