@@ -1,7 +1,9 @@
-/**
- * Configuration validation for SMS service
- */
-const functions = require('firebase-functions');
+const { defineSecret } = require('firebase-functions/params');
+
+const twilioAccountSid = defineSecret('TWILIO_ACCOUNT_SID');
+const twilioAuthToken = defineSecret('TWILIO_AUTH_TOKEN');
+const twilioPhone = defineSecret('TWILIO_PHONE_NUMBER');
+const geminiApiKey = defineSecret('GEMINI_API_KEY');
 
 /**
  * Validate required environment configuration on cold start
@@ -12,16 +14,12 @@ function validateConfiguration() {
   const errors = [];
 
   // Check Twilio configuration
-  const twilioAccountSid = functions.config().twilio?.account_sid;
-  const twilioAuthToken = functions.config().twilio?.auth_token;
-  const twilioPhone = functions.config().twilio?.phone_number;
-
-  if (!twilioAccountSid) errors.push('Missing twilio.account_sid');
-  if (!twilioAuthToken) errors.push('Missing twilio.auth_token');
-  if (!twilioPhone) warnings.push('Missing twilio.phone_number (SMS replies disabled)');
+  if (!twilioAccountSid.value()) errors.push('Missing twilio.account_sid');
+  if (!twilioAuthToken.value()) errors.push('Missing twilio.auth_token');
+  if (!twilioPhone.value()) warnings.push('Missing twilio.phone_number (SMS replies disabled)');
 
   // Check Gemini configuration
-  const geminiApiKey = functions.config().gemini?.api_key;
+  const gemini = geminiApiKey.value();
   if (!geminiApiKey) {
     warnings.push('Missing gemini.api_key (AI parsing disabled, will use heuristics)');
   }

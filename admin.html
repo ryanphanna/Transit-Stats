@@ -6,9 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TransitStats Data Manager</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"
+        integrity="sha384-yuGdyIzzYtOBlBG6JOWn+Ey9kpq7HocusNuxEGyyohr1eEyXpeEyehIIXC/hznw4"
+        crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"
+        integrity="sha384-lI+CxEx/bCvWP1b0OK13j5HTrTZP7yf1xle8TVOFq2smz6KC1RChTarRV/RHP5PP"
+        crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"
+        integrity="sha384-nwX2Qpkhc2sv6L0ZPkLefLGguao67toSowvePuQvGF6cG+8MUphGI2uI94Ls3JF7"
+        crossorigin="anonymous"></script>
     <style>
         /* Admin Specific Overrides */
         .admin-layout {
@@ -239,7 +245,8 @@
                         <input type="checkbox" id="selectAllInbox" onchange="toggleSelectAll()"
                             style="width: 16px; height: 16px; cursor: pointer;">
                         <label for="selectAllInbox"
-                            style="font-size: 0.85em; color: var(--text-secondary); cursor: pointer; flex: 1;">Select all</label>
+                            style="font-size: 0.85em; color: var(--text-secondary); cursor: pointer; flex: 1;">Select
+                            all</label>
                         <button onclick="acceptAllSuggestions()" class="btn btn-outline"
                             style="padding: 3px 8px; font-size: 0.78em;">Accept All High Confidence</button>
                     </div>

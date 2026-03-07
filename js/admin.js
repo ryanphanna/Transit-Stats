@@ -36,6 +36,17 @@ function escapeHtml(unsafe) {
         .replace(/'/g, '&#039;');
 }
 
+// Security: JS sanitization for inline event handlers
+function escapeForJs(unsafe) {
+    if (unsafe === null || unsafe === undefined) return '';
+    return String(unsafe)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '&quot;')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r');
+}
+
 // Input validation
 function validateStopData(data) {
     const errors = [];
@@ -277,11 +288,11 @@ function renderStopLibrary(stops) {
             <div style="margin-top: 15px; display:flex; justify-content:flex-end; align-items:center;">
                 <button class="btn btn-sm btn-outline" style="padding:4px 10px; font-size:0.8em; border:none; color:var(--text-secondary);"
                     onclick="openStopForm('edit', {
-                        id: '${escapeHtml(stop.id)}',
-                        name: '${stop.name.replace(/'/g, "\\'")}',
-                        code: '${(stop.code || '').replace(/'/g, "\\'")}',
-                        direction: '${(stop.direction || '').replace(/'/g, "\\'")}',
-                        agency: '${(stop.agency || 'Other').replace(/'/g, "\\'")}',
+                        id: '${escapeForJs(stop.id)}',
+                        name: '${escapeForJs(stop.name)}',
+                        code: '${escapeForJs(stop.code || '')}',
+                        direction: '${escapeForJs(stop.direction || '')}',
+                        agency: '${escapeForJs(stop.agency || 'Other')}',
                         lat: ${stop.lat || 0},
                         lng: ${stop.lng || 0},
                         aliases: ${escapeHtml(JSON.stringify(stop.aliases || []))}
@@ -303,16 +314,11 @@ function renderAliases(stop) {
             ${stop.aliases.map(a => `
                 <span class="alias-badge">
                     ${escapeHtml(a)}
-                    <span class="remove-alias" onclick="removeAlias('${escapeHtml(stop.id)}', '${a.replace(/'/g, "\\'")}')" title="Unlink variation">×</span>
+                    <span class="remove-alias" onclick="removeAlias('${escapeForJs(stop.id)}', '${escapeForJs(a)}')" title="Unlink variation">×</span>
                 </span>
             `).join('')}
         </div>
     `;
-}
-
-function escapeJsSingleQuoted(str) {
-    // Escape backslashes first, then single quotes for safe embedding in single-quoted JS strings
-    return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
 function renderPendingList(itemsToRender = null) {
@@ -343,7 +349,7 @@ function renderPendingList(itemsToRender = null) {
                 <span style="font-size:0.8em; color:var(--text-secondary);">→ ${escapeHtml(item.suggestion.stop.name)}</span>
                 <span style="font-size:0.75em; padding:1px 6px; border-radius:4px; background:${isHighConf ? '#dcfce7' : '#fef9c3'}; color:${isHighConf ? '#166534' : '#854d0e'};">${item.suggestion.confidence}%</span>
                 <button class="btn btn-sm" style="font-size:0.78em; padding:2px 8px; background:var(--accent-electric); color:#fff; border:none; border-radius:4px; cursor:pointer;"
-                    onclick="acceptSuggestion('${escapeJsSingleQuoted(item.name)}', '${item.suggestion.stop.id}')">Accept</button>
+                    onclick="acceptSuggestion('${escapeForJs(item.name)}', '${item.suggestion.stop.id}')">Accept</button>
             </div>` : '';
 
         return `
@@ -351,7 +357,7 @@ function renderPendingList(itemsToRender = null) {
             <div class="inbox-item-content">
                 <input type="checkbox" class="inbox-item-checkbox"
                     ${selectedInboxItems.has(item.name) ? 'checked' : ''}
-                    onchange="toggleInboxSelection('${escapeJsSingleQuoted(item.name)}')">
+                    onchange="toggleInboxSelection('${escapeForJs(item.name)}')">
                 <div style="overflow:hidden; flex:1; min-width:0;">
                     <div style="display:flex; align-items:center; gap:6px;">
                         <span class="count-badge">${item.totalCount}</span>
@@ -362,8 +368,8 @@ function renderPendingList(itemsToRender = null) {
                 </div>
             </div>
             <div style="display:flex; gap:8px; flex-shrink:0;">
-                ${item.totalCount > 1 ? `<button class="btn btn-outline btn-sm" onclick="openDivvyModal('${escapeJsSingleQuoted(item.name)}')" style="font-size:0.8em; padding:4px 8px;">Divvy Up</button>` : ''}
-                <button class="btn btn-primary btn-sm" onclick="openLinkModal('${escapeJsSingleQuoted(item.name)}')">Link</button>
+                ${item.totalCount > 1 ? `<button class="btn btn-outline btn-sm" onclick="openDivvyModal('${escapeForJs(item.name)}')" style="font-size:0.8em; padding:4px 8px;">Divvy Up</button>` : ''}
+                <button class="btn btn-primary btn-sm" onclick="openLinkModal('${escapeForJs(item.name)}')">Link</button>
             </div>
         </div>
     `;
@@ -439,7 +445,7 @@ function filterStopSearch() {
         resultsContainer.innerHTML = '<div style="padding: 12px; color: var(--text-muted);">No stops found</div>';
     } else {
         resultsContainer.innerHTML = filtered.map(stop => `
-            <div class="stop-search-result" onclick="selectStop('${stop.id}', '${stop.name.replace(/'/g, "\\'")}')"
+            <div class="stop-search-result" onclick="selectStop('${stop.id}', '${escapeForJs(stop.name)}')"
                 style="padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--border-light); transition: background 0.15s;"
                 onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
                 <div style="font-weight: 500;">${stop.name}</div>
@@ -945,7 +951,7 @@ function renderEditAliases(stopId, aliases) {
     container.innerHTML = aliases.map(a => `
         <span class="alias-badge" style="display: flex; align-items: center; gap: 4px;">
             ${a}
-            <span class="remove-alias" onclick="removeAliasFromEdit('${stopId}', '${a.replace(/'/g, "\\'")}')" title="Remove alias" style="cursor: pointer; opacity: 0.5; font-weight: bold;">×</span>
+            <span class="remove-alias" onclick="removeAliasFromEdit('${stopId}', '${escapeForJs(a)}')" title="Remove alias" style="cursor: pointer; opacity: 0.5; font-weight: bold;">×</span>
         </span>
     `).join('');
 }
@@ -1126,7 +1132,7 @@ function renderDivvyTrips(trips, targetString) {
                         ${dateStr} at ${timeStr}
                     </div>
                 </div>
-                <button class="btn btn-sm btn-primary" onclick="openSingleTripLink('${trip.id}', '${trip.divvyType}', '${targetString.replace(/'/g, "\\'")}')">
+                <button class="btn btn-sm btn-primary" onclick="openSingleTripLink('${trip.id}', '${trip.divvyType}', '${escapeForJs(targetString)}')">
                     Assign
                 </button>
             </div>

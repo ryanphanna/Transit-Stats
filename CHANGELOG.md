@@ -1,10 +1,34 @@
 # Changelog
 
 **Current Project Versions:**
-- **Web App**: `v1.4.8`
-- **Cloud Functions**: `v1.1.6`
+- **Web App**: `v1.4.9`
+- **Cloud Functions**: `v1.1.9`
 
 ---
+
+## [1.1.9] - 2026-03-07
+
+### Security
+- **Secret Migration (Critical)**: Migrated all cloud function secrets (`TWILIO_AUTH_TOKEN`, `TWILIO_ACCOUNT_SID`, `TWILIO_PHONE_NUMBER`, `GEMINI_API_KEY`) from deprecated `functions.config()` to the modern `defineSecret` (Firebase params module). This resolves critical "500 Internal Server Error" crashes in newer Node.js 20 environments where the legacy config object is no longer available.
+- **Webhook Hardening**: Re-implemented Twilio signature validation with a robust fallback mechanism that accounts for Firebase Functions' URL path rewriting (stripping `/sms`). The system now intelligently validates signatures against both the original reconstructed URL and a strict `/sms` suffix.
+
+### Fixed
+- **Observability**: Added verbose request body logging and validation audit logs to help diagnose delivery issues without exposing PII.
+
+## [1.4.9] - 2026-03-07
+
+### Security
+- **Complete String Escaping (High)**: Addressed a CodeQL `incomplete-sanitization` vulnerability in `js/admin.js` where backslashes and double quotes were not properly escaped in dynamic strings interpolated into inline HTML event handlers. Implemented a robust `escapeForJs()` helper to securely sanitize all dynamic JavaScript variables injected into DOM attributes, preventing potential Cross-Site Scripting (XSS) and injection attacks via maliciously crafted stop names or aliases.
+
+### Fixed
+- **Maps**: Corrected tile server SSL validation for `memomaps.de` and `openstreetmap.org` in `js/map-engine.js` and `js/public.js`. Resolved "Mixed Content" and SSL certificate errors that caused the map layer to fail to load in several regions.
+- **Testing**: Added `take_screenshot.js` utility for automated UI auditing.
+
+## [1.1.8] - 2026-03-07
+
+### Security
+- **Hardening (Critical)**: Enforced `fast-xml-parser@^5.4.2` via `overrides` in Cloud Functions to resolve a stack overflow vulnerability in `XMLBuilder` (CVE-2026-27942 / GHSA-fj3w-jwp8-x2g3). This ensures all primary and transitive dependencies use the patched version, clearing a Dependabot block caused by version conflicts in the dependency tree.
+
 
 ## [1.4.8] - 2026-03-07
 
@@ -19,17 +43,16 @@
 - **Prediction Normalization**: Added `_normalizeDirection()` helper to both predict.js files. Vote keys now normalize direction variants (`"SOUTH"`, `"Southbound"`, `"SB"` → `"Southbound"`) and lowercase route names (`"510A"` = `"510a"`) so fragmented data doesn't split vote weight.
 - **History Contamination Fix**: In `handlers.js`, trip history is now fetched *before* the active trip's `endTime` is written, so the current trip is never included in its own prediction evaluation.
 
-## [Unreleased]
+## [1.1.7] - 2026-03-07
 
 ### Security
-- **Dependency Update (Critical)**: Upgraded `minimatch` to `^3.1.5` via `overrides` in Cloud Functions to resolve a high-severity Regular Expression Denial of Service (ReDoS) vulnerability (CVE-2026-27903) that caused unbounded recursive backtracking.
+- **Incorrect Control Flow Scoping (Critical)**: Upgraded `@tootallnate/once` to `^3.0.1` via `overrides` in Cloud Functions to resolve a vulnerability where promises could hang indefinitely when an `AbortSignal` was used. This prevents potential control-flow leaks that could lead to stalled requests or degraded application availability.
+- **Dependency Update (Critical)**: Upgraded `minimatch` to `^3.1.5` via `overrides` in Cloud Functions to resolve a high-severity Regular Expression Denial of Service (ReDoS) vulnerability (CVE-2026-27903).
 - **Hardening (Critical)**: Upgraded `fast-xml-parser` to `^5.4.2` in Cloud Functions to resolve multiple vulnerabilities:
-    - **CVE-2026-26278 / GHSA-jmr7-xgp7-cmfj**: Denial of Service (DoS) via unlimited entity expansion. Verified fix with local PoC scripts ensuring total expanded content size is capped.
+    - **CVE-2026-26278 / GHSA-jmr7-xgp7-cmfj**: Denial of Service (DoS) via unlimited entity expansion.
     - **CVE-2026-25896 / GHSA-p7r7-862r-f24w**: Entity encoding bypass via regex injection in DOCTYPE entity names.
 - **Dependency Update (High)**: Upgraded `axios` to `^1.13.5` in Cloud Functions to resolve a Denial of Service vulnerability via `__proto__` key in configuration objects.
-- **Hardening (Critical)**: Addressed a Denial of Service (DoS) vulnerability in the `qs` library (CVE-2025-15284 bypass) where `arrayLimit` was not enforced for comma-separated values in the object parsing path. 
-    - Upgraded to `^6.15.0` and implemented a custom core patch via **`patch-package`** to ensure full coverage of array limit enforcement.
-    - Verified the fix with a local PoC for both string and object input methods.
+- **Hardening (Critical)**: Addressed a Denial of Service (DoS) vulnerability in the `qs` library (CVE-2025-15284 bypass) where `arrayLimit` was not enforced for comma-separated values.
 - **Dependency Audit**: Performed a comprehensive security audit on Cloud Function dependencies and implemented `overrides` in `package.json` to enforce secure versions of transitive dependencies.
 
 ## [1.4.6] - 2026-03-05

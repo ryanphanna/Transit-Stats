@@ -1,0 +1,20 @@
+diff --git a/node_modules/qs/lib/parse.js b/node_modules/qs/lib/parse.js
+index e9bc15c..c5baef9 100644
+--- a/node_modules/qs/lib/parse.js
++++ b/node_modules/qs/lib/parse.js
+@@ -38,7 +38,14 @@ var interpretNumericEntities = function (str) {
+ 
+ var parseArrayValue = function (val, options, currentArrayLength) {
+     if (val && typeof val === 'string' && options.comma && val.indexOf(',') > -1) {
+-        return val.split(',');
++        var splitArray = val.split(',');
++        if (splitArray.length > options.arrayLimit - currentArrayLength) {
++            if (options.throwOnLimitExceeded) {
++                throw new RangeError('Array limit exceeded. Only ' + options.arrayLimit + ' element' + (options.arrayLimit === 1 ? '' : 's') + ' allowed in an array.');
++            }
++            return splitArray.slice(0, options.arrayLimit - currentArrayLength);
++        }
++        return splitArray;
+     }
+ 
+     if (options.throwOnLimitExceeded && currentArrayLength >= options.arrayLimit) {

@@ -1,0 +1,10 @@
+Navigating to http://localhost:3000
+PAGE LOG: [vite] connecting...
+PAGE LOG: [vite] connected.
+PAGE LOG: TransitStats Loading...
+PAGE LOG: TransitStats Ready!
+PAGE LOG: [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o
+HTTP Error: 404 http://localhost:3000/favicon.ico
+PAGE LOG: Failed to load resource: the server responded with a status of 404 (Not Found)
+PAGE LOG: ❌ No user authenticated
+PAGE LOG: 📍 Silent location detected: Toronto, Ontario

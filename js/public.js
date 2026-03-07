@@ -145,7 +145,7 @@ function initPublicMap(trips) {
     }).addTo(map);
 
     // Transit Routes Overlay: Memomaps for colored route paths
-    L.tileLayer('https://{s}.tile.memomaps.de/tilegen/{z}/{x}/{y}.png', {
+    L.tileLayer('https://tile.memomaps.de/tilegen/{z}/{x}/{y}.png', {
         maxZoom: 18,
         opacity: 0.7,
         className: 'map-transit-layer'

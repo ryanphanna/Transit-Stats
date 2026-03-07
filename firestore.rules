@@ -91,5 +91,11 @@ service cloud.firestore {
         && username.matches('^[a-z0-9_]+$');
       allow update, delete: if false; // Usernames are permanent for now
     }
+
+    // Prediction Stats - for silent accuracy evaluation
+    match /predictionStats/{statId} {
+      allow read, create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
+    }
   }
 }

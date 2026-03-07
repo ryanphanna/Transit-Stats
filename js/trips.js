@@ -3,6 +3,7 @@ import { db, Timestamp } from './firebase.js';
 import { UI } from './ui-utils.js';
 import { Stats } from './stats.js';
 import { Templates } from './templates.js';
+import { PredictionEngine } from './predict.js';
 
 /**
  * TransitStats Trips Module
@@ -286,6 +287,7 @@ export const Trips = {
 
                     Templates.load();
                     Stats.updateProfileStats();
+                    this.logAccuracy(window.activeTrip, updateData);
                     this.load();
                     this.loadLast();
 
@@ -497,6 +499,38 @@ export const Trips = {
     resolveVerifiedStopName: function (val) {
         const stop = this.lookupStopInLibrary(val, val);
         return stop ? stop.name : null;
+    },
+
+    /**
+     * Silent evaluation: logs predicted vs actual to predictionStats
+     */
+    logAccuracy: function (activeTrip, finalData) {
+        if (!activeTrip || !window.PredictionEngine) return;
+
+        try {
+            // Reconstruct the actual trip for evaluation
+            const actualTrip = {
+                ...activeTrip,
+                endStop: finalData.endStop,
+                endTime: finalData.endTime
+            };
+
+            // Use history EXCLUDING the current active trip
+            const history = this.allCompletedTrips.filter(t => t.id !== activeTrip.id);
+
+            const result = PredictionEngine.evaluate(history, actualTrip);
+
+            db.collection('predictionStats').add({
+                userId: window.currentUser.uid,
+                ...result,
+                route: actualTrip.route,
+                timestamp: Timestamp.now()
+            });
+
+            console.log('Silent Prediction Accuracy Logged:', result.isHit ? '✅ HIT' : '❌ MISS', result);
+        } catch (err) {
+            console.error('Error logging accuracy:', err);
+        }
     }
 };
 

@@ -191,7 +191,7 @@ export const MapEngine = {
 
         // Transit Routes Overlay: Shows actual colored lines (Subway, Train, etc) 
         // unlike the infrastructure-focused OpenRailwayMap
-        this.transitLayer = L.tileLayer('https://{s}.tile.memomaps.de/tilegen/{z}/{x}/{y}.png', {
+        this.transitLayer = L.tileLayer('https://tile.memomaps.de/tilegen/{z}/{x}/{y}.png', {
             maxZoom: 18,
             attribution: 'Map &copy; [memomaps.de](https://memomaps.de/); Transit data &copy; [OpenStreetMap](https://www.openstreetmap.org/copyright)',
             className: 'map-transit-layer',

@@ -1,33 +1,23 @@
-# TransitStats Roadmap
+# Roadmap
 
-## 🎯 Vision
-To be the ultimate companion for transit enthusiasts, providing deep insights into ridership patterns, efficiency, and community statistics.
+All notable planned features and improvements for Transit Stats will be documented in this file. Completed features are tracked in the [CHANGELOG](./CHANGELOG.md).
 
-## 🏁 Phase 1: Core Experience (Completed/Ongoing)
-- [x] Real-time trip tracking (Boarding/Alighting).
-- [x] GPS-based heatmap visualization (50+ trips).
-- [x] Multi-agency support (TTC, GO, MiWay, etc.).
-- [x] SMS-based tracking via Gemini AI.
-- [x] Riding streaks and basic analytics.
-- [x] Dark/Light mode support.
-- [x] Automated Firebase Deployment via GitHub Actions.
+## [Up Next]
 
-## 🚀 Phase 2: "Wrapped" & Data Storytelling (Planned)
-- [ ] **Transit Wrapped**:
-    - Visual year-in-review based on internal app data.
-    - Interactive "Bubble Pop" highlights for Top Agency, Route, and Hours.
-    - Shareable summary cards.
-- [ ] **Legacy Data Import**: 
-    - Integrate PRESTO export parser to allow users to backfill their history.
-- [ ] **Social Features**:
-    - Friend activity feed (opt-in).
-    - Community-wide route popularity stats.
+### Analytics
+- **Transit Wrapped**: Visual year-in-review highlighting top routes, agencies, and duration, featuring interactive highlights and shareable summary cards.
+- **Expense Tracking**: Estimated fare calculation and automated monthly budget summaries based on ridership data.
 
-## 🛠️ Phase 3: Advanced Intelligence & Integration
-- [ ] **Predictive Alerts**: Gemini-powered notifications for frequent route delays.
-- [ ] **Expense Tracking**: Estimated fare calculation and budget summaries.
-- [ ] **Advanced Mapping**: Route lines (not just points) connecting boarding and alighting.
+### Features
+- **Legacy Data Import**: Native CSV/Export parsing (e.g., PRESTO) to allow users to backfill their historical transit history.
+- **Advanced Mapping**: Actual route polyline rendering connecting boarding and alighting points, rather than simple start/end points.
+- **Predictive Alerts**: Gemini-powered notifications for frequent or predicted route delays before you travel.
 
-## 📈 Long-term Goals
-- Wearable apps (Apple Watch / Android Wear) for one-tap tracking.
-- Integration with local transit APIs for real-time delay overlays on the heatmap.
+## [Backlog]
+
+### Social
+- **Community Insights**: Opt-in friend activity feed and community-wide route popularity statistics to contextualize personal data.
+
+### Platforms
+- **Wearable Integration**: Apple Watch and Android Wear companion apps for immediate, one-tap tracking.
+- **Real-time Infrastructure**: Overlays for live local transit system delays directly on the platform's heatmap.

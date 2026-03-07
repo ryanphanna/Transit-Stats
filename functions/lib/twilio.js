@@ -1,12 +1,10 @@
-/**
- * Twilio helper functions for SMS sending and validation
- */
-const functions = require('firebase-functions');
 const twilio = require('twilio');
 const { defineSecret } = require('firebase-functions/params');
 const { escapeXml } = require('./utils');
 
 const twilioAuthToken = defineSecret('TWILIO_AUTH_TOKEN');
+const twilioAccountSid = defineSecret('TWILIO_ACCOUNT_SID');
+const twilioPhoneNumber = defineSecret('TWILIO_PHONE_NUMBER');
 
 /**
  * Get Twilio client. Returns null if credentials are not configured.
@@ -14,9 +12,8 @@ const twilioAuthToken = defineSecret('TWILIO_AUTH_TOKEN');
  */
 function getTwilioClient() {
   try {
-    // Check both Secret Manager and legacy functions:config
-    const accountSid = functions.config().twilio?.account_sid; // Legacy often uses config for SID
-    const authToken = twilioAuthToken.value() || functions.config().twilio?.auth_token;
+    const accountSid = twilioAccountSid.value();
+    const authToken = twilioAuthToken.value();
 
     if (!accountSid || !authToken) {
       console.error('Twilio credentials not configured correctly. SID or Token missing.', { hasSid: !!accountSid, hasToken: !!authToken });
@@ -35,7 +32,7 @@ function getTwilioClient() {
  * @returns {string|null}
  */
 function getTwilioPhoneNumber() {
-  return functions.config().twilio?.phone_number || null;
+  return twilioPhoneNumber.value();
 }
 
 /**
@@ -94,11 +91,15 @@ function validateTwilioSignature(req) {
     return true;
   }
 
-  const authTokenSecret = twilioAuthToken.value();
-  const authTokenConfig = functions.config().twilio?.auth_token;
+  const authToken = twilioAuthToken.value();
 
-  if (!authTokenSecret && !authTokenConfig) {
-    console.error('Twilio auth token secret/config not available');
+  console.info('Auth check:', {
+    hasSecret: !!authToken,
+    secretPrefix: authToken ? authToken.substring(0, 4) : 'none'
+  });
+
+  if (!authToken) {
+    console.error('Twilio auth token not available');
     return false;
   }
 
@@ -110,25 +111,38 @@ function validateTwilioSignature(req) {
 
   const protocol = req.headers['x-forwarded-proto'] || 'https';
   const host = req.headers['x-forwarded-host'] || req.headers.host;
-  // Firebase strips the function name (/sms) from req.originalUrl before Express sees it,
-  // so we must reconstruct the full URL that Twilio actually signed.
-  const configuredUrl = functions.config().twilio?.webhook_url;
-  const url = configuredUrl || `${protocol}://${host}/sms`;
 
-  // Try the secret first
-  let isValid = false;
-  if (authTokenSecret) {
-    isValid = twilio.validateRequest(authTokenSecret, twilioSignature, url, req.body);
-  }
+  // Reconstruct the full URL. If a specific webhook URL is needed, it should be defined as a param.
+  const url = `${protocol}://${host}${req.originalUrl}`;
 
-  // Fallback to config if secret fails and they are different
-  if (!isValid && authTokenConfig && authTokenConfig !== authTokenSecret) {
-    console.info('Retrying validation with config auth token...');
-    isValid = twilio.validateRequest(authTokenConfig, twilioSignature, url, req.body);
+  console.info('Twilio validation inputs:', {
+    url,
+    originalUrl: req.originalUrl,
+    host,
+    xForwardedHost: req.headers['x-forwarded-host'],
+    twilioSignature,
+    bodyKeys: Object.keys(req.body || {}),
+  });
+
+  // Try the primary URL
+  let isValid = twilio.validateRequest(authToken, twilioSignature, url, req.body);
+
+  // Fallback to strict /sms URL if originalUrl fails (Firebase function rewriting)
+  if (!isValid) {
+    const fallbackUrl = `${protocol}://${host}/sms`;
+    console.info('Retrying with fallback URL:', fallbackUrl);
+    if (twilio.validateRequest(authToken, twilioSignature, fallbackUrl, req.body)) {
+      console.info('Validation SUCCESS with fallback URL');
+      isValid = true;
+    }
   }
 
   if (!isValid) {
-    console.warn('Invalid Twilio webhook signature - possible forgery attempt', { url });
+    console.warn('Invalid Twilio webhook signature - final failure', {
+      url,
+      originalUrl: req.originalUrl,
+      bodyKeys: Object.keys(req.body || {})
+    });
     return false;
   }
 
