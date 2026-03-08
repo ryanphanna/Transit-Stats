@@ -1,12 +1,14 @@
 # Changelog
 
 **Current Project Versions:**
-- **Web App**: `v1.4.9`
-- **Cloud Functions**: `v1.1.10`
+- **Web App**: `v1.5.0`
+- **Cloud Functions**: `v1.2.0`
 
 ---
 
 ## [Unreleased]
+
+## [1.5.0] / [1.2.0] - 2026-03-07
 
 ### Changed
 - **Cloud Functions Migration (Critical)**: Fully migrated Cloud Functions from **1st Generation** to **2nd Generation** (v2). This modernization improves cold-start performance, increases request concurrency (up to 50 simultaneous requests per instance), and ensures long-term compatibility with the Firebase platform.
