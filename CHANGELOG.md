@@ -1,10 +1,56 @@
 # Changelog
 
 **Current Project Versions:**
-- **Web App**: `v1.5.1`
+- **Web App**: `v1.6.0`
 - **Cloud Functions**: `v1.2.0`
 
 ---
+
+## [Unreleased]
+
+### Fixed
+- **END Trip Crash (Critical)** (`functions/lib/handlers.js`): `handleEndTrip` was crashing before updating Firestore because `getRecentCompletedTrips` (used for silent prediction evaluation) requires a composite index that did not exist. Moved the history fetch inside the prediction `try-catch` block so a missing index or query failure can never prevent a trip from being ended or the reply from being sent.
+- **Idempotency Race Condition** (`functions/lib/db.js`): `checkIdempotency` used a read-then-write pattern that allowed two simultaneous Twilio retries to both slip through, creating duplicate trips. Replaced with an atomic `create()` call that fails with `ALREADY_EXISTS` if another request already claimed the message.
+- **Gemini Field Confusion** (`functions/lib/gemini.js`): Gemini was confusing route numbers and stop codes when both appeared in the same message (e.g. stop code landing in the route field). Improved the prompt to explicitly instruct Gemini to never infer or guess a route, and to only treat a number as a stop_id when it is explicitly labeled as a stop in the message text. Removed the previous digit-count heuristic ("4-digit") which was incorrect for many cities where stop codes are 3–5+ digits.
+
+### Changed
+- **CI/CD: Auto-deploy Functions** (`.github/workflows/firebase-hosting-merge.yml`): Added a functions deployment step to the merge workflow. Cloud Functions were previously never auto-deployed on push to `main`, meaning every function change since GitHub Actions was set up had silently gone unshipped.
+
+### Added
+- **Trip Validity Filter** (`js/predict.js`): `_isValidTrip()` screens the candidate pool before voting. Trips with null stop names, sentence-length stop names (> 60 chars), SMS-sentence patterns (`"just boarded"`, `"headed northbound"`, etc.), or word-only route fragments (`"St"`, `"Station"`, `"Park"`) are excluded. Catches all known bad-parse trips without affecting legitimate routes including alphanumeric variants like `52g`.
+- **Stop Canonicalization** (`js/predict.js`): `PredictionEngine.stopsLibrary` property and `_canonicalizeStop()` helper added. `_stopMatch` now resolves both stop names through the library before comparing, so alias variants like `"SPADINA"`, `"Spadina"`, and `"Spadina Station"` are treated as the same stop.
+- **Stop Library Aliases** (Firestore `stops` collection): Expanded aliases for York University (`Yorku`, `YORKU`), Sheppard-Yonge, Lawrence West, Spadina Station, Queen's Park, St George, St Andrew, St Patrick, and Union Station to cover common SMS-parsed variants.
+- **Direction Field** (`js/trips.js`, `index.html`): The trip logging form already had a direction input but it was never read or saved. `start()` now reads `directionInput`, normalizes the value through `_normalizeDirection`, and writes it to the trip document.
+- **Stop Autocomplete** (`js/trips.js`): Context-aware stop suggestion dropdown on the boarding and exit stop inputs. Suggestions are drawn from trip history and the verified stops library, ranked by relevance to the currently entered route, direction, and (for exits) the active boarding stop. History stops are deduplicated using the intersection normalizer so `"Spadina & Nassau"` and `"Spadina / Nassau"` appear as one suggestion. Library stops are marked with a ★ badge; route-boosted stops show a route or "frequent exit" hint chip. Arrow keys, Enter, and Escape are supported.
+- **Intersection Stop Normalizer** (`js/trips.js`, `js/admin.js`): `normalizeStopName()` / `normalizeIntersectionStop()` canonicalizes free-form intersection inputs to a consistent `Street A / Street B` format, handling `/`, `&`, and `at` separators with proper title-casing. Stop code prefixes are preserved. The normalizer is intentionally non-destructive — it powers suggestions and clustering but does not silently rewrite saved data.
+- **Admin Inbox Clustering** (`js/admin.js`): Pending stops are now grouped by their normalized intersection form before display. Variant spellings of the same stop collapse into one inbox entry with an "Also seen as:" row, and their trip counts are summed. A `pendingVariantsMap` is maintained so that linking or accepting any clustered entry automatically resolves all variants at once — adding each spelling as an alias and verifying all affected trips in a single action.
+
+### Changed
+- **Prediction Engine v3** (`js/predict.js`): Bumped version to 3. Four improvements shipped together:
+  - **Trip validity filtering** — `_isValidTrip()` excludes malformed SMS-parse trips from the candidate pool before voting.
+  - **Stop canonicalization** — `_stopMatch` resolves names through the stops library so alias variants collapse to one canonical form. Library is injected at load time via `PredictionEngine.stopsLibrary`.
+  - **Distance-based day similarity** — weekday similarity is now graduated by calendar distance (`Mon vs Tue = 0.85`, `Mon vs Fri = 0.40`) instead of a flat `0.5` for all weekday pairs. Weekend days score `0.7` vs each other.
+  - **Direction normalization on votes** — votes now store the normalized direction string rather than the raw trip value, so the returned prediction direction is consistent regardless of how the original trip was logged.
+- **Route family grouping** (`js/predict.js`, `functions/lib/predict.js`): `510`, `510a`, `510b`, and `510 Shuttle` now pool their votes into a single bucket keyed by base route number. The most weight-heavy specific variant is returned as the prediction.
+- **Stops library wired to engine** (`js/main.js`): After loading the stops library, `PredictionEngine.stopsLibrary` is set so the engine can resolve stop names immediately without a separate call.
+- **Trip history filter** (`js/trips.js`): `allCompletedTrips` was filtering on `endStop != null`, which excluded all SMS-imported trips (which use `endStopName` instead). Filter now accepts either field.
+- **Enhanced Stop Library Lookup** (`js/trips.js`): `lookupStopInLibrary()` now tries the normalized intersection form alongside exact matching, so stops entered with different separators or casing still resolve to a verified library entry.
+- **HTML Structure** (`index.html`): Moved `appContent` and `mapPage` out of `authSection` to be siblings at the container level, matching the original pre-redesign structure.
+- **Auth State Management** (`js/auth.js`): `showApp()` now explicitly shows `appContent` and `mapPage` on login; `showAuth()` hides `mapPage` on logout.
+- **Dead Code Removal** (`js/trips.js`): Removed event listener setup for `stopInput`, `routeInput`, `startBtn`, `endBtn`, and `cancelTrip` — all removed from the UI when web trip logging was dropped in favour of SMS-only entry.
+- **Documentation**: Updated `ROADMAP.md` format to match the hybrid layout used in the Navigator project.
+
+### Fixed
+- **Prediction Engine blind spot** (`js/trips.js`): `allCompletedTrips` was always empty for SMS-based users because the filter checked `endStop` (web schema) while SMS trips use `endStopName`. The prediction engine was evaluating against zero history on every trip.
+- **Direction comparison bug** (`js/predict.js`): `evaluate()` compared raw direction strings — `"SOUTH" === "Southbound"` returned false, causing hits to be logged as misses. Both sides now pass through `_normalizeDirection()` before comparison.
+- **Direction abbreviations** (`js/predict.js`): `_normalizeDirection()` now handles `nb/sb/eb/wb` and `"eastward"` in addition to existing cardinal and full-word forms.
+- **Direction input not cleared on modal close** (`js/trips.js`): `closeLogTripModal()` now resets the direction field alongside the other inputs.
+- **Prediction Route Family Bug** (`js/predict.js`, `functions/lib/predict.js`): `_baseRoute()` was stripping word-based route names entirely — `"Line 1"` collapsed to an empty string, causing Line 1 and Line 2 trips to pool their votes together. Fixed by only applying suffix stripping to routes that begin with a digit.
+- **Critical Layout Bug** (`index.html`, `js/auth.js`): `appContent` and `mapPage` were nested inside `authSection`. On login, hiding `authSection` also hid the dashboard and map controls. Resolved by restructuring the DOM and updating `showApp()`/`showAuth()`.
+- **App Content Never Shown** (`js/auth.js`): `showApp()` was setting `appContent.style.display = 'none'` immediately before calling `fadeInSection()`, which only transitions opacity. Content was never made visible.
+- **Malformed HTML** (`js/map-engine.js`): Removed duplicate opening `<div>` in the "No location data" placeholder, which left an unclosed element in the DOM.
+- **Login Button Responsiveness**: Resolved an issue where the "Continue" button could be unresponsive during hot-reloads by updating initialization logic in `js/main.js` to check `document.readyState`.
+- **Form Submission**: Added `e.preventDefault()` to the "Continue" button in `js/auth.js` to prevent unintended form submissions.
 
 ## [1.6.0] - 2026-03-08
 

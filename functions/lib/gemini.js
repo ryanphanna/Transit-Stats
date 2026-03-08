@@ -212,8 +212,8 @@ async function parseWithGemini(text) {
 
     Extraction Rules:
     - Direction: Normalize: "Northbound", "Southbound", "Eastbound", "Westbound".
-    - Stop ID: If a 4-digit number is present, prefer it as "stop_id".
-    - Route: Extract ONLY the route identifier (e.g., "504", "Line 1").
+    - Route: Extract ONLY the route identifier explicitly mentioned (e.g., "504", "Line 1", "510a"). Routes are typically 1-3 digits or "Line X". Never infer or guess a route — if none is clearly stated, return null.
+    - Stop ID: A number explicitly labeled as a stop ("stop 815", "from stop 11986") in the message. If ambiguous, prefer stop_name over stop_id. Never put a route number in stop_id.
     - Stop Name: Extract the full location name.
     - Ignore conversational text: "Just boarded", "I'm on", "taking", etc.
     - Sentiment: Determine if POSITIVE, NEGATIVE, or NEUTRAL.

@@ -419,9 +419,6 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     endStopData ? endStopData.stopName : parsedEndStop.stopName,
   );
 
-  // Fetch history before ending the trip so the current trip isn't included
-  const historyBeforeEnd = await getRecentCompletedTrips(user.userId, 100);
-
   await db.collection('trips').doc(activeTrip.id).update({
     endStopCode: endStopData ? endStopData.stopCode : parsedEndStop.stopCode,
     endStopName: endStopData ? endStopData.stopName : parsedEndStop.stopName,
@@ -438,7 +435,9 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
 
   // Silent evaluation: log predicted vs actual
   try {
-    const history = historyBeforeEnd;
+    // Fetch history inside the try-catch — a missing index or query failure
+    // must not prevent the trip from being ended or the reply from being sent
+    const historyBeforeEnd = await getRecentCompletedTrips(user.userId, 100);
     const actualTrip = {
       ...activeTrip,
       endStopName: endStopData ? endStopData.stopName : parsedEndStop.stopName,

@@ -391,19 +391,20 @@ async function checkIdempotency(messageSid) {
   if (!messageSid) return false;
 
   const msgRef = db.collection('processedMessages').doc(messageSid);
-  const msgDoc = await msgRef.get();
 
-  if (msgDoc.exists) {
-    return true;
+  try {
+    // create() is atomic — fails with ALREADY_EXISTS if another request beat us here
+    await msgRef.create({
+      processedAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 3600000)),
+    });
+    return false; // first time seeing this message
+  } catch (e) {
+    if (e.code === 6) { // ALREADY_EXISTS
+      return true; // duplicate — skip processing
+    }
+    throw e;
   }
-
-  // Mark as processed (expire in 1 hour)
-  await msgRef.set({
-    processedAt: admin.firestore.FieldValue.serverTimestamp(),
-    expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 3600000)),
-  });
-
-  return false;
 }
 
 /**
