@@ -1,12 +1,14 @@
 # Changelog
 
 **Current Project Versions:**
-- **Web App**: `v1.6.0`
-- **Cloud Functions**: `v1.2.0`
+- **Web App**: `v1.7.0`
+- **Cloud Functions**: `v1.3.0`
 
 ---
 
 ## [Unreleased]
+
+## [1.7.0] / [1.3.0] - 2026-03-08
 
 ### Fixed
 - **END Trip Crash (Critical)** (`functions/lib/handlers.js`): `handleEndTrip` was crashing before updating Firestore because `getRecentCompletedTrips` (used for silent prediction evaluation) requires a composite index that did not exist. Moved the history fetch inside the prediction `try-catch` block so a missing index or query failure can never prevent a trip from being ended or the reply from being sent.
