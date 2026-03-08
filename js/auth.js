@@ -237,9 +237,37 @@ export const Auth = {
             case 'auth/user-not-found': return 'Incorrect email or password.';
             default: return 'An error occurred. Please try again.';
         }
+    },
+
+    goBackToEmail: function () {
+        document.getElementById('emailStep').style.display = 'block';
+        document.getElementById('authMethodStep').style.display = 'none';
+        document.getElementById('passwordGroup').style.display = 'none';
+        document.getElementById('authButtons').style.display = 'flex';
+        document.getElementById('signInBtn').style.display = 'none';
+        this.hideError();
+    },
+
+    sendPasswordReset: async function () {
+        const emailInput = document.getElementById('emailInput');
+        if (!emailInput) return;
+        const email = emailInput.value.trim();
+        if (!email) {
+            UI.showNotification('Email is required', 'error');
+            return;
+        }
+
+        try {
+            await auth.sendPasswordResetEmail(email);
+            this.showSuccess('Password reset email sent!');
+        } catch (error) {
+            this.showError('Error: ' + error.message);
+        }
     }
 };
 
 // Expose to window for legacy compatibility
 window.Auth = Auth;
 window.signOut = Auth.signOut.bind(Auth);
+window.goBackToEmail = Auth.goBackToEmail.bind(Auth);
+window.sendPasswordReset = Auth.sendPasswordReset.bind(Auth);

@@ -1,10 +1,16 @@
 # Changelog
 
 **Current Project Versions:**
-- **Web App**: `v1.5.0`
+- **Web App**: `v1.5.1`
 - **Cloud Functions**: `v1.2.0`
 
 ---
+
+## [1.5.1] - 2026-03-07
+
+### Fixed
+- **Login UX (Critical)**: Resolved a critical issue where the login button was completely non-responsive on both local and hosted environments. Fixed by adding the missing `signInBtn` DOM element to `index.html` and properly exposing required authentication helper functions (`goBackToEmail`, `sendPasswordReset`) in `js/auth.js`.
+- **Production Sync**: Synchronized the build and hosting pipeline to ensure production assets correctly reflect the latest security and UI fixes.
 
 ## [1.5.0] / [1.2.0] - 2026-03-07
 
