@@ -20,7 +20,7 @@ function validateConfiguration() {
 
   // Check Gemini configuration
   const gemini = geminiApiKey.value();
-  if (!geminiApiKey) {
+  if (!gemini) {
     warnings.push('Missing gemini.api_key (AI parsing disabled, will use heuristics)');
   }
 

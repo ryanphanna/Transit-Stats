@@ -8,9 +8,9 @@
  * @returns {string} masked phone number
  */
 function maskPhone(phone) {
-    if (!phone || typeof phone !== 'string') return 'Unknown';
-    if (phone.length < 5) return '***';
-    return phone.substring(0, 5) + '***' + phone.substring(phone.length - 4);
+  if (!phone || typeof phone !== 'string') return 'Unknown';
+  if (phone.length < 5) return '***';
+  return phone.substring(0, 5) + '***' + phone.substring(phone.length - 4);
 }
 
 /**
@@ -19,18 +19,18 @@ function maskPhone(phone) {
  * @param {object} data - Optional data object to log (will be redacted)
  */
 function info(message, data = {}) {
-    const logData = { ...data };
+  const logData = { ...data };
 
-    // Automatically mask known PII fields
-    if (logData.phoneNumber) logData.phoneNumber = maskPhone(logData.phoneNumber);
-    if (logData.phone) logData.phone = maskPhone(logData.phone);
-    if (logData.From) logData.From = maskPhone(logData.From);
+  // Automatically mask known PII fields
+  if (logData.phoneNumber) logData.phoneNumber = maskPhone(logData.phoneNumber);
+  if (logData.phone) logData.phone = maskPhone(logData.phone);
+  if (logData.From) logData.From = maskPhone(logData.From);
 
-    // Redact message body/content if it might contain private info
-    if (logData.body) logData.body = `[REDACTED (Length: ${logData.body.length})]`;
-    if (logData.Body) logData.Body = `[REDACTED (Length: ${logData.Body.length})]`;
+  // Redact message body/content if it might contain private info
+  if (logData.body) logData.body = `[REDACTED (Length: ${logData.body.length})]`;
+  if (logData.Body) logData.Body = `[REDACTED (Length: ${logData.Body.length})]`;
 
-    console.log(`[INFO] ${message}`, Object.keys(logData).length ? logData : '');
+  console.log(`[INFO] ${message}`, Object.keys(logData).length ? logData : '');
 }
 
 /**
@@ -39,7 +39,7 @@ function info(message, data = {}) {
  * @param {Error|object} error - Error object or context
  */
 function error(message, error = {}) {
-    console.error(`[ERROR] ${message}`, error);
+  console.error(`[ERROR] ${message}`, error);
 }
 
 /**
@@ -47,12 +47,12 @@ function error(message, error = {}) {
  * @param {string} message - Warning message
  */
 function warn(message) {
-    console.warn(`[WARN] ${message}`);
+  console.warn(`[WARN] ${message}`);
 }
 
 module.exports = {
-    info,
-    error,
-    warn,
-    maskPhone,
+  info,
+  error,
+  warn,
+  maskPhone,
 };

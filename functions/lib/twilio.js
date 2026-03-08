@@ -16,7 +16,8 @@ function getTwilioClient() {
     const authToken = twilioAuthToken.value();
 
     if (!accountSid || !authToken) {
-      console.error('Twilio credentials not configured correctly. SID or Token missing.', { hasSid: !!accountSid, hasToken: !!authToken });
+      console.error('Twilio credentials missing.',
+        { hasSid: !!accountSid, hasToken: !!authToken });
       return null;
     }
 

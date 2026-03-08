@@ -1,8 +1,10 @@
-# Roadmap
+# Product Roadmap
 
-All notable planned features and improvements for Transit Stats will be documented in this file. Completed features are tracked in the [CHANGELOG](./CHANGELOG.md).
+This document outlines the user-facing feature roadmap for the Transit Stats application. For the underlying technology, data processing, and prediction logic goals, see the [Engine Roadmap](./ENGINE_ROADMAP.md). Completed features are tracked in the [CHANGELOG](./CHANGELOG.md).
+
+## Planned Features
 
 - **Transit Wrapped**: Visual year-in-review based on internal app data with interactive highlights and shareable summary cards.
-- **Legacy Data Import**: PRESTO export parser to allow users to backfill their history.
-- **Predictive Alerts**: Gemini-powered notifications for frequent route delays.
-- **Advanced Mapping**: Route lines (not just points) connecting boarding and alighting points.
+- **Suggested Routes**: Dashboard cards that proactively suggest trips based on the prediction engine (once evaluation hits 90%).
+- **Route Heatmaps**: Visual distribution maps of the user's most frequent transit corridors.
+- **Custom Goal Tracker**: Users can set goals for transit usage (e.g. "Take 20 trips this month") with progress visualization.

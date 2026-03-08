@@ -16,8 +16,6 @@ const {
   getPendingState,
   getUserByPhone,
   getUserProfile,
-  getActiveTrip,
-  clearPendingState,
   shouldRespondToUnknown,
 } = require('./lib/db');
 const {
@@ -32,11 +30,8 @@ const {
 const {
   parseMultiLineTripFormat,
   parseEndTripFormat,
-  parseAgencyOverride,
-  isHeuristicLogValid,
 } = require('./lib/parsing');
 const {
-  toTitleCase,
   isValidRoute,
   normalizeDirection,
 } = require('./lib/utils');
@@ -173,43 +168,43 @@ async function handleSmsRequest(req, res) {
     const geminiResult = await parseWithGemini(body);
     if (geminiResult && geminiResult.intent !== 'OTHER') {
       switch (geminiResult.intent) {
-        case 'START_TRIP': {
-          const startStop = constructStopInput(geminiResult);
-          if (geminiResult.route && startStop && isValidRoute(geminiResult.route)) {
-            await handlers.handleTripLog(
-              phoneNumber,
-              user,
-              startStop,
-              geminiResult.route,
-              normalizeDirection(geminiResult.direction),
-              defaultAgency,
-              { parsed_by: 'ai' },
-            );
-            res.type('text/xml').send(twimlResponse(''));
-            return;
-          }
-          break;
-        }
-        case 'END_TRIP': {
-          const endStop = constructStopInput(geminiResult);
-          if (endStop) {
-            await handlers.handleEndTrip(phoneNumber, user, endStop, null, geminiResult.notes);
-          }
+      case 'START_TRIP': {
+        const startStop = constructStopInput(geminiResult);
+        if (geminiResult.route && startStop && isValidRoute(geminiResult.route)) {
+          await handlers.handleTripLog(
+            phoneNumber,
+            user,
+            startStop,
+            geminiResult.route,
+            normalizeDirection(geminiResult.direction),
+            defaultAgency,
+            { parsed_by: 'ai' },
+          );
           res.type('text/xml').send(twimlResponse(''));
           return;
         }
-        case 'DISCARD_TRIP':
-          await handlers.handleDiscard(phoneNumber, user);
-          res.type('text/xml').send(twimlResponse(''));
-          return;
-        case 'INCOMPLETE_TRIP':
-          await handlers.handleIncomplete(phoneNumber, user);
-          res.type('text/xml').send(twimlResponse(''));
-          return;
-        case 'QUERY':
-          await handlers.handleQuery(phoneNumber, user, geminiResult.question || body);
-          res.type('text/xml').send(twimlResponse(''));
-          return;
+        break;
+      }
+      case 'END_TRIP': {
+        const endStop = constructStopInput(geminiResult);
+        if (endStop) {
+          await handlers.handleEndTrip(phoneNumber, user, endStop, null, geminiResult.notes);
+        }
+        res.type('text/xml').send(twimlResponse(''));
+        return;
+      }
+      case 'DISCARD_TRIP':
+        await handlers.handleDiscard(phoneNumber, user);
+        res.type('text/xml').send(twimlResponse(''));
+        return;
+      case 'INCOMPLETE_TRIP':
+        await handlers.handleIncomplete(phoneNumber, user);
+        res.type('text/xml').send(twimlResponse(''));
+        return;
+      case 'QUERY':
+        await handlers.handleQuery(phoneNumber, user, geminiResult.question || body);
+        res.type('text/xml').send(twimlResponse(''));
+        return;
       }
     }
 
