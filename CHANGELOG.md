@@ -6,6 +6,23 @@
 
 ---
 
+## [1.6.0] - 2026-03-08
+
+### Added
+- **Password Reset Flow**: Implemented a fully functional password reset system in `js/auth.js`, allowing users to securely recover account access from the login screen.
+- **Flat ESLint Configuration**: Migrated the Cloud Functions module from the deprecated `.eslintrc.js` to the modern, faster `eslint.config.js` format (Flat Config).
+
+### Changed
+- **Authentication UX Hardening**:
+  - Overhauled the login and "Check your email" screens with improved visual feedback and micro-interactions.
+  - Standardized button states and validation logic to prevent premature form submission.
+- **Dependency Refresh**: Synchronized frontend and backend dependencies, including critical updates for `firebase-functions`, `express`, and `twilio`.
+
+### Fixed
+- **Login Resilience**: Resolved several edge cases where the authentication flow could hang during network transitions.
+- **Cloud Function Security**: Modernized secret retrieval patterns to ensure high-performance access to Twilio and Gemini credentials in 2nd Gen functions.
+
+
 ## [1.5.1] - 2026-03-07
 
 ### Fixed
