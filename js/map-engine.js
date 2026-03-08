@@ -138,7 +138,6 @@ export const MapEngine = {
         if (locations.length === 0 && !center) {
             container.innerHTML = `
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary);">
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary);">
                     <div style="font-size: 1.1em; margin-bottom: 8px; font-weight: 600;">No location data yet</div>
                     <div style="font-size: 0.9em; opacity: 0.7;">Take trips with GPS enabled to see them on the map</div>
                 </div>

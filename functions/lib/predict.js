@@ -9,6 +9,10 @@
  *        Each past trip votes for its (route, direction) pair with weight =
  *        recency × time_similarity × day_similarity. Sequence applies a flat
  *        boost when the last trip ended at the current stop. No location dependency.
+ *   v3 - Route family grouping: 510, 510a, 510b, 510 Shuttle pool their votes
+ *        into one bucket keyed by base route number. The most weight-heavy specific
+ *        variant is returned, so predictions improve when service changes between
+ *        variants (e.g. 510 → 510b shuttle) without resetting the signal.
  */
 
 const PredictionEngine = {
@@ -51,7 +55,9 @@ const PredictionEngine = {
         : new Date(trip.startTime);
 
       const normDir = this._normalizeDirection(trip.direction);
-      const key = `${trip.route.toString().toLowerCase().trim()}|${normDir || ''}`;
+      // Group by route family so 510, 510a, 510b pool votes rather than splitting signal.
+      const family = this._baseRoute(trip.route);
+      const key = `${family}|${normDir || ''}`;
       const weight =
                 this._recencyWeight(tripTime, now) *
                 this._timeSimilarity(now, tripTime) *
@@ -60,14 +66,17 @@ const PredictionEngine = {
 
       if (!votes[key]) {
         votes[key] = {
-          route: trip.route,
+          family,
           direction: trip.direction || null,
           stop: trip.startStopName,
           weight: 0,
+          specificRoutes: {},
         };
       }
       votes[key].weight += weight;
       totalWeight += weight;
+      const routeKey = trip.route.toString().trim();
+      votes[key].specificRoutes[routeKey] = (votes[key].specificRoutes[routeKey] || 0) + weight;
     }
 
     if (totalWeight === 0) return null;
@@ -75,8 +84,12 @@ const PredictionEngine = {
     const sorted = Object.values(votes).sort((a, b) => b.weight - a.weight);
     const top = sorted[0];
 
+    const bestSpecific = Object.entries(top.specificRoutes)
+      .sort((a, b) => b[1] - a[1])[0][0];
+
     return {
-      route: top.route,
+      route: bestSpecific,
+      routeFamily: top.family,
       direction: top.direction,
       stop: top.stop,
       confidence: Math.round((top.weight / totalWeight) * 100),
@@ -131,6 +144,11 @@ const PredictionEngine = {
       version: this.VERSION,
       timestamp: new Date(),
     };
+  },
+
+  _baseRoute: function (route) {
+    const s = route.toString().trim();
+    return /^\d/.test(s) ? s.replace(/[a-zA-Z]+(\s.*)?$/, '').trim() : s;
   },
 
   _normalizeDirection: function (dir) {

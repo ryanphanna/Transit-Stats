@@ -22,30 +22,8 @@ export const Trips = {
     },
 
     setupEventListeners: function () {
-        const stopInput = document.getElementById('stopInput');
-        const routeInput = document.getElementById('routeInput');
-        const startBtn = document.getElementById('startBtn');
-        const endBtn = document.getElementById('endBtn');
-        const endModal = document.getElementById('endModal');
         const cancelBtn = document.getElementById('cancelBtn');
         const saveBtn = document.getElementById('saveBtn');
-
-        if (stopInput && routeInput && startBtn) {
-            const updateStartButton = () => {
-                startBtn.disabled = !stopInput.value.trim() || !routeInput.value.trim();
-            };
-            stopInput.addEventListener('input', updateStartButton);
-            routeInput.addEventListener('input', updateStartButton);
-            startBtn.addEventListener('click', () => this.start());
-        }
-
-        if (endBtn && endModal) {
-            endBtn.addEventListener('click', () => {
-                endModal.style.display = 'block';
-                const exitInput = document.getElementById('exitInput');
-                if (exitInput) exitInput.focus();
-            });
-        }
 
         if (cancelBtn) {
             cancelBtn.addEventListener('click', () => {
@@ -60,11 +38,6 @@ export const Trips = {
 
         if (saveBtn) {
             saveBtn.addEventListener('click', () => this.end());
-        }
-
-        const cancelTripBtn = document.getElementById('cancelTrip');
-        if (cancelTripBtn) {
-            cancelTripBtn.addEventListener('click', () => this.cancelActive());
         }
     },
 
@@ -86,7 +59,7 @@ export const Trips = {
                 this.allCompletedTrips = snapshot.docs
                     .filter(doc => {
                         const data = doc.data();
-                        return data.endStop != null || data.discarded === true;
+                        return (data.endStop != null || data.endStopName != null) || data.discarded === true;
                     })
                     .map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -179,10 +152,12 @@ export const Trips = {
     start: function () {
         const stopInput = document.getElementById('stopInput');
         const routeInput = document.getElementById('routeInput');
+        const directionInput = document.getElementById('directionInput');
         if (!stopInput || !routeInput) return;
 
         const stop = stopInput.value.trim();
         const route = routeInput.value.trim();
+        const direction = directionInput ? directionInput.value.trim() || null : null;
 
         if (!stop || !route) return;
 
@@ -206,6 +181,7 @@ export const Trips = {
                 startTime: Timestamp.now(),
                 boardLocation: matchedStartStop && matchedStartStop.lat ? { lat: matchedStartStop.lat, lng: matchedStartStop.lng } : location,
                 agency: matchedStartStop ? matchedStartStop.agency : (window.currentUserProfile?.defaultAgency || 'TTC'),
+                direction: direction ? PredictionEngine._normalizeDirection(direction) : null,
                 source: 'web',
                 verified: !!matchedStartStop
             };
@@ -418,6 +394,8 @@ export const Trips = {
     closeLogTripModal: function () {
         const modal = document.getElementById('logTripModal');
         if (modal) modal.style.display = 'none';
+        const directionInput = document.getElementById('directionInput');
+        if (directionInput) directionInput.value = '';
     },
 
     openEditTripModal: function (tripId) {
@@ -471,6 +449,32 @@ export const Trips = {
         } else callback(null);
     },
 
+    /**
+     * Normalize intersection-format stops to a canonical form.
+     * "Spadina & Nassau", "spadina/nassau", "King / Spadina" → "King / Spadina"
+     * Non-intersection names are returned title-cased but otherwise unchanged.
+     */
+    normalizeStopName: function (str) {
+        if (!str) return str;
+        const trimmed = str.trim();
+        const titleCase = s => s.replace(/\b\w+/g, w =>
+            ['at', 'and', 'the', 'of', 'for', 'on'].includes(w.toLowerCase())
+                ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+        );
+        // Check for a leading stop code prefix like "13161 Spadina / King" — strip the code
+        const codePrefix = trimmed.match(/^(\d{4,6})\s+(.+)$/);
+        const core = codePrefix ? codePrefix[2] : trimmed;
+        // Detect intersection: contains / & or standalone "at"
+        const intersectionMatch = core.match(/^(.+?)\s*(?:\/|&|\bat\b)\s*(.+)$/i);
+        if (intersectionMatch) {
+            const a = titleCase(intersectionMatch[1].trim());
+            const b = titleCase(intersectionMatch[2].trim());
+            const intersectionPart = `${a} / ${b}`;
+            return codePrefix ? `${codePrefix[1]} ${intersectionPart}` : intersectionPart;
+        }
+        return codePrefix ? trimmed : titleCase(trimmed);
+    },
+
     parseStopInput: function (input) {
         if (!input) return { stopCode: null, stopName: null };
         const trimmed = input.trim();
@@ -491,7 +495,14 @@ export const Trips = {
         }
         if (name) {
             const lower = name.toLowerCase();
-            return lib.find(s => s.name?.toLowerCase() === lower || s.aliases?.some(a => a.toLowerCase() === lower));
+            const normLower = this.normalizeStopName(name).toLowerCase();
+            return lib.find(s => {
+                const candidates = [s.name, ...(s.aliases || [])];
+                return candidates.some(c => {
+                    const cLower = c.toLowerCase();
+                    return cLower === lower || this.normalizeStopName(c).toLowerCase() === normLower;
+                });
+            });
         }
         return null;
     },
@@ -499,6 +510,189 @@ export const Trips = {
     resolveVerifiedStopName: function (val) {
         const stop = this.lookupStopInLibrary(val, val);
         return stop ? stop.name : null;
+    },
+
+    /**
+     * Build deduplicated stop suggestions from history + library.
+     * @param {string} query - What the user has typed so far
+     * @param {object} ctx - { route, direction, startStop, field: 'start'|'end' }
+     *   route/direction boost stops seen on that route/direction.
+     *   For field='end', startStop additionally boosts stops seen as the exit
+     *   after boarding at startStop on the same route.
+     * Returns [{ name, source, score, hint? }]
+     */
+    buildStopSuggestions: function (query, ctx = {}) {
+        if (!query || query.length < 2) return [];
+        const q = query.toLowerCase();
+
+        const baseRoute = r => r ? r.toString().replace(/[a-zA-Z]+(\s.*)?$/, '').trim() : '';
+        const ctxFamily = baseRoute(ctx.route);
+        const ctxDirNorm = ctx.direction ? ctx.direction.toLowerCase().replace(/bound$/i, '').trim() : null;
+
+        // Score each history stop
+        const scores = {};  // normalized name → { score, hint }
+
+        this.allCompletedTrips.forEach(t => {
+            const tripFamily = baseRoute(t.route);
+            const routeMatch = ctxFamily && tripFamily === ctxFamily;
+            const dirMatch = ctxDirNorm && t.direction &&
+                t.direction.toLowerCase().replace(/bound$/i, '').trim() === ctxDirNorm;
+
+            // For end field: prefer end stops from trips that started at the same stop on the same route
+            const isSequenceMatch = ctx.field === 'end' && ctx.startStop && routeMatch &&
+                (t.startStopName || t.startStop || '').toLowerCase() === ctx.startStop.toLowerCase();
+
+            const stops = ctx.field === 'end'
+                ? [{ name: t.endStopName || t.endStop, role: 'end' }]
+                : [
+                    { name: t.startStopName || t.startStop, role: 'start' },
+                    { name: t.endStopName || t.endStop, role: 'end' }
+                  ];
+
+            stops.forEach(({ name, role }) => {
+                if (!name || typeof name !== 'string') return;
+                const normalized = this.normalizeStopName(name.trim());
+                if (!normalized || !normalized.toLowerCase().includes(q)) return;
+
+                let weight = 1;
+                if (routeMatch) weight *= 4;
+                if (dirMatch) weight *= 1.5;
+                if (isSequenceMatch && role === 'end') weight *= 6;
+
+                if (!scores[normalized]) scores[normalized] = { score: 0, hint: null };
+                scores[normalized].score += weight;
+
+                // Hint label for what boosted this result
+                if (isSequenceMatch && role === 'end' && !scores[normalized].hint) {
+                    scores[normalized].hint = 'frequent exit';
+                } else if (routeMatch && !scores[normalized].hint) {
+                    scores[normalized].hint = ctx.route;
+                }
+            });
+        });
+
+        const historySuggestions = Object.entries(scores)
+            .sort((a, b) => b[1].score - a[1].score)
+            .slice(0, 5)
+            .map(([name, { score, hint }]) => ({ name, source: 'history', score, hint }));
+
+        // Library suggestions (unaffected by context — they're always relevant if they match)
+        const libSuggestions = (window.stopsLibrary || [])
+            .filter(s => {
+                const candidates = [s.name, ...(s.aliases || [])];
+                return candidates.some(c => c.toLowerCase().includes(q));
+            })
+            .slice(0, 3)
+            .map(s => ({ name: s.name, source: 'library', score: 2, hint: null }));
+
+        // Merge, deduplicate by normalized name, sort by score
+        const seen = new Set();
+        return [...historySuggestions, ...libSuggestions]
+            .filter(s => {
+                const key = this.normalizeStopName(s.name).toLowerCase();
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            })
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 6);
+    },
+
+    /**
+     * Attach autocomplete dropdown to a stop text input.
+     * @param {HTMLInputElement} inputEl
+     * @param {function} getContext - called on each keystroke, returns { route, direction, startStop, field }
+     */
+    setupStopAutocomplete: function (inputEl, getContext = () => ({})) {
+        if (!inputEl) return;
+        let dropdown = null;
+
+        const hideDropdown = () => {
+            if (dropdown) { dropdown.remove(); dropdown = null; }
+        };
+
+        const showDropdown = (suggestions) => {
+            hideDropdown();
+            if (suggestions.length === 0) return;
+
+            dropdown = document.createElement('div');
+            dropdown.style.cssText = [
+                'position:absolute', 'top:100%', 'left:0', 'right:0', 'z-index:9999',
+                'background:var(--bg-secondary)', 'border:1px solid var(--border-light)',
+                'border-radius:8px', 'box-shadow:0 4px 16px rgba(0,0,0,0.18)',
+                'overflow:hidden', 'margin-top:4px'
+            ].join(';');
+
+            suggestions.forEach(s => {
+                const item = document.createElement('div');
+                item.style.cssText = 'padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border-light);font-size:0.95em;display:flex;justify-content:space-between;align-items:center;';
+                const nameEl = document.createElement('span');
+                nameEl.textContent = s.name;
+                item.appendChild(nameEl);
+                if (s.hint) {
+                    const badge = document.createElement('span');
+                    badge.textContent = s.hint;
+                    badge.style.cssText = 'font-size:0.72em;padding:1px 6px;border-radius:4px;background:var(--bg-tertiary);color:var(--text-secondary);';
+                    item.appendChild(badge);
+                } else if (s.source === 'library') {
+                    const badge = document.createElement('span');
+                    badge.textContent = '★';
+                    badge.style.cssText = 'font-size:0.75em;color:var(--accent-electric);';
+                    item.appendChild(badge);
+                }
+                item.addEventListener('mouseover', () => item.style.background = 'var(--bg-tertiary)');
+                item.addEventListener('mouseout', () => item.style.background = '');
+                item.addEventListener('mousedown', e => {
+                    e.preventDefault();
+                    inputEl.value = s.name;
+                    hideDropdown();
+                    inputEl.dispatchEvent(new Event('input'));
+                });
+                dropdown.appendChild(item);
+            });
+
+            const wrapper = inputEl.parentElement;
+            if (wrapper) {
+                wrapper.style.position = 'relative';
+                wrapper.appendChild(dropdown);
+            }
+        };
+
+        inputEl.addEventListener('input', () => {
+            const suggestions = this.buildStopSuggestions(inputEl.value.trim(), getContext());
+            showDropdown(suggestions);
+        });
+
+        inputEl.addEventListener('blur', () => {
+            setTimeout(hideDropdown, 150);
+        });
+
+        inputEl.addEventListener('keydown', e => {
+            if (!dropdown) return;
+            const items = dropdown.querySelectorAll('div');
+            const active = dropdown.querySelector('[data-active]');
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                const next = active ? active.nextElementSibling : items[0];
+                if (active) delete active.dataset.active;
+                if (next) { next.dataset.active = '1'; next.style.background = 'var(--bg-tertiary)'; }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                const prev = active ? active.previousElementSibling : items[items.length - 1];
+                if (active) delete active.dataset.active;
+                if (prev) { prev.dataset.active = '1'; prev.style.background = 'var(--bg-tertiary)'; }
+            } else if (e.key === 'Enter' && active) {
+                e.preventDefault();
+                const nameEl = active.querySelector('span');
+                if (nameEl) {
+                    inputEl.value = nameEl.textContent;
+                    hideDropdown();
+                    inputEl.dispatchEvent(new Event('input'));
+                }
+            } else if (e.key === 'Escape') {
+                hideDropdown();
+            }
+        });
     },
 
     /**

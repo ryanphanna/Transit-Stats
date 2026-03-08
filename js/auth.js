@@ -61,7 +61,8 @@ export const Auth = {
         const passwordInput = document.getElementById('passwordInput');
 
         if (continueBtn) {
-            continueBtn.addEventListener('click', () => {
+            continueBtn.addEventListener('click', (e) => {
+                e.preventDefault();
                 const email = emailInput.value.trim();
                 if (!email) {
                     UI.showNotification('Please enter your email', 'error');
@@ -185,6 +186,8 @@ export const Auth = {
         document.body.classList.remove('user-logged-in');
         document.getElementById('authSection').style.display = 'block';
         document.getElementById('appContent').style.display = 'none';
+        const mapPageEl = document.getElementById('mapPage');
+        if (mapPageEl) mapPageEl.style.display = 'none';
         document.getElementById('userInfo').style.display = 'none';
 
         // Initialize public map for login screen
@@ -196,7 +199,9 @@ export const Auth = {
     showApp: function () {
         document.body.classList.add('user-logged-in');
         document.getElementById('authSection').style.display = 'none';
-        document.getElementById('appContent').style.display = 'none'; // Will trigger fade in
+        document.getElementById('appContent').style.display = 'block';
+        const mapPageEl = document.getElementById('mapPage');
+        if (mapPageEl) mapPageEl.style.display = 'block';
         document.getElementById('userInfo').style.display = 'flex';
 
         if (window.Profile) window.Profile.load();

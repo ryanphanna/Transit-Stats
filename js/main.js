@@ -13,6 +13,7 @@ import { Trips } from './trips.js';
 import { Templates } from './templates.js';
 import { MapEngine } from './map-engine.js';
 import { Visuals } from './visuals.js';
+import { PredictionEngine } from './predict.js';
 
 
 console.log('TransitStats Loading...');
@@ -39,11 +40,17 @@ window.activeTrip = null;
 window.stopsLibrary = [];
 
 // Initialize Modules
-document.addEventListener('DOMContentLoaded', () => {
+function initApp() {
     UI.loadSavedTheme();
     Auth.init();
     setupGlobalStateHandlers();
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+}
 
 /**
  * Global initialization called after successful authentication
@@ -64,6 +71,7 @@ async function loadStopsLibrary() {
     try {
         const snapshot = await db.collection('stops').get();
         window.stopsLibrary = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        PredictionEngine.stopsLibrary = window.stopsLibrary;
         console.log(`Loaded ${window.stopsLibrary.length} stops for resolution`);
     } catch (error) {
         console.error('Error loading stops library:', error);

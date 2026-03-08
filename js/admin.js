@@ -22,6 +22,8 @@ let pendingStops = [];
 let filteredPendingStops = [];
 let selectedInboxItems = new Set();
 let currentTargetString = '';
+let currentTargetVariants = []; // other spellings collapsed under currentTargetString
+let pendingVariantsMap = {};    // normalized name → [variant spellings]
 let currentUser = null;
 let currentAliasTargetId = null;
 
@@ -162,16 +164,22 @@ async function loadProvisionalStops() {
             .limit(200)
             .get();
 
-        // Group by stop name → { route+direction → count }
-        const stopMap = {};
+        // Group by normalized stop name → { route+direction → count }
+        // Intersection variants ("Spadina & Nassau", "Spadina/nassau") collapse to one entry.
+        const stopMap = {};  // key: normalized name → { routes, rawVariants }
 
         const addStop = (rawName, trip) => {
             if (!rawName || typeof rawName !== 'string') return;
             const trimmed = rawName.trim();
             if (!trimmed || findStopByAlias(trimmed)) return;
-            if (!stopMap[trimmed]) stopMap[trimmed] = {};
+            // Also skip if the normalized form matches a library stop
+            const normalized = normalizeIntersectionStop(trimmed);
+            if (findStopByAlias(normalized)) return;
+
+            if (!stopMap[normalized]) stopMap[normalized] = { routes: {}, rawVariants: new Set() };
+            stopMap[normalized].rawVariants.add(trimmed);
             const routeKey = [trip.route, trip.direction].filter(Boolean).join(' ');
-            stopMap[trimmed][routeKey] = (stopMap[trimmed][routeKey] || 0) + 1;
+            stopMap[normalized].routes[routeKey] = (stopMap[normalized].routes[routeKey] || 0) + 1;
         };
 
         snapshot.docs.forEach(doc => {
@@ -180,13 +188,16 @@ async function loadProvisionalStops() {
             addStop(trip.endStopName || trip.endStop, trip);
         });
 
-        pendingStops = Object.entries(stopMap).map(([name, routes]) => {
+        pendingVariantsMap = {};
+        pendingStops = Object.entries(stopMap).map(([name, { routes, rawVariants }]) => {
             const totalCount = Object.values(routes).reduce((a, b) => a + b, 0);
             const routeList = Object.entries(routes)
                 .sort((a, b) => b[1] - a[1])
                 .map(([route, count]) => ({ route, count }));
             const suggestion = suggestCanonicalStop(name);
-            return { name, routes: routeList, totalCount, suggestion };
+            const variants = [...rawVariants].filter(v => v !== name);
+            pendingVariantsMap[name] = variants;
+            return { name, routes: routeList, totalCount, suggestion, variants };
         }).sort((a, b) => b.totalCount - a.totalCount);
 
         filteredPendingStops = [...pendingStops];
@@ -199,6 +210,30 @@ async function loadProvisionalStops() {
         const container = document.getElementById('pendingList');
         container.innerHTML = `<div class="empty-state" style="color: var(--danger-text);">Failed to load inbox: ${escapeHtml(error.message)}</div>`;
     }
+}
+
+/**
+ * Normalize intersection-format stops to a canonical form.
+ * "Spadina & Nassau", "spadina/nassau" → "Spadina / Nassau"
+ * Mirrors the same function in trips.js.
+ */
+function normalizeIntersectionStop(str) {
+    if (!str) return str;
+    const trimmed = str.trim();
+    const titleCase = s => s.replace(/\b\w+/g, w =>
+        ['at', 'and', 'the', 'of', 'for', 'on'].includes(w.toLowerCase())
+            ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+    );
+    const codePrefix = trimmed.match(/^(\d{4,6})\s+(.+)$/);
+    const core = codePrefix ? codePrefix[2] : trimmed;
+    const intersectionMatch = core.match(/^(.+?)\s*(?:\/|&|\bat\b)\s*(.+)$/i);
+    if (intersectionMatch) {
+        const a = titleCase(intersectionMatch[1].trim());
+        const b = titleCase(intersectionMatch[2].trim());
+        const intersectionPart = `${a} / ${b}`;
+        return codePrefix ? `${codePrefix[1]} ${intersectionPart}` : intersectionPart;
+    }
+    return codePrefix ? trimmed : titleCase(trimmed);
 }
 
 function findStopByAlias(str) {
@@ -352,6 +387,13 @@ function renderPendingList(itemsToRender = null) {
                     onclick="acceptSuggestion('${escapeForJs(item.name)}', '${item.suggestion.stop.id}')">Accept</button>
             </div>` : '';
 
+        // Show collapsed variants (other spellings of the same intersection)
+        const variantsHtml = item.variants && item.variants.length > 0 ? `
+            <div style="margin-top:4px; display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+                <span style="font-size:0.75em; color:var(--text-muted);">Also seen as:</span>
+                ${item.variants.map(v => `<span style="font-size:0.75em; padding:1px 6px; border-radius:4px; background:var(--bg-tertiary); color:var(--text-secondary);">${escapeHtml(v)}</span>`).join('')}
+            </div>` : '';
+
         return `
         <div class="inbox-item ${selectedInboxItems.has(item.name) ? 'selected' : ''}" data-name="${item.name.replace(/"/g, '&quot;')}">
             <div class="inbox-item-content">
@@ -364,6 +406,7 @@ function renderPendingList(itemsToRender = null) {
                         <strong>${safeName}</strong>
                     </div>
                     <div style="margin-top:3px;">${routeBreakdown}</div>
+                    ${variantsHtml}
                     ${suggestionHtml}
                 </div>
             </div>
@@ -473,6 +516,7 @@ function selectStop(stopId, stopName) {
 // Modal Logic
 function openLinkModal(targetString) {
     currentTargetString = targetString;
+    currentTargetVariants = pendingVariantsMap[targetString] || [];
     selectedStopId = null;
     document.getElementById('modalTargetString').textContent = targetString;
     document.getElementById('linkModal').style.display = 'block';
@@ -496,6 +540,7 @@ function openLinkModal(targetString) {
 function closeModal() {
     document.getElementById('linkModal').style.display = 'none';
     currentTargetString = '';
+    currentTargetVariants = [];
 }
 
 function backToChoice() {
@@ -591,6 +636,7 @@ async function confirmCreate() {
     if (!name && !code) { alert('Name or Code required'); return; }
 
     try {
+        const allStrings = [currentTargetString, ...currentTargetVariants];
         const docRef = await db.collection('stops').add({
             name: name,
             code: code,
@@ -598,11 +644,13 @@ async function confirmCreate() {
             lat: lat || 0,
             lng: lng || 0,
             agency: agency,
-            aliases: [currentTargetString],
+            aliases: allStrings,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        await batchVerifyTrips(currentTargetString, docRef.id);
+        for (const s of allStrings) {
+            await batchVerifyTrips(s, docRef.id);
+        }
 
         closeModal();
         loadData();
@@ -662,10 +710,14 @@ async function batchVerifyTrips(rawString, stopId) {
 
 async function acceptSuggestion(rawString, stopId) {
     try {
+        const variants = pendingVariantsMap[rawString] || [];
+        const allStrings = [rawString, ...variants];
         await db.collection('stops').doc(stopId).update({
-            aliases: firebase.firestore.FieldValue.arrayUnion(rawString)
+            aliases: firebase.firestore.FieldValue.arrayUnion(...allStrings)
         });
-        await batchVerifyTrips(rawString, stopId);
+        for (const s of allStrings) {
+            await batchVerifyTrips(s, stopId);
+        }
         loadData();
     } catch (error) {
         console.error('Error accepting suggestion:', error);
@@ -872,11 +924,14 @@ async function confirmLink() {
             window.bulkLinkItems = null;
             selectedInboxItems.clear();
         } else {
-            // Single link mode
+            // Single link mode — also resolve any collapsed spelling variants
+            const allStrings = [currentTargetString, ...currentTargetVariants];
             await stopRef.update({
-                aliases: firebase.firestore.FieldValue.arrayUnion(currentTargetString)
+                aliases: firebase.firestore.FieldValue.arrayUnion(...allStrings)
             });
-            await batchVerifyTrips(currentTargetString, stopId);
+            for (const s of allStrings) {
+                await batchVerifyTrips(s, stopId);
+            }
         }
 
         closeModal();
