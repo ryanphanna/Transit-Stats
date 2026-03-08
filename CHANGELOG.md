@@ -17,7 +17,7 @@
 - **Twilio Signature Validation**: Re-enabled and hardened Twilio signature validation using secure Secret Manager tokens. This ensures all inbound SMS webhooks are cryptographically verified to be from Twilio, protecting against unauthorized request forgery.
 - **Secret Isolation**: Moved all secrets to Google Cloud Secret Manager with explicit per-function access control.
 - **Subresource Integrity (SRI)**: Added cryptographic integrity hashes to all external CDN resources (Leaflet, Leaflet.markercluster, and Firebase SDKs) in `index.html`, `public.html`, and `admin.html`. This ensures the browser verifies the authenticity of fetched assets, mitigating risks from CDN compromise and resolving the CodeQL `functionality-from-untrusted-source` security alert.
-- **Incomplete String Escaping**: Fixed a security vulnerability in `js/admin.js` where backslashes were not being escaped in dynamic strings interpolated into inline HTML event handlers. Replaced legacy `.replace(/'/g, "\\'")` with a dedicated `escapeForJs()` helper that properly escapes backslashes, quotes, and newlines, resolving CodeQL alert #3 and preventing potential injection attacks.
+- **Incomplete String Escaping**: Addressed a security vulnerability in `js/admin.js` where backslashes and quotes were not properly escaped in dynamic strings interpolated into inline HTML event handlers. Replaced legacy `.replace(/'/g, "\\'")` with a dedicated `escapeForJs()` helper that properly escapes backslashes, quotes, and newlines, resolving CodeQL alert #5 and preventing potential Cross-Site Scripting (XSS) and injection attacks.
 
 ## [1.1.9] - 2026-03-07
 

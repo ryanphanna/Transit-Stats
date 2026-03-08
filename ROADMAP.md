@@ -2,16 +2,7 @@
 
 All notable planned features and improvements for Transit Stats will be documented in this file. Completed features are tracked in the [CHANGELOG](./CHANGELOG.md).
 
-## Core
-- **Legacy Data Import**: Native CSV/Export parsing (e.g., PRESTO) to allow users to backfill their historical transit history.
-- **Advanced Mapping**: Actual route polyline rendering connecting boarding and alighting points.
-- **Predictive Alerts**: AI-powered notifications for frequent or predicted route delays.
-- **Expense Tracking**: Estimated fare calculation and automated monthly budget summaries.
-
-## Transit Wrapped
-- **Visual Year-in-Review**: Comprehensive highlights of top routes, agencies, and duration.
-- **Shareable Cards**: Exportable summary graphics optimized for social sharing.
-
-## Community
-- **Activity Feed**: Opt-in friend activity tracking.
-- **Route Stats**: Community-wide popularity statistics to contextualize personal usage.
+- **Transit Wrapped**: Visual year-in-review based on internal app data with interactive highlights and shareable summary cards.
+- **Legacy Data Import**: PRESTO export parser to allow users to backfill their history.
+- **Predictive Alerts**: Gemini-powered notifications for frequent route delays.
+- **Advanced Mapping**: Route lines (not just points) connecting boarding and alighting points.
