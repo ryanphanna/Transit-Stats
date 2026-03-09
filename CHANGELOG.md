@@ -2,7 +2,7 @@
 
 **Current Project Versions:**
 - **Web App**: `v1.7.0`
-- **Cloud Functions**: `v1.3.0`
+- **Cloud Functions**: `v1.3.1`
 
 ---
 
@@ -13,6 +13,20 @@
 
 ### Changed
 - 
+
+### Fixed
+- 
+
+## [1.3.1] - 2026-03-09
+
+### Fixed
+- **Parsing Heuristics** (`functions/lib/parsing.js`): Fixed multiple edge cases in the natural language SMS parser:
+  - Addressed an issue where spaces within stop codes (e.g., "123 45") were not properly ignored, causing them to be incorrectly parsed as stop names.
+  - Fixed a logical flow issue where sending *only* an agency name (e.g., "TTC") with no other message body would fail to identify the override correctly.
+  - Added `TO` and `ROUTE` to the list of unlikely conversation starters to prevent legitimate user inputs (e.g., "To the Beach", "Route 66") from being improperly rejected by the conversational filters.
+
+### Documentation
+- **Vulnerability Reporting** (`SECURITY.md`): Updated the security policy to direct all vulnerability reports to the secure GitHub Private Vulnerability Reporting tool, replacing the previous manual process.
 
 ### Fixed
 - 

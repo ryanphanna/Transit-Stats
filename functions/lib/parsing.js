@@ -14,9 +14,10 @@ function parseStopInput(input) {
   const trimmed = input.trim();
   if (!trimmed) return { stopCode: null, stopName: null };
 
-  // Check if the input is all digits (stop code)
-  if (/^\d+$/.test(trimmed)) {
-    return { stopCode: trimmed, stopName: null };
+  // Check if the input is all digits (ignoring spaces, e.g., "123 45" -> "12345")
+  const withoutSpaces = trimmed.replace(/\s+/g, '');
+  if (/^\d+$/.test(withoutSpaces)) {
+    return { stopCode: withoutSpaces, stopName: null };
   }
   // Contains letters - it's a stop name
   return { stopCode: null, stopName: toTitleCase(trimmed) };
@@ -143,6 +144,11 @@ function parseAgencyOverride(message) {
         '' :
         trimmed.slice(0, -(agency.length + 1)).trim();
 
+      // If there's no actual message left, this wasn't an override (e.g. they just sent "TTC")
+      if (remainingMessage.length === 0) {
+        return { agency: null, remainingMessage: trimmed };
+      }
+
       // Return the canonical agency name (properly cased)
       return { agency, remainingMessage };
     }
@@ -163,8 +169,8 @@ function isHeuristicLogValid(stopCodeRaw, routeRaw) {
   }
 
   // 1. Sentence Starters: Reject if stop name starts with unlikely conversation starters
-  // Heavily reduced list to avoid blocking "The" or "To" or "Route"
-  const sentenceStarters = ['I', 'IM', 'I\'M', 'ILL', 'I\'LL', 'HELLO', 'HI', 'HEY', 'PLEASE', 'THANKS'];
+  // Heavily reduced list to avoid blocking "The"
+  const sentenceStarters = ['I', 'IM', 'I\'M', 'ILL', 'I\'LL', 'HELLO', 'HI', 'HEY', 'PLEASE', 'THANKS', 'TO', 'ROUTE'];
   const firstWord = stopCodeRaw.split(' ')[0].toUpperCase();
   const isSentenceStart = sentenceStarters.includes(firstWord);
 
@@ -183,12 +189,12 @@ function isHeuristicLogValid(stopCodeRaw, routeRaw) {
   // Only accept if it passes all heuristics
   return (
     stopCodeRaw.length > 0 &&
-        routeRaw.length > 0 &&
-        !isSentenceStart &&
-        !isSentenceStructure &&
-        !isBadStopName &&
-        !isStopTooLong &&
-        !isRouteTooLong
+    routeRaw.length > 0 &&
+    !isSentenceStart &&
+    !isSentenceStructure &&
+    !isBadStopName &&
+    !isStopTooLong &&
+    !isRouteTooLong
   );
 }
 
