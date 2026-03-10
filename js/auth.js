@@ -43,6 +43,7 @@ export const Auth = {
                     this.showApp();
                 } else {
                     console.log('❌ No user authenticated');
+                    if (typeof window.clearAppContext === 'function') window.clearAppContext();
                     this.showAuth();
                 }
             } catch (error) {
@@ -148,6 +149,8 @@ export const Auth = {
         const emailInput = document.getElementById('emailInput');
         if (!emailInput) return;
         const email = emailInput.value.trim();
+        const magicLinkBtn = document.getElementById('magicLinkBtn');
+        UI.showLoading(magicLinkBtn, 'Sending...');
 
         try {
             const actionCodeSettings = {

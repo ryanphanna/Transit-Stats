@@ -440,13 +440,28 @@ async function getRecentCompletedTrips(userId, limit = 50) {
     .limit(limit)
     .get();
 
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  return snapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() }))
+    .filter(t => !t.incomplete);
+}
+
+/**
+ * Load all stops from Firestore for stop canonicalization
+ * @returns {Promise<Array>} Array of { name, aliases }
+ */
+async function getStopsLibrary() {
+  const snapshot = await db.collection('stops').get();
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return { name: data.name, aliases: data.aliases || [] };
+  });
 }
 
 module.exports = {
   admin,
   db,
   isRateLimited,
+  getStopsLibrary,
   isGeminiRateLimited,
   isEmailAllowed,
   shouldRespondToUnknown,

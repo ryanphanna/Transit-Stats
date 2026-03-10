@@ -37,9 +37,7 @@
 
 [data-theme="dark"] {
     --bg-primary: #020617;
-    /* Slate 950 */
     --bg-secondary: #0f172a;
-    /* Slate 900 */
     --bg-tertiary: #1e293b;
 
     --text-primary: #f8fafc;

@@ -155,6 +155,67 @@ export const PredictionEngine = {
     },
 
     /**
+     * Predict the most likely exit stop given a known route and boarding stop.
+     * @param {Array} history - Completed trips
+     * @param {Object} context - { route, startStopName, direction, time }
+     * @returns {Object|null} { stop, confidence, version }
+     */
+    guessEndStop: function (history, context) {
+        if (!history || history.length === 0) return null;
+
+        const now = context.time instanceof Date ? context.time : new Date(context.time);
+        const routeFamily = this._baseRoute(context.route);
+        const normDir = context.direction ? this._normalizeDirection(context.direction) : null;
+
+        let candidates = history.filter(t => {
+            if (!this._isValidTrip(t)) return false;
+            if (!t.endStopName) return false;
+            return this._baseRoute(t.route) === routeFamily &&
+                this._stopMatch(t.startStopName, context.startStopName);
+        });
+
+        if (candidates.length === 0) return null;
+
+        // Narrow by direction if known, fall back to all if no matches
+        if (normDir) {
+            const withDir = candidates.filter(t => {
+                const tDir = this._normalizeDirection(t.direction);
+                return !tDir || tDir === normDir;
+            });
+            if (withDir.length > 0) candidates = withDir;
+        }
+
+        const votes = {};
+        let totalWeight = 0;
+
+        for (const trip of candidates) {
+            const tripTime = trip.startTime && trip.startTime.toDate
+                ? trip.startTime.toDate()
+                : new Date(trip.startTime);
+
+            const weight =
+                this._recencyWeight(tripTime, now) *
+                this._timeSimilarity(now, tripTime) *
+                this._daySimilarity(now.getDay(), tripTime.getDay()) *
+                (context.duration && trip.duration ? this._durationSimilarity(context.duration, trip.duration) : 1.0);
+
+            const key = this._canonicalizeStop(trip.endStopName);
+            if (!votes[key]) votes[key] = { stop: trip.endStopName, weight: 0 };
+            votes[key].weight += weight;
+            totalWeight += weight;
+        }
+
+        if (totalWeight === 0) return null;
+
+        const top = Object.values(votes).sort((a, b) => b.weight - a.weight)[0];
+        return {
+            stop: top.stop,
+            confidence: Math.round((top.weight / totalWeight) * 100),
+            version: this.VERSION,
+        };
+    },
+
+    /**
      * Extract the base route number from a numeric variant like "510a", "510b", "510 Shuttle".
      * Only strips suffixes when the route starts with a digit, so numeric routes pool correctly
      * ("510a" → "510", "52g" → "52") while word-based routes like "Line 1" are left as-is
@@ -175,10 +236,6 @@ export const PredictionEngine = {
         return dir.trim();
     },
 
-    /**
-     * Resolve a stop name to its canonical form using the stops library.
-     * Falls back to lowercased input if not found in the library.
-     */
     /**
      * Returns false for trips with obviously malformed data (bad SMS parses, sentence-as-stop-name, etc.)
      * These are excluded from the candidate pool so they don't corrupt vote weights.
@@ -201,15 +258,23 @@ export const PredictionEngine = {
         return true;
     },
 
+    /**
+     * Resolve a stop name to its canonical form using the stops library.
+     * Falls back to lowercased input if not found in the library.
+     */
     _canonicalizeStop: function (name) {
         if (!name) return null;
-        const lower = name.trim().toLowerCase();
+        const lower = name.trim().toLowerCase()
+            .replace(/\s*[\/&@]\s*/g, '/')
+            .replace(/\s+at\s+/g, '/');
         if (this.stopsLibrary && this.stopsLibrary.length > 0) {
             const match = this.stopsLibrary.find(s => {
                 const candidates = [s.name, ...(s.aliases || [])];
-                return candidates.some(c => c.trim().toLowerCase() === lower);
+                return candidates.some(c => c.trim().toLowerCase()
+                    .replace(/\s*[\/&@]\s*/g, '/')
+                    .replace(/\s+at\s+/g, '/') === lower);
             });
-            if (match) return match.name.toLowerCase();
+            if (match) return match.name.toLowerCase().replace(/\s*[\/&@]\s*/g, '/').replace(/\s+at\s+/g, '/');
         }
         return lower;
     },
@@ -247,6 +312,11 @@ export const PredictionEngine = {
         // Both weekdays (Mon=1…Fri=5): closer days score higher
         const dist = Math.abs(nowDay - tripDay); // 1–4
         return 1.0 - dist * 0.15; // 1 apart → 0.85, 2 → 0.70, 3 → 0.55, 4 → 0.40
+    },
+
+    _durationSimilarity: function (actualMinutes, pastMinutes) {
+        const diff = Math.abs(actualMinutes - pastMinutes);
+        return Math.exp(-(diff * diff) / (2 * 25)); // sigma = 5 minutes
     },
 
     _getLastRecentTrip: function (history, now) {

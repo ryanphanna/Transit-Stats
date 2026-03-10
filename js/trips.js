@@ -547,7 +547,7 @@ export const Trips = {
                 : [
                     { name: t.startStopName || t.startStop, role: 'start' },
                     { name: t.endStopName || t.endStop, role: 'end' }
-                  ];
+                ];
 
             stops.forEach(({ name, role }) => {
                 if (!name || typeof name !== 'string') return;

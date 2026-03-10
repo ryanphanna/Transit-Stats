@@ -18,6 +18,7 @@ const {
   isGeminiRateLimited,
   createTrip,
   getRecentCompletedTrips,
+  getStopsLibrary,
 } = require('./db');
 const { PredictionEngine } = require('./predict.js');
 const {
@@ -307,19 +308,42 @@ START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDispla
     return;
   }
 
-  // No active trip - create new one
+  // No active trip - generate predictions before creating trip
+  let prediction = null;
+  let endStopPrediction = null;
+  const startStopName = stopData ? stopData.stopName : parsedStop.stopName;
+  try {
+    const [history, stopsLibrary] = await Promise.all([
+      getRecentCompletedTrips(user.userId, 100),
+      getStopsLibrary(),
+    ]);
+    PredictionEngine.stopsLibrary = stopsLibrary;
+    const now = new Date();
+    prediction = PredictionEngine.guess(history, { stopName: startStopName, time: now });
+    endStopPrediction = PredictionEngine.guessEndStop(history, {
+      route,
+      startStopName,
+      direction,
+      time: now,
+    });
+  } catch (err) {
+    console.error('Error generating prediction at trip start:', err);
+  }
+
   await createTrip({
     userId: user.userId,
     route,
     direction: direction || null,
     startStopCode: stopData ? stopData.stopCode : parsedStop.stopCode,
-    startStopName: stopData ? stopData.stopName : parsedStop.stopName,
+    startStopName,
     verified,
     boardingLocation,
     agency,
     sentiment: options.sentiment || null,
     tags: options.tags || [],
     parsed_by: options.parsed_by || 'manual',
+    prediction: prediction || null,
+    endStopPrediction: endStopPrediction || null,
   });
 
   const routeDisplay = direction ? `Route ${route} ${direction}` : `Route ${route}`;
@@ -344,6 +368,26 @@ async function handleConfirmStart(phoneNumber, user, state) {
     `Route ${activeTrip.route} ${activeTrip.direction}` :
     `Route ${activeTrip.route}`;
 
+  let confirmPrediction = null;
+  let confirmEndStopPrediction = null;
+  try {
+    const [history, stopsLibrary] = await Promise.all([
+      getRecentCompletedTrips(user.userId, 100),
+      getStopsLibrary(),
+    ]);
+    PredictionEngine.stopsLibrary = stopsLibrary;
+    const now = new Date();
+    confirmPrediction = PredictionEngine.guess(history, { stopName: newTrip.stopName, time: now });
+    confirmEndStopPrediction = PredictionEngine.guessEndStop(history, {
+      route: newTrip.route,
+      startStopName: newTrip.stopName,
+      direction: newTrip.direction,
+      time: now,
+    });
+  } catch (err) {
+    console.error('Error generating prediction at confirm start:', err);
+  }
+
   await db.collection('trips').doc(activeTrip.id).update({
     incomplete: true,
     endTime: activeTrip.startTime,
@@ -364,6 +408,8 @@ async function handleConfirmStart(phoneNumber, user, state) {
     sentiment: newTrip.sentiment || null,
     tags: newTrip.tags || [],
     parsed_by: newTrip.parsed_by || 'manual',
+    prediction: confirmPrediction || null,
+    endStopPrediction: confirmEndStopPrediction || null,
   });
   await clearPendingState(phoneNumber);
 
@@ -433,29 +479,95 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     `Route ${activeTrip.route} ${activeTrip.direction}` :
     `Route ${activeTrip.route}`;
 
-  // Silent evaluation: log predicted vs actual
+  // Grade the prediction that was committed at trip start
   try {
-    // Fetch history inside the try-catch — a missing index or query failure
-    // must not prevent the trip from being ended or the reply from being sent
-    const historyBeforeEnd = await getRecentCompletedTrips(user.userId, 100);
-    const actualTrip = {
-      ...activeTrip,
-      endStopName: endStopData ? endStopData.stopName : parsedEndStop.stopName,
-      endStopCode: endStopData ? endStopData.stopCode : parsedEndStop.stopCode,
-      endTime: endTime
-    };
+    const stored = activeTrip.prediction;
+    if (stored) {
+      const actualRoute = activeTrip.route.toString();
+      const predRoute = stored.route.toString();
+      const routeMatch = predRoute === actualRoute;
+      const dirMatch = !stored.direction || !activeTrip.direction ||
+        PredictionEngine._normalizeDirection(stored.direction) ===
+        PredictionEngine._normalizeDirection(activeTrip.direction);
+      const isHit = routeMatch && dirMatch;
+      const baseRoute = r => /^\d/.test(r) ? r.replace(/[a-zA-Z]+(\s.*)?$/, '').trim() : r;
+      const isPartialHit = !isHit && dirMatch &&
+        baseRoute(predRoute) === baseRoute(actualRoute) &&
+        baseRoute(predRoute) !== '';
+      const predictedLabel = stored.route + (stored.direction ? ' ' + stored.direction : '') + ' from ' + stored.stop;
+      const actualLabel = activeTrip.route + (activeTrip.direction ? ' ' + activeTrip.direction : '') + ' from ' + (activeTrip.startStopName || '?');
+      // Grade end stop prediction
+      const actualEndStop = endStopData ? endStopData.stopName : parsedEndStop.stopName;
+      const storedEndStop = activeTrip.endStopPrediction;
+      const endStopHit = storedEndStop
+        ? PredictionEngine._stopMatch(storedEndStop.stop, actualEndStop)
+        : null;
 
-    const result = PredictionEngine.evaluate(history, actualTrip);
-    await db.collection('predictionStats').add({
-      userId: user.userId,
-      ...result,
-      route: actualTrip.route,
-      source: 'sms',
-      timestamp: admin.firestore.FieldValue.serverTimestamp()
-    });
-    console.log(`Silent SMS Prediction Accuracy Logged for ${user.userId}: ${result.isHit ? 'HIT' : 'MISS'}`);
+      await db.collection('predictionStats').add({
+        userId: user.userId,
+        isHit: !!isHit,
+        isPartialHit: !isHit && !!isPartialHit,
+        predicted: predictedLabel,
+        actual: actualLabel,
+        confidence: stored.confidence,
+        version: stored.version,
+        route: activeTrip.route,
+        endStopPredicted: storedEndStop ? storedEndStop.stop : null,
+        endStopActual: actualEndStop,
+        endStopHit: endStopHit,
+        endStopConfidence: storedEndStop ? storedEndStop.confidence : null,
+        source: 'sms',
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // Duration-informed end stop prediction (run at end time with elapsed duration)
+      let durationEndStopHit = null;
+      try {
+        const [endHistory, endStopsLib] = await Promise.all([
+          getRecentCompletedTrips(user.userId, 100),
+          getStopsLibrary(),
+        ]);
+        PredictionEngine.stopsLibrary = endStopsLib;
+        const durationPrediction = PredictionEngine.guessEndStop(
+          endHistory.filter(t => t.id !== activeTrip.id),
+          {
+            route: activeTrip.route,
+            startStopName: activeTrip.startStopName,
+            direction: activeTrip.direction,
+            time: activeTrip.startTime.toDate(),
+            duration,
+          }
+        );
+        if (durationPrediction) {
+          durationEndStopHit = PredictionEngine._stopMatch(durationPrediction.stop, actualEndStop);
+          console.log(`Duration end stop: ${durationEndStopHit ? 'HIT' : 'MISS'} | predicted ${durationPrediction.stop} (conf ${durationPrediction.confidence}%) | actual ${actualEndStop}`);
+        }
+      } catch (dErr) {
+        console.error('Error running duration end stop prediction:', dErr);
+      }
+
+      // Update running accuracy summary
+      const inc = admin.firestore.FieldValue.increment;
+      const accuracyUpdate = {
+        total: inc(1),
+        hits: inc(isHit ? 1 : 0),
+        partialHits: inc(isPartialHit ? 1 : 0),
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+      };
+      if (endStopHit !== null) {
+        accuracyUpdate.endStopTotal = inc(1);
+        accuracyUpdate.endStopHits = inc(endStopHit ? 1 : 0);
+      }
+      if (durationEndStopHit !== null) {
+        accuracyUpdate.durationEndStopTotal = inc(1);
+        accuracyUpdate.durationEndStopHits = inc(durationEndStopHit ? 1 : 0);
+      }
+      await db.collection('predictionAccuracy').doc(user.userId).set(accuracyUpdate, { merge: true });
+
+      console.log(`Prediction graded for ${user.userId}: ${isHit ? 'HIT' : (isPartialHit ? 'PARTIAL' : 'MISS')} | ${predictedLabel} → ${actualLabel}`);
+    }
   } catch (predictionErr) {
-    console.error('Error logging prediction accuracy for SMS:', predictionErr);
+    console.error('Error grading prediction:', predictionErr);
   }
 
   await sendSmsReply(phoneNumber, `✅ Ended ${routeDisplay} at Stop ${endStopDisplay} (${duration} min trip)`);

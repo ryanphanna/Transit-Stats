@@ -41,9 +41,16 @@ window.stopsLibrary = [];
 
 // Initialize Modules
 function initApp() {
-    UI.loadSavedTheme();
-    Auth.init();
-    setupGlobalStateHandlers();
+    try {
+        UI.loadSavedTheme();
+        Auth.init();
+        setupGlobalStateHandlers();
+    } catch (error) {
+        console.error('CRITICAL: App Initialization Failed:', error);
+        if (window.UI) {
+            UI.showNotification('Failed to initialize application. Please try again later.', 'error');
+        }
+    }
 }
 
 if (document.readyState === 'loading') {
@@ -104,6 +111,20 @@ window.checkActiveTrip = function () {
         }, (error) => {
             console.error('Active trip listener error:', error);
         });
+};
+
+/**
+ * Clean up all listeners and shared state (called on logout)
+ */
+window.clearAppContext = function () {
+    if (activeTripListener) {
+        activeTripListener();
+        activeTripListener = null;
+    }
+    window.currentUser = null;
+    window.activeTrip = null;
+    window.stopsLibrary = [];
+    console.log('🧹 Application context cleared.');
 };
 
 /**

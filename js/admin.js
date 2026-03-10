@@ -1,20 +1,10 @@
+import { auth, db } from './firebase.js';
+import { UI } from './ui-utils.js';
+
+const escapeHtml = UI.escapeHtml;
+const escapeForJs = UI.escapeForJs;
+
 console.log('🚀 TransitStats Admin Loading...');
-
-const firebaseConfig = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID
-};
-
-// Initialize Firebase if not already initialized
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-const auth = firebase.auth();
-const db = firebase.firestore();
 
 // Global State
 let stopsLibrary = [];
@@ -26,28 +16,6 @@ let currentTargetVariants = []; // other spellings collapsed under currentTarget
 let pendingVariantsMap = {};    // normalized name → [variant spellings]
 let currentUser = null;
 let currentAliasTargetId = null;
-
-// Security: HTML sanitization to prevent XSS
-function escapeHtml(unsafe) {
-    if (unsafe === null || unsafe === undefined) return '';
-    return String(unsafe)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
-// Security: JS sanitization for inline event handlers
-function escapeForJs(unsafe) {
-    if (unsafe === null || unsafe === undefined) return '';
-    return String(unsafe)
-        .replace(/\\/g, '\\\\')
-        .replace(/'/g, "\\'")
-        .replace(/"/g, '&quot;')
-        .replace(/\n/g, '\\n')
-        .replace(/\r/g, '\\r');
-}
 
 // Input validation
 function validateStopData(data) {

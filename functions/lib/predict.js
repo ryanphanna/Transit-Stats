@@ -9,14 +9,14 @@
  *        Each past trip votes for its (route, direction) pair with weight =
  *        recency × time_similarity × day_similarity. Sequence applies a flat
  *        boost when the last trip ended at the current stop. No location dependency.
- *   v3 - Route family grouping: 510, 510a, 510b, 510 Shuttle pool their votes
- *        into one bucket keyed by base route number. The most weight-heavy specific
- *        variant is returned, so predictions improve when service changes between
- *        variants (e.g. 510 → 510b shuttle) without resetting the signal.
+ *   v3 - Stop canonicalization via stops library (aliases collapse variants to one canonical
+ *        name). Day similarity is now distance-based within weekdays rather than flat 0.5.
+ *        Trip validity filter excludes malformed SMS-parse trips from the candidate pool.
+ *        Direction normalization on votes (nb/sb/eb/wb handled).
  */
 
 const PredictionEngine = {
-  VERSION: 2,
+  VERSION: 3,
 
   CONFIG: {
     TIME_SIGMA_HOURS: 1.5,
@@ -26,11 +26,17 @@ const PredictionEngine = {
   },
 
   /**
-     * Guess the next route given the current stop and time.
-     * @param {Array} history - Completed trips (should exclude the trip being evaluated)
-     * @param {Object} context - { stopName, time }
-     * @returns {Object|null} { route, direction, stop, confidence, version }
-     */
+   * Stops library used for name canonicalization.
+   * Each entry: { name: string, aliases: string[] }
+   */
+  stopsLibrary: [],
+
+  /**
+   * Guess the next route given the current stop and time.
+   * @param {Array} history - Completed trips (should exclude the trip being evaluated)
+   * @param {Object} context - { stopName, time }
+   * @returns {Object|null} { route, direction, stop, confidence, version }
+   */
   guess: function (history, context) {
     if (!history || history.length === 0) return null;
 
@@ -38,8 +44,8 @@ const PredictionEngine = {
     const stopName = context.stopName ? context.stopName.trim().toLowerCase() : null;
 
     const candidates = stopName
-      ? history.filter(t => this._stopMatch(t.startStopName, stopName))
-      : history;
+      ? history.filter(t => this._isValidTrip(t) && this._stopMatch(t.startStopName, stopName))
+      : history.filter(t => this._isValidTrip(t));
 
     if (candidates.length === 0) return null;
 
@@ -59,15 +65,15 @@ const PredictionEngine = {
       const family = this._baseRoute(trip.route);
       const key = `${family}|${normDir || ''}`;
       const weight =
-                this._recencyWeight(tripTime, now) *
-                this._timeSimilarity(now, tripTime) *
-                this._daySimilarity(now.getDay(), tripTime.getDay()) *
-                (atTransferPoint ? this.CONFIG.SEQUENCE_BOOST : 1.0);
+        this._recencyWeight(tripTime, now) *
+        this._timeSimilarity(now, tripTime) *
+        this._daySimilarity(now.getDay(), tripTime.getDay()) *
+        (atTransferPoint ? this.CONFIG.SEQUENCE_BOOST : 1.0);
 
       if (!votes[key]) {
         votes[key] = {
           family,
-          direction: trip.direction || null,
+          direction: normDir || null,
           stop: trip.startStopName,
           weight: 0,
           specificRoutes: {},
@@ -98,54 +104,71 @@ const PredictionEngine = {
   },
 
   /**
-     * Evaluate a prediction against an actual trip for silent accuracy logging.
-     * @param {Array} history - Trip history before this trip started
-     * @param {Object} actualTrip - The trip that actually happened
-     * @returns {Object} { isHit, predicted, actual, confidence, version, timestamp }
-     */
-  evaluate: function (history, actualTrip) {
-    const context = {
-      stopName: actualTrip.startStopName,
-      time: actualTrip.startTime && actualTrip.startTime.toDate
-        ? actualTrip.startTime.toDate()
-        : new Date(actualTrip.startTime),
-    };
+   * Predict the most likely exit stop given a known route and boarding stop.
+   * @param {Array} history - Completed trips
+   * @param {Object} context - { route, startStopName, direction, time, duration? }
+   * @returns {Object|null} { stop, confidence, version }
+   */
+  guessEndStop: function (history, context) {
+    if (!history || history.length === 0) return null;
 
-    const prediction = this.guess(history, context);
+    const now = context.time instanceof Date ? context.time : new Date(context.time);
+    const routeFamily = this._baseRoute(context.route);
+    const normDir = context.direction ? this._normalizeDirection(context.direction) : null;
 
-    const baseRoute = r => r.toString().replace(/[a-zA-Z]+(\s.*)?$/, '').trim();
+    let candidates = history.filter(t => {
+      if (!this._isValidTrip(t)) return false;
+      if (!t.endStopName) return false;
+      return this._baseRoute(t.route) === routeFamily &&
+        this._stopMatch(t.startStopName, context.startStopName);
+    });
 
-    const routeMatch = prediction &&
-            prediction.route.toString() === actualTrip.route.toString();
-    const directionMatch = !prediction || (
-      !prediction.direction ||
-            !actualTrip.direction ||
-            prediction.direction === actualTrip.direction
-    );
-    const isHit = routeMatch && directionMatch;
+    if (candidates.length === 0) return null;
 
-    const isPartialHit = !isHit && prediction && directionMatch &&
-            baseRoute(prediction.route) === baseRoute(actualTrip.route) &&
-            baseRoute(prediction.route) !== '';
+    // Narrow by direction if known, fall back to all if no matches
+    if (normDir) {
+      const withDir = candidates.filter(t => {
+        const tDir = this._normalizeDirection(t.direction);
+        return !tDir || tDir === normDir;
+      });
+      if (withDir.length > 0) candidates = withDir;
+    }
 
-    const actualLabel = actualTrip.route +
-            (actualTrip.direction ? ' ' + actualTrip.direction : '') +
-            ' from ' + actualTrip.startStopName;
-    const predictedLabel = prediction
-      ? prediction.route + (prediction.direction ? ' ' + prediction.direction : '') + ' from ' + prediction.stop
-      : 'None';
+    const votes = {};
+    let totalWeight = 0;
 
+    for (const trip of candidates) {
+      const tripTime = trip.startTime && trip.startTime.toDate
+        ? trip.startTime.toDate()
+        : new Date(trip.startTime);
+
+      const weight =
+        this._recencyWeight(tripTime, now) *
+        this._timeSimilarity(now, tripTime) *
+        this._daySimilarity(now.getDay(), tripTime.getDay()) *
+        (context.duration && trip.duration ? this._durationSimilarity(context.duration, trip.duration) : 1.0);
+
+      const key = this._canonicalizeStop(trip.endStopName);
+      if (!votes[key]) votes[key] = { stop: trip.endStopName, weight: 0 };
+      votes[key].weight += weight;
+      totalWeight += weight;
+    }
+
+    if (totalWeight === 0) return null;
+
+    const top = Object.values(votes).sort((a, b) => b.weight - a.weight)[0];
     return {
-      isHit: !!isHit,
-      isPartialHit: !isHit && !!isPartialHit,
-      predicted: predictedLabel,
-      actual: actualLabel,
-      confidence: prediction ? prediction.confidence : 0,
+      stop: top.stop,
+      confidence: Math.round((top.weight / totalWeight) * 100),
       version: this.VERSION,
-      timestamp: new Date(),
     };
   },
 
+  /**
+   * Extract the base route number from a numeric variant like "510a", "510b", "510 Shuttle".
+   * Only strips suffixes when the route starts with a digit, so numeric routes pool correctly
+   * ("510a" → "510", "52g" → "52") while word-based routes like "Line 1" are left as-is.
+   */
   _baseRoute: function (route) {
     const s = route.toString().trim();
     return /^\d/.test(s) ? s.replace(/[a-zA-Z]+(\s.*)?$/, '').trim() : s;
@@ -154,16 +177,55 @@ const PredictionEngine = {
   _normalizeDirection: function (dir) {
     if (!dir) return null;
     const d = dir.toString().toLowerCase().replace(/bound$/i, '').trim();
-    if (d === 'n' || d === 'north') return 'Northbound';
-    if (d === 's' || d === 'south') return 'Southbound';
-    if (d === 'e' || d === 'east') return 'Eastbound';
-    if (d === 'w' || d === 'west') return 'Westbound';
+    if (d === 'n' || d === 'nb' || d === 'north') return 'Northbound';
+    if (d === 's' || d === 'sb' || d === 'south') return 'Southbound';
+    if (d === 'e' || d === 'eb' || d === 'east' || d === 'eastward') return 'Eastbound';
+    if (d === 'w' || d === 'wb' || d === 'west') return 'Westbound';
     return dir.trim();
+  },
+
+  /**
+   * Returns false for trips with obviously malformed data (bad SMS parses, sentence-as-stop-name, etc.)
+   */
+  _isValidTrip: function (trip) {
+    const stop = trip.startStopName || trip.startStop;
+    const route = trip.route;
+    if (!stop || !route) return false;
+
+    const stopStr = stop.toString();
+    if (stopStr.length > 60) return false;
+    const sentenceWords = /\b(i'm|i am|just|boarded|headed|northbound|southbound|eastbound|westbound)\b/i;
+    if (sentenceWords.test(stopStr)) return false;
+
+    const routeStr = route.toString().trim();
+    if (routeStr.length <= 4 && !/\d/.test(routeStr) && !/^line\s*\d/i.test(routeStr)) return false;
+
+    return true;
+  },
+
+  /**
+   * Resolve a stop name to its canonical form using the stops library.
+   */
+  _canonicalizeStop: function (name) {
+    if (!name) return null;
+    const lower = name.trim().toLowerCase()
+      .replace(/\s*[\/&@]\s*/g, '/')
+      .replace(/\s+at\s+/g, '/');
+    if (this.stopsLibrary && this.stopsLibrary.length > 0) {
+      const match = this.stopsLibrary.find(s => {
+        const candidates = [s.name, ...(s.aliases || [])];
+        return candidates.some(c => c.trim().toLowerCase()
+          .replace(/\s*[\/&@]\s*/g, '/')
+          .replace(/\s+at\s+/g, '/') === lower);
+      });
+      if (match) return match.name.toLowerCase().replace(/\s*[\/&@]\s*/g, '/').replace(/\s+at\s+/g, '/');
+    }
+    return lower;
   },
 
   _stopMatch: function (a, b) {
     if (!a || !b) return false;
-    return a.trim().toLowerCase() === b.trim().toLowerCase();
+    return this._canonicalizeStop(a) === this._canonicalizeStop(b);
   },
 
   _recencyWeight: function (tripTime, now) {
@@ -183,8 +245,18 @@ const PredictionEngine = {
   _daySimilarity: function (nowDay, tripDay) {
     if (nowDay === tripDay) return 1.0;
     const isWeekend = d => d === 0 || d === 6;
-    if (isWeekend(nowDay) === isWeekend(tripDay)) return 0.5;
-    return 0.1;
+    const nowIsWeekend = isWeekend(nowDay);
+    const tripIsWeekend = isWeekend(tripDay);
+    if (nowIsWeekend !== tripIsWeekend) return 0.1;
+    if (nowIsWeekend) return 0.7;
+    // Both weekdays: closer days score higher
+    const dist = Math.abs(nowDay - tripDay); // 1–4
+    return 1.0 - dist * 0.15;
+  },
+
+  _durationSimilarity: function (actualMinutes, pastMinutes) {
+    const diff = Math.abs(actualMinutes - pastMinutes);
+    return Math.exp(-(diff * diff) / (2 * 25)); // sigma = 5 minutes
   },
 
   _getLastRecentTrip: function (history, now) {

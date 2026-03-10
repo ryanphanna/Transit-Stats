@@ -1,21 +1,50 @@
 # Changelog
 
 **Current Project Versions:**
-- **Web App**: `v1.7.0`
-- **Cloud Functions**: `v1.3.1`
+- **Web App**: `v1.8.0`
+- **Cloud Functions**: `v1.5.0`
 
 ---
 
 ## [Unreleased]
 
+## [1.8.0] / [1.5.0] - 2026-03-10
+
 ### Added
-- 
+- **End Stop Prediction** (`functions/lib/predict.js`, `js/predict.js`): `guessEndStop()` predicts the most likely exit stop at trip start using route family, boarding stop, direction, and time-of-day/recency weighting. Stored as `endStopPrediction` on the trip document and graded at end time.
+- **Duration-Informed End Stop Prediction** (`functions/lib/handlers.js`): A second end stop prediction runs at trip end using elapsed duration as an additional signal via `_durationSimilarity()` (σ = 5 min). Tracked separately in `predictionAccuracy` (`durationEndStopTotal` / `durationEndStopHits`) so duration's marginal contribution can be measured independently.
+- **`_durationSimilarity()`** (`functions/lib/predict.js`, `js/predict.js`): Gaussian similarity function over trip duration difference. Used by `guessEndStop()` when duration context is provided.
+- **Intersection separator normalization** (`functions/lib/predict.js`, `js/predict.js`): `_canonicalizeStop()` now strips spaces around `/`, `&`, and `@` separators and replaces ` at ` before comparing, so `"Spadina / Nassau"` and `"Spadina/nassau"` resolve to the same canonical form.
+- **`DISCARD` direct keyword** (`functions/sms.js`): `DISCARD` was only reachable via Gemini AI fallback. Added as a direct keyword handler alongside `STATUS`, `STATS`, and `INCOMPLETE`.
 
 ### Changed
-- 
+- **`guessEndStop()` direction filtering** (`functions/lib/predict.js`, `js/predict.js`): Candidates are now narrowed to direction-matching trips before voting. Falls back to all directions if no direction-matched candidates exist, so sparse data doesn't produce null predictions unnecessarily.
 
 ### Fixed
-- 
+- **Continue Button Responsiveness (Critical)**: Resolved a recurring issue where the "Continue" button on the login screen was non-responsive in production. Root cause was missing environment variables in the CI/CD pipeline.
+- **CI/CD Build Pipeline**: Updated GitHub Action merge workflow to inject `VITE_` secrets during the build process, ensuring production assets are correctly configured with Firebase credentials.
+- **Login UX Resilience**: Defaulted the "Continue" button to `disabled` in HTML to prevent premature interaction. Added explicit configuration validation and safety wrappers in `main.js` and `firebase.js` to provide immediate notification if initialization fails.
+- **Module Initialization Safety**: Hardened `admin.js` and `public.js` with robust Firebase initialization checks and error reporting.
+- **Admin Deployment Fix**: Corrected `admin.html` which was missing critical script tags, rendering the data manager inoperable in production.
+- **Refactored Infrastructure**: Consolidated Firebase configuration into a single shared `js/firebase.js` module, removing redundant/fragile redefinitions in `admin.js` and `public.js`.
+- **Global Auth Lifecycle**: Implemented `clearAppContext()` and integrated it into the logout flow to ensure real-time listeners and shared global state (like `activeTrip`) are properly disposed of on logout.
+- **Security Utility Centralization**: Moved `escapeHtml` and `escapeForJs` to `js/ui-utils.js` for consistent sanitization across all application modules.
+- **Developer Bypass Logic**: Added a `window.bypassLogin()` helper available only on `localhost` to allow testing the dashboard and map without triggering real Firebase authentication or secondary verification emails, ensuring production services remain "clean."
+
+## [1.4.0] - 2026-03-09
+
+### Added
+- **Stops library injection** (`functions/lib/handlers.js`, `functions/lib/db.js`): `getStopsLibrary()` fetches all stops from Firestore and injects them into `PredictionEngine.stopsLibrary` before each `guess()` call. Stop canonicalization (v3 feature) is now active on the SMS path — previously `stopsLibrary` was always empty on the server.
+
+### Changed
+- **Prediction committed at trip start** (`functions/lib/handlers.js`): `guess()` now runs at the moment a trip starts and the result is stored on the trip document. `handleEndTrip` grades the stored prediction against the actual trip instead of reconstructing a hypothetical at end time. This makes accuracy scores meaningful — the engine has to commit before knowing the answer.
+- **`handleConfirmStart` prediction ordering** (`functions/lib/handlers.js`): History is now fetched before the previous trip is marked incomplete, so the candidate pool isn't contaminated by the trip being closed out.
+- **Prediction Engine v3 synced to server** (`functions/lib/predict.js`): Server-side engine was on v2. Synced with client-side v3: trip validity filter (`_isValidTrip`), stop canonicalization (`_canonicalizeStop`, `_stopMatch`), distance-based weekday similarity, direction normalization (`nb/sb/eb/wb`), and the `Line 1` base route fix.
+
+### Fixed
+- **Missing Firestore composite index** (`firestore.indexes.json`): `getRecentCompletedTrips` queries `userId + endTime != null ORDER BY endTime DESC` but only an `endTime ASC` index existed. Every prediction history fetch was failing silently. Added the `userId ASC + endTime DESC` index.
+- **Incomplete trips polluting prediction history** (`functions/lib/db.js`): `getRecentCompletedTrips` filtered on `endTime != null`, but incomplete trips have `endTime = startTime` (not null) and were included in the candidate pool. Added a post-fetch filter to exclude trips with `incomplete: true`.
+- **Variable name typo** (`functions/lib/handlers.js`): `handleEndTrip` passed `history` (undefined) instead of `historyBeforeEnd` to `PredictionEngine.evaluate()`, causing every SMS prediction evaluation to silently fail and write nothing to `predictionStats`.
 
 ## [1.3.1] - 2026-03-09
 

@@ -9,9 +9,22 @@
     <link rel="stylesheet" href="styles/modals.css">
     <style>
         .stats-container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 40px auto;
             padding: 20px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 640px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .stat-card {
@@ -22,10 +35,53 @@
             margin-bottom: 24px;
         }
 
+        .summary-grid .stat-card {
+            margin-bottom: 0;
+            text-align: center;
+        }
+
         .percentage {
-            font-size: 3em;
+            font-size: 2.8em;
             font-weight: 800;
             color: var(--accent-electric);
+        }
+
+        .card-label {
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .card-sub {
+            color: var(--text-secondary);
+            font-size: 0.85em;
+            margin-top: 4px;
+        }
+
+        .goal-bar-track {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            height: 6px;
+            margin-top: 12px;
+            overflow: hidden;
+        }
+
+        .goal-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            background: var(--accent-electric);
+            transition: width 0.4s ease;
+        }
+
+        .goal-bar-fill.at-goal {
+            background: #10b981;
+        }
+
+        .goal-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75em;
+            color: var(--text-secondary);
+            margin-top: 4px;
         }
 
         .hit {
@@ -34,6 +90,10 @@
 
         .miss {
             color: #ef4444;
+        }
+
+        .partial {
+            color: #f59e0b;
         }
 
         table {
@@ -45,16 +105,35 @@
         th,
         td {
             text-align: left;
-            padding: 12px;
+            padding: 10px 12px;
             border-bottom: 1px solid var(--border-color);
-            font-size: 0.9em;
+            font-size: 0.85em;
         }
 
-        .tag {
-            padding: 2px 6px;
+        th {
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 7px;
             border-radius: 4px;
             font-size: 0.8em;
-            background: var(--bg-tertiary);
+            font-weight: 700;
+        }
+
+        .badge-hit { background: #10b98120; color: #10b981; }
+        .badge-miss { background: #ef444420; color: #ef4444; }
+        .badge-partial { background: #f59e0b20; color: #f59e0b; }
+        .badge-none { background: var(--bg-tertiary); color: var(--text-secondary); }
+
+        .no-data {
+            color: var(--text-secondary);
+            font-style: italic;
         }
     </style>
 </head>
@@ -65,28 +144,48 @@
         <p style="color: var(--text-secondary); margin-bottom: 32px;">Testing the 90% accuracy goal before enabling UI
             suggestions.</p>
 
-        <div class="stat-card" style="text-align: center;">
-            <div id="accuracyPercent" class="percentage">0%</div>
-            <div style="font-weight: 600; margin-top: 8px;">Total Accuracy</div>
-            <div id="hitCounter" style="color: var(--text-secondary); font-size: 0.9em; margin-top: 4px;">0 hits / 0
-                total</div>
+        <div class="summary-grid">
+            <div class="stat-card">
+                <div id="routeAccuracyPercent" class="percentage">—</div>
+                <div class="card-label">Route Prediction</div>
+                <div id="routeHitCounter" class="card-sub">— hits / — total</div>
+                <div class="goal-bar-track">
+                    <div id="routeGoalBar" class="goal-bar-fill" style="width: 0%;"></div>
+                </div>
+                <div class="goal-label"><span>0%</span><span>Goal: 90%</span></div>
+            </div>
+
+            <div class="stat-card">
+                <div id="endStopAccuracyPercent" class="percentage">—</div>
+                <div class="card-label">End Stop (at start)</div>
+                <div id="endStopHitCounter" class="card-sub">— hits / — total</div>
+            </div>
+
+            <div class="stat-card">
+                <div id="durationAccuracyPercent" class="percentage">—</div>
+                <div class="card-label">End Stop (with duration)</div>
+                <div id="durationHitCounter" class="card-sub">— hits / — total</div>
+            </div>
         </div>
 
         <div class="stat-card">
-            <h3>Recent Predictions</h3>
+            <h3 style="margin-bottom: 0;">Recent Predictions</h3>
             <div style="overflow-x: auto;">
                 <table>
                     <thead>
                         <tr>
                             <th>Time</th>
-                            <th>Status</th>
-                            <th>Confidence</th>
-                            <th>Predicted</th>
-                            <th>Actual</th>
+                            <th>Route</th>
+                            <th>Conf</th>
+                            <th>Predicted Route</th>
+                            <th>Actual Route</th>
+                            <th>End Stop</th>
+                            <th>Predicted Stop</th>
+                            <th>Actual Stop</th>
                         </tr>
                     </thead>
                     <tbody id="statsTableBody">
-                        <!-- Stats go here -->
+                        <tr><td colspan="8" class="no-data">Loading…</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -106,37 +205,84 @@
             loadStats(user.uid);
         });
 
-        async function loadStats(userId) {
-            const snapshot = await db.collection('predictionStats')
-                .where('userId', '==', userId)
-                .orderBy('timestamp', 'desc')
-                .limit(50)
-                .get();
+        function fmtPct(hits, total) {
+            if (!total) return '—';
+            return Math.round((hits / total) * 100) + '%';
+        }
 
-            const stats = [];
-            snapshot.forEach(doc => stats.push(doc.data()));
+        function fmtCounter(hits, total) {
+            if (!total) return 'No data yet';
+            return `${hits} hits / ${total} total`;
+        }
+
+        async function loadStats(userId) {
+            const [accuracyDoc, statsSnap] = await Promise.all([
+                db.collection('predictionAccuracy').doc(userId).get(),
+                db.collection('predictionStats')
+                    .where('userId', '==', userId)
+                    .orderBy('timestamp', 'desc')
+                    .limit(50)
+                    .get(),
+            ]);
+
+            // Summary cards from pre-aggregated accuracy doc
+            if (accuracyDoc.exists) {
+                const a = accuracyDoc.data();
+                const routePct = a.total ? Math.round((a.hits / a.total) * 100) : null;
+
+                document.getElementById('routeAccuracyPercent').textContent = fmtPct(a.hits, a.total);
+                if (routePct !== null) {
+                    document.getElementById('routeAccuracyPercent').className =
+                        'percentage' + (routePct >= 90 ? ' hit' : '');
+                    const bar = document.getElementById('routeGoalBar');
+                    bar.style.width = Math.min(routePct, 100) + '%';
+                    if (routePct >= 90) bar.classList.add('at-goal');
+                }
+                document.getElementById('routeHitCounter').textContent = fmtCounter(a.hits, a.total);
+
+                document.getElementById('endStopAccuracyPercent').textContent = fmtPct(a.endStopHits, a.endStopTotal);
+                document.getElementById('endStopHitCounter').textContent = fmtCounter(a.endStopHits, a.endStopTotal);
+
+                document.getElementById('durationAccuracyPercent').textContent = fmtPct(a.durationEndStopHits, a.durationEndStopTotal);
+                document.getElementById('durationHitCounter').textContent = fmtCounter(a.durationEndStopHits, a.durationEndStopTotal);
+            }
+
+            // Recent predictions table
+            const stats = statsSnap.docs.map(d => d.data());
 
             if (stats.length === 0) {
-                document.getElementById('statsTableBody').innerHTML = '<tr><td colspan="5">No evaluation data yet. Finish a trip to see results.</td></tr>';
+                document.getElementById('statsTableBody').innerHTML =
+                    '<tr><td colspan="8" class="no-data">No evaluation data yet. Finish a trip to see results.</td></tr>';
                 return;
             }
 
-            const hits = stats.filter(s => s.isHit).length;
-            const accuracy = Math.round((hits / stats.length) * 100);
+            const html = stats.map(s => {
+                const routeStatus = s.isHit
+                    ? '<span class="badge badge-hit">HIT</span>'
+                    : s.isPartialHit
+                        ? '<span class="badge badge-partial">PARTIAL</span>'
+                        : '<span class="badge badge-miss">MISS</span>';
 
-            document.getElementById('accuracyPercent').textContent = `${accuracy}%`;
-            document.getElementById('accuracyPercent').className = `percentage ${accuracy >= 90 ? 'hit' : ''}`;
-            document.getElementById('hitCounter').textContent = `${hits} hits / ${stats.length} total`;
+                const endStopStatus = s.endStopHit === true
+                    ? '<span class="badge badge-hit">HIT</span>'
+                    : s.endStopHit === false
+                        ? '<span class="badge badge-miss">MISS</span>'
+                        : '<span class="badge badge-none">—</span>';
 
-            const html = stats.map(s => `
-                <tr>
-                    <td>${s.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                    <td class="${s.isHit ? 'hit' : 'miss'}" style="font-weight: 700;">${s.isHit ? 'HIT' : 'MISS'}</td>
-                    <td>${s.confidence}%</td>
-                    <td>${s.predicted}</td>
-                    <td>${s.actual}</td>
-                </tr>
-            `).join('');
+                const time = s.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || '—';
+
+                return `<tr>
+                    <td>${time}</td>
+                    <td>${routeStatus}</td>
+                    <td>${s.confidence != null ? s.confidence + '%' : '—'}</td>
+                    <td>${s.predicted || '—'}</td>
+                    <td>${s.actual || '—'}</td>
+                    <td>${endStopStatus}</td>
+                    <td>${s.endStopPredicted || '<span class="no-data">—</span>'}</td>
+                    <td>${s.endStopActual || '<span class="no-data">—</span>'}</td>
+                </tr>`;
+            }).join('');
+
             document.getElementById('statsTableBody').innerHTML = html;
         }
     </script>

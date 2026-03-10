@@ -1,9 +1,6 @@
 
 // TransitStats UI Utility Module
 export const UI = {
-    /**
-     * Load saved theme from localStorage
-     */
     loadSavedTheme: function () {
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'dark') {
@@ -143,6 +140,19 @@ export const UI = {
     closeSettings: function () {
         const modal = document.getElementById('settingsModal');
         if (modal) modal.style.display = 'none';
+    },
+
+    /**
+     * JS sanitization for inline event handlers
+     */
+    escapeForJs: function (unsafe) {
+        if (unsafe === null || unsafe === undefined) return '';
+        return String(unsafe)
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'")
+            .replace(/"/g, '&quot;')
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r');
     }
 };
 
