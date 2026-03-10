@@ -131,17 +131,15 @@ export const Auth = {
             return;
         }
 
-        signInBtn.disabled = true;
-        signInBtn.textContent = 'Signing in...';
+        UI.showLoading(signInBtn, 'Signing in...');
         this.hideError();
 
         try {
             await auth.signInWithEmailAndPassword(email, password);
         } catch (error) {
             console.error('Sign in error:', error);
+            UI.hideLoading(signInBtn);
             this.showError(this.getErrorMessage(error.code));
-            signInBtn.disabled = false;
-            signInBtn.textContent = 'Sign In';
         }
     },
 
@@ -162,6 +160,7 @@ export const Auth = {
             window.localStorage.setItem('emailForSignIn', email);
             this.showSuccess('Magic link sent! Check your email.');
         } catch (error) {
+            UI.hideLoading(magicLinkBtn);
             this.showError('Error sending magic link: ' + error.message);
         }
     },

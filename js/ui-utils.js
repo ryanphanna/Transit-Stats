@@ -153,6 +153,26 @@ export const UI = {
             .replace(/"/g, '&quot;')
             .replace(/\n/g, '\\n')
             .replace(/\r/g, '\\r');
+    },
+
+    /**
+     * Show loading state on a button
+     */
+    showLoading: function (button, loadingText = 'Loading...') {
+        if (!button) return;
+        button.disabled = true;
+        button.dataset.originalText = button.textContent;
+        button.textContent = loadingText;
+    },
+
+    /**
+     * Hide loading state on a button
+     */
+    hideLoading: function (button) {
+        if (!button || !button.dataset.originalText) return;
+        button.disabled = false;
+        button.textContent = button.dataset.originalText;
+        delete button.dataset.originalText;
     }
 };
 

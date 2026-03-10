@@ -1,12 +1,19 @@
 # Changelog
 
 **Current Project Versions:**
-- **Web App**: `v1.8.0`
+- **Web App**: `v1.8.1`
 - **Cloud Functions**: `v1.5.0`
 
 ---
 
 ## [Unreleased]
+
+## [1.8.1] - 2026-03-10
+
+### Fixed
+- **Authentication UI Crash**: Resolved `TypeError` where `UI.showLoading` was called but not defined in `js/ui-utils.js`, causing the login wall to hang with a generic error toast.
+- **Unified Loading States**: Implemented `showLoading` and `hideLoading` in `UI` utilities and refactored `Auth` module to use them consistently across all sign-in flows.
+- **Improved Error Clarity**: Updated error handling to ensure buttons are re-enabled if a Firebase request fails (e.g., due to domain restrictions).
 
 ## [1.8.0] / [1.5.0] - 2026-03-10
 
