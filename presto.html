@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransitStats | PRESTO Explorer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles/modals.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6366f1">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
+        integrity="sha384-NElt3Op+9NBMCYaef5HxeJmU4Xeard/Lku8ek6hoPTvYkQPh3zLIrJP7KiRocsxO"
+        crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+        integrity="sha384-c6Rcwz4e4CITMbu/NBmnNS8yN2sC3cUElMEMfP3vqqKFp7GOYaaBBCqmaWBjmkjb" crossorigin="anonymous" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"
+        integrity="sha384-RLIyj5q1b5XJTn0tqUhucRZe40nFTocRP91R/NkRJHwAe4XxnTV77FXy/vGLiec2"
+        crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css"
+        integrity="sha384-lPzjPsFQL6te2x+VxmV6q1DpRxpRk0tmnl2cpwAO5y04ESyc752tnEWPKDfl1olr" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css"
+        integrity="sha384-5kMSQJ6S4Qj5i09mtMNrWpSi8iXw230pKU76xTmrpezGnNJQzj0NzXjQLLg+jE7k" crossorigin="anonymous" />
+</head>
+
+<body class="map-forward-layout">
+    <div class="main-content">
+        <!-- Map Background -->
+        <div id="fullMapContainer"></div>
+
+        <div class="content-wrapper">
+            <div class="container">
+                <div id="authSection" class="section auth-section minimal-card">
+                    <div style="text-align: center; margin-bottom: 32px;">
+                        <h1 style="font-size: 2em; font-weight: 900; letter-spacing: -0.04em; margin-bottom: 8px;">
+                            TransitStats</h1>
+                        <p style="color: var(--text-secondary); font-weight: 500; font-size: 1.1em;">PRESTO Report
+                            Explorer</p>
+                    </div>
+
+                    <div style="text-align: center;">
+                        <p style="font-size: 0.9em; font-weight: 600; color: var(--text-primary); margin-bottom: 12px;">
+                            Drop a valid PRESTO Transit History CSV report to visualize your activity. Data stays
+                            locally on your device.
+                        </p>
+                        <label for="prestoImporterPublic" class="btn btn-outline"
+                            style="width: 100%; margin: 0; cursor: pointer; border-style: dashed;">
+                            📥 Select or Drop PRESTO Report
+                            <input type="file" id="prestoImporterPublic" accept=".csv" style="display: none;">
+                        </label>
+                        <div id="localDataStatusPublic"
+                            style="margin-top: 12px; font-size: 0.85em; color: var(--accent-electric); text-align: center; display: none; font-weight: 600;">
+                            <!-- Status injected here -->
+                        </div>
+
+                        <p
+                            style="font-size: 0.85em; color: var(--text-muted); text-align: center; margin-top: 32px; font-weight: 500;">
+                            <a href="/" style="color: var(--accent-primary); text-decoration: none;">&larr; Back to
+                                Login</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Need #mapPage container for the script to attach map floating controls if needed -->
+            <!-- Or we can just include the UI controls similarly here, but since auth limits them we can omit some. -->
+            <div id="mapPage" style="display: none;">
+                <!-- We let main.js handle any UI, or we can just leave it out if we don't want filters here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Need app-specific initialization for the PRESTO page -->
+    <script type="module" src="js/predict.js"></script>
+    <script type="module" src="js/main.js"></script>
+</body>
+
+</html>

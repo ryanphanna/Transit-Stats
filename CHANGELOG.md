@@ -8,6 +8,17 @@
 
 ## [Unreleased]
 
+### Added
+- **PRESTO Importer (Local-First)** (`js/importer.js`): Standalone client-side CSV parser that transforms PRESTO transaction reports into map-ready spatial points.
+- **Standalone PRESTO Importer** (`presto.html`): Extracted the client-side CSV parser and visualization into its own dedicated entry point rather than cluttering the main login screen.
+- **Privacy-First Storage** (`js/importer.js`): Imported data is stored exclusively in the browser's `localStorage`. No data is uploaded to Firestore, ensuring public users can explore their history without creating an account or leaking personal data.
+- **Vite Configuration** (`vite.config.js`): Added `presto.html` as a formal build entry point for the production output bundle.
+- **Heatmap Layering** (`js/visuals.js`): Updated the visualization engine to overlay local import data (in Amber) with manual cloud trips. Includes a toggle to show/hide imported activity independently.
+- **Decoupled Initialization** (`js/main.js`): Refactored the app lifecycle to load canonical stops and initialize the map engine before login, enabling unauthenticated tool usage.
+
+### Removed
+- Removed the PRESTO drag-and-drop zone from the unauthenticated state of `index.html`. Users must now visit `/presto` directly.
+
 ## [1.8.1] - 2026-03-10
 
 ### Fixed
