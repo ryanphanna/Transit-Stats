@@ -1,6 +1,6 @@
 {
     "name": "transit-stats",
-    "version": "1.8.1",
+    "version": "1.9.0",
     "description": "Personal transit trip tracker for enthusiasts to analyze ridership patterns.",
     "private": true,
     "repository": {

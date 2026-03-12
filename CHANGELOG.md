@@ -1,12 +1,23 @@
 # Changelog
 
 **Current Project Versions:**
-- **Web App**: `v1.8.2`
+- **Web App**: `v1.9.0`
 - **Cloud Functions**: `v1.5.0`
 
 ---
 
-## [Unreleased]
+## [1.9.0] - 2026-03-12
+
+### Changed
+- **UI Refinement**: Removed redundant branding footer and layout glitches (stray arrow/characters) for a cleaner, more focused landing page.
+- **Privacy Hardening**: Simplified the access request text to "Invite only." to reduce confusion.
+- **Dynamic Admin Tools**: The "Prediction Logs" monitoring link is now dynamically hidden and only revealed to verified administrators after login.
+
+### Fixed
+- **Authentication Glitch**: Resolved a malformed HTML body tag that caused rendering artifacts on the login screen.
+- **Cloud Security**: Hardened Firestore security rules for prediction data, ensuring users can only access their own accuracy metrics.
+
+## [1.8.3] - 2026-03-10
 
 ### Added
 - **Trip Comparison Dashboard** (`trips_comparison.html`): Introduced a new specialized view for correlating trip durations and identifying transit corridor trends over time.
