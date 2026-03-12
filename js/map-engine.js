@@ -236,6 +236,11 @@ export const MapEngine = {
         }
 
         this.updateStats(trips.length, locations.length, totalLocations, totalTrips);
+
+        // TRIGGER HEATMAP RENDERING (Including Local Taps)
+        if (window.Visuals) {
+            Visuals.renderPointHeatmap(trips, this.map);
+        }
     },
 
     updateStats: function (tripCount, stopCount, locationCount, totalTrips) {

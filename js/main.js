@@ -43,6 +43,7 @@ window.stopsLibrary = [];
 function initApp() {
     try {
         UI.loadSavedTheme();
+        loadStopsLibrary(); // Load stops library immediately for unauthenticated usage
         Auth.init();
         setupGlobalStateHandlers();
     } catch (error) {
@@ -63,7 +64,6 @@ if (document.readyState === 'loading') {
  * Global initialization called after successful authentication
  */
 window.initializeApp = function () {
-    loadStopsLibrary(); // Load stops after successful auth
     MapEngine.init();   // Initialize map for the current user
     Trips.init();
     Templates.init();
@@ -127,6 +127,8 @@ window.clearAppContext = function () {
     console.log('🧹 Application context cleared.');
 };
 
+import { Importer } from './importer.js';
+
 /**
  * Setup global handlers and listeners
  */
@@ -139,6 +141,80 @@ function setupGlobalStateHandlers() {
             navigateTo(screen);
         });
     });
+
+    // Importer UI Handlers
+    const prestoInput = document.getElementById('prestoImporter');
+    const prestoInputPublic = document.getElementById('prestoImporterPublic');
+
+    const handleImport = async (e) => {
+        if (e.target.files.length > 0) {
+            UI.showNotification('Parsing report...', 'info');
+            try {
+                const result = await Importer.handleFileUpload(e.target.files[0]);
+                UI.showNotification(`Import successful! Added ${result.count} new locations.`, 'success');
+                updateLocalDataStatus();
+                // Refresh map visuals
+                if (window.Visuals) {
+                    const trips = window.Trips ? Trips.allCompletedTrips : [];
+                    Visuals.renderPointHeatmap(trips, window.fullMap);
+                }
+            } catch (error) {
+                UI.showNotification('Import failed: ' + error.message, 'error');
+            }
+            e.target.value = ''; // Reset input
+        }
+    };
+
+    if (prestoInput) prestoInput.addEventListener('change', handleImport);
+    if (prestoInputPublic) prestoInputPublic.addEventListener('change', handleImport);
+
+    const clearBtn = document.getElementById('clearLocalDataBtn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            if (Importer.clearLocalData()) {
+                updateLocalDataStatus();
+                if (window.Visuals) {
+                    const trips = window.Trips ? Trips.allCompletedTrips : [];
+                    Visuals.renderPointHeatmap(trips, window.fullMap);
+                }
+            }
+        });
+    }
+
+    // Initial status update
+    updateLocalDataStatus();
+}
+
+/**
+ * Update the UI to reflect stored local data count
+ */
+function updateLocalDataStatus() {
+    const statusEl = document.getElementById('localDataStatus');
+    const statusElPublic = document.getElementById('localDataStatusPublic');
+    const clearBtn = document.getElementById('clearLocalDataBtn');
+
+    const taps = Importer.getLocalTaps();
+    const statusText = `📍 ${taps.length} locations loaded locally.`;
+
+    if (statusEl) {
+        if (taps.length > 0) {
+            statusEl.style.display = 'block';
+            statusEl.textContent = statusText;
+            if (clearBtn) clearBtn.style.display = 'inline-block';
+        } else {
+            statusEl.style.display = 'none';
+            if (clearBtn) clearBtn.style.display = 'none';
+        }
+    }
+
+    if (statusElPublic) {
+        if (taps.length > 0) {
+            statusElPublic.style.display = 'block';
+            statusElPublic.textContent = statusText;
+        } else {
+            statusElPublic.style.display = 'none';
+        }
+    }
 }
 
 
@@ -146,7 +222,7 @@ function setupGlobalStateHandlers() {
  * UI State Helpers
  */
 window.hideAllSections = function () {
-    const sections = ['profileSection', 'statsSection', 'mapPage'];
+    const sections = ['authSection', 'appContent', 'mapPage'];
     sections.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
@@ -155,13 +231,25 @@ window.hideAllSections = function () {
 
 window.goHome = function () {
     hideAllSections();
-    const dashboard = document.querySelector('.dashboard-grid') || document.getElementById('dashboardPanel');
-    if (dashboard) dashboard.style.display = 'grid';
+    const appContent = document.getElementById('appContent');
+    if (appContent) appContent.style.display = 'block';
+};
+
+window.showMaps = function() {
+    hideAllSections();
+    const mapPage = document.getElementById('mapPage');
+    if (mapPage) {
+        mapPage.style.display = 'block';
+        if (window.fullMap) {
+            window.fullMap.invalidateSize();
+        }
+    }
 };
 
 function navigateTo(screen) {
     hideAllSections();
-    // Implementation for dynamic navigation if needed
+    const el = document.getElementById(screen);
+    if (el) el.style.display = 'block';
 }
 
 // Dev Bypass logic

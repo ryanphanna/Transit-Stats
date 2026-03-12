@@ -93,12 +93,18 @@ export const Stats = {
     },
 
     updateProfileStats: function () {
-        if (!window.currentUser) return;
+        if (!window.currentUser) {
+            console.warn('Stats: updateProfileStats called but no user logged in.');
+            return;
+        }
+
+        console.log(`Stats: Fetching trips for user ${window.currentUser.uid}...`);
 
         db.collection('trips')
             .where('userId', '==', window.currentUser.uid)
             .get()
             .then((snapshot) => {
+                console.log(`Stats: Found ${snapshot.size} trips (Snapshot size).`);
                 const trips = [];
                 snapshot.forEach((doc) => {
                     trips.push(doc.data());
@@ -106,37 +112,15 @@ export const Stats = {
 
                 const streakData = this.calculateStreaks(trips);
 
-                const dashTrips = document.getElementById('dashTotalTrips');
-                const dashStops = document.getElementById('dashTotalStops');
-                const dashStreak = document.getElementById('dashCurrentStreak');
-
-                if (dashTrips) dashTrips.textContent = trips.length;
-                if (dashStreak) dashStreak.textContent = streakData.current;
-
-                const uniqueStops = new Set();
-                trips.forEach(t => {
-                    if (t.startStop) uniqueStops.add(t.startStop);
-                    if (t.endStop) uniqueStops.add(t.endStop);
-                    if (t.startStopCode) uniqueStops.add(t.startStopCode);
-                    if (t.endStopCode) uniqueStops.add(t.endStopCode);
-                });
-                if (dashStops) dashStops.textContent = uniqueStops.size;
-
-                const dashRoutes = document.getElementById('dashTotalRoutes');
-                if (dashRoutes) {
-                    const uniqueRoutes = new Set();
-                    trips.forEach(t => {
-                        if (t.route) uniqueRoutes.add(t.route);
-                    });
-                    dashRoutes.textContent = uniqueRoutes.size;
-                }
-
                 const profileStreak = document.getElementById('profileCurrentStreak');
                 const profileBest = document.getElementById('profileBestStreak');
                 if (profileStreak) profileStreak.textContent = streakData.current;
                 if (profileBest) profileBest.textContent = streakData.best;
 
                 this.calculateFounderStats(trips);
+            })
+            .catch(err => {
+                console.error('Stats: updateProfileStats error:', err);
             });
     },
 

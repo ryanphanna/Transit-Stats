@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trip Insights | TransitStats</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles/trips-comparison.css">
+    <style>
+        .trip-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+
+<body class="map-forward-layout">
+    <div class="comparison-container">
+        
+        <!-- Grid View -->
+        <div id="gridView">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+                <div>
+                    <h1 style="margin-bottom: 4px;">Trip Insights</h1>
+                    <p style="color: var(--text-secondary);">Analyze performance across your frequent routes.</p>
+                </div>
+                <button class="btn btn-outline" onclick="window.location.href='index.html'">Back</button>
+            </div>
+
+            <div class="corridor-grid" id="corridorGrid">
+                <!-- Injected via JS -->
+                 <div class="loader" style="grid-column: 1/-1; text-align: center; padding: 40px;">Syncing corridors...</div>
+            </div>
+        </div>
+
+        <!-- Detail View -->
+        <div id="detailView" class="detail-view">
+            <div class="back-link" onclick="TripsComparison.closeDetail()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                Back to all insights
+            </div>
+
+            <div class="detail-header">
+                <h1 id="detailTitle" style="margin-bottom: 4px;">—</h1>
+                <p style="color: var(--text-secondary);">Historical duration performance</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card" style="margin-bottom: 0; text-align: center; padding: 16px;">
+                    <div id="statAvg" class="stat-value">—</div>
+                    <div class="stat-label">Average</div>
+                </div>
+                <div class="stat-card" style="margin-bottom: 0; text-align: center; padding: 16px;">
+                    <div id="statMin" class="stat-value">—</div>
+                    <div class="stat-label">Fastest</div>
+                </div>
+                <div class="stat-card" style="margin-bottom: 0; text-align: center; padding: 16px;">
+                    <div id="statMax" class="stat-value">—</div>
+                    <div class="stat-label">Slowest</div>
+                </div>
+                <div class="stat-card" style="margin-bottom: 0; text-align: center; padding: 16px;">
+                    <div id="statCount" class="stat-value">—</div>
+                    <div class="stat-label">Total Trips</div>
+                </div>
+            </div>
+
+            <div class="full-sparkline" id="detailChart">
+                <!-- Large Sparkline -->
+            </div>
+
+            <h3 style="margin-bottom: 16px;">Recent Trips</h3>
+            <div id="corridorRecentTrips">
+                <!-- List of recent trips for this pair -->
+            </div>
+        </div>
+
+        <div style="margin-top: 60px; text-align: center;">
+            <button class="btn btn-outline" onclick="window.location.href='index.html'">Return to Dashboard</button>
+        </div>
+    </div>
+
+    <script type="module" src="js/trips-comparison.js"></script>
+</body>
+
+</html>

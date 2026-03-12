@@ -1,12 +1,36 @@
 # Changelog
 
 **Current Project Versions:**
-- **Web App**: `v1.8.1`
+- **Web App**: `v1.8.2`
 - **Cloud Functions**: `v1.5.0`
 
 ---
 
 ## [Unreleased]
+
+### Added
+- **Trip Comparison Dashboard** (`trips_comparison.html`): Introduced a new specialized view for correlating trip durations and identifying transit corridor trends over time.
+
+### Changed
+- **Dashboard Design Reversion**: Reverted the map-centric floating panel layout back to the stable, structured 3-column grid design for improved density and clarity.
+- **Navigation Architecture**: Restored the classic header and navigation structure, moving the interactive map to a dedicated view (`#mapPage`).
+- **Architectural Stability**: Preserved the transition to modular JavaScript (Vite + ESM) during the layout reversion, ensuring a faster and more maintainable codebase compared to the original monolithic version.
+
+## [1.8.2] - 2026-03-10
+
+### Added
+- **Diagnostic Logging**: Added verbose console logs to `js/stats.js` and `js/trips.js` to track Firestore data retrieval and pinpoint the "0 trips" data loading issue.
+- **Dashboard Profile Header**: Integrated user profile data (avatar and display name) directly into the dashboard card in `index.html` to provide immediate feedback on authentication state.
+
+### Changed
+- **UI Layout Overhaul**: Refactored the dashboard from a centered card to a floating sidebar panel (`.dashboard-floating-panel`) in `styles/layout.css`, improving map visibility and flow.
+- **Improved Interaction**: Updated pointer-event rules in CSS to ensure the Admin, Settings, and Filter buttons are consistently responsive.
+- **Responsive Dashboard Positioning**: Added media queries to ensure the dashboard panel adapts correctly on mobile devices.
+
+### Fixed
+- **Navigation Button Dead-Zone**: Resolved a layout issue where the dashboard container was overlapping and blocking interactive header elements.
+- **Centering Logic**: Fixed rigid centering constraints that caused UI jumps between login and authenticated states.
+
 
 ### Added
 - **PRESTO Importer (Local-First)** (`js/importer.js`): Standalone client-side CSV parser that transforms PRESTO transaction reports into map-ready spatial points.

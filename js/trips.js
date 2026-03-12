@@ -52,10 +52,12 @@ export const Trips = {
 
         if (!window.currentUser) return;
 
+        console.log(`Trips: Setting up listener for user ${window.currentUser.uid}...`);
         this.tripsListener = db.collection('trips')
             .where('userId', '==', window.currentUser.uid)
             .orderBy('startTime', 'desc')
             .onSnapshot((snapshot) => {
+                console.log(`Trips: Received snapshot with ${snapshot.size} docs.`);
                 this.allCompletedTrips = snapshot.docs
                     .filter(doc => {
                         const data = doc.data();

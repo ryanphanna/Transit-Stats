@@ -38,6 +38,9 @@ export const Auth = {
                     if (document.getElementById('adminBtn')) {
                         document.getElementById('adminBtn').style.display = isAdmin ? 'block' : 'none';
                     }
+                    if (document.getElementById('predictionLogsLink')) {
+                        document.getElementById('predictionLogsLink').style.display = isAdmin ? 'block' : 'none';
+                    }
 
                     console.log('✅ User authenticated' + (isAdmin ? ' (Admin)' : ''));
                     this.showApp();

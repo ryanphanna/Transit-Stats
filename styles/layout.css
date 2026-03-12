@@ -2,103 +2,31 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    background-color: var(--bg-primary);
-    position: relative;
-    pointer-events: none;
-    /* Let clicks pass through to map behind it by default */
-}
-
-
-
-.main-content::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at center, transparent 0%, var(--bg-primary) 100%);
-    opacity: 0.4;
-    pointer-events: none;
-    z-index: 0;
-    /* Changed from 1 to 0 so it doesn't block clicks */
-}
-
-/* Re-enable and soften vignette for light mode */
-.map-forward-layout:not(.user-logged-in) .main-content::before {
-    display: block;
-    background: radial-gradient(circle at center, transparent 30%, rgba(255, 255, 255, 0.8) 100%);
-    opacity: 0.8;
 }
 
 .content-wrapper {
     flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     padding: 24px;
-    position: relative;
-    z-index: 5;
-    pointer-events: none;
-    /* Let clicks pass through empty space */
 }
 
 .container {
-    width: 100%;
-    max-width: 480px;
+    max-width: 1200px;
     margin: 0 auto;
-    pointer-events: auto;
-    /* Re-enable for the main card container */
+    width: 100%;
 }
 
-/* Re-enable pointer events for interactive elements that might reside directly in main-content */
-.pill-nav {
-    pointer-events: auto;
-}
-
-@media (max-width: 480px) {
-    .content-wrapper {
-        padding: 16px;
-    }
-}
-
-/* --- Pill Nav --- */
-.pill-nav {
-    position: fixed;
-    top: 24px;
-    right: 24px;
-    display: flex;
-    gap: 8px;
-    z-index: 100;
-}
-
-/* --- Animations --- */
-@keyframes fadeInScale {
-    from {
-        opacity: 0;
-        transform: scale(0.98) translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-
-.auth-section {
-    animation: fadeInScale 0.6s cubic-bezier(0.2, 0, 0, 1) forwards;
-}
-
+/* --- Header --- */
 .header {
     background: var(--bg-secondary);
     color: var(--text-primary);
-    padding: 16px 24px;
+    padding: 12px 20px;
     box-shadow: var(--shadow-sm);
     border-bottom: 1px solid var(--border-color);
     position: sticky;
     top: 0;
     z-index: 100;
-    background: var(--bg-secondary);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .header-row {
@@ -108,12 +36,55 @@
     gap: 10px;
 }
 
+.header-title {
+    font-size: 1.25em;
+    font-weight: 800;
+    cursor: pointer;
+    letter-spacing: -0.5px;
+}
+
+.user-info {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.header-btn {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.header-btn:hover {
+    background: var(--border-color);
+    color: var(--text-primary);
+}
+
+.header-btn.text-btn {
+    padding: 8px 16px;
+}
+
+/* --- Dashboard Grid --- */
 .dashboard-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 20px;
-    max-width: 1600px;
-    margin: 0 auto;
+    gap: 24px;
+}
+
+@media (min-width: 1024px) {
+    .dashboard-grid {
+        grid-template-columns: 300px 1fr 300px;
+        align-items: start;
+    }
 }
 
 .col-left,
@@ -121,36 +92,27 @@
 .col-right {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 24px;
 }
 
-.footer {
-    padding: 20px;
-    margin-top: auto;
-    text-align: center;
+/* --- Map Page --- */
+#mapPage {
+    padding: 0;
+    position: relative;
 }
 
-.footer-divider {
-    border: none;
-    border-top: 1px solid var(--border-color);
-    margin-bottom: 20px;
+#fullMapContainer {
     width: 100%;
-    opacity: 0.6;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
 }
 
-.footer-brand {
-    font-size: 0.9em;
-    font-weight: 700;
-    color: var(--text-secondary);
-    letter-spacing: -0.2px;
+/* --- Animations --- */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-@media (min-width: 1200px) {
-    .dashboard-grid {
-        grid-template-columns: 320px minmax(auto, 1fr) 320px;
-        align-items: start;
-        gap: 25px;
-        padding: 0 20px;
-        max-width: 1200px;
-    }
+.section {
+    animation: fadeIn 0.4s ease-out forwards;
 }
