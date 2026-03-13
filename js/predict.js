@@ -258,25 +258,37 @@ export const PredictionEngine = {
         return true;
     },
 
+    _stopsIndex: new Map(),
+
     /**
      * Resolve a stop name to its canonical form using the stops library.
      * Falls back to lowercased input if not found in the library.
      */
     _canonicalizeStop: function (name) {
         if (!name) return null;
-        const lower = name.trim().toLowerCase()
+
+        const canon = n => n.trim().toLowerCase()
             .replace(/\s*[\/&@]\s*/g, '/')
             .replace(/\s+at\s+/g, '/');
-        if (this.stopsLibrary && this.stopsLibrary.length > 0) {
-            const match = this.stopsLibrary.find(s => {
-                const candidates = [s.name, ...(s.aliases || [])];
-                return candidates.some(c => c.trim().toLowerCase()
-                    .replace(/\s*[\/&@]\s*/g, '/')
-                    .replace(/\s+at\s+/g, '/') === lower);
-            });
-            if (match) return match.name.toLowerCase().replace(/\s*[\/&@]\s*/g, '/').replace(/\s+at\s+/g, '/');
+
+        const lower = canon(name);
+
+        if (this._stopsIndex.size === 0 && this.stopsLibrary && this.stopsLibrary.length > 0) {
+            console.log(`\ud83d\udd2e PredictionEngine: Building stops index (${this.stopsLibrary.length} items)...`);
+            const lib = this.stopsLibrary;
+            for (let i = 0; i < lib.length; i++) {
+                const s = lib[i];
+                const cName = canon(s.name);
+                this._stopsIndex.set(cName, cName);
+                if (s.aliases && Array.isArray(s.aliases)) {
+                    for (let j = 0; j < s.aliases.length; j++) {
+                        this._stopsIndex.set(canon(s.aliases[j]), cName);
+                    }
+                }
+            }
         }
-        return lower;
+
+        return this._stopsIndex.get(lower) || lower;
     },
 
     _stopMatch: function (a, b) {

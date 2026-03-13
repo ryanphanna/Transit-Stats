@@ -69,7 +69,7 @@ async function handleSmsRequest(req, res) {
     }
 
     // 2. Idempotency
-    if (await checkIdempotency(req.body.MessageSid)) {
+    if (req.body.MessageSid && await checkIdempotency(req.body.MessageSid)) {
       logger.info('Duplicate Message', { MessageSid: req.body.MessageSid });
       res.type('text/xml').send(twimlResponse(''));
       return;

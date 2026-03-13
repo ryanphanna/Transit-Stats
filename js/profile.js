@@ -100,7 +100,14 @@ export const Profile = {
         };
 
         db.collection('profiles').doc(window.currentUser.uid).set(profileData, { merge: true })
-            .then(() => {
+            .then(async () => {
+                // Sync isPublic to all trips so Firestore rules don't need a profile lookup per trip
+                const tripsSnap = await db.collection('trips')
+                    .where('userId', '==', window.currentUser.uid)
+                    .get();
+                const batch = db.batch();
+                tripsSnap.docs.forEach(doc => batch.update(doc.ref, { isPublic: isPublic }));
+                await batch.commit();
                 UI.showNotification('Profile saved successfully!', 'success');
                 this.load();
                 if (window.closeSettings) window.closeSettings();

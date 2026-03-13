@@ -11,7 +11,6 @@ export default defineConfig({
                 main: './index.html',
                 public: './public.html',
                 admin: './admin.html',
-                presto: './presto.html',
             },
         },
     },

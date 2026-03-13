@@ -64,11 +64,16 @@ if (document.readyState === 'loading') {
  * Global initialization called after successful authentication
  */
 window.initializeApp = function () {
-    MapEngine.init();   // Initialize map for the current user
+    // Initialize Trips and Templates immediately — these drive the main UI
     Trips.init();
     Templates.init();
-    Stats.init();
-    checkActiveTrip();
+
+    // Defer Stats and Map until Trips has its first snapshot, so they don’t
+    // compete with the initial read and Stats can use Trips.allCompletedTrips directly.
+    Trips._readyPromise.then(() => {
+        Stats.init();
+        MapEngine.init();
+    });
 };
 
 /**
@@ -79,6 +84,9 @@ async function loadStopsLibrary() {
         const snapshot = await db.collection('stops').get();
         window.stopsLibrary = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         PredictionEngine.stopsLibrary = window.stopsLibrary;
+        if (window.Trips && typeof window.Trips.rebuildStopsIndex === 'function') {
+            window.Trips.rebuildStopsIndex();
+        }
         console.log(`Loaded ${window.stopsLibrary.length} stops for resolution`);
     } catch (error) {
         console.error('Error loading stops library:', error);
@@ -94,7 +102,6 @@ let activeTripListener = null;
 window.checkActiveTrip = function () {
     if (!window.currentUser) return;
 
-    // Clean up existing listener if any
     if (activeTripListener) activeTripListener();
 
     activeTripListener = db.collection('trips')
@@ -121,14 +128,15 @@ window.clearAppContext = function () {
         activeTripListener();
         activeTripListener = null;
     }
+    if (window.Trips && window.Trips.tripsListener) {
+        window.Trips.tripsListener();
+        window.Trips.tripsListener = null;
+    }
     window.currentUser = null;
     window.activeTrip = null;
     window.stopsLibrary = [];
     console.log('🧹 Application context cleared.');
 };
-
-import { Importer } from './importer.js';
-
 /**
  * Setup global handlers and listeners
  */
@@ -141,82 +149,7 @@ function setupGlobalStateHandlers() {
             navigateTo(screen);
         });
     });
-
-    // Importer UI Handlers
-    const prestoInput = document.getElementById('prestoImporter');
-    const prestoInputPublic = document.getElementById('prestoImporterPublic');
-
-    const handleImport = async (e) => {
-        if (e.target.files.length > 0) {
-            UI.showNotification('Parsing report...', 'info');
-            try {
-                const result = await Importer.handleFileUpload(e.target.files[0]);
-                UI.showNotification(`Import successful! Added ${result.count} new locations.`, 'success');
-                updateLocalDataStatus();
-                // Refresh map visuals
-                if (window.Visuals) {
-                    const trips = window.Trips ? Trips.allCompletedTrips : [];
-                    Visuals.renderPointHeatmap(trips, window.fullMap);
-                }
-            } catch (error) {
-                UI.showNotification('Import failed: ' + error.message, 'error');
-            }
-            e.target.value = ''; // Reset input
-        }
-    };
-
-    if (prestoInput) prestoInput.addEventListener('change', handleImport);
-    if (prestoInputPublic) prestoInputPublic.addEventListener('change', handleImport);
-
-    const clearBtn = document.getElementById('clearLocalDataBtn');
-    if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-            if (Importer.clearLocalData()) {
-                updateLocalDataStatus();
-                if (window.Visuals) {
-                    const trips = window.Trips ? Trips.allCompletedTrips : [];
-                    Visuals.renderPointHeatmap(trips, window.fullMap);
-                }
-            }
-        });
-    }
-
-    // Initial status update
-    updateLocalDataStatus();
 }
-
-/**
- * Update the UI to reflect stored local data count
- */
-function updateLocalDataStatus() {
-    const statusEl = document.getElementById('localDataStatus');
-    const statusElPublic = document.getElementById('localDataStatusPublic');
-    const clearBtn = document.getElementById('clearLocalDataBtn');
-
-    const taps = Importer.getLocalTaps();
-    const statusText = `📍 ${taps.length} locations loaded locally.`;
-
-    if (statusEl) {
-        if (taps.length > 0) {
-            statusEl.style.display = 'block';
-            statusEl.textContent = statusText;
-            if (clearBtn) clearBtn.style.display = 'inline-block';
-        } else {
-            statusEl.style.display = 'none';
-            if (clearBtn) clearBtn.style.display = 'none';
-        }
-    }
-
-    if (statusElPublic) {
-        if (taps.length > 0) {
-            statusElPublic.style.display = 'block';
-            statusElPublic.textContent = statusText;
-        } else {
-            statusElPublic.style.display = 'none';
-        }
-    }
-}
-
 
 /**
  * UI State Helpers
@@ -231,6 +164,7 @@ window.hideAllSections = function () {
 
 window.goHome = function () {
     hideAllSections();
+    document.body.classList.remove('map-visible');
     const appContent = document.getElementById('appContent');
     if (appContent) appContent.style.display = 'block';
 };
@@ -240,6 +174,7 @@ window.showMaps = function() {
     const mapPage = document.getElementById('mapPage');
     if (mapPage) {
         mapPage.style.display = 'block';
+        document.body.classList.add('map-visible');
         if (window.fullMap) {
             window.fullMap.invalidateSize();
         }
@@ -260,5 +195,10 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
         Auth.showApp();
     };
 }
+
+// saveSettings is a convenience alias for Profile.save
+window.saveSettings = function () {
+    if (window.Profile) window.Profile.save();
+};
 
 console.log('TransitStats Ready!');

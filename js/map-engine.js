@@ -48,6 +48,19 @@ export const MapEngine = {
     loadData: function () {
         if (!window.currentUser) return;
 
+        // Prefer the cached trip data from Trips module to avoid an extra Firestore read.
+        // Trips.allCompletedTrips is populated by the real-time snapshot listener.
+        if (window.Trips && window.Trips.allCompletedTrips && window.Trips.allCompletedTrips.length > 0) {
+            console.log('MapEngine: Reusing cached trip data.');
+            const allTrips = window.Trips.allCompletedTrips;
+            const trips = allTrips.filter(t => t.boardingLocation || t.exitLocation);
+            this.mapTripsData = trips;
+            this.createFullMap(trips, allTrips.length);
+            return;
+        }
+
+        // Fallback: query Firestore (e.g. if map is opened before trips snapshot fires)
+        console.log('MapEngine: Querying Firestore for trip data (fallback).');
         db.collection('trips')
             .where('userId', '==', window.currentUser.uid)
             .get()
@@ -74,8 +87,6 @@ export const MapEngine = {
     createFullMap: function (trips, totalTrips, center) {
         const container = document.getElementById('fullMapContainer');
         if (!container) return;
-
-        container.innerHTML = '';
 
         // Clear existing layers if any
         if (this.mapLayers) {
@@ -146,35 +157,50 @@ export const MapEngine = {
             return;
         }
 
-        // Calculate bounds
-        const lats = locations.map(loc => loc.lat);
-        const lons = locations.map(loc => loc.lon);
-        const avgLat = (Math.min(...lats) + Math.max(...lats)) / 2;
-        const avgLon = (Math.min(...lons) + Math.max(...lons)) / 2;
-
-        // Create map
+        // Initialize or update existing map
         if (this.map) {
-            this.map.remove();
+            if (center) {
+                this.map.setView(center, 13);
+            } else if (locations.length > 0) {
+                const validLats = locations.map(l => l.lat).filter(l => !isNaN(l));
+                const validLons = locations.map(l => l.lon).filter(l => !isNaN(l));
+                
+                if (validLats.length > 0) {
+                    const avgLat = (Math.min(...validLats) + Math.max(...validLats)) / 2;
+                    const avgLon = (Math.min(...validLons) + Math.max(...validLons)) / 2;
+                    if (!isNaN(avgLat) && !isNaN(avgLon)) { // Ensure calculated center is valid
+                        this.map.setView([avgLat, avgLon], 13);
+                    }
+                }
+            }
+        } else {
+            if (typeof L === 'undefined') {
+                console.error('Leaflet is not loaded');
+                return;
+            }
+
+            const initialCenter = center || [43.6532, -79.3832]; // Default to Toronto if no center and no locations
+            this.map = L.map('fullMapContainer', {
+                zoomControl: false,
+                doubleClickZoom: !center,
+                scrollWheelZoom: !center,
+                dragging: !center,
+                touchZoom: !center,
+                tap: !center,
+                attributionControl: false
+            }).setView(initialCenter, 13);
+
+            if (!center) {
+                L.control.zoom({ position: 'bottomright' }).addTo(this.map);
+            }
         }
 
-        if (typeof L === 'undefined') {
-            console.error('Leaflet is not loaded');
-            return;
-        }
-
-        this.map = L.map('fullMapContainer', {
-            zoomControl: false,
-            doubleClickZoom: !center,
-            scrollWheelZoom: !center,
-            dragging: !center,
-            touchZoom: !center,
-            tap: !center,
-            attributionControl: false
-        }).setView(center || [avgLat, avgLon], 13);
-
-        if (!center) {
-            L.control.zoom({ position: 'bottomright' }).addTo(this.map);
-        }
+        // Clear existing markers and layers before adding new ones
+        this.map.eachLayer(layer => {
+            if (layer !== this.baseLayer && layer !== this.transitLayer) {
+                this.map.removeLayer(layer);
+            }
+        });
 
         const isDark = document.body.getAttribute('data-theme') === 'dark';
         const baseTileUrl = isDark
@@ -213,33 +239,44 @@ export const MapEngine = {
             }).addTo(this.map).bindPopup(loc.name);
         });
 
-        // DRAW SPIDER LINES
-        trips.forEach(trip => {
+        // DRAW SPIDER LINES (Limited to prevent UI hang)
+        const spiderLayer = L.layerGroup();
+        const MAX_SPIDER_LINES = 150;
+        let lineCount = 0;
+
+        for (const trip of trips) {
             if (trip.boardingLocation && trip.exitLocation) {
-                const line = L.polyline([
+                L.polyline([
                     [trip.boardingLocation.lat, trip.boardingLocation.lng],
                     [trip.exitLocation.lat, trip.exitLocation.lng]
                 ], {
-                    color: '#6366f1', // Electric Indigo
-                    weight: 1.5,
-                    opacity: 0.1,
-                    smoothFactor: 1.5,
-                    dashArray: '4, 4' // Dashed lines look cleaner for transit connections
-                }).addTo(this.map);
-                this.mapLayers.push(line);
+                    color: '#6366f1',
+                    weight: 1.2,
+                    opacity: 0.08,
+                    smoothFactor: 2.0,
+                    dashArray: '4, 4',
+                    interactive: false
+                }).addTo(spiderLayer);
+                
+                lineCount++;
+                if (lineCount >= MAX_SPIDER_LINES) break;
             }
-        });
+        }
+        spiderLayer.addTo(this.map);
+        this.mapLayers.push(spiderLayer);
 
         if (locations.length > 1) {
             const bounds = L.latLngBounds(locations.map(l => [l.lat, l.lon]));
-            this.map.fitBounds(bounds, { padding: [30, 30] });
+            this.map.fitBounds(bounds, { padding: [30, 30], animate: false });
         }
 
         this.updateStats(trips.length, locations.length, totalLocations, totalTrips);
 
-        // TRIGGER HEATMAP RENDERING (Including Local Taps)
+        // TRIGGER HEATMAP RENDERING (Deferred to prevent thread lock)
         if (window.Visuals) {
-            Visuals.renderPointHeatmap(trips, this.map);
+            setTimeout(() => {
+                Visuals.renderPointHeatmap(trips, this.map);
+            }, 100);
         }
     },
 

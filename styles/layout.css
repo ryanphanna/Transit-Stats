@@ -6,27 +6,26 @@
 
 .content-wrapper {
     flex: 1;
-    padding: 24px;
+    padding: 24px 0;
 }
 
 .container {
     max-width: 1200px;
     margin: 0 auto;
     width: 100%;
+    padding: 0 24px;
 }
 
 /* --- Header --- */
 .header {
     background: var(--bg-secondary);
     color: var(--text-primary);
-    padding: 12px 20px;
+    padding: 12px 0;
     box-shadow: var(--shadow-sm);
     border-bottom: 1px solid var(--border-color);
     position: sticky;
     top: 0;
     z-index: 100;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
 }
 
 .header-row {
@@ -50,8 +49,8 @@
 }
 
 .header-btn {
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
+    background: transparent;
+    border: none;
     color: var(--text-secondary);
     padding: 8px 12px;
     border-radius: var(--radius-sm);
@@ -65,7 +64,6 @@
 }
 
 .header-btn:hover {
-    background: var(--border-color);
     color: var(--text-primary);
 }
 

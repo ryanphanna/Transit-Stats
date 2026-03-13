@@ -10,14 +10,96 @@ import { PredictionEngine } from './predict.js';
  * Handles loading, rendering, and managing trips
  */
 export const Trips = {
+
+    rebuildStopsIndex: function () {
+        const lib = window.stopsLibrary || [];
+        if (lib.length === 0) return;
+
+        // Clear existing indices
+        this.stopsIndex.clear();
+        this.stopNormalizationCache.clear();
+        
+        console.log(`\ud83d\udd0d Indexing ${lib.length} stops progressively...`);
+        
+        let i = 0;
+        const BATCH_SIZE = 400;
+        
+        const processBatch = () => {
+            const end = Math.min(i + BATCH_SIZE, lib.length);
+            for (; i < end; i++) {
+                const stop = lib[i];
+                if (stop.code) {
+                    this.stopsIndex.set(`code:${stop.code}`, stop);
+                }
+                
+                const processName = (n) => {
+                    if (!n) return;
+                    const lower = n.toLowerCase();
+                    const canon = this.normalizeStopName(n).toLowerCase();
+                    this.stopsIndex.set(`name:${lower}`, stop);
+                    if (canon !== lower) {
+                        this.stopsIndex.set(`name:${canon}`, stop);
+                    }
+                };
+
+                processName(stop.name);
+                if (stop.aliases && Array.isArray(stop.aliases)) {
+                    stop.aliases.forEach(alias => processName(alias));
+                }
+            }
+            
+            if (i < lib.length) {
+                // Use requestIdleCallback if available, otherwise setTimeout
+                if (window.requestIdleCallback) {
+                    window.requestIdleCallback(processBatch);
+                } else {
+                    setTimeout(processBatch, 0);
+                }
+            } else {
+                this.isIndexing = false;
+                console.log(`\u2705 Indexed ${this.stopsIndex.size} stop patterns.`);
+            }
+        };
+        
+        processBatch();
+    },
+
+    lookupStopInLibrary: function (code, name) {
+        if (this.stopsIndex.size === 0 && window.stopsLibrary && window.stopsLibrary.length > 0 && !this.isIndexing) {
+            this.rebuildStopsIndex();
+        }
+
+        if (code) {
+            const byCode = this.stopsIndex.get(`code:${code}`);
+            if (byCode) return byCode;
+        }
+
+        if (name) {
+            const lower = name.toLowerCase().trim();
+            const byName = this.stopsIndex.get(`name:${lower}`);
+            if (byName) return byName;
+            
+            // Also try normalized intersection form
+            const canon = this.normalizeStopName(name).toLowerCase();
+            const byCanon = this.stopsIndex.get(`name:${canon}`);
+            if (byCanon) return byCanon;
+        }
+
+        return null;
+    },
+
     allCompletedTrips: [],
     displayedTripsCount: 0,
     TRIPS_PER_BATCH: 15,
     tripsObserver: null,
+    stopNormalizationCache: new Map(),
+    stopsIndex: new Map(),
+    _readyPromise: null,
+    _resolveReady: null,
 
     init: function () {
+        this._readyPromise = new Promise(resolve => { this._resolveReady = resolve; });
         this.load();
-        this.loadLast();
         this.setupEventListeners();
     },
 
@@ -63,7 +145,29 @@ export const Trips = {
                         const data = doc.data();
                         return (data.endStop != null || data.endStopName != null) || data.discarded === true;
                     })
-                    .map(doc => ({ id: doc.id, ...doc.data() }));
+                    .map(doc => {
+                        const data = doc.data();
+                        // Pre-calculate normalized names to avoid expensive re-computation during interactions
+                        const rawStart = data.startStopName || data.startStop || '';
+                        const rawEnd = data.endStopName || data.endStop || '';
+                        
+                        const displayStart = this.normalizeStopName(rawStart);
+                        const displayEnd = this.normalizeStopName(rawEnd);
+
+                        return { 
+                            id: doc.id, 
+                            ...data,
+                            _displayStart: displayStart,
+                            _displayEnd: displayEnd,
+                            _normStart: displayStart.toLowerCase(),
+                            _normEnd: displayEnd.toLowerCase()
+                        };
+                    });
+
+                if (this._resolveReady) {
+                    this._resolveReady();
+                    this._resolveReady = null;
+                }
 
                 this.displayedTripsCount = 0;
                 recentTripsList.innerHTML = '';
@@ -185,7 +289,8 @@ export const Trips = {
                 agency: matchedStartStop ? matchedStartStop.agency : (window.currentUserProfile?.defaultAgency || 'TTC'),
                 direction: direction ? PredictionEngine._normalizeDirection(direction) : null,
                 source: 'web',
-                verified: !!matchedStartStop
+                verified: !!matchedStartStop,
+                isPublic: window.currentUserProfile?.isPublic || false
             };
 
             db.collection('trips').add(tripData)
@@ -266,7 +371,8 @@ export const Trips = {
                     Templates.load();
                     Stats.updateProfileStats();
                     this.logAccuracy(window.activeTrip, updateData);
-                    this.load();
+                    // Note: this.load() is intentionally omitted — the onSnapshot listener
+                    // already picks up the update in real-time.
                     this.loadLast();
 
                     UI.showNotification('Trip saved successfully!', 'success');
@@ -377,6 +483,9 @@ export const Trips = {
         const sentinel = document.getElementById('tripsSentinel');
         if (!sentinel) return;
 
+        // Always disconnect before creating a new observer to avoid accumulating observers
+        if (this.tripsObserver) this.tripsObserver.disconnect();
+
         this.tripsObserver = new IntersectionObserver((entries) => {
             if (entries[0].isIntersecting && this.displayedTripsCount < this.allCompletedTrips.length) {
                 this.displayMore();
@@ -432,12 +541,29 @@ export const Trips = {
         db.collection('trips').doc(id).update(data)
             .then(() => {
                 this.closeEditTripModal();
-                this.load();
+                // onSnapshot listener handles UI refresh automatically
                 UI.showNotification('Trip updated', 'success');
             })
             .catch(err => {
                 console.error('Error saving edited trip:', err);
                 UI.showNotification('Error updating trip', 'error');
+            });
+    },
+
+    deleteTrip: function () {
+        const id = document.getElementById('editTripId')?.value;
+        if (!id) return;
+        if (!confirm('Are you sure you want to delete this trip? This cannot be undone.')) return;
+
+        db.collection('trips').doc(id).delete()
+            .then(() => {
+                this.closeEditTripModal();
+                // onSnapshot listener handles UI refresh automatically
+                UI.showNotification('Trip deleted', 'success');
+            })
+            .catch(err => {
+                console.error('Error deleting trip:', err);
+                UI.showNotification('Error deleting trip', 'error');
             });
     },
 
@@ -457,24 +583,41 @@ export const Trips = {
      * Non-intersection names are returned title-cased but otherwise unchanged.
      */
     normalizeStopName: function (str) {
-        if (!str) return str;
+        if (!str || typeof str !== 'string') return str;
+        if (this.stopNormalizationCache.has(str)) return this.stopNormalizationCache.get(str);
+
         const trimmed = str.trim();
-        const titleCase = s => s.replace(/\b\w+/g, w =>
-            ['at', 'and', 'the', 'of', 'for', 'on'].includes(w.toLowerCase())
-                ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
-        );
+        if (!trimmed) return '';
+
+        // Optimization: if it's already in the format "X / Y" or "X & Y" and doesn't need title casing, we can skip heavy regex
+        
+        const titleCase = s => {
+            if (!s) return '';
+            // Match words and replace them. Optimization: pre-calculate lower case for comparison.
+            return s.toLowerCase().replace(/\b\w+/g, (w, offset) => {
+                if (offset > 0 && ['at', 'and', 'the', 'of', 'for', 'on', '&'].includes(w)) return w;
+                return w.charAt(0).toUpperCase() + w.slice(1);
+            });
+        };
+        
         // Check for a leading stop code prefix like "13161 Spadina / King" — strip the code
         const codePrefix = trimmed.match(/^(\d{4,6})\s+(.+)$/);
         const core = codePrefix ? codePrefix[2] : trimmed;
+        
         // Detect intersection: contains / & or standalone "at"
         const intersectionMatch = core.match(/^(.+?)\s*(?:\/|&|\bat\b)\s*(.+)$/i);
+        let result;
         if (intersectionMatch) {
             const a = titleCase(intersectionMatch[1].trim());
             const b = titleCase(intersectionMatch[2].trim());
             const intersectionPart = `${a} / ${b}`;
-            return codePrefix ? `${codePrefix[1]} ${intersectionPart}` : intersectionPart;
+            result = codePrefix ? `${codePrefix[1]} ${intersectionPart}` : intersectionPart;
+        } else {
+            result = codePrefix ? trimmed : titleCase(trimmed);
         }
-        return codePrefix ? trimmed : titleCase(trimmed);
+
+        this.stopNormalizationCache.set(str, result);
+        return result;
     },
 
     parseStopInput: function (input) {
@@ -490,22 +633,25 @@ export const Trips = {
     },
 
     lookupStopInLibrary: function (code, name) {
-        const lib = window.stopsLibrary || [];
+        if (this.stopsIndex.size === 0 && window.stopsLibrary && window.stopsLibrary.length > 0) {
+            this.rebuildStopsIndex();
+        }
+
         if (code) {
-            const stop = lib.find(s => s.code === code);
+            const stop = this.stopsIndex.get(`code:${code}`);
             if (stop) return stop;
         }
+
         if (name) {
             const lower = name.toLowerCase();
-            const normLower = this.normalizeStopName(name).toLowerCase();
-            return lib.find(s => {
-                const candidates = [s.name, ...(s.aliases || [])];
-                return candidates.some(c => {
-                    const cLower = c.toLowerCase();
-                    return cLower === lower || this.normalizeStopName(c).toLowerCase() === normLower;
-                });
-            });
+            const stopByDirectName = this.stopsIndex.get(`name:${lower}`);
+            if (stopByDirectName) return stopByDirectName;
+
+            const canon = this.normalizeStopName(name).toLowerCase();
+            const stopByCanonName = this.stopsIndex.get(`name:${canon}`);
+            if (stopByCanonName) return stopByCanonName;
         }
+
         return null;
     },
 
@@ -540,21 +686,26 @@ export const Trips = {
             const dirMatch = ctxDirNorm && t.direction &&
                 t.direction.toLowerCase().replace(/bound$/i, '').trim() === ctxDirNorm;
 
-            // For end field: prefer end stops from trips that started at the same stop on the same route
             const isSequenceMatch = ctx.field === 'end' && ctx.startStop && routeMatch &&
                 (t.startStopName || t.startStop || '').toLowerCase() === ctx.startStop.toLowerCase();
 
             const stops = ctx.field === 'end'
-                ? [{ name: t.endStopName || t.endStop, role: 'end' }]
+                ? [{ name: t.endStopName || t.endStop, norm: t._normEnd, display: t._displayEnd, role: 'end' }]
                 : [
-                    { name: t.startStopName || t.startStop, role: 'start' },
-                    { name: t.endStopName || t.endStop, role: 'end' }
+                    { name: t.startStopName || t.startStop, norm: t._normStart, display: t._displayStart, role: 'start' },
+                    { name: t.endStopName || t.endStop, norm: t._normEnd, display: t._displayEnd, role: 'end' }
                 ];
 
-            stops.forEach(({ name, role }) => {
+            stops.forEach(({ name, norm, display, role }) => {
                 if (!name || typeof name !== 'string') return;
-                const normalized = this.normalizeStopName(name.trim());
-                if (!normalized || !normalized.toLowerCase().includes(q)) return;
+                
+                // Fast-pass: Check if the pre-normalized lowercase name contains our search query
+                // This avoids calling the full normalization logic for 99% of trips.
+                const searchName = norm || name.toLowerCase();
+                if (!searchName.includes(q)) return;
+
+                // Use the pre-calculated display name (title-case) if available
+                const normalized = display || this.normalizeStopName(name.trim());
 
                 let weight = 1;
                 if (routeMatch) weight *= 4;
@@ -660,9 +811,13 @@ export const Trips = {
             }
         };
 
+        let autocompleteTimer = null;
         inputEl.addEventListener('input', () => {
-            const suggestions = this.buildStopSuggestions(inputEl.value.trim(), getContext());
-            showDropdown(suggestions);
+            clearTimeout(autocompleteTimer);
+            autocompleteTimer = setTimeout(() => {
+                const suggestions = this.buildStopSuggestions(inputEl.value.trim(), getContext());
+                showDropdown(suggestions);
+            }, 120);
         });
 
         inputEl.addEventListener('blur', () => {
@@ -737,7 +892,7 @@ window.loadTrips = Trips.load.bind(Trips);
 window.openLogTripModal = Trips.openLogTripModal.bind(Trips);
 window.closeLogTripModal = Trips.closeLogTripModal.bind(Trips);
 window.openEditTripModal = Trips.openEditTripModal.bind(Trips);
-
 window.closeEditTripModal = Trips.closeEditTripModal.bind(Trips);
 window.saveEditedTrip = Trips.saveEdited.bind(Trips);
 window.downloadTripsCSV = Trips.downloadCSV.bind(Trips);
+window.deleteTrip = Trips.deleteTrip.bind(Trips);

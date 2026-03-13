@@ -2,6 +2,7 @@
  * Firestore database helper functions for SMS tracking
  */
 const admin = require('firebase-admin');
+const logger = require('./logger');
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!admin.apps.length) {
@@ -92,7 +93,7 @@ async function isGeminiRateLimited(phoneNumber) {
   }
 
   if (data.count >= 10) {
-    console.log('Gemini rate limit exceeded for', phoneNumber);
+    logger.info('Gemini rate limit exceeded', { From: phoneNumber });
     return true;
   }
 
@@ -413,6 +414,7 @@ async function checkIdempotency(messageSid) {
  * @returns {Promise<string>} Created trip ID
  */
 async function createTrip(tripData) {
+  const profile = await getUserProfile(tripData.userId);
   const docRef = await db.collection('trips').add({
     ...tripData,
     startTime: admin.firestore.FieldValue.serverTimestamp(),
@@ -422,6 +424,7 @@ async function createTrip(tripData) {
     endStopCode: null,
     endStopName: null,
     exitLocation: null,
+    isPublic: profile?.isPublic || false,
   });
   return docRef.id;
 }

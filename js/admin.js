@@ -212,6 +212,7 @@ function findStopByAlias(str) {
     );
 }
 
+const stopLookupCache = new Map();
 /**
  * Fuzzy-match a raw stop string against the stops library.
  * Catches abbreviations, missing spaces, and partial names.
@@ -221,6 +222,8 @@ function suggestCanonicalStop(rawName) {
     const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
     const normRaw = norm(rawName);
     if (!normRaw) return null;
+
+    if (stopLookupCache.has(normRaw)) return stopLookupCache.get(normRaw);
 
     let bestMatch = null;
     let bestScore = 0;
@@ -243,9 +246,10 @@ function suggestCanonicalStop(rawName) {
                 const longer = Math.max(normRaw.length, normCand.length);
                 score = 0.7 * (shorter / longer);
             } else {
-                const tokA = new Set(rawName.toLowerCase().match(/[a-z0-9]+/g) || []);
-                const tokB = new Set(candidate.toLowerCase().match(/[a-z0-9]+/g) || []);
-                const intersection = [...tokA].filter(t => tokB.has(t)).length;
+                const tokA = rawName.toLowerCase().match(/[a-z0-9]+/g) || [];
+                const tokB = candidate.toLowerCase().match(/[a-z0-9]+/g) || [];
+                const setB = new Set(tokB);
+                const intersection = tokA.filter(t => setB.has(t)).length;
                 const union = new Set([...tokA, ...tokB]).size;
                 score = union > 0 ? intersection / union : 0;
             }
@@ -253,11 +257,15 @@ function suggestCanonicalStop(rawName) {
             if (score > bestScore) {
                 bestScore = score;
                 bestMatch = stop;
+                if (score === 1.0) break;
             }
         }
+        if (bestScore === 1.0) break;
     }
 
-    return bestScore >= 0.65 ? { stop: bestMatch, confidence: Math.round(bestScore * 100) } : null;
+    const result = bestScore >= 0.65 ? { stop: bestMatch, confidence: Math.round(bestScore * 100) } : null;
+    stopLookupCache.set(normRaw, result);
+    return result;
 }
 
 // Rendering

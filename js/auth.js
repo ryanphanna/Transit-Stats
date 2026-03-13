@@ -38,9 +38,6 @@ export const Auth = {
                     if (document.getElementById('adminBtn')) {
                         document.getElementById('adminBtn').style.display = isAdmin ? 'block' : 'none';
                     }
-                    if (document.getElementById('predictionLogsLink')) {
-                        document.getElementById('predictionLogsLink').style.display = isAdmin ? 'block' : 'none';
-                    }
 
                     console.log('✅ User authenticated' + (isAdmin ? ' (Admin)' : ''));
                     this.showApp();
@@ -119,6 +116,33 @@ export const Auth = {
         }
     },
 
+    getRateLimit: function () {
+        try {
+            return JSON.parse(localStorage.getItem('auth_rate_limit') || '{}');
+        } catch { return {}; }
+    },
+
+    isRateLimited: function () {
+        const { attempts, lockedUntil } = this.getRateLimit();
+        if (lockedUntil && Date.now() < lockedUntil) return true;
+        if (lockedUntil && Date.now() >= lockedUntil) {
+            localStorage.removeItem('auth_rate_limit');
+        }
+        return false;
+    },
+
+    recordFailedAttempt: function () {
+        const data = this.getRateLimit();
+        const attempts = (data.attempts || 0) + 1;
+        const lockedUntil = attempts >= 5 ? Date.now() + 15 * 60 * 1000 : null;
+        localStorage.setItem('auth_rate_limit', JSON.stringify({ attempts, lockedUntil }));
+        return attempts;
+    },
+
+    clearRateLimit: function () {
+        localStorage.removeItem('auth_rate_limit');
+    },
+
     signInWithPassword: async function () {
         const emailInput = document.getElementById('emailInput');
         const passwordInput = document.getElementById('passwordInput');
@@ -126,7 +150,12 @@ export const Auth = {
 
         if (!emailInput || !passwordInput || !signInBtn) return;
 
-        const email = emailInput.value.trim();
+        if (this.isRateLimited()) {
+            this.showError('Too many failed attempts. Please try again in 15 minutes.');
+            return;
+        }
+
+        const email = emailInput.value.trim().toLowerCase();
         const password = passwordInput.value;
 
         if (!password) {
@@ -139,17 +168,23 @@ export const Auth = {
 
         try {
             await auth.signInWithEmailAndPassword(email, password);
+            this.clearRateLimit();
         } catch (error) {
             console.error('Sign in error:', error);
             UI.hideLoading(signInBtn);
-            this.showError(this.getErrorMessage(error.code));
+            const attempts = this.recordFailedAttempt();
+            if (attempts >= 5) {
+                this.showError('Too many failed attempts. Please try again in 15 minutes.');
+            } else {
+                this.showError(this.getErrorMessage(error.code));
+            }
         }
     },
 
     sendMagicLink: async function () {
         const emailInput = document.getElementById('emailInput');
         if (!emailInput) return;
-        const email = emailInput.value.trim();
+        const email = emailInput.value.trim().toLowerCase();
         const magicLinkBtn = document.getElementById('magicLinkBtn');
         UI.showLoading(magicLinkBtn, 'Sending...');
 
@@ -189,6 +224,7 @@ export const Auth = {
 
     showAuth: function () {
         document.body.classList.remove('user-logged-in');
+        document.body.classList.add('map-visible'); // login screen shows background map
         document.getElementById('authSection').style.display = 'block';
         document.getElementById('appContent').style.display = 'none';
         const mapPageEl = document.getElementById('mapPage');
@@ -203,10 +239,14 @@ export const Auth = {
 
     showApp: function () {
         document.body.classList.add('user-logged-in');
-        document.getElementById('authSection').style.display = 'none';
+        document.body.classList.remove('map-visible'); // dashboard doesn't use the map overlay
+        if (typeof window.hideAllSections === 'function') {
+            window.hideAllSections();
+        } else {
+            document.getElementById('authSection').style.display = 'none';
+        }
+        
         document.getElementById('appContent').style.display = 'block';
-        const mapPageEl = document.getElementById('mapPage');
-        if (mapPageEl) mapPageEl.style.display = 'block';
         document.getElementById('userInfo').style.display = 'flex';
 
         if (window.Profile) window.Profile.load();
@@ -261,7 +301,7 @@ export const Auth = {
     sendPasswordReset: async function () {
         const emailInput = document.getElementById('emailInput');
         if (!emailInput) return;
-        const email = emailInput.value.trim();
+        const email = emailInput.value.trim().toLowerCase();
         if (!email) {
             UI.showNotification('Email is required', 'error');
             return;

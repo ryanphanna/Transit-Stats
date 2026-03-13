@@ -1,10 +1,91 @@
 # Changelog
 
 **Current Project Versions:**
-- **Web App**: `v1.9.0`
-- **Cloud Functions**: `v1.5.0`
+- **Web App**: `v1.9.1`
+- **Cloud Functions**: `v1.5.1`
 
 ---
+
+## [1.9.1] - 2026-03-13
+
+### Added
+- **Dashboard Insights**: Integrated a new "Insights" section on the main dashboard that surfaces personal records (Average, Fastest, Slowest) for frequent trips, grouped by Route and Stop pair. Includes premium hover animations and refined grouping logic.
+- **Mastery Rows Visualization**: Overhauled the "Top Routes" section with a frequency-based visualization system using animated progress bars, replacing "Mastery Cards".
+- **Top Stops & Peak Riding Analytics**: Added new visualizations to the dashboard for most visited stops and usage distribution throughout the day.
+- **Intelligent Route Icons**: Implemented context-aware emoji assignment for transit routes (e.g., subway line colors, train styles) based on route names.
+- **Dynamic Bar Animations**: Introduced smooth CSS animations for all dashboard statistics bars, providing a more refined interface feel.
+- **Route Analytics Documentation**: Created [ANALYTICS_PREVIEW.md](file:///Users/ryan/Desktop/Production/Transit%20Stats/ANALYTICS_PREVIEW.md) to provide a guide for using the new performance and accuracy dashboards.
+- **Performance Indexing**: Implemented a high-performance Map-based index for verified stops, reducing resolution time across the entire application.
+- **Stop Normalization Cache**: Introduced a memoization layer for intersection stop names to prevent redundant parsing and title-casing.
+- **Text-Based Map Controls**: Redesigned map filter buttons to be minimalist, text-based tabs with accent gradient highlights.
+- **Header Alignment**: Aligned the app header with the main content container in both `index.html` and `admin.html`.
+- **`deleteTrip()` Function**: Implemented the missing `deleteTrip()` handler in `js/trips.js` to enable trip deletion from the edit modal.
+- **`saveSettings()` Alias**: Linked the settings "Save" button to the `Profile.save()` handler.
+
+### Changed
+- **Insights Terminology**: Standardized terminology for trip performance analytics under the "Insights" brand to ensure consistency with navigation elements.
+- **Minimalist Aesthetic Reversion**: Removed all glassmorphism (backdrop-filter) and all-caps text transformations (`text-transform: uppercase`) for a cleaner, more readable UI.
+- **Throttled Analytics**: Increased the profile stats update debounce from 300ms to 1000ms to significantly reduce main-thread blocking during initial synchronization.
+- **Enhanced Streak Robustness**: Improved riding streak calculations to handle invalid date formats and fall back to `endTime` when `startTime` is missing.
+- **Dynamic Agency Status**: The profile header now reflects the user's default agency or active status based on real-time trip frequency.
+- **Text-Based Header Navigation**: Stripped backgrounds and borders from header navigation links for a minimal appearance.
+- **Emoji-Only Map & Settings Buttons**: Compacted secondary header actions into emoji-only icons with accessibility titles.
+- **Map Engine Optimization**: Limited 'Spider Lines' to the most recent 150 trips to maintain 60fps performance with large histories.
+- **Initialization Batching**: Deferred heavy calculations until after login transitions complete to ensure a smooth authentication experience.
+- **Admin Panel Efficiency**: Optimized fuzzy-match logic in the Data Manager with an internal lookup cache.
+- **Unified Prediction Access**: Relocated "Prediction Logs" to the Data Manager header for improved dashboard clarity.
+- **Login Navigation Optimization**: Updated login flow to surface the dashboard directly, preventing UI overlap with the map.
+- **Layout Standardization**: Refined global spacing and padding in `styles/layout.css` for consistent module alignment.
+- **Firestore Read Reduction**: Consistently reuse `Trips.allCompletedTrips` for stats and map layers, reducing login reads from 4 to 1.
+- **Eliminated Redundant Snapshot Listener**: Removed duplicate `onSnapshot` attachment from the trip save/end flow.
+- **Staggered Module Initialization**: Deferred `Stats` and `MapEngine` initialization to allow the primary trip snapshot to settle first.
+- **Autocomplete Debounced**: Added 120ms delay to stop name suggestions to prevent linear scan overhead on every keystroke.
+- **Infinite Scroll Management**: Fixed `IntersectionObserver` accumulation by properly disconnecting previous observers before re-attaching.
+- **Templates Refactored**: Optimized trip template loading to use a single read-through cache for both modals and quick-actions.
+- **`predict.js` Double-Execution Removed**: Consolidated prediction logic into a single module import, removing redundant script tags.
+- **Map Layer Scoped to Active State**: Optimized GPU usage by restricting the fixed map container to its visible state.
+
+### Removed
+- **Presto/Importer Integration**: Completely removed the experimental Presto CSV importer and local data visualization logic to focus on the core authenticated experience.
+- **Standalone PRESTO Explorer**: Deleted `presto.html` and associated logic in `js/importer.js` and `js/main.js`.
+- **Local Data Heatmap Overlays**: Removed the ability to overlay amber markers from local CSV reports on the main map.
+- **Client-Side Prediction Script**: Removed `js/predict.js` script tag from `index.html` as logic is now consolidated in the module system.
+- **Web-Based Trip Logging**: Deprecated the "Start Trip" action card and associated log/end modals from the dashboard in favor of SMS-based logging.
+- **Active Trip Monitoring**: Removed real-time background listeners for active trips to optimize client-side battery and performance.
+- **Duplicate Method Definitions**: Cleaned up ~100 lines of dead code in `js/trips.js` caused by redundant function definitions.
+
+### Fixed
+- **Dashboard Buttons Unresponsive (Critical)**: All interactive elements on the dashboard (Data Manager, Insights, Map, Settings, theme toggles, emoji selectors, trip edit/delete, etc.) were completely non-functional after login. Root cause: the Content Security Policy `script-src` directive in `firebase.json` did not include `'unsafe-inline'`, causing the browser to silently block all 30+ inline `onclick` handlers across `index.html`. Added `'unsafe-inline'` to `script-src` to restore full interactivity.
+- **Indexing Storm Guard**: Introduced an `isIndexing` flag in `js/trips.js` to prevent multiple concurrent index builds, resolving a performance bottleneck when triggering rapid stop library lookups.
+- **Map Render Stability**: Refactored `js/map-engine.js` to reuse the existing Leaflet map instance instead of destroying and recreating it on every filter change, eliminating UI flickering and significantly improving responsiveness.
+- **Invalid Coordinate Protection**: Added defensive checks to prevent map crashes when processing trips with malformed or missing latitude/longitude data (`NaN` protection).
+- **UI Freezing & Performance Lag**: Resolved critical performance bottlenecks that caused the application to freeze during data loading and autocomplete interactions:
+  - **Progressive Indexing**: Rebuilt the stops library indexer to use non-blocking batch processing (`requestIdleCallback`), preventing UI lockup when loading thousands of transit stops.
+  - **Pre-Normalized Search**: Optimized the autocomplete engine to use pre-calculated normalized stop names, reducing per-keystroke overhead from thousands of regex operations to simple cached lookups.
+  - **Heuristic Optimization**: Refined the `normalizeStopName` helper with a faster title-casing algorithm and enhanced memoization.
+- **Dashboard Syntax Error / UI Freeze**: Resolved a critical syntax error in the stats module that caused the site to become unresponsive on load.
+- **Infinite Scroll Re-attachment**: Fixed a bug where "Load More" would stop functioning after the first batch of trips.
+- **Zombie Listener Cleanup**: Hardened logout flow to dispose of all global listeners, preventing memory leaks and background collisions.
+- **Active Trip Lifecycle**: Improved error resilience for the real-time trip observer when user contexts are missing.
+- **Navigation Button Intercept**: Resolved a layout issue where the hidden map container blocked clicks on interactive header elements.
+- **Delete/Save Modal Crashes**: Fixed `ReferenceError` crashes when attempting to delete trips or save user settings.
+- **Profile UI Sync Fix**: Resolved an issue where the profile card would show "Syncing transit activity..." indefinitely by ensuring the UI updates as soon as trip data is loaded.
+- **Streak Algorithm Accuracy**: Fixed the "Best Streak" initialization logic and added protection against invalid/NaN date formats in the riding streak calculation.
+
+### Security & Infrastructure
+- **Prediction Engine Tests**: Added 48 unit tests for `js/predict.js` covering `guess`, `evaluate`, `guessEndStop`, stop canonicalization, direction normalization, route family grouping, day/time/duration similarity scoring, and trip validation. All 58 project tests passing.
+- **PRESTO Importer Retired**: Formally retired the PRESTO CSV importer feature. Source files were previously removed; roadmap updated to reflect TTC-only legacy import scope going forward.
+- **Gemini API Key Rotated**: Replaced compromised key (exposed in v1.4.2 `.env` commit) with a new key stored in Cloud Secret Manager. Natural language SMS parsing restored.
+- **Phone Number Redaction**: SMS Cloud Functions now route all phone number logging through the masked logger (`lib/logger.js`), replacing plaintext `console.log` calls in `lib/db.js`.
+- **Firestore Read Amplification Fixed**: Denormalized `isPublic` from user profiles onto trip documents, eliminating a per-trip profile `get()` in the security rule. A one-time migration (`migrations/add-isPublic-to-trips.js`) backfilled all existing trips.
+- **Email Case Normalization**: Auth flows (`signInWithPassword`, `sendMagicLink`, `sendPasswordReset`) now lowercase the email before passing it to Firebase Auth, ensuring consistency with the whitelist check.
+- **Client-Side Auth Rate Limiting**: Sign-in form now locks for 15 minutes after 5 consecutive failed password attempts, tracked via localStorage. Server-side enforcement planned.
+- **Removed Exposed Service Account Key**: Deleted `serviceAccountKey.json` from the project directory; key has been revoked in Firebase Console.
+- **Duplicate Firestore Rule Removed**: Eliminated a duplicate `geminiRateLimits` rule block that had accumulated in `firestore.rules`.
+- **Firestore Index Field Name Corrected**: Fixed a `userID` (capital D) typo in `firestore.indexes.json` that was causing a trips index to be ineffective; the broken index has been deleted and replaced.
+- **Admin Write Rule Optimized**: Consolidated the redundant `exists()` + `get()` double-read in the stops write rule into a single `get()` call, reducing Firestore read costs.
+- **Promise-Based Module Initialization**: Replaced fragile `setTimeout` delays (500ms/800ms) for `Stats` and `MapEngine` startup with a proper Promise that resolves after the first Trips snapshot, ensuring these modules always initialize on real data.
+- **SMS Idempotency Guard**: Added a null check for `MessageSid` before the idempotency lookup in the SMS handler to prevent unexpected failures if the field is absent.
 
 ## [1.9.0] - 2026-03-12
 
@@ -405,6 +486,7 @@
 ## [1.1.2] - 2026-02-22
 
 ### Added
+- **Enhanced Mapping**: Added `js/map-engine.js` for dedicated map management.
 - **Roadmap**: Added `ROADMAP.md` to outline future development phases, including "Wrapped" visualizations and PRESTO data integration.
 
 ## [1.1.1] - 2026-02-12

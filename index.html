@@ -31,25 +31,27 @@
 <body class="map-page-layout">
     <div class="main-content">
         <div class="header">
-            <div class="header-row">
-                <div class="header-left">
-                    <h1 class="header-title" onclick="goHome()">
-                        <span style="color: var(--accent-electric);">Transit</span>Stats
-                    </h1>
-                </div>
-                <div id="userInfo" class="user-info" style="display: none;">
-                    <button id="adminBtn" class="header-btn text-btn" onclick="window.location.href='admin.html'" style="display: none;">
-                        Data Manager
-                    </button>
-                    <button id="insightsBtn" class="header-btn text-btn" onclick="window.location.href='trips_comparison.html'" title="Trip Insights">
-                        Insights
-                    </button>
-                    <button id="mapsBtn" class="header-btn" onclick="showMaps()">
-                        🗺️ <span>Map</span>
-                    </button>
-                    <button id="settingsBtn" class="header-btn" onclick="openSettings()">
-                        ⚙️ <span>Settings</span>
-                    </button>
+            <div class="container">
+                <div class="header-row">
+                    <div class="header-left">
+                        <h1 class="header-title" onclick="goHome()">
+                            <span style="color: var(--accent-electric);">Transit</span>Stats
+                        </h1>
+                    </div>
+                    <div id="userInfo" class="user-info" style="display: none;">
+                        <button id="adminBtn" class="header-btn text-btn" onclick="window.location.href='admin.html'" style="display: none;">
+                            Data Manager
+                        </button>
+                        <button id="insightsBtn" class="header-btn text-btn" onclick="window.location.href='trips_comparison.html'" title="Trip Insights">
+                            Insights
+                        </button>
+                        <button id="mapsBtn" class="header-btn" onclick="showMaps()" title="Map">
+                            🗺️
+                        </button>
+                        <button id="settingsBtn" class="header-btn" onclick="openSettings()" title="Settings">
+                            ⚙️
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -140,7 +142,7 @@
                                 <div class="profile-card streak-card">
                                     <div class="streak-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
                                         <span class="streak-icon">🔥</span>
-                                        <span class="streak-label" style="font-weight: 600; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Riding Streak</span>
+                                        <span class="streak-label" style="font-weight: 600; font-size: 0.9em; letter-spacing: 0.5px; color: var(--text-muted);">Riding Streak</span>
                                     </div>
                                     <div class="streak-stats-row" style="display: flex; gap: 16px;">
                                         <div class="streak-stat">
@@ -159,23 +161,12 @@
 
                         <!-- CENTER COLUMN: Actions & Feed -->
                         <div class="col-center">
-                            <div id="activeTripBanner" class="active-trip-banner section minimal-card" style="display: none; background: var(--accent-gradient); color: white; text-align: center; cursor: pointer; padding: 16px;" onclick="goToActiveTrip()">
-                                🚌 Currently riding • Tap to view
-                            </div>
 
-                            <div class="action-card section minimal-card">
-                                <button id="startTripBtn" class="btn btn-primary" style="width: 100%;" onclick="openLogTripModal()">
-                                    <span>➕</span> Start New Trip
-                                </button>
-                                <div id="repeatLastTripSection" style="display: none; margin-top: 12px;">
-                                    <button id="repeatLastTripBtn" class="btn btn-outline" style="width: 100%;">
-                                        <span>🔄</span> Repeat Last Trip
-                                    </button>
-                                </div>
-                            </div>
+
+
 
                             <div class="section minimal-card">
-                                <h3 style="margin-bottom: 16px; font-weight: 800; font-size: 1.1em; text-transform: uppercase; letter-spacing: 0.5px;">📜 Recent Trips</h3>
+                                <h3 style="margin-bottom: 16px; font-weight: 800; font-size: 1.1em; letter-spacing: 0.5px;">📜 Recent Trips</h3>
                                 <div id="recentTripsList" style="display: flex; flex-direction: column; gap: 8px;">
                                     <div class="loading">Loading trips...</div>
                                 </div>
@@ -186,7 +177,7 @@
                         <div class="col-right">
                             <div id="statsSection" class="section stats-section minimal-card">
                                 <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                                    <h3 style="font-weight: 800; font-size: 1.1em; text-transform: uppercase; letter-spacing: 0.5px;">📊 Stats</h3>
+                                    <h3 style="font-weight: 800; font-size: 1.1em; letter-spacing: 0.5px;">📊 Stats</h3>
                                     <div class="toggle-group" style="display: flex; background: var(--bg-tertiary); padding: 4px; border-radius: 8px;">
                                         <button id="statsToggle30" class="toggle-btn active" style="padding: 4px 12px; border: none; background: transparent; border-radius: 6px; font-size: 0.8em; font-weight: 700; cursor: pointer;">30d</button>
                                         <button id="statsToggleAll" class="toggle-btn" style="padding: 4px 12px; border: none; background: transparent; border-radius: 6px; font-size: 0.8em; font-weight: 700; cursor: pointer;">All</button>
@@ -196,26 +187,47 @@
                                 <div class="dashboard-stats-summary" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                                     <div class="dash-stat">
                                         <span class="dash-stat-value" id="statsTotalTrips" style="font-size: 1.4em; font-weight: 800;">0</span>
-                                        <span class="dash-stat-label" style="font-size: 0.7em; text-transform: uppercase; color: var(--text-muted);">Trips</span>
+                                        <span class="dash-stat-label" style="font-size: 0.7em; color: var(--text-muted);">Trips</span>
                                     </div>
                                     <div class="dash-stat">
                                         <span class="dash-stat-value" id="statsUniqueRoutes" style="font-size: 1.4em; font-weight: 800;">0</span>
-                                        <span class="dash-stat-label" style="font-size: 0.7em; text-transform: uppercase; color: var(--text-muted);">Routes</span>
+                                        <span class="dash-stat-label" style="font-size: 0.7em; color: var(--text-muted);">Routes</span>
                                     </div>
                                     <div class="dash-stat">
                                         <span class="dash-stat-value" id="statsTotalTime" style="font-size: 1.4em; font-weight: 800;">0</span>
-                                        <span class="dash-stat-label" style="font-size: 0.7em; text-transform: uppercase; color: var(--text-muted);">Hours</span>
+                                        <span class="dash-stat-label" style="font-size: 0.7em; color: var(--text-muted);">Hours</span>
                                     </div>
                                     <div class="dash-stat">
                                         <span class="dash-stat-value" id="statsUniqueStops" style="font-size: 1.4em; font-weight: 800;">0</span>
-                                        <span class="dash-stat-label" style="font-size: 0.7em; text-transform: uppercase; color: var(--text-muted);">Stops</span>
+                                        <span class="dash-stat-label" style="font-size: 0.7em; color: var(--text-muted);">Stops</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="section minimal-card">
-                                <h3 style="margin-bottom: 16px; font-weight: 800; font-size: 1.1em; text-transform: uppercase; letter-spacing: 0.5px;">🚌 Top Routes</h3>
+                            <div class="section minimal-card dashboard-stats-card">
+                                <h3 class="stat-card-title">🚌 Top Routes</h3>
                                 <div id="topRoutesList">
+                                    <div class="loading">Loading...</div>
+                                </div>
+                            </div>
+
+                            <div class="section minimal-card dashboard-stats-card">
+                                <h3 class="stat-card-title">📍 Top Stops</h3>
+                                <div id="topStopsList">
+                                    <div class="loading">Loading...</div>
+                                </div>
+                            </div>
+                            
+                            <div class="section minimal-card dashboard-stats-card">
+                                <h3 class="stat-card-title">🏅 Insights</h3>
+                                <div id="commuteHighlights">
+                                    <div class="loading">Analyzing trip records...</div>
+                                </div>
+                            </div>
+
+                            <div class="section minimal-card dashboard-stats-card">
+                                <h3 class="stat-card-title">🕒 Peak Riding Times</h3>
+                                <div id="timeOfDayChart">
                                     <div class="loading">Loading...</div>
                                 </div>
                             </div>
@@ -250,71 +262,8 @@
                         <span id="mapLocationCount">0 locations</span>
                         <span class="map-stat-divider">•</span>
                         <span id="mapCoverage" style="display: none;">0% GPS coverage</span>
-        </div>
-    </div>
-
-
-    </div>
-
-
-
-    <div id="endModal" class="modal-backdrop">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">End Trip</h3>
-                <button onclick="closeEndModal()" class="modal-close-btn">&times;</button>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Exit Stop</label>
-                <input type="text" id="exitInput" class="modal-input-large" placeholder="e.g., 1234 or King Station">
-            </div>
-            <div class="save-template-checkbox" style="margin-bottom: 20px;">
-                <input type="checkbox" id="saveAsTemplate">
-                <label for="saveAsTemplate">Save route + start stop as template</label>
-            </div>
-            <div class="modal-actions" style="margin-top: 0;">
-                <button id="saveBtn" class="btn btn-primary">Save Trip</button>
-                <button id="cancelBtn" class="btn btn-cancel">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-
-    </div>
-    </div>
-
-    <!-- Log Trip Modal -->
-    <div id="logTripModal" class="modal-backdrop">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Start New Trip</h3>
-                <button onclick="closeLogTripModal()" class="modal-close-btn">&times;</button>
-            </div>
-
-            <div class="form-group">
-                <label>Route/Line</label>
-                <input type="text" id="routeInput" class="modal-input-large" placeholder="e.g., 65, Line 1, 504 King">
-            </div>
-
-            <div class="form-group">
-                <label>Boarding Stop</label>
-                <input type="text" id="stopInput" class="modal-input-large" placeholder="e.g., 6638 or King St">
-                <div id="stopPreview" class="preview-box" style="display: none;"></div>
-            </div>
-
-            <div class="form-group">
-                <label>Direction <span class="text-optional">(optional)</span></label>
-                <input type="text" id="directionInput" class="modal-input-large"
-                    placeholder="e.g., North, Eastbound, to Finch">
-            </div>
-
-            <!-- Quick Templates -->
-            <div id="quickTemplates">
-                <!-- Templates injected here -->
-            </div>
-
-            <button id="startBtn" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1.1em;">Board
-                Vehicle 🚌</button>
         </div>
     </div>
 
@@ -399,32 +348,6 @@
                     <button id="themeDarkBtn" class="btn btn-outline btn-theme" onclick="setTheme('dark')">
                         🌙 Dark
                     </button>
-                </div>
-            </div>
-
-            <hr class="modal-divider">
-
-            <h4 class="modal-section-title">Local Data (On-Device)</h4>
-            <div style="margin-bottom: 20px;">
-                <p style="font-size: 0.85em; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
-                    Import historical transit activity from regional reports. This data stays on your device and is not
-                    synced to the cloud.
-                </p>
-
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <label for="prestoImporter" class="btn btn-outline" style="margin: 0; cursor: pointer;">
-                        📥 Import PRESTO Report
-                        <input type="file" id="prestoImporter" accept=".csv" style="display: none;">
-                    </label>
-
-                    <button id="clearLocalDataBtn" class="btn btn-danger-outline" style="margin: 0; display: none;">
-                        🗑️ Clear Local Taps
-                    </button>
-                </div>
-
-                <div id="localDataStatus"
-                    style="margin-top: 10px; font-size: 0.8em; color: var(--text-secondary); display: none;">
-                    <!-- Status injected here -->
                 </div>
             </div>
 
@@ -518,14 +441,10 @@
     </div>
 
     <div class="footer" style="padding: 20px; text-align: center;">
-        <div id="predictionLogsLink" style="display: none;">
-            <a href="accuracy_dashboard.html"
-                style="color: var(--text-muted); text-decoration: none; opacity: 0.5; font-size: 0.8em;">Prediction Logs (Silent)</a>
-        </div>
+        <!-- Clean footer -->
     </div>
 
 
-    <script type="module" src="js/predict.js"></script>
     <script type="module" src="js/main.js"></script>
 </body>
 
