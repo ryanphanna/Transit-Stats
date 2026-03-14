@@ -19,6 +19,10 @@
 - **Enhanced UI**: Added `prediction-card` with premium glassmorphism/gradient styling.
 - **Refined Data Fetching**: Optimized stops library loading for intelligent fuzzy matches.
 
+### Fixed
+- **Missing Environment Variables**: Restored `.env` configuration file containing Firebase SDK keys to resolve a critical app startup block where the login UI failed to initialize.
+- **Auth Initialization**: Refactored `js/main.js` to ensure DOM elements are strictly cached within the `init()` lifecycle, preventing null-reference crashes on varying network speeds.
+
 ## [1.9.1] - 2026-03-13
 
 ### Added
