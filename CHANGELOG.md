@@ -2,7 +2,18 @@
 
 **Current Project Versions:**
 - **Web App**: `v1.9.2`
-- **Cloud Functions**: `v1.5.2`
+- **Cloud Functions**: `v1.5.3`
+
+---
+
+## [1.5.3] - 2026-03-14 (Cloud Functions only)
+
+### Added
+- **Journey / Trip Linking** (`functions/lib/handlers.js`, `functions/sms.js`): Sequential trips can now be chained into a multi-leg journey via the new `LINK` SMS command.
+  - When a new trip starts at (or near) the stop where the previous trip ended within 45 minutes, the START confirmation includes a prompt: *"Continues your Route X trip — Reply LINK to join as a journey."*
+  - `LINK` command: links the last completed trip → current active trip (Case A), or the last two completed trips (Case B). A UUID `journeyId` is written to both trip documents; if either leg already belongs to a journey, that ID is reused so journeys can grow leg by leg.
+  - Validates the gap is ≤ 60 min before linking; reports the gap in the confirmation reply (e.g., *Route 510 → Route 504 linked as a journey (8 min transfer)*).
+  - `LINK` is now listed in the `INFO` / `HELP` command reference.
 
 ---
 
