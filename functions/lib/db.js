@@ -449,6 +449,26 @@ async function getRecentCompletedTrips(userId, limit = 50) {
 }
 
 /**
+ * Look up which routes serve a given stop from the GTFS stop→route mapping.
+ * Returns an array of routeShortNames, or null if no mapping exists for this stop.
+ * @param {string|number} stopCode - GTFS stop_id / stop code
+ * @param {string} agency - Transit agency
+ * @returns {Promise<string[]|null>}
+ */
+async function getRoutesAtStop(stopCode, agency) {
+  if (!stopCode || !agency) return null;
+  try {
+    const docId = `${agency}_${stopCode}`.replace(/[^a-zA-Z0-9_\-]/g, '_');
+    const doc = await db.collection('stopRoutes').doc(docId).get();
+    if (!doc.exists) return null;
+    return doc.data().routes || null;
+  } catch (err) {
+    console.error('Error fetching stopRoutes:', err);
+    return null;
+  }
+}
+
+/**
  * Load all stops from Firestore for stop canonicalization
  * @returns {Promise<Array>} Array of { name, aliases }
  */
@@ -477,6 +497,7 @@ module.exports = {
   storeVerificationCode,
   getVerificationData,
   lookupStop,
+  getRoutesAtStop,
   checkIdempotency,
   createTrip,
   getRecentCompletedTrips,

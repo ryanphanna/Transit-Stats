@@ -14,6 +14,7 @@ const {
   isEmailAllowed,
   getUserByPhone,
   lookupStop,
+  getRoutesAtStop,
   db,
   isGeminiRateLimited,
   createTrip,
@@ -312,14 +313,16 @@ START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDispla
   let prediction = null;
   let endStopPrediction = null;
   const startStopName = stopData ? stopData.stopName : parsedStop.stopName;
+  const startStopCode = stopData ? stopData.stopCode : parsedStop.stopCode;
   try {
-    const [history, stopsLibrary] = await Promise.all([
+    const [history, stopsLibrary, routesAtStop] = await Promise.all([
       getRecentCompletedTrips(user.userId, 100),
       getStopsLibrary(),
+      getRoutesAtStop(startStopCode, agency),
     ]);
     PredictionEngine.stopsLibrary = stopsLibrary;
     const now = new Date();
-    prediction = PredictionEngine.guess(history, { stopName: startStopName, time: now });
+    prediction = PredictionEngine.guess(history, { stopName: startStopName, time: now, routesAtStop: routesAtStop || undefined });
     endStopPrediction = PredictionEngine.guessEndStop(history, {
       route,
       startStopName,
@@ -371,13 +374,14 @@ async function handleConfirmStart(phoneNumber, user, state) {
   let confirmPrediction = null;
   let confirmEndStopPrediction = null;
   try {
-    const [history, stopsLibrary] = await Promise.all([
+    const [history, stopsLibrary, routesAtStop] = await Promise.all([
       getRecentCompletedTrips(user.userId, 100),
       getStopsLibrary(),
+      getRoutesAtStop(newTrip.stopCode, newTrip.agency),
     ]);
     PredictionEngine.stopsLibrary = stopsLibrary;
     const now = new Date();
-    confirmPrediction = PredictionEngine.guess(history, { stopName: newTrip.stopName, time: now });
+    confirmPrediction = PredictionEngine.guess(history, { stopName: newTrip.stopName, time: now, routesAtStop: routesAtStop || undefined });
     confirmEndStopPrediction = PredictionEngine.guessEndStop(history, {
       route: newTrip.route,
       startStopName: newTrip.stopName,

@@ -34,7 +34,10 @@ const PredictionEngine = {
   /**
    * Guess the next route given the current stop and time.
    * @param {Array} history - Completed trips (should exclude the trip being evaluated)
-   * @param {Object} context - { stopName, time }
+   * @param {Object} context - { stopName, time, routesAtStop? }
+   *   routesAtStop: optional array of routeShortNames known to serve this stop (from GTFS stop→route
+   *   mapping). When provided, candidates are hard-filtered to only routes in this set, which
+   *   eliminates impossible predictions. Falls back to unfiltered if no candidates survive.
    * @returns {Object|null} { route, direction, stop, confidence, version }
    */
   guess: function (history, context) {
@@ -43,11 +46,20 @@ const PredictionEngine = {
     const now = context.time instanceof Date ? context.time : new Date(context.time);
     const stopName = context.stopName ? context.stopName.trim().toLowerCase() : null;
 
-    const candidates = stopName
+    let candidates = stopName
       ? history.filter(t => this._isValidTrip(t) && this._stopMatch(t.startStopName, stopName))
       : history.filter(t => this._isValidTrip(t));
 
     if (candidates.length === 0) return null;
+
+    // Apply GTFS stop→route filter: remove candidates for routes that don't serve this stop.
+    // Only applied when the mapping is present; falls back to unfiltered if no candidates survive
+    // (guards against stale/incomplete GTFS data).
+    if (context.routesAtStop && context.routesAtStop.length > 0) {
+      const validFamilies = new Set(context.routesAtStop.map(r => this._baseRoute(r.toString())));
+      const filtered = candidates.filter(t => validFamilies.has(this._baseRoute(t.route)));
+      if (filtered.length > 0) candidates = filtered;
+    }
 
     const lastTrip = this._getLastRecentTrip(history, now);
     const atTransferPoint = lastTrip && this._stopMatch(lastTrip.endStopName, stopName);
