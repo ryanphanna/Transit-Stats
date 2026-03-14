@@ -308,6 +308,51 @@
                         <div class="loading">Loading library...</div>
                     </div>
                 </div>
+
+                <!-- GTFS Route Import -->
+                <div class="section" style="flex-shrink: 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <div>
+                            <h2 style="margin: 0;">🗺️ Route Library</h2>
+                            <div style="font-size: 0.9em; color: var(--text-secondary);">Import routes from a GTFS <code>routes.txt</code> file</div>
+                        </div>
+                        <span id="routeLibraryCount" style="font-size: 0.85em; color: var(--text-muted); font-weight: 600;"></span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; margin-bottom: 16px;">
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-size: 0.85em; margin-bottom: 4px; display: block;">Agency</label>
+                            <select id="gtfsAgencySelect" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-tertiary); color: var(--text-primary);">
+                                <option value="TTC">TTC</option>
+                                <option value="OC Transpo">OC Transpo</option>
+                                <option value="GO Transit">GO Transit</option>
+                                <option value="MiWay">MiWay</option>
+                                <option value="YRT">YRT</option>
+                                <option value="Brampton Transit">Brampton Transit</option>
+                                <option value="Durham Transit">Durham Transit</option>
+                                <option value="HSR">HSR</option>
+                                <option value="GRT">GRT</option>
+                                <option value="STM">STM</option>
+                                <option value="TransLink">TransLink</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-size: 0.85em; margin-bottom: 4px; display: block;">routes.txt file</label>
+                            <input type="file" id="gtfsFileInput" accept=".txt,.csv" onchange="previewGtfsRoutes()"
+                                style="width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-tertiary); color: var(--text-primary); font-size: 0.9em; box-sizing: border-box;">
+                        </div>
+                        <button onclick="importGtfsRoutes()" id="gtfsImportBtn" class="btn btn-primary" disabled
+                            style="padding: 10px 20px; white-space: nowrap;">Import Routes</button>
+                    </div>
+
+                    <div id="gtfsPreview" style="display: none; padding: 12px; background: var(--bg-tertiary); border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 12px; font-size: 0.9em;">
+                        <span id="gtfsPreviewText"></span>
+                    </div>
+
+                    <div id="routeLibraryList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; max-height: 300px; overflow-y: auto;">
+                        <div class="loading">Loading routes...</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
