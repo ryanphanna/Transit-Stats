@@ -9,17 +9,15 @@
 ## [Unreleased]
 
 ### Added
-- **Admin Data Manager**: A comprehensive suite for transit data quality and verification.
-    - **Stop Library CRUD**: Manage canonical stops with station codes and agency mapping.
-    - **Stop Inbox**: Intelligent scanner that identifies unlinked stop names from trip data and suggests matches using fuzzy logic.
-    - **Alias System**: Map informal or raw strings (e.g., "Union Stn") to verified canonical records.
-- **Shared Normalization Engine**: Extracted intersection normalization (`A / B`) into `js/utils.js` to ensure consistent data handling across the entire app.
-- **Admin Specific Modals**: Added `Link Stop`, `Stop Form`, and `Divvy` modals for advanced data management.
+- **V3 Prediction Engine**: Ported advanced weighted voting logic for arrival times and destinations.
+- **Next Trip Prediction**: Dashboard integration to suggest the most likely next route/stop.
+- **Active Trip Prediction**: Real-time destination and arrival estimates during boarding.
+- **Detailed Analytics**: Restored "Peak Riding Times" and "Riding Streak" parity.
 
 ### Changed
-- **Navigation Architecture**: Integrated the Data Manager into the main SPA routing and added permission-based visibility for administrators.
-- **Stop Name Logic**: Updated `Trips.update` to automatically normalize intersection names before persisting to Firestore.
-- **Enhanced Styles**: Added premium CSS for the two-column Admin grid and inbox management items.
+- **Mathematical Parity**: Standardized streak and time-of-day bucket logic to match legacy V1 nuances exactly.
+- **Enhanced UI**: Added `prediction-card` with premium glassmorphism/gradient styling.
+- **Refined Data Fetching**: Optimized stops library loading for intelligent fuzzy matches.
 
 ## [1.9.1] - 2026-03-13
 

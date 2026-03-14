@@ -2,6 +2,7 @@ import { db } from './firebase.js';
 import { Stats } from './stats.js';
 import { MapEngine } from './map-engine.js';
 import { Utils } from './utils.js';
+import { PredictionEngine } from './predict.js';
 
 /**
  * TransitStats V2 Trips Module
@@ -12,9 +13,21 @@ export const Trips = {
     statsRange: 30,
     unsubscribe: null,
 
-    init() {
+    async init() {
         this.setupToggles();
         this.listen();
+        await this.loadStopsLibrary();
+    },
+
+    async loadStopsLibrary() {
+        try {
+            const snap = await db.collection('stops').get();
+            PredictionEngine.stopsLibrary = snap.docs.map(doc => doc.data());
+            console.log(`PredictionEngine: Loaded ${PredictionEngine.stopsLibrary.length} stops.`);
+            this.renderPrediction(); // Refresh prediction once stops are ready
+        } catch (err) {
+            console.error("Failed to load stops library for prediction:", err);
+        }
     },
 
     setupToggles() {
@@ -56,6 +69,7 @@ export const Trips = {
                 this.renderFeed();
                 this.renderStats();
                 this.renderStreaks();
+                this.renderPrediction();
                 
                 // Update Map
                 MapEngine.updateTrips(this.allTrips);
@@ -239,5 +253,70 @@ export const Trips = {
         const best = document.getElementById('stat-best-streak');
         if (cur) cur.textContent = streaks.current;
         if (best) best.textContent = streaks.best;
+    },
+
+    renderPrediction() {
+        const card = document.getElementById('prediction-card');
+        const content = document.getElementById('prediction-content');
+        if (!card || !content) return;
+
+        if (this.activeTrip) {
+            // Predict Arrival for Active Trip
+            const p = PredictionEngine.guessEndStop(this.allTrips, {
+                route: this.activeTrip.route,
+                startStopName: this.activeTrip.startStop,
+                direction: this.activeTrip.direction,
+                time: this.activeTrip.startTime?.toDate ? this.activeTrip.startTime.toDate() : new Date(this.activeTrip.startTime)
+            });
+
+            card.querySelector('.prediction-label').textContent = "Active Trip Prediction";
+            card.classList.add('trip-active-card');
+            card.style.display = 'block';
+
+            if (p) {
+                const arrivalTime = p.avgDuration ? `~${p.avgDuration} min trip` : 'Time unknown';
+                content.innerHTML = `
+                    <div class="prediction-main">
+                        <div class="prediction-route">Heading to ${p.stop}</div>
+                        <div class="prediction-stop">${arrivalTime} • Based on history</div>
+                    </div>
+                    <div class="prediction-stats">
+                        <span class="prediction-confidence">${p.confidence}%</span>
+                        <span class="prediction-confidence-label">Confidence</span>
+                    </div>
+                `;
+            } else {
+                content.innerHTML = `
+                    <div class="prediction-main">
+                        <div class="prediction-route">Trip in Progress</div>
+                        <div class="prediction-stop">No historical matches for this destination.</div>
+                    </div>
+                `;
+            }
+        } else {
+            // Predict Next Trip
+            const p = PredictionEngine.guess(this.allTrips, {
+                time: new Date()
+            });
+
+            card.querySelector('.prediction-label').textContent = "Next Predicted Trip";
+            card.classList.remove('trip-active-card');
+
+            if (p && p.confidence > 20) { // Only show if we have some confidence
+                card.style.display = 'block';
+                content.innerHTML = `
+                    <div class="prediction-main">
+                        <div class="prediction-route">${p.route} ${p.direction || ''}</div>
+                        <div class="prediction-stop">From ${p.stop}</div>
+                    </div>
+                    <div class="prediction-stats">
+                        <span class="prediction-confidence">${p.confidence}%</span>
+                        <span class="prediction-confidence-label">Match</span>
+                    </div>
+                `;
+            } else {
+                card.style.display = 'none';
+            }
+        }
     }
 };

@@ -671,3 +671,97 @@ input:focus { border-color: var(--accent-light); }
 .divider::after { right: 0; }
 
 .text-accent { color: var(--accent) !important; }
+
+/* Prediction Card */
+.prediction-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.prediction-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--accent-gradient);
+}
+
+.prediction-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.prediction-icon {
+    font-size: 1.25rem;
+}
+
+.prediction-label {
+    font-weight: 800;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.prediction-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.prediction-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+}
+
+.prediction-route {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.prediction-stop {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.prediction-stats {
+    text-align: right;
+    min-width: 80px;
+}
+
+.prediction-confidence {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--accent-electric);
+}
+
+.prediction-confidence-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+/* Active Trip Styles Extension */
+.trip-active-card {
+    border: 2px solid var(--accent-electric);
+    animation: glow-pulse 3s infinite ease-in-out;
+}
+
+@keyframes glow-pulse {
+    0% { box-shadow: 0 0 5px rgba(99, 102, 241, 0.1); }
+    50% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
+    100% { box-shadow: 0 0 5px rgba(99, 102, 241, 0.1); }
+}
