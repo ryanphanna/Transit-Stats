@@ -1,0 +1,19 @@
+/* TransitStats V2 - Main Stylesheet */
+
+:root {
+  --bg-app: #f9fafb;
+  --text-primary: #111827;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+* {
+  box-sizing: inherit;
+}
