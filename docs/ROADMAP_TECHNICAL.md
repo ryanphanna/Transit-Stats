@@ -9,6 +9,7 @@ Technical foundation and scaling initiatives to support growth and long-term sta
 - [x] **Gemini API key rotation**: Resolved 2026-03-13. New key generated in Google AI Studio and updated in Cloud Secret Manager.
 - [ ] **Wait Time Inference**: Logic for estimating boarding wait times by comparing "Confirm Start" timestamps with first vehicle position data.
 - [ ] **Anomaly Detection**: Automatically identifying "bad data" points or "teleportation" trips for sanitization.
+- [ ] **Stop Normalization Tool**: Assisted review UI for consolidating duplicate stop entries. Surfaces merge candidates based on name similarity, coordinates, route, and direction — user manually confirms or rejects each pair.
 - [ ] **Legacy Data Import**: High-fidelity parser for TTC export files to backfill historical user data. (PRESTO importer removed — too fragile and caused main app instability.)
 
 ## Security
