@@ -253,6 +253,59 @@ body.map-visible #fullMapContainer {
     transition: width 1s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Route Tracker */
+.rt-route-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.rt-route-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 4px;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.9em;
+}
+
+.rt-route-item:last-child {
+    border-bottom: none;
+}
+
+.rt-route-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    padding: 2px 8px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-pill);
+    font-weight: 700;
+    font-size: 0.85em;
+    color: var(--accent-electric);
+    flex-shrink: 0;
+}
+
+.rt-route-name {
+    flex: 1;
+    color: var(--text-secondary);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rt-route-check {
+    color: #22c55e;
+    font-weight: 700;
+    font-size: 0.9em;
+    flex-shrink: 0;
+}
+
 /* Time of Day Visualization */
 .time-bar-row {
     display: flex;

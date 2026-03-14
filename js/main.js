@@ -14,6 +14,7 @@ import { Templates } from './templates.js';
 import { MapEngine } from './map-engine.js';
 import { Visuals } from './visuals.js';
 import { PredictionEngine } from './predict.js';
+import { RouteTracker } from './route-tracker.js';
 
 
 console.log('TransitStats Loading...');
@@ -68,11 +69,12 @@ window.initializeApp = function () {
     Trips.init();
     Templates.init();
 
-    // Defer Stats and Map until Trips has its first snapshot, so they don’t
-    // compete with the initial read and Stats can use Trips.allCompletedTrips directly.
+    // Defer Stats, Map, and RouteTracker until Trips has its first snapshot, so they
+    // don’t compete with the initial read and can use Trips.allCompletedTrips directly.
     Trips._readyPromise.then(() => {
         Stats.init();
         MapEngine.init();
+        RouteTracker.init();
     });
 };
 
