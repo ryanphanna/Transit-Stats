@@ -89,6 +89,13 @@ function setupEventListeners() {
     DOM.header.navHome?.addEventListener('click', () => switchView('dashboard'));
     DOM.header.navMap?.addEventListener('click', () => switchView('map'));
     DOM.header.navAdmin?.addEventListener('click', () => switchView('admin'));
+    DOM.header.navInsights?.addEventListener('click', () => {
+        switchView('dashboard');
+        // Small delay to ensure view is visible before scrolling
+        setTimeout(() => {
+            document.getElementById('commute-highlights')?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+    });
     DOM.header.navSettings?.addEventListener('click', openSettings);
     
     // 2. Auth Flow (Step 1: Email)

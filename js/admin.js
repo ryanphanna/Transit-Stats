@@ -63,17 +63,23 @@ export const Admin = {
 
     async loadInbox() {
         try {
-            // Scan trips for unlinked stop strings
-            // For V2 parity, we'll scan the last 500 trips
-            const snap = await db.collection('trips')
-                .orderBy('startTime', 'desc')
-                .limit(500)
-                .get();
+            // Scan trips for unlinked stop strings. Use the existing Trips cache if available to save reads.
+            const tripsToScan = window.Trips?.allTrips?.length ? 
+                                window.Trips.allTrips : 
+                                [];
+
+            if (!tripsToScan.length) {
+                 const snap = await db.collection('trips')
+                    .where('userId', '==', window.currentUser.uid)
+                    .orderBy('startTime', 'desc')
+                    .limit(500)
+                    .get();
+                 snap.docs.forEach(doc => tripsToScan.push(doc.data()));
+            }
 
             const rawStops = {}; // string -> { count, routes: Set }
 
-            snap.docs.forEach(doc => {
-                const trip = doc.data();
+            tripsToScan.forEach(trip => {
                 const process = (val, route) => {
                     if (!val) return;
                     const norm = Utils.normalizeIntersectionStop(val);
