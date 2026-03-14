@@ -2,6 +2,7 @@ import { auth } from './firebase.js';
 import { Auth } from './auth.js';
 import { Trips } from './trips.js';
 import { MapEngine } from './map-engine.js';
+import { Admin } from './admin.js';
 
 /**
  * TransitStats V2 - Main Entry Point
@@ -21,7 +22,8 @@ const DOM = {
     views: {
         auth: document.getElementById('view-auth'),
         dashboard: document.getElementById('view-dashboard'),
-        map: document.getElementById('view-map')
+        map: document.getElementById('view-map'),
+        admin: document.getElementById('view-admin')
     },
     header: {
         container: document.getElementById('site-header'),
@@ -33,7 +35,10 @@ const DOM = {
     },
     modals: {
         backdrop: document.getElementById('modal-backdrop'),
-        settings: document.getElementById('modal-settings')
+        settings: document.getElementById('modal-settings'),
+        linkStop: document.getElementById('modal-link-stop'),
+        stopForm: document.getElementById('modal-stop-form'),
+        divvy: document.getElementById('modal-divvy')
     },
     auth: {
         emailInput: document.getElementById('auth-email'),
@@ -72,6 +77,7 @@ function setupEventListeners() {
     // 1. Navigation
     DOM.header.navHome.addEventListener('click', () => switchView('dashboard'));
     DOM.header.navMap.addEventListener('click', () => switchView('map'));
+    DOM.header.navAdmin.addEventListener('click', () => switchView('admin'));
     DOM.header.navSettings.addEventListener('click', openSettings);
     
     // 2. Auth Flow (Step 1: Email)
@@ -248,6 +254,10 @@ function switchView(viewName) {
             if (MapEngine.map) MapEngine.map.invalidateSize();
         }, 100);
     }
+
+    if (viewName === 'admin') {
+        Admin.init();
+    }
 }
 
 // --- Theme Management ---
@@ -307,6 +317,9 @@ function setupAuthObserver() {
             
             // Initialize Trips
             Trips.init();
+
+            // Pre-init Admin if needed
+            if (State.isAdmin) Admin.loadAll();
         } else {
             State.user = null;
             State.isAdmin = false;
@@ -323,9 +336,20 @@ function openSettings() {
 }
 
 function closeSettings() {
-    DOM.modals.backdrop.classList.add('hidden');
-    DOM.modals.settings.classList.add('hidden');
+    closeAllModals();
 }
+
+function closeAllModals() {
+    DOM.modals.backdrop.classList.add('hidden');
+    Object.values(DOM.modals).forEach(m => m.classList?.add('hidden'));
+}
+
+// Global hook for close buttons
+document.querySelectorAll('[data-close-modal]').forEach(b => {
+    b.addEventListener('click', closeAllModals);
+});
+document.getElementById('btn-close-settings')?.addEventListener('click', closeAllModals);
+DOM.modals.backdrop.addEventListener('click', closeAllModals);
 
 // --- Helpers ---
 function showAuthError(msg) {

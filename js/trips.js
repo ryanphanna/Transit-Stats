@@ -1,6 +1,7 @@
 import { db } from './firebase.js';
 import { Stats } from './stats.js';
 import { MapEngine } from './map-engine.js';
+import { Utils } from './utils.js';
 
 /**
  * TransitStats V2 Trips Module
@@ -64,6 +65,10 @@ export const Trips = {
     },
 
     async update(id, data) {
+        // Normalize stop names before saving
+        if (data.startStop) data.startStop = Utils.normalizeIntersectionStop(data.startStop);
+        if (data.endStop) data.endStop = Utils.normalizeIntersectionStop(data.endStop);
+
         return db.collection('trips').doc(id).update({
             ...data,
             updatedAt: new Date()
@@ -112,8 +117,8 @@ export const Trips = {
         const startTime = trip.startTime?.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
         const dateStr = startTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         
-        const startStop = trip.startStopName || trip.startStop || 'Unknown';
-        const endStop = trip.endStopName || trip.endStop || '...';
+        const startStop = Utils.normalizeIntersectionStop(trip.startStopName || trip.startStop) || 'Unknown';
+        const endStop = Utils.normalizeIntersectionStop(trip.endStopName || trip.endStop) || '...';
 
         card.innerHTML = `
             <div class="trip-info">

@@ -532,3 +532,142 @@ input:focus { border-color: var(--accent-light); }
   text-align: right;
   color: var(--accent);
 }
+
+/* --- Admin Views --- */
+.admin-grid {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .admin-grid { grid-template-columns: 1fr; }
+}
+
+.inbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inbox-item {
+  background: var(--bg-muted);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s;
+  border-left: 4px solid var(--warning);
+}
+
+.inbox-item:hover {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+  transform: translateX(4px);
+}
+
+.inbox-item-content {
+  flex: 1;
+}
+
+.inbox-item-name {
+  font-weight: 700;
+  display: block;
+}
+
+.inbox-item-meta {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.badge-count {
+  background: var(--warning);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  margin-right: 8px;
+}
+
+/* --- Library Grid --- */
+.lib-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.stop-card {
+  background: var(--bg-muted);
+  border-radius: var(--radius);
+  padding: 16px;
+  position: relative;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.stop-card:hover {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--accent);
+}
+
+.stop-card-name {
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.stop-card-meta {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  display: flex;
+  gap: 8px;
+}
+
+.alias-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dotted var(--border);
+}
+
+.alias-pill {
+  font-size: 0.65rem;
+  background: var(--bg-card);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.admin-filters {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
+}
+
+.divider {
+  text-align: center;
+  position: relative;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  margin: 16px 0;
+}
+
+.divider::before, .divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 35%;
+  height: 1px;
+  background: var(--border);
+}
+
+.divider::before { left: 0; }
+.divider::after { right: 0; }
+
+.text-accent { color: var(--accent) !important; }
