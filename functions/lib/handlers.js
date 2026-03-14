@@ -2,6 +2,7 @@
  * SMS Command Handlers for transit tracking
  */
 const admin = require('firebase-admin');
+const { randomUUID } = require('crypto');
 const {
   sendSmsReply,
 } = require('./twilio');
@@ -14,6 +15,7 @@ const {
   isEmailAllowed,
   getUserByPhone,
   lookupStop,
+  getRoutesAtStop,
   db,
   isGeminiRateLimited,
   createTrip,
@@ -55,6 +57,7 @@ NOTES (optional)
 Commands:
 STATUS - view active trip
 STATS - your last 30 days
+LINK - join last two trips as one journey
 INCOMPLETE - forgot to end a trip
 DISCARD - didn't board, delete the trip
 REGISTER [email] - link account
@@ -312,14 +315,16 @@ START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDispla
   let prediction = null;
   let endStopPrediction = null;
   const startStopName = stopData ? stopData.stopName : parsedStop.stopName;
+  const startStopCode = stopData ? stopData.stopCode : parsedStop.stopCode;
   try {
-    const [history, stopsLibrary] = await Promise.all([
+    const [history, stopsLibrary, routesAtStop] = await Promise.all([
       getRecentCompletedTrips(user.userId, 100),
       getStopsLibrary(),
+      getRoutesAtStop(startStopCode, agency),
     ]);
     PredictionEngine.stopsLibrary = stopsLibrary;
     const now = new Date();
-    prediction = PredictionEngine.guess(history, { stopName: startStopName, time: now });
+    prediction = PredictionEngine.guess(history, { stopName: startStopName, time: now, routesAtStop: routesAtStop || undefined });
     endStopPrediction = PredictionEngine.guessEndStop(history, {
       route,
       startStopName,
@@ -352,9 +357,23 @@ START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDispla
     stopData ? stopData.stopName : parsedStop.stopName,
   );
 
+  // Detect journey continuation: last completed trip ended at this stop within 45 min
+  let journeySuggestion = '';
+  try {
+    const lastTrip = history && history.length > 0 ? history[0] : null;
+    if (lastTrip && lastTrip.endTime && lastTrip.endStopName) {
+      const lastEnd = lastTrip.endTime.toDate ? lastTrip.endTime.toDate() : new Date(lastTrip.endTime);
+      const gapMinutes = (new Date() - lastEnd) / 60000;
+      if (gapMinutes >= 0 && gapMinutes <= 45 && PredictionEngine._stopMatch(lastTrip.endStopName, startStopName)) {
+        const gapStr = gapMinutes < 1 ? '<1' : Math.round(gapMinutes);
+        journeySuggestion = `\n\nContinues your Route ${lastTrip.route} trip (${gapStr} min transfer). Reply LINK to join as a journey.`;
+      }
+    }
+  } catch (_) { /* non-critical */ }
+
   await sendSmsReply(phoneNumber, `✅ Started ${routeDisplay} from Stop ${finalStopDisplay}.
 
-END + STOP to finish. INCOMPLETE if you forgot to end. DISCARD if you didn't board. INFO for help.`);
+END + STOP to finish. INCOMPLETE if you forgot to end. DISCARD if you didn't board. INFO for help.${journeySuggestion}`);
 }
 
 /**
@@ -371,13 +390,14 @@ async function handleConfirmStart(phoneNumber, user, state) {
   let confirmPrediction = null;
   let confirmEndStopPrediction = null;
   try {
-    const [history, stopsLibrary] = await Promise.all([
+    const [history, stopsLibrary, routesAtStop] = await Promise.all([
       getRecentCompletedTrips(user.userId, 100),
       getStopsLibrary(),
+      getRoutesAtStop(newTrip.stopCode, newTrip.agency),
     ]);
     PredictionEngine.stopsLibrary = stopsLibrary;
     const now = new Date();
-    confirmPrediction = PredictionEngine.guess(history, { stopName: newTrip.stopName, time: now });
+    confirmPrediction = PredictionEngine.guess(history, { stopName: newTrip.stopName, time: now, routesAtStop: routesAtStop || undefined });
     confirmEndStopPrediction = PredictionEngine.guessEndStop(history, {
       route: newTrip.route,
       startStopName: newTrip.stopName,
@@ -646,6 +666,77 @@ async function handleStatsCommand(phoneNumber, user) {
   );
 }
 
+/**
+ * Handle LINK command — join the most recent pair of consecutive trips as a journey.
+ *
+ * Case A (active trip exists): links the last completed trip → current active trip.
+ * Case B (no active trip): links the last two completed trips.
+ *
+ * A journeyId (UUID) is shared across all legs. If either trip already belongs to a
+ * journey, that ID is reused so the journey can grow leg by leg.
+ * Only trips within a 60-minute gap are eligible.
+ */
+async function handleJourneyLink(phoneNumber, user) {
+  const [activeTrip, history] = await Promise.all([
+    getActiveTrip(user.userId),
+    getRecentCompletedTrips(user.userId, 2),
+  ]);
+
+  let earlierTrip, laterTrip;
+
+  if (activeTrip && history.length >= 1) {
+    // Case A: last completed trip → active trip
+    earlierTrip = history[0];
+    laterTrip = activeTrip;
+  } else if (!activeTrip && history.length >= 2) {
+    // Case B: second-to-last completed → last completed
+    earlierTrip = history[1]; // older (lower endTime)
+    laterTrip = history[0];   // newer
+  } else {
+    await sendSmsReply(phoneNumber, 'Not enough trips to link. Complete at least one trip first.');
+    return;
+  }
+
+  // Validate temporal gap
+  const earlierEnd = earlierTrip.endTime?.toDate
+    ? earlierTrip.endTime.toDate() : new Date(earlierTrip.endTime);
+  const laterStart = laterTrip.startTime?.toDate
+    ? laterTrip.startTime.toDate() : new Date(laterTrip.startTime);
+  const gapMinutes = (laterStart - earlierEnd) / 60000;
+
+  if (gapMinutes < 0) {
+    await sendSmsReply(phoneNumber, 'Trips overlap in time — cannot link.');
+    return;
+  }
+  if (gapMinutes > 60) {
+    await sendSmsReply(
+      phoneNumber,
+      `Gap between trips is ${Math.round(gapMinutes)} min. Only trips within 60 min can be linked as a journey.`,
+    );
+    return;
+  }
+
+  // Reuse an existing journeyId if one leg already belongs to a journey
+  const journeyId = earlierTrip.journeyId || laterTrip.journeyId || randomUUID();
+
+  // Guard: already linked together
+  if (earlierTrip.journeyId && laterTrip.journeyId && earlierTrip.journeyId === laterTrip.journeyId) {
+    await sendSmsReply(phoneNumber, 'These trips are already linked as a journey.');
+    return;
+  }
+
+  const batch = db.batch();
+  batch.update(db.collection('trips').doc(earlierTrip.id), { journeyId });
+  batch.update(db.collection('trips').doc(laterTrip.id), { journeyId });
+  await batch.commit();
+
+  const gapStr = gapMinutes < 1 ? '<1' : Math.round(gapMinutes);
+  await sendSmsReply(
+    phoneNumber,
+    `✅ Route ${earlierTrip.route} → Route ${laterTrip.route} linked as a journey (${gapStr} min transfer).`,
+  );
+}
+
 module.exports = {
   handleHelp,
   handleStatus,
@@ -658,4 +749,5 @@ module.exports = {
   handleEndTrip,
   handleQuery,
   handleStatsCommand,
+  handleJourneyLink,
 };

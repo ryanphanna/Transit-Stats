@@ -57,6 +57,13 @@ service cloud.firestore {
                     get(/databases/$(database)/documents/allowedUsers/$(request.auth.token.email.lower())).data.isAdmin == true;
     }
 
+    // Stop→Route mapping (built from GTFS stop_times.txt) - authenticated users can read, admins can write
+    match /stopRoutes/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+                    get(/databases/$(database)/documents/allowedUsers/$(request.auth.token.email.lower())).data.isAdmin == true;
+    }
+
     // Rate limits - only cloud functions can read/write
     match /rateLimits/{phoneNumber} {
       allow read, write: if false;
