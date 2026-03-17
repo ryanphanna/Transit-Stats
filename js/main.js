@@ -1,8 +1,18 @@
-import { auth } from './firebase.js';
+import { db, auth } from './firebase.js';
+import { Utils } from './utils.js';
 import { Auth } from './auth.js';
 import { Trips } from './trips.js';
-import { MapEngine } from './map-engine.js';
 import { Admin } from './admin.js';
+import { Stats } from './stats.js';
+import { MapEngine } from './map-engine.js';
+
+// Expose to window for legacy onclick handlers and inter-module access
+window.Auth = Auth;
+window.Trips = Trips;
+window.Admin = Admin;
+window.Stats = Stats;
+window.MapEngine = MapEngine;
+window.Utils = Utils;
 
 /**
  * TransitStats V2 - Main Entry Point
@@ -13,144 +23,112 @@ import { Admin } from './admin.js';
 const State = {
     user: null,
     isAdmin: false,
-    currentView: 'auth',
-    theme: 'light'
+    theme: 'light',
+    currentView: 'dashboard'
 };
 
-// --- DOM Cache ---
-let DOM = {};
+const DOM = {};
 
-function initDOM() {
-    DOM = {
-        views: {
-            auth: document.getElementById('view-auth'),
-            dashboard: document.getElementById('view-dashboard'),
-            map: document.getElementById('view-map'),
-            admin: document.getElementById('view-admin')
-        },
-        header: {
-            container: document.getElementById('site-header'),
-            navHome: document.getElementById('nav-home'),
-            navAdmin: document.getElementById('nav-admin'),
-            navInsights: document.getElementById('nav-insights'),
-            navMap: document.getElementById('nav-map'),
-            navSettings: document.getElementById('nav-settings')
-        },
-        modals: {
-            backdrop: document.getElementById('modal-backdrop'),
-            settings: document.getElementById('modal-settings'),
-            linkStop: document.getElementById('modal-link-stop'),
-            stopForm: document.getElementById('modal-stop-form'),
-            divvy: document.getElementById('modal-divvy')
-        },
-        auth: {
-            emailInput: document.getElementById('auth-email'),
-            btnContinue: document.getElementById('btn-auth-continue'),
-            emailStep: document.getElementById('auth-email-step'),
-            passwordStep: document.getElementById('auth-password-step'),
-            displayEmail: document.getElementById('auth-display-email'),
-            btnBack: document.getElementById('btn-auth-back'),
-            btnMagic: document.getElementById('btn-auth-magic'),
-            btnUsePassword: document.getElementById('btn-auth-use-password'),
-            passwordInputGroup: document.getElementById('auth-password-input-group'),
-            passwordInput: document.getElementById('auth-password'),
-            btnSignIn: document.getElementById('btn-auth-signin'),
-            btnForgot: document.getElementById('btn-auth-forgot'),
-            statusMsg: document.getElementById('auth-status')
-        }
-    };
-}
-
-// --- Initialization ---
 async function init() {
-    console.log('TransitStats V2 Booting...');
-    
+    console.log("App booting...");
     initDOM();
-
-    // Check for magic link sign-in before setting up observers
-    try {
-        await Auth.completeMagicLinkSignIn();
-    } catch (err) {
-        showAuthError('Magic link failed: ' + err.message);
-    }
-
     setupEventListeners();
     setupAuthObserver();
 }
 
-// --- Event Binding ---
-function setupEventListeners() {
-    if (!DOM.auth.btnContinue) {
-        console.error("Critical: Could not find btn-auth-continue");
-        return;
-    }
-
-    // 1. Navigation
-    DOM.header.navHome?.addEventListener('click', () => switchView('dashboard'));
-    DOM.header.navMap?.addEventListener('click', () => switchView('map'));
-    DOM.header.navAdmin?.addEventListener('click', () => switchView('admin'));
-    DOM.header.navInsights?.addEventListener('click', () => {
-        switchView('dashboard');
-        // Small delay to ensure view is visible before scrolling
-        setTimeout(() => {
-            document.getElementById('commute-highlights')?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-    });
-    DOM.header.navSettings?.addEventListener('click', openSettings);
-    
-    // 2. Auth Flow (Step 1: Email)
-    const validateEmail = () => {
-        const val = DOM.auth.emailInput.value.trim();
-        DOM.auth.btnContinue.disabled = !val.includes('@');
+function initDOM() {
+    DOM.header = {
+        container: document.querySelector('.header'),
+        navAdmin: document.getElementById('nav-admin'),
+        navInsights: document.getElementById('nav-insights'),
+        navSettings: document.getElementById('nav-settings')
     };
 
-    DOM.auth.emailInput.addEventListener('input', validateEmail);
-    DOM.auth.emailInput.addEventListener('change', validateEmail);
+    DOM.modals = {
+        backdrop: document.getElementById('modal-backdrop'),
+        settings: document.getElementById('modal-settings')
+    };
+
+    DOM.auth = {
+        emailInput: document.getElementById('auth-email'),
+        passwordInput: document.getElementById('auth-password'),
+        btnContinue: document.getElementById('btn-auth-continue'),
+        btnSignIn: document.getElementById('btn-auth-signin'),
+        btnMagic: document.getElementById('btn-auth-magic'),
+        btnUsePassword: document.getElementById('btn-auth-use-password'),
+        btnForgot: document.getElementById('btn-auth-forgot'),
+        emailStep: document.getElementById('auth-email-step'),
+        passwordStep: document.getElementById('auth-password-step'),
+        passwordInputGroup: document.getElementById('auth-password-input-group'),
+        loginOptions: document.getElementById('auth-login-options'),
+        displayEmail: document.getElementById('auth-display-email'),
+        statusMsg: document.getElementById('auth-status')
+    };
+
+    DOM.views = {
+        auth: document.getElementById('view-auth'),
+        dashboard: document.getElementById('view-dashboard'),
+        map: document.getElementById('view-map'),
+        admin: document.getElementById('view-admin'),
+        insights: document.getElementById('view-insights')
+    };
+}
+
+function setupEventListeners() {
+    // 1. Navigation
+    document.querySelector('.logo').addEventListener('click', () => switchView('dashboard'));
+    DOM.header.navAdmin?.addEventListener('click', () => switchView('admin'));
+    DOM.header.navInsights?.addEventListener('click', () => switchView('insights'));
+    DOM.header.navSettings?.addEventListener('click', openSettings);
+    document.getElementById('nav-map')?.addEventListener('click', () => switchView('map'));
+
+    // 2. Dash Shortcuts
+    document.getElementById('dash-nav-map')?.addEventListener('click', () => switchView('map'));
+    document.getElementById('dash-nav-insights')?.addEventListener('click', () => switchView('insights'));
+    
+    // 3. Stats Toggles (handled in Trips module now, but we check IDs)
+    // 4. Auth — Step 1: email entry
+    DOM.auth.emailInput.addEventListener('input', () => {
+        DOM.auth.btnContinue.disabled = !DOM.auth.emailInput.value.trim();
+    });
+
     DOM.auth.emailInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !DOM.auth.btnContinue.disabled) {
-            DOM.auth.btnContinue.click();
-        }
+        if (e.key === 'Enter' && !DOM.auth.btnContinue.disabled) DOM.auth.btnContinue.click();
     });
 
     DOM.auth.btnContinue.addEventListener('click', () => {
         const email = DOM.auth.emailInput.value.trim();
-        if (email) {
-            DOM.auth.displayEmail.textContent = email;
-            DOM.auth.emailStep.classList.add('hidden');
-            DOM.auth.passwordStep.classList.remove('hidden');
-        }
-    });
+        if (!email) return;
 
-    DOM.auth.btnBack.addEventListener('click', () => {
-        DOM.auth.passwordStep.classList.add('hidden');
-        DOM.auth.emailStep.classList.remove('hidden');
-        DOM.auth.passwordInputGroup.classList.add('hidden');
-        document.getElementById('auth-login-options').classList.remove('hidden');
+        DOM.auth.displayEmail.textContent = email;
+        DOM.auth.emailStep.classList.add('hidden');
+        DOM.auth.passwordStep.classList.remove('hidden');
         DOM.auth.statusMsg.classList.add('hidden');
     });
 
-    // 3. Auth Flow (Step 2: Method selection)
-    DOM.auth.btnUsePassword.addEventListener('click', () => {
-        document.getElementById('auth-login-options').classList.add('hidden');
-        DOM.auth.passwordInputGroup.classList.remove('hidden');
-        DOM.auth.passwordInput.focus();
-    });
-
+    // Step 2: magic link
     DOM.auth.btnMagic.addEventListener('click', async () => {
         const email = DOM.auth.emailInput.value.trim();
         try {
             DOM.auth.btnMagic.disabled = true;
             DOM.auth.btnMagic.textContent = 'Sending...';
             await Auth.sendMagicLink(email);
-            showAuthSuccess('Magic link sent! Check your inbox.');
+            showAuthSuccess('Magic link sent! Check your email.');
         } catch (err) {
-            showAuthError('Failed to send: ' + err.message);
+            showAuthError(err.message);
             DOM.auth.btnMagic.disabled = false;
             DOM.auth.btnMagic.textContent = 'Send Magic Link';
         }
     });
 
-    // 4. Firebase Authentication
+    // Step 2: show password input
+    DOM.auth.btnUsePassword.addEventListener('click', () => {
+        DOM.auth.loginOptions.classList.add('hidden');
+        DOM.auth.passwordInputGroup.classList.remove('hidden');
+        DOM.auth.passwordInput.focus();
+    });
+
+    // Step 2: sign in with password
     DOM.auth.btnSignIn.addEventListener('click', async () => {
         const email = DOM.auth.emailInput.value.trim();
         const pwd = DOM.auth.passwordInput.value;
@@ -158,9 +136,8 @@ function setupEventListeners() {
 
         try {
             DOM.auth.btnSignIn.disabled = true;
-            DOM.auth.btnSignIn.textContent = 'Logging in...';
+            DOM.auth.btnSignIn.textContent = 'Signing in...';
             DOM.auth.statusMsg.classList.add('hidden');
-            
             await Auth.signInWithPassword(email, pwd);
         } catch (err) {
             showAuthError(Auth.getErrorMessage(err.code || err.message));
@@ -327,6 +304,7 @@ function setupAuthObserver() {
 
             State.user = user;
             State.isAdmin = verification.isAdmin;
+            window.isAdmin = verification.isAdmin;
             
             DOM.header.navAdmin?.classList.toggle('hidden', !State.isAdmin);
             const profileName = document.getElementById('profile-name');
@@ -342,6 +320,7 @@ function setupAuthObserver() {
         } else {
             State.user = null;
             State.isAdmin = false;
+            window.isAdmin = false;
             window.currentUser = null;
             switchView('auth');
         }

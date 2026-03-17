@@ -31,23 +31,28 @@ export const Trips = {
     },
 
     setupToggles() {
-        const t30 = document.getElementById('toggle-stats-30');
-        const tAll = document.getElementById('toggle-stats-all');
-        if (!t30 || !tAll) return;
+        const bind = (id30, idAll, range) => {
+            const t30 = document.getElementById(id30);
+            const tAll = document.getElementById(idAll);
+            if (!t30 || !tAll) return;
 
-        t30.addEventListener('click', () => {
-            this.statsRange = 30;
-            t30.classList.add('active');
-            tAll.classList.remove('active');
-            this.renderStats();
-        });
+            t30.addEventListener('click', () => {
+                this.statsRange = 30;
+                document.querySelectorAll('.toggle-btn[id*="30"]').forEach(el => el.classList.add('active'));
+                document.querySelectorAll('.toggle-btn[id*="all"]').forEach(el => el.classList.remove('active'));
+                this.renderStats();
+            });
 
-        tAll.addEventListener('click', () => {
-            this.statsRange = null;
-            tAll.classList.add('active');
-            t30.classList.remove('active');
-            this.renderStats();
-        });
+            tAll.addEventListener('click', () => {
+                this.statsRange = null;
+                document.querySelectorAll('.toggle-btn[id*="all"]').forEach(el => el.classList.add('active'));
+                document.querySelectorAll('.toggle-btn[id*="30"]').forEach(el => el.classList.remove('active'));
+                this.renderStats();
+            });
+        };
+
+        bind('toggle-stats-30', 'toggle-stats-all');
+        bind('toggle-stats-30-insights', 'toggle-stats-all-insights');
     },
 
     listen() {
@@ -131,8 +136,8 @@ export const Trips = {
         const startTime = trip.startTime?.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
         const dateStr = startTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         
-        const startStop = Utils.normalizeIntersectionStop(trip.startStopName || trip.startStop) || 'Unknown';
-        const endStop = Utils.normalizeIntersectionStop(trip.endStopName || trip.endStop) || '...';
+        const startStop = Utils.normalizeIntersectionStop(trip.startStopName || trip.startStop || trip.startStopCode) || 'Unknown';
+        const endStop = Utils.normalizeIntersectionStop(trip.endStopName || trip.endStop || trip.endStopCode) || '...';
 
         card.innerHTML = `
             <div class="trip-info">
@@ -173,9 +178,16 @@ export const Trips = {
         update('stat-hours', metrics.hours);
         update('stat-stops', metrics.stops);
 
+        update('stat-trips-insights', metrics.trips);
+        update('stat-routes-insights', metrics.routes);
+        update('stat-hours-insights', metrics.hours);
+        update('stat-stops-insights', metrics.stops);
+
         // Top Lists
         this.renderList('top-routes-list', metrics.topRoutes);
         this.renderList('top-stops-list', metrics.topStops);
+        this.renderList('top-routes-list-insights', metrics.topRoutes);
+        this.renderList('top-stops-list-insights', metrics.topStops);
 
         // Advanced Analytics
         const highlights = Stats.computeHighlights(this.allTrips);
@@ -183,6 +195,9 @@ export const Trips = {
 
         const peakTimes = Stats.computePeakTimes(this.allTrips);
         this.renderPeakTimes(peakTimes);
+
+        const sparkPoints = Stats.computeSparkline(this.allTrips);
+        this.renderSparkline(sparkPoints);
     },
 
     renderList(containerId, items) {
@@ -203,37 +218,50 @@ export const Trips = {
     },
 
     renderHighlights(highlights) {
-        const container = document.getElementById('commute-highlights');
-        if (!container) return;
+        const containers = [
+            document.getElementById('commute-highlights'),
+            document.getElementById('commute-highlights-insights')
+        ].filter(el => el != null);
+
+        if (containers.length === 0) return;
 
         if (!highlights.length) {
-            container.innerHTML = '<div class="loading-state">Not enough data for insights.</div>';
+            containers.forEach(c => c.innerHTML = '<div class="loading-state">Not enough data for insights.</div>');
             return;
         }
 
-        container.innerHTML = highlights.map(c => `
+        const html = highlights.map(c => {
+            const w = 200, h = 32;
+            const min = Math.min(...c.durations);
+            const max = Math.max(...c.durations);
+            const range = max - min || 1;
+            const pts = c.durations.map((d, i) => {
+                const x = (i / (c.durations.length - 1 || 1)) * w;
+                const y = h - ((d - min) / range) * (h - 4) - 2;
+                return `${x},${y}`;
+            });
+            const polyline = `<polyline points="${pts.join(' ')}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+            return `
             <div class="insight-row mb-3">
                 <div class="insight-title">${c.name} <span class="badge">${c.count}x</span></div>
-                <div class="insight-grid">
-                    <div class="insight-item"><strong>${c.avg}m</strong><span>AVG</span></div>
-                    <div class="insight-item success"><strong>${c.min}m</strong><span>FAST</span></div>
-                    <div class="insight-item muted"><strong>${c.max}m</strong><span>SLOW</span></div>
-                </div>
-            </div>
-        `).join('');
+                <svg class="insight-sparkline" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${polyline}</svg>
+            </div>`;
+        }).join('');
+
+        containers.forEach(c => c.innerHTML = html);
     },
 
     renderPeakTimes(buckets) {
-        const container = document.getElementById('time-of-day-chart');
-        if (!container) return;
+        const containers = [
+            document.getElementById('time-of-day-chart'),
+            document.getElementById('time-of-day-chart-insights')
+        ].filter(el => el != null);
 
-        const max = Math.max(...Object.values(buckets));
-        if (max === 0) {
-            container.innerHTML = '<div class="loading-state">No data</div>';
-            return;
-        }
+        if (containers.length === 0) return;
 
-        container.innerHTML = Object.entries(buckets).map(([key, count]) => {
+        const max = Math.max(...Object.values(buckets), 1);
+        
+        const html = Object.entries(buckets).map(([key, count]) => {
             const width = (count / max) * 100;
             return `
                 <div class="chart-row">
@@ -245,6 +273,27 @@ export const Trips = {
                 </div>
             `;
         }).join('');
+
+        containers.forEach(c => c.innerHTML = html);
+    },
+
+    renderSparkline(points) {
+        const container = document.getElementById('sparkline-container');
+        if (!container) return;
+
+        const max = Math.max(...points, 1);
+        const total = points.reduce((a, b) => a + b, 0);
+        const avg = total / points.length;
+        const avgPct = (avg / max) * 100;
+        const bars = points.map((count, i) => `
+            <div class="spark-bar" style="height: ${Math.max((count/max)*100, 10)}%" title="${points.length - 1 - i} days ago: ${count} trips"></div>
+        `).join('');
+
+        container.innerHTML = `
+            ${bars}
+            <div class="spark-avg-line" style="bottom: calc(20px + ${avgPct}%)" title="avg ${avg.toFixed(1)}/day"></div>
+            <div class="spark-label">${total} trips · ${avg.toFixed(1)}/day avg</div>
+        `;
     },
 
     renderStreaks() {
@@ -259,6 +308,7 @@ export const Trips = {
         const card = document.getElementById('prediction-card');
         const content = document.getElementById('prediction-content');
         if (!card || !content) return;
+        if (!window.isAdmin) { card.style.display = 'none'; return; }
 
         if (this.activeTrip) {
             // Predict Arrival for Active Trip

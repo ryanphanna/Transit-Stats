@@ -142,7 +142,7 @@ async function handleSmsRequest(req, res) {
 
     // 7. END TRIP Handling
     const endTripData = parseEndTripFormat(body);
-    const singleLineEndMatch = body.match(/^(END|STOP)\s+(.+)$/i);
+    const singleLineEndMatch = body.match(/^(END|STOP)\s+(\S.*)$/i);
 
     if (endTripData || singleLineEndMatch) {
       const stopInput = singleLineEndMatch ? singleLineEndMatch[2] : endTripData?.stop;

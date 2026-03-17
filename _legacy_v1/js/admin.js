@@ -790,7 +790,7 @@ function toggleInboxSelection(name) {
     updateSelectAllCheckbox();
 
     // Update the item's visual state
-    const item = document.querySelector(`.inbox-item[data-name="${name.replace(/"/g, '\\"')}"]`);
+    const item = document.querySelector(`.inbox-item[data-name="${name.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"]`);
     if (item) {
         item.classList.toggle('selected', selectedInboxItems.has(name));
     }

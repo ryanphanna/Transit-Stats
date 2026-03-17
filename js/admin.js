@@ -91,8 +91,8 @@ export const Admin = {
                     if (route) rawStops[norm].routes.add(route);
                 };
 
-                process(trip.startStop, trip.route);
-                process(trip.endStop, trip.route);
+                process(trip.startStopName || trip.startStop || trip.startStopCode, trip.route);
+                process(trip.endStopName || trip.endStop || trip.endStopCode, trip.route);
             });
 
             this.inbox = Object.entries(rawStops).map(([name, data]) => ({

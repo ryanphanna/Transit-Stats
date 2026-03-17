@@ -16,22 +16,35 @@ export const MapEngine = {
         this.trips = initialTrips;
         if (this.map) return;
 
+        const container = document.getElementById('main-map');
+        if (!container) {
+            console.error("MapEngine: main-map container not found.");
+            return;
+        }
+
+        // Avoid Leaflet error if container already initialized
+        if (container._leaflet_id) return;
+
         console.log("MapEngine: Initializing...");
         
         // Default to Toronto
         const center = [43.6532, -79.3832];
         
-        this.map = L.map('main-map', {
-            zoomControl: false,
-            attributionControl: false
-        }).setView(center, 13);
+        try {
+            this.map = L.map('main-map', {
+                zoomControl: false,
+                attributionControl: false
+            }).setView(center, 13);
 
-        // Add Zoom Control to Bottom Right
-        L.control.zoom({ position: 'bottomright' }).addTo(this.map);
+            // Add Zoom Control to Bottom Right
+            L.control.zoom({ position: 'bottomright' }).addTo(this.map);
 
-        this.setupLayers();
-        this.renderMarkers();
-        this.setupControls();
+            this.setupLayers();
+            this.renderMarkers();
+            this.setupControls();
+        } catch (err) {
+            console.error("MapEngine: Failed to initialize Leaflet:", err);
+        }
     },
 
     setupLayers() {
@@ -106,6 +119,7 @@ export const MapEngine = {
         });
 
         points.forEach(p => {
+            if (isNaN(p.lat) || isNaN(p.lng)) return;
             const color = p.type === 'boarding' ? '#4f46e5' : '#10b981';
             L.circleMarker([p.lat, p.lng], {
                 radius: 6,
@@ -118,9 +132,14 @@ export const MapEngine = {
         });
 
         // Fit bounds if markers exist
-        if (points.length > 0) {
-            const bounds = L.latLngBounds(points.map(p => [p.lat, p.lng]));
-            this.map.fitBounds(bounds, { padding: [40, 40] });
+        const validPoints = points.filter(p => !isNaN(p.lat) && !isNaN(p.lng));
+        if (validPoints.length > 0) {
+            try {
+                const bounds = L.latLngBounds(validPoints.map(p => [p.lat, p.lng]));
+                this.map.fitBounds(bounds, { padding: [40, 40] });
+            } catch (err) {
+                console.warn("MapEngine: Fit bounds failed", err);
+            }
         }
     },
 

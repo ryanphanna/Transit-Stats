@@ -99,10 +99,15 @@ function sanitizeGeminiOutput(parsed) {
 
   const MAX_FIELD_LENGTH = 100;
 
-  // Strip HTML tags from a string
+  // Strip HTML tags from a string (recursive to prevent bypass)
   const stripHtml = (str) => {
     if (typeof str !== 'string') return str;
-    return str.replace(/<[^>]*>/g, '').trim();
+    let oldStr;
+    do {
+      oldStr = str;
+      str = str.replace(/<[^>]*>/g, '');
+    } while (str !== oldStr);
+    return str.trim();
   };
 
   // Sanitize and cap a string field

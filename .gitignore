@@ -48,3 +48,7 @@ coverage/
 # Cache
 .npm-cache/
 **/ .npm-cache/
+
+# Legacy
+_legacy_v1/
+_legacy_v1\ 2/

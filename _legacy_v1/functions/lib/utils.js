@@ -14,7 +14,7 @@ function toTitleCase(str) {
   if (!str) return str;
 
   // Replace " and " with " & " (case insensitive)
-  const withAmpersand = str.replace(/\s+and\s+/gi, ' & ');
+  const withAmpersand = str.replace(/[ \t\r\n]+and[ \t\r\n]+/gi, ' & ');
 
   return withAmpersand
     .toLowerCase()

@@ -9,9 +9,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <!-- Leaflet -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha384-c6Rcwz4e4CITMbu/NBmnNS8yN2sC3cUElMEMfP3vqqKFp7GOYaaBBCqmaWBjmkjb" crossorigin="anonymous" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" integrity="sha384-lPzjPsFQL6te2x+VxmV6q1DpRxpRk0tmnl2cpwAO5y04ESyc752tnEWPKDfl1olr" crossorigin="anonymous" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" integrity="sha384-5kMSQJ6S4Qj5i09mtMNrWpSi8iXw230pKU76xTmrpezGnNJQzj0NzXjQLLg+jE7k" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     <!-- Global Styles -->
     <link rel="stylesheet" href="styles/main.css">
 </head>
@@ -23,7 +23,7 @@
                 <span class="text-accent">Transit</span>Stats
             </h1>
             <nav id="user-nav" class="nav-links">
-                <button id="nav-admin" class="btn btn-ghost hidden">Data Manager</button>
+                <button id="nav-admin" class="btn btn-ghost hidden">Data</button>
                 <button id="nav-insights" class="btn btn-ghost">Insights</button>
                 <button id="nav-map" class="btn btn-icon" title="Map">🗺️</button>
                 <button id="nav-settings" class="btn btn-icon" title="Settings">⚙️</button>
@@ -41,7 +41,7 @@
                 <p class="auth-subtitle">Your Personal Transit Dashboard</p>
                 
                 <div id="auth-email-step">
-                    <div class="form-group">
+                    <div class="form-group mb-3">
                         <input type="email" id="auth-email" class="input-center" placeholder="Enter your email address">
                     </div>
                     <button id="btn-auth-continue" class="btn btn-primary full-width" disabled>Continue</button>
@@ -52,7 +52,6 @@
                     <div class="auth-active-user">
                         <span class="auth-label">Signing in as</span>
                         <strong id="auth-display-email" class="auth-email-text"></strong>
-                        <button id="btn-auth-back" class="btn btn-link">Change email</button>
                     </div>
 
                     <div id="auth-login-options" class="auth-options mt-4">
@@ -62,7 +61,7 @@
 
                     <div id="auth-password-input-group" class="hidden form-group mt-4">
                         <input type="password" id="auth-password" class="input-center" placeholder="••••••••">
-                        <button id="btn-auth-forgot" class="btn btn-link full-width mt-2">Forgot Password?</button>
+                        <button id="btn-auth-forgot" class="btn btn-link full-width mt-4">Forgot Password?</button>
                         <button id="btn-auth-signin" class="btn btn-primary full-width mt-4">Sign In</button>
                     </div>
 
@@ -101,6 +100,12 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>📈 Activity</h3>
+                        </div>
+                        <div id="sparkline-container" class="sparkline-container"></div>
                     </div>
                 </aside>
 
@@ -126,56 +131,74 @@
                     </div>
                 </div>
 
-                <!-- Right Column -->
+                <!-- Right Column: Stats -->
                 <aside class="col-stats">
-                    <div class="card">
+                    <div class="card stats-card">
                         <div class="card-header">
-                            <h3>📊 Stats</h3>
+                            <h3>📊 Travel Stats</h3>
                             <div class="toggle-group">
-                                <button id="toggle-stats-30" class="toggle-btn active">30d</button>
-                                <button id="toggle-stats-all" class="toggle-btn">All</button>
+                                <button id="toggle-stats-30-insights" class="toggle-btn active">30d</button>
+                                <button id="toggle-stats-all-insights" class="toggle-btn">All</button>
                             </div>
                         </div>
                         <div class="stats-grid">
                             <div class="stat-box">
-                                <strong id="stat-trips">0</strong>
+                                <strong id="stat-trips-insights">0</strong>
                                 <span>Trips</span>
                             </div>
                             <div class="stat-box">
-                                <strong id="stat-routes">0</strong>
+                                <strong id="stat-routes-insights">0</strong>
                                 <span>Routes</span>
                             </div>
                             <div class="stat-box">
-                                <strong id="stat-hours">0</strong>
+                                <strong id="stat-hours-insights">0</strong>
                                 <span>Hours</span>
                             </div>
                             <div class="stat-box">
-                                <strong id="stat-stops">0</strong>
+                                <strong id="stat-stops-insights">0</strong>
                                 <span>Stops</span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="card">
-                        <h3>🚌 Top Routes</h3>
-                        <div id="top-routes-list" class="list-compact"><div class="loading-state">Loading...</div></div>
+                    <div class="card peak-times-card">
+                        <div class="card-header">
+                            <h3>🕒 Peak Riding Times</h3>
+                        </div>
+                        <div id="time-of-day-chart-insights" class="chart-compact">
+                            <div class="loading-state">Calculating peaks...</div>
+                        </div>
                     </div>
 
                     <div class="card">
-                        <h3>📍 Top Stops</h3>
-                        <div id="top-stops-list" class="list-compact"><div class="loading-state">Loading...</div></div>
+                        <div class="card-header">
+                            <h3>🚌 Popular Routes</h3>
+                        </div>
+                        <div id="top-routes-list-insights" class="list-compact">
+                            <div class="loading-state">Loading...</div>
+                        </div>
                     </div>
 
                     <div class="card">
-                        <h3>🏅 Insights</h3>
-                        <div id="commute-highlights" class="list-compact"><div class="loading-state">Analyzing...</div></div>
-                    </div>
-
-                    <div class="card">
-                        <h3>🕒 Peak Riding Times</h3>
-                        <div id="time-of-day-chart" class="chart-compact"><div class="loading-state">Loading...</div></div>
+                        <div class="card-header">
+                            <h3>📍 Frequent Stops</h3>
+                        </div>
+                        <div id="top-stops-list-insights" class="list-compact">
+                            <div class="loading-state">Loading...</div>
+                        </div>
                     </div>
                 </aside>
+            </div>
+        </section>
+
+        <!-- Insights View -->
+        <section id="view-insights" class="view insights-view hidden">
+            <div class="container">
+                <div class="card highlights-card">
+                    <div id="commute-highlights-insights" class="list-compact">
+                        <div class="loading-state">Analyzing riding patterns...</div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -314,7 +337,7 @@
         </div>
         <div class="modal-body">
             <div class="insight-row mb-4">
-                <div class="insight-title">RAW STRING</div>
+                <div class="insight-title">Raw string</div>
                 <div id="link-target-string" class="text-accent" style="font-weight: 800; font-size: 1.2rem;"></div>
             </div>
 
@@ -378,8 +401,8 @@
     <div id="toast-container" class="toast-container"></div>
 
     <!-- Scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha384-NElt3Op+9NBMCYaef5HxeJmU4Xeard/Lku8ek6hoPTvYkQPh3zLIrJP7KiRocsxO" crossorigin="anonymous"></script>
-    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js" integrity="sha384-RLIyj5q1b5XJTn0tqUhucRZe40nFTocRP91R/NkRJHwAe4XxnTV77FXy/vGLiec2" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     
     <!-- App Entry -->
     <script type="module" src="js/main.js"></script>

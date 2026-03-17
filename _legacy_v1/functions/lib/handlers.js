@@ -151,7 +151,7 @@ async function handleIncomplete(phoneNumber, user) {
  * Handle REGISTER command
  */
 async function handleRegister(phoneNumber, email) {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailRegex = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
   if (!emailRegex.test(email)) {
     await sendSmsReply(phoneNumber, 'Invalid email format. Text REGISTER [email].');
     return;

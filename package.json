@@ -1,6 +1,6 @@
 {
     "name": "transit-stats",
-    "version": "1.9.0",
+    "version": "1.9.1",
     "description": "Personal transit trip tracker for enthusiasts to analyze ridership patterns.",
     "private": true,
     "repository": {
@@ -25,5 +25,9 @@
     "dependencies": {
         "firebase-admin": "^13.7.0",
         "playwright": "^1.58.2"
+    },
+    "overrides": {
+        "undici": "^7.24.0",
+        "@tootallnate/once": "^3.0.1"
     }
 }

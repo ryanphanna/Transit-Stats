@@ -9,19 +9,37 @@
 ## [Unreleased]
 
 ### Added
-- **V3 Prediction Engine**: Ported advanced weighted voting logic for arrival times and destinations.
-- **Next Trip Prediction**: Dashboard integration to suggest the most likely next route/stop.
-- **Active Trip Prediction**: Real-time destination and arrival estimates during boarding.
-- **Detailed Analytics**: Restored "Peak Riding Times" and "Riding Streak" parity.
+- **AI Guidelines**: Established `Gemini.md` to standardize project workflows, including Notion synchronization patterns and Git commit strategies.
+- **Activity Sparkline**: Added a daily trip frequency trend visualization (last 28 days) to the dashboard sidebar for at-a-glance riding patterns.
+- **Enhanced UI**: Added `prediction-card` with premium glassmorphism/gradient styling.
 
 ### Changed
-- **Mathematical Parity**: Standardized streak and time-of-day bucket logic to match legacy V1 nuances exactly.
-- **Enhanced UI**: Added `prediction-card` with premium glassmorphism/gradient styling.
+- **Emerald & Slate Design Theme**: Shifted the primary color palette from indigo/purple to a sophisticated emerald and slate theme for a more grounded, premium feel.
+- **Dedicated Insights View**: Extracted dashboard analytics (Commute Highlights, Peak Times, Top Lists) to a standalone view with specialized report containers.
+- **Enhanced Insights View**: Fully relocated analytics cards (Commute Highlights, Peak Riding Times, Popular Routes/Stops) from the primary dashboard to a dedicated "Insights" view for a cleaner homepage experience.
+- **Simplified Navigation**: Renamed "Data Manager" to "Data" and tightened header spacing (removed redundant gaps and backgrounds) for a more professional toolbar feel.
+- **Streamlined Dashboard**: Refined the dashboard to a focused two-column layout (Profile/Streak + Trip Feed), eliminating sidebar clutter while restoring the functional stats column.
 - **Refined Data Fetching**: Optimized stops library loading for intelligent fuzzy matches.
+- **Refined Data Labeling**: Softened UI tone by standardizing analytics labels to sentence-case.
+- **Repository Optimization**: Resolved "too many active changes" Git warnings by properly ignoring legacy system-generated directories.
+- **Mathematical Parity**: Standardized streak and time-of-day bucket logic to match legacy V1 nuances exactly.
 
 ### Fixed
-- **Missing Environment Variables**: Restored `.env` configuration file containing Firebase SDK keys to resolve a critical app startup block where the login UI failed to initialize.
+- **REDoS Vulnerabilities**: Patched multiple regular expressions across the SMS parsing engine and utility libraries to prevent catastrophic backtracking.
+- **CSS Selector Protection**: Fixed an attribute injection vulnerability in the admin panel by properly escaping backslashes and quotes in dynamic selectors.
+- **Optimized Rendering**: Drastically improved scroll performance (restored 60fps) by identifying and removing expensive `backdrop-filter` and `animation` bottlenecks.
+- **Map Engine Stability**: Hardened `MapEngine` against re-initialization crashes, invalid coordinate data, and integrity hash failures in CDN scripts.
+- **Layout Parity Fix**: Resolved a critical layout bug where a stray `</div>` tag was breaking the 3-column dashboard grid.
+- **Improved Chart Scaling**: Refined the Peak Riding Times normalization and handled empty datasets more gracefully.
+- **Insights Loading Parity**: Resolved a bug where analytics data failed to render in the dedicated view due to mismatched DOM target IDs.
+- **Scroll Lag**: Removed `backdrop-filter` and heavy background animations that were causing frame drops during interaction.
+- **Missing Environment Variables**: Restored `.env` configuration file containing Firebase SDK keys to resolve a critical app startup block.
 - **Auth Initialization**: Refactored `js/main.js` to ensure DOM elements are strictly cached within the `init()` lifecycle, preventing null-reference crashes on varying network speeds.
+
+### Security
+- **Recursive Sanitization**: Implemented recursive HTML tag stripping in `gemini.js` to prevent sanitization bypasses.
+- **Dependency Overrides**: Enforced secure versions of `undici` and `@tootallnate/once` via `package.json` overrides to address critical vulnerabilities.
+- **Workflow Permissions**: Hardened GitHub Actions by implementing explicit least-privilege permissions for the `GITHUB_TOKEN`.
 
 ## [1.9.1] - 2026-03-13
 

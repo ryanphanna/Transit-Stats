@@ -157,10 +157,32 @@ export const Stats = {
                     count: c.durations.length,
                     avg: Math.round(sum / c.durations.length),
                     min: Math.min(...c.durations),
-                    max: Math.max(...c.durations)
+                    max: Math.max(...c.durations),
+                    durations: [...c.durations].reverse() // oldest → newest
                 };
             })
             .sort((a, b) => b.count - a.count)
             .slice(0, 3);
+    },
+    
+    /**
+     * Compute trips per day for the last N days.
+     */
+    computeSparkline(trips, days = 28) {
+        const counts = Array(days).fill(0);
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const todayTs = today.getTime();
+
+        trips.forEach(t => {
+            const date = t.startTime?.toDate ? t.startTime.toDate() : new Date(t.startTime);
+            if (isNaN(date.getTime())) return;
+            const norm = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+            const diffDays = Math.round((todayTs - norm) / (24 * 60 * 60 * 1000));
+            if (diffDays >= 0 && diffDays < days) {
+                counts[(days - 1) - diffDays]++;
+            }
+        });
+        return counts;
     }
 };
