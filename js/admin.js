@@ -358,3 +358,394 @@ export const Admin = {
 
 // Global Exposure for inline onclick handlers
 window.Admin = Admin;
+
+// --- Helpers for legacy code compatibility ---
+const escapeHtml = (str) => Utils.escapeHtml ? Utils.escapeHtml(str) : str;
+const escapeForJs = (str) => str.replace(/'/g, "\\'");
+
+// ─── GTFS Route Import ────────────────────────────────────────────────────────
+
+let gtfsParsedRoutes = [];
+
+/**
+ * Parse a GTFS routes.txt CSV file content into route objects.
+ * Returns an array of { routeShortName, routeLongName, routeType, gtfsRouteId }.
+ */
+function parseGtfsRoutesTxt(csvText) {
+    const lines = csvText.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+    if (lines.length < 2) return [];
+
+    // Parse header (handles quoted fields)
+    const header = parseGtfsCsvLine(lines[0]);
+    const idx = {
+        routeId: header.indexOf('route_id'),
+        shortName: header.indexOf('route_short_name'),
+        longName: header.indexOf('route_long_name'),
+        routeType: header.indexOf('route_type'),
+    };
+
+    if (idx.shortName === -1 && idx.routeId === -1) {
+        throw new Error('File does not look like a GTFS routes.txt (missing route_id or route_short_name column)');
+    }
+
+    const routes = [];
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const fields = parseGtfsCsvLine(line);
+        const shortName = idx.shortName !== -1 ? (fields[idx.shortName] || '').trim() : '';
+        const longName = idx.longName !== -1 ? (fields[idx.longName] || '').trim() : '';
+        const routeId = idx.routeId !== -1 ? (fields[idx.routeId] || '').trim() : '';
+        const routeType = idx.routeType !== -1 ? parseInt(fields[idx.routeType] || '3', 10) : 3;
+
+        const name = shortName || routeId;
+        if (!name) continue;
+
+        routes.push({ routeShortName: name, routeLongName: longName, routeType, gtfsRouteId: routeId });
+    }
+    return routes;
+}
+
+/** Minimal RFC-4180 CSV line parser */
+function parseGtfsCsvLine(line) {
+    const fields = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (inQuotes) {
+            if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+            else if (ch === '"') { inQuotes = false; }
+            else { cur += ch; }
+        } else {
+            if (ch === '"') { inQuotes = true; }
+            else if (ch === ',') { fields.push(cur.trim()); cur = ''; }
+            else { cur += ch; }
+        }
+    }
+    fields.push(cur.trim());
+    return fields;
+}
+
+/** Called when a file is selected — parses and shows a preview */
+window.previewGtfsRoutes = function () {
+    const fileInput = document.getElementById('gtfsFileInput');
+    const preview = document.getElementById('gtfsPreview');
+    const previewText = document.getElementById('gtfsPreviewText');
+    const importBtn = document.getElementById('gtfsImportBtn');
+
+    gtfsParsedRoutes = [];
+    importBtn.disabled = true;
+    preview.style.display = 'none';
+
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            gtfsParsedRoutes = parseGtfsRoutesTxt(e.target.result);
+            if (gtfsParsedRoutes.length === 0) {
+                previewText.textContent = 'No routes found in file.';
+                preview.style.display = 'block';
+                return;
+            }
+            const agency = document.getElementById('gtfsAgencySelect').value;
+            previewText.innerHTML = `Found <strong>${gtfsParsedRoutes.length}</strong> routes — ready to import for <strong>${escapeHtml(agency)}</strong>. Existing routes for this agency will be replaced.`;
+            preview.style.display = 'block';
+            importBtn.disabled = false;
+        } catch (err) {
+            previewText.textContent = 'Parse error: ' + err.message;
+            preview.style.display = 'block';
+        }
+    };
+    reader.readAsText(file);
+};
+
+/** Batch-write parsed routes into Firestore, replacing all routes for the agency */
+window.importGtfsRoutes = async function () {
+    const agency = document.getElementById('gtfsAgencySelect').value;
+    const importBtn = document.getElementById('gtfsImportBtn');
+
+    if (!gtfsParsedRoutes.length) return;
+
+    const confirmed = confirm(
+        `This will delete all existing routes for ${agency} and replace them with ${gtfsParsedRoutes.length} routes from the file. Continue?`
+    );
+    if (!confirmed) return;
+
+    importBtn.disabled = true;
+    importBtn.textContent = 'Importing...';
+
+    try {
+        // Delete existing routes for this agency
+        const existing = await db.collection('routes').where('agency', '==', agency).get();
+        const BATCH_SIZE = 400;
+        for (let i = 0; i < existing.docs.length; i += BATCH_SIZE) {
+            const batch = db.batch();
+            existing.docs.slice(i, i + BATCH_SIZE).forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+        }
+
+        // Write new routes in batches of 400
+        for (let i = 0; i < gtfsParsedRoutes.length; i += BATCH_SIZE) {
+            const batch = db.batch();
+            gtfsParsedRoutes.slice(i, i + BATCH_SIZE).forEach(route => {
+                // Use agency + routeShortName as a stable doc ID
+                const safeId = `${agency}_${route.routeShortName}`.replace(/[^a-zA-Z0-9_\-]/g, '_');
+                const ref = db.collection('routes').doc(safeId);
+                batch.set(ref, {
+                    agency,
+                    routeShortName: route.routeShortName,
+                    routeLongName: route.routeLongName,
+                    routeType: route.routeType,
+                    gtfsRouteId: route.gtfsRouteId,
+                });
+            });
+            await batch.commit();
+        }
+
+        importBtn.textContent = 'Import Routes';
+        document.getElementById('gtfsFileInput').value = '';
+        document.getElementById('gtfsPreview').style.display = 'none';
+        gtfsParsedRoutes = [];
+
+        await loadRouteLibrary();
+        alert(`Successfully imported ${gtfsParsedRoutes.length || 'all'} routes for ${agency}.`);
+    } catch (err) {
+        console.error('GTFS import error:', err);
+        importBtn.textContent = 'Import Routes';
+        importBtn.disabled = false;
+        alert('Import failed: ' + err.message);
+    }
+};
+
+/** Load and display the route library for the selected agency */
+async function loadRouteLibrary() {
+    const container = document.getElementById('routeLibraryList');
+    const countEl = document.getElementById('routeLibraryCount');
+    if (!container) return;
+
+    const agency = document.getElementById('gtfsAgencySelect').value;
+    container.innerHTML = '<div class="loading">Loading routes...</div>';
+
+    try {
+        const snapshot = await db.collection('routes').where('agency', '==', agency).get();
+        const routes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        routes.sort((a, b) => {
+            const aNum = parseInt(a.routeShortName, 10);
+            const bNum = parseInt(b.routeShortName, 10);
+            if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+            return String(a.routeShortName).localeCompare(String(b.routeShortName));
+        });
+
+        if (countEl) countEl.textContent = routes.length ? `${routes.length} routes` : '';
+
+        if (routes.length === 0) {
+            container.innerHTML = '<div class="empty-state" style="grid-column: 1/-1;">No routes imported for this agency yet.</div>';
+            return;
+        }
+
+        container.innerHTML = routes.map(r => `
+            <div class="stop-card" style="padding: 10px 14px;">
+                <div class="stop-card-header" style="margin-bottom: 4px;">
+                    <h4 style="font-size: 1em;">${escapeHtml(r.routeShortName)}</h4>
+                    <button onclick="deleteRoute('${escapeForJs(r.id)}')"
+                        style="background: none; border: none; color: var(--text-muted); font-size: 1.1em; cursor: pointer; padding: 0; line-height: 1;"
+                        title="Delete route">×</button>
+                </div>
+                ${r.routeLongName ? `<div class="stop-meta" style="margin: 0;">${escapeHtml(r.routeLongName)}</div>` : ''}
+            </div>
+        `).join('');
+    } catch (err) {
+        console.error('Error loading route library:', err);
+        container.innerHTML = '<div class="empty-state" style="grid-column: 1/-1;">Error loading routes.</div>';
+    }
+}
+
+window.deleteRoute = async function (routeId) {
+    if (!confirm('Delete this route?')) return;
+    try {
+        await db.collection('routes').doc(routeId).delete();
+        await loadRouteLibrary();
+    } catch (err) {
+        alert('Failed to delete route: ' + err.message);
+    }
+};
+
+// ─── GTFS Stop→Route Mapping Import ──────────────────────────────────────────
+
+let _gtfsTripsMap = null; // Map<trip_id, routeShortName>
+
+/**
+ * Parse trips.txt CSV, building a Map from trip_id → routeShortName.
+ * Needs the routes already in Firestore to resolve route_id → routeShortName.
+ */
+window.loadGtfsTrips = async function () {
+    const fileInput = document.getElementById('gtfsTripsFileInput');
+    const statusEl = document.getElementById('gtfsStopRouteStatus');
+    const step2 = document.getElementById('gtfsStopTimesSection');
+
+    _gtfsTripsMap = null;
+    if (step2) step2.style.display = 'none';
+    if (!fileInput.files[0]) return;
+
+    statusEl.textContent = 'Parsing trips.txt...';
+
+    const agency = document.getElementById('gtfsStopRouteAgencySelect').value;
+
+    // Load routes from Firestore to build route_id → routeShortName map
+    const routesSnap = await db.collection('routes').where('agency', '==', agency).get();
+    if (routesSnap.empty) {
+        statusEl.textContent = 'No routes found for this agency — import routes.txt first.';
+        return;
+    }
+    const routeIdToShortName = new Map();
+    routesSnap.docs.forEach(doc => {
+        const d = doc.data();
+        if (d.gtfsRouteId && d.routeShortName) routeIdToShortName.set(d.gtfsRouteId, d.routeShortName);
+    });
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const lines = e.target.result.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+            if (lines.length < 2) { statusEl.textContent = 'trips.txt appears empty.'; return; }
+
+            const header = parseGtfsCsvLine(lines[0]);
+            const tripIdIdx = header.indexOf('trip_id');
+            const routeIdIdx = header.indexOf('route_id');
+            if (tripIdIdx === -1 || routeIdIdx === -1) {
+                statusEl.textContent = 'trips.txt missing trip_id or route_id column.';
+                return;
+            }
+
+            const map = new Map();
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                // Fast split — trip_id and route_id are never quoted
+                const parts = line.split(',');
+                const tripId = (parts[tripIdIdx] || '').trim();
+                const routeId = (parts[routeIdIdx] || '').trim();
+                const shortName = routeIdToShortName.get(routeId);
+                if (tripId && shortName) map.set(tripId, shortName);
+            }
+
+            _gtfsTripsMap = map;
+            statusEl.textContent = `Loaded ${map.size.toLocaleString()} trips. Now upload stop_times.txt.`;
+            if (step2) step2.style.display = 'grid';
+        } catch (err) {
+            statusEl.textContent = 'Parse error: ' + err.message;
+        }
+    };
+    reader.readAsText(fileInput.files[0]);
+};
+
+/**
+ * Stream stop_times.txt to build stop_id → Set<routeShortName>, then write to Firestore stopRoutes.
+ */
+window.importGtfsStopTimes = async function () {
+    const fileInput = document.getElementById('gtfsStopTimesFileInput');
+    const btn = document.getElementById('gtfsStopTimesImportBtn');
+    const statusEl = document.getElementById('gtfsStopRouteStatus');
+
+    if (!_gtfsTripsMap) { statusEl.textContent = 'Load trips.txt first.'; return; }
+    if (!fileInput.files[0]) { statusEl.textContent = 'Select a stop_times.txt file.'; return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+    statusEl.textContent = 'Reading stop_times.txt...';
+
+    const agency = document.getElementById('gtfsStopRouteAgencySelect').value;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const text = e.target.result;
+            const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+
+            const header = parseGtfsCsvLine(lines[0]);
+            const tripIdIdx = header.indexOf('trip_id');
+            const stopIdIdx = header.indexOf('stop_id');
+            if (tripIdIdx === -1 || stopIdIdx === -1) {
+                throw new Error('stop_times.txt missing trip_id or stop_id column');
+            }
+
+            const stopRoutes = new Map(); // stopId → Set<routeShortName>
+            const total = lines.length - 1;
+
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i];
+                if (!line || line.charCodeAt(0) === 13) continue; // skip empty/CR-only
+                // Fast split — trip_id and stop_id are never quoted in GTFS
+                const parts = line.split(',');
+                const tripId = (parts[tripIdIdx] || '').trim();
+                const stopId = (parts[stopIdIdx] || '').trim();
+                const routeShortName = _gtfsTripsMap.get(tripId);
+                if (routeShortName && stopId) {
+                    if (!stopRoutes.has(stopId)) stopRoutes.set(stopId, new Set());
+                    stopRoutes.get(stopId).add(routeShortName);
+                }
+
+                // Yield to browser every 100k rows to avoid UI freeze
+                if (i % 100000 === 0) {
+                    statusEl.textContent = `Processing... ${Math.round(i / total * 100)}% (${stopRoutes.size.toLocaleString()} stops mapped)`;
+                    await new Promise(r => setTimeout(r, 0));
+                }
+            }
+
+            statusEl.textContent = `Writing ${stopRoutes.size.toLocaleString()} stop mappings to Firestore...`;
+
+            const BATCH_SIZE = 400;
+            const entries = Array.from(stopRoutes.entries());
+            let written = 0;
+
+            for (let i = 0; i < entries.length; i += BATCH_SIZE) {
+                const batch = db.batch();
+                entries.slice(i, i + BATCH_SIZE).forEach(([stopId, routeSet]) => {
+                    const safeId = `${agency}_${stopId}`.replace(/[^a-zA-Z0-9_\-]/g, '_');
+                    batch.set(db.collection('stopRoutes').doc(safeId), {
+                        agency,
+                        stopId,
+                        routes: Array.from(routeSet),
+                    });
+                });
+                await batch.commit();
+                written += Math.min(BATCH_SIZE, entries.length - i);
+                statusEl.textContent = `Writing... ${Math.round(written / entries.length * 100)}%`;
+            }
+
+            const countEl = document.getElementById('gtfsStopRouteCount');
+            if (countEl) countEl.textContent = `${stopRoutes.size.toLocaleString()} stops mapped`;
+            statusEl.textContent = `Done. Mapped ${stopRoutes.size.toLocaleString()} stops across ${agency}.`;
+            btn.textContent = 'Import Stop→Routes';
+            btn.disabled = false;
+            _gtfsTripsMap = null;
+            fileInput.value = '';
+            document.getElementById('gtfsTripsFileInput').value = '';
+            document.getElementById('gtfsStopTimesSection').style.display = 'none';
+        } catch (err) {
+            console.error('Stop→Route import error:', err);
+            statusEl.textContent = 'Error: ' + err.message;
+            btn.textContent = 'Import Stop→Routes';
+            btn.disabled = false;
+        }
+    };
+    reader.readAsText(fileInput.files[0]);
+};
+
+// Reload route library when agency selector changes
+const _gtfsAgencySelect = document.getElementById('gtfsAgencySelect');
+if (_gtfsAgencySelect) {
+    _gtfsAgencySelect.addEventListener('change', () => {
+        gtfsParsedRoutes = [];
+        document.getElementById('gtfsImportBtn').disabled = true;
+        document.getElementById('gtfsPreview').style.display = 'none';
+        const fileInput = document.getElementById('gtfsFileInput');
+        if (fileInput) fileInput.value = '';
+        loadRouteLibrary();
+    });
+
+}

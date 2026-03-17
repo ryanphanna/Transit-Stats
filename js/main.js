@@ -5,6 +5,9 @@ import { Trips } from './trips.js';
 import { Admin } from './admin.js';
 import { Stats } from './stats.js';
 import { MapEngine } from './map-engine.js';
+import { Visuals } from './visuals.js';
+import { PredictionEngine } from './predict.js';
+import { RouteTracker } from './route-tracker.js';
 
 // Expose to window for legacy onclick handlers and inter-module access
 window.Auth = Auth;
@@ -64,6 +67,14 @@ function initDOM() {
         displayEmail: document.getElementById('auth-display-email'),
         statusMsg: document.getElementById('auth-status')
     };
+
+    // Defer Stats, Map, and RouteTracker until Trips has its first snapshot, so they
+    // don’t compete with the initial read and can use Trips.allCompletedTrips directly.
+    Trips._readyPromise.then(() => {
+        Stats.init();
+        MapEngine.init();
+        RouteTracker.init();
+    });
 
     DOM.views = {
         auth: document.getElementById('view-auth'),

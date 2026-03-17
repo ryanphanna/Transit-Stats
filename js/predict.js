@@ -20,6 +20,12 @@ export const PredictionEngine = {
 
     /**
      * Guess the next route given the current stop and time.
+     * @param {Array} history - Completed trips (should exclude the trip being evaluated)
+     * @param {Object} context - { stopName, time, routesAtStop? }
+     *   routesAtStop: optional array of routeShortNames known to serve this stop (from GTFS
+     *   stop→route mapping). When provided, candidates are hard-filtered to only routes in this
+     *   set. Falls back to unfiltered if no candidates survive (guards against stale GTFS data).
+     * @returns {Object|null} { route, direction, stop, confidence, version }
      */
     guess(history, context) {
         if (!history || history.length === 0) return null;
@@ -27,11 +33,18 @@ export const PredictionEngine = {
         const now = context.time instanceof Date ? context.time : new Date(context.time);
         const stopName = context.stopName ? context.stopName.trim().toLowerCase() : null;
 
-        const candidates = stopName
-            ? history.filter(t => this._isValidTrip(t) && this._stopMatch(t.startStop, stopName))
+        let candidates = stopName
+            ? history.filter(t => this._isValidTrip(t) && this._stopMatch(t.startStopName || t.startStop, stopName))
             : history.filter(t => this._isValidTrip(t));
 
         if (candidates.length === 0) return null;
+
+        // Apply GTFS stop→route filter: remove candidates for routes that don't serve this stop.
+        if (context.routesAtStop && context.routesAtStop.length > 0) {
+            const validFamilies = new Set(context.routesAtStop.map(r => this._baseRoute(r.toString())));
+            const filtered = candidates.filter(t => validFamilies.has(this._baseRoute(t.route)));
+            if (filtered.length > 0) candidates = filtered;
+        }
 
         const lastTrip = this._getLastRecentTrip(history, now);
         // In V2, startStop and endStop are already normalized, but we still use _stopMatch for robustness (aliases)

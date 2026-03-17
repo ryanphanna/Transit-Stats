@@ -140,6 +140,12 @@ async function handleSmsRequest(req, res) {
       return;
     }
 
+    if (upperBody === 'LINK') {
+      await handlers.handleJourneyLink(phoneNumber, user);
+      res.type('text/xml').send(twimlResponse(''));
+      return;
+    }
+
     // 7. END TRIP Handling
     const endTripData = parseEndTripFormat(body);
     const singleLineEndMatch = body.match(/^(END|STOP)\s+(\S.*)$/i);

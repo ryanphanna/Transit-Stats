@@ -256,6 +256,28 @@
                             <div id="lib-list" class="lib-list">
                                 <div class="loading-state">Loading library...</div>
                             </div>
+
+                            <div class="section minimal-card dashboard-stats-card">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                    <h3 class="stat-card-title" style="margin-bottom: 0;">🗺️ Route Tracker</h3>
+                                    <select id="routeTrackerAgency" onchange="setRouteTrackerAgency(this.value)" style="font-size: 0.8em; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-weight: 600;">
+                                        <option value="TTC">TTC</option>
+                                        <option value="OC Transpo">OC Transpo</option>
+                                        <option value="GO Transit">GO Transit</option>
+                                        <option value="MiWay">MiWay</option>
+                                        <option value="YRT">YRT</option>
+                                        <option value="Brampton Transit">Brampton Transit</option>
+                                        <option value="Durham Transit">Durham Transit</option>
+                                        <option value="HSR">HSR</option>
+                                        <option value="GRT">GRT</option>
+                                        <option value="STM">STM</option>
+                                        <option value="TransLink">TransLink</option>
+                                    </select>
+                                </div>
+                                <div id="routeTrackerContent">
+                                    <div class="loading">Loading...</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
