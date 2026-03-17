@@ -6,35 +6,8 @@
 
 ---
 
-## [1.5.3] - 2026-03-14 (Cloud Functions only)
-
-### Added
-- **Journey / Trip Linking** (`functions/lib/handlers.js`, `functions/sms.js`): Sequential trips can now be chained into a multi-leg journey via the new `LINK` SMS command.
-  - When a new trip starts at (or near) the stop where the previous trip ended within 45 minutes, the START confirmation includes a prompt: *"Continues your Route X trip — Reply LINK to join as a journey."*
-  - `LINK` command: links the last completed trip → current active trip (Case A), or the last two completed trips (Case B). A UUID `journeyId` is written to both trip documents; if either leg already belongs to a journey, that ID is reused so journeys can grow leg by leg.
-  - Validates the gap is ≤ 60 min before linking; reports the gap in the confirmation reply (e.g., *Route 510 → Route 504 linked as a journey (8 min transfer)*).
-  - `LINK` is now listed in the `INFO` / `HELP` command reference.
-
----
-
-## [1.9.2] - 2026-03-14
-
-### Added
-- **Route Tracker** (`js/route-tracker.js`): Per-agency completion tracker that shows ridden vs. missing routes as an animated progress bar, with a toggle between "Ridden" and "Missing" views. Integrated into the main dashboard right column.
-- **GTFS Route Library** (`js/admin.js`, `admin.html`): Import routes from a `routes.txt` file via the Data Manager. Supports batch deletion and per-agency filtering; routes are stored in a new `routes` Firestore collection.
-- **GTFS Stop→Route Mapping** (`js/admin.js`, `admin.html`): Two-step import in the Data Manager — upload `trips.txt` to build a trip→route lookup, then upload `stop_times.txt` (streamed in 100k-row batches to keep the browser responsive) to derive which routes serve each stop. Results are stored in the new `stopRoutes` Firestore collection.
-- **Prediction Route Filter** (`functions/lib/predict.js`, `js/predict.js`): `PredictionEngine.guess()` now accepts an optional `routesAtStop` array in its context. When present, candidates are hard-filtered to only routes known to serve the boarding stop, eliminating impossible predictions. Falls back to unfiltered if no candidates survive (guards against stale GTFS data).
-- **`getRoutesAtStop()`** (`functions/lib/db.js`): New Firestore helper that looks up the `stopRoutes` document for a given stop code and agency, returning the routes array or `null` if no mapping exists.
-
-### Changed
-- **SMS prediction at trip start** (`functions/lib/handlers.js`): Both `handleTripLog` and `handleConfirmStart` now fetch `stopRoutes` in parallel with trip history and the stops library, then pass the result as `routesAtStop` to the prediction engine. Adds one Firestore read per trip start; no latency impact because the read is parallel.
-- **Firestore security rules** (`firestore.rules`): Added `stopRoutes` collection — authenticated users can read; admin-only writes.
-
----
-
----
-
 ## [1.9.3] - 2026-03-17
+
 
 ### Added
 - **AI Guidelines**: Established `Gemini.md` to standardize project workflows, including Notion synchronization patterns and Git commit strategies.
@@ -71,15 +44,31 @@
 
 ---
 
-## [Unreleased]
+## [1.9.2] - 2026-03-14
 
 ### Added
+- **Route Tracker** (`js/route-tracker.js`): Per-agency completion tracker that shows ridden vs. missing routes as an animated progress bar, with a toggle between "Ridden" and "Missing" views. Integrated into the main dashboard right column.
+- **GTFS Route Library** (`js/admin.js`, `admin.html`): Import routes from a `routes.txt` file via the Data Manager. Supports batch deletion and per-agency filtering; routes are stored in a new `routes` Firestore collection.
+- **GTFS Stop→Route Mapping** (`js/admin.js`, `admin.html`): Two-step import in the Data Manager — upload `trips.txt` to build a trip→route lookup, then upload `stop_times.txt` (streamed in 100k-row batches to keep the browser responsive) to derive which routes serve each stop. Results are stored in the new `stopRoutes` Firestore collection.
+- **Prediction Route Filter** (`functions/lib/predict.js`, `js/predict.js`): `PredictionEngine.guess()` now accepts an optional `routesAtStop` array in its context. When present, candidates are hard-filtered to only routes known to serve the boarding stop, eliminating impossible predictions. Falls back to unfiltered if no candidates survive (guards against stale GTFS data).
+- **`getRoutesAtStop()`** (`functions/lib/db.js`): New Firestore helper that looks up the `stopRoutes` document for a given stop code and agency, returning the routes array or `null` if no mapping exists.
 
 ### Changed
+- **SMS prediction at trip start** (`functions/lib/handlers.js`): Both `handleTripLog` and `handleConfirmStart` now fetch `stopRoutes` in parallel with trip history and the stops library, then pass the result as `routesAtStop` to the prediction engine. Adds one Firestore read per trip start; no latency impact because the read is parallel.
+- **Firestore security rules** (`firestore.rules`): Added `stopRoutes` collection — authenticated users can read; admin-only writes.
 
-### Fixed
+---
 
-### Security
+## [1.5.3] - 2026-03-14 (Cloud Functions only)
+
+### Added
+- **Journey / Trip Linking** (`functions/lib/handlers.js`, `functions/sms.js`): Sequential trips can now be chained into a multi-leg journey via the new `LINK` SMS command.
+  - When a new trip starts at (or near) the stop where the previous trip ended within 45 minutes, the START confirmation includes a prompt: *"Continues your Route X trip — Reply LINK to join as a journey."*
+  - `LINK` command: links the last completed trip → current active trip (Case A), or the last two completed trips (Case B). A UUID `journeyId` is written to both trip documents; if either leg already belongs to a journey, that ID is reused so journeys can grow leg by leg.
+  - Validates the gap is ≤ 60 min before linking; reports the gap in the confirmation reply (e.g., *Route 510 → Route 504 linked as a journey (8 min transfer)*).
+  - `LINK` is now listed in the `INFO` / `HELP` command reference.
+
+---
 
 ## [1.9.1] - 2026-03-13
 
