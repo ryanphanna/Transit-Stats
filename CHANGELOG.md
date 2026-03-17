@@ -1,7 +1,7 @@
 # Changelog
 
 **Current Project Versions:**
-- **Web App**: `v1.9.2`
+- **Web App**: `v1.9.3`
 - **Cloud Functions**: `v1.5.3`
 
 ---
@@ -32,7 +32,9 @@
 
 ---
 
-## [Unreleased]
+---
+
+## [1.9.3] - 2026-03-17
 
 ### Added
 - **AI Guidelines**: Established `Gemini.md` to standardize project workflows, including Notion synchronization patterns and Git commit strategies.
@@ -66,6 +68,18 @@
 - **Recursive Sanitization**: Implemented recursive HTML tag stripping in `gemini.js` to prevent sanitization bypasses.
 - **Dependency Overrides**: Enforced secure versions of `undici` and `@tootallnate/once` via `package.json` overrides to address critical vulnerabilities.
 - **Workflow Permissions**: Hardened GitHub Actions by implementing explicit least-privilege permissions for the `GITHUB_TOKEN`.
+
+---
+
+## [Unreleased]
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Security
 
 ## [1.9.1] - 2026-03-13
 
