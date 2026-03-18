@@ -1,7 +1,7 @@
 # Changelog
-- **Web App**: `v1.9.5`
+- **Web App**: `v1.9.6`
 
-## [Unreleased]
+## [1.9.6] - 2026-03-18
 
 ### Security
 - **Patched `fast-xml-parser`**: Upgraded to `v5.5.6` to address a high-severity vulnerability where numeric entity expansion could bypass all entity expansion limits, causing excessive memory and CPU consumption (incomplete fix for GHSA-8gc5-j5rx-235r).
