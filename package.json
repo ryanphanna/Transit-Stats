@@ -2,6 +2,9 @@
     "name": "transit-stats",
     "version": "1.9.4",
     "description": "Personal transit trip tracker for enthusiasts to analyze ridership patterns.",
+    "engines": {
+        "node": "22"
+    },
     "private": true,
     "repository": {
         "type": "git",

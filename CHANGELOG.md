@@ -4,7 +4,17 @@
 - **Web App**: `v1.9.4`
 - **Cloud Functions**: `v1.5.3`
 
----
+
+## [Unreleased]
+
+### Fixed
+- **Deployment**: Resolved `npm ci` failures in CI/CD by syncing `package-lock.json` with the `undici` and `@tootallnate/once` version overrides in `package.json`.
+- **Build**: Fixed Vite build failures related to missing entry points and module resolution.
+
+### Refactor
+- **Node.js**: Standardized Node.js engine to version 22 across the project for consistency.
+- **SMS System**: Modularized the monolithic `functions/sms.js` by extracting command dispatching into a dedicated `dispatcher.js` module.
+- **Error Handling**: Improved error logging and reliability for SMS request dispatching.
 
 ## [1.9.4] - 2026-03-18
 
