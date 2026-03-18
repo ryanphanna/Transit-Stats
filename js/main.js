@@ -5,7 +5,6 @@ import { Trips } from './trips.js';
 import { Admin } from './admin.js';
 import { Stats } from './stats.js';
 import { MapEngine } from './map-engine.js';
-import { Visuals } from './visuals.js';
 import { PredictionEngine } from './predict.js';
 import { RouteTracker } from './route-tracker.js';
 

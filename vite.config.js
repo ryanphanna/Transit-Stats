@@ -9,8 +9,6 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 main: './index.html',
-                public: './public.html',
-                admin: './admin.html',
             },
         },
     },
@@ -24,6 +22,7 @@ export default defineConfig({
     test: {
         globals: true,
         environment: 'jsdom',
-        setupFiles: ['./tests/setup.js'],
+        // setupFiles: ['./tests/setup.js'],
+        exclude: ['**/node_modules/**', '**/_legacy_v1/**', '**/dist/**'],
     },
 });

@@ -2,7 +2,7 @@
 
 ## Notion Synchronization
 - Periodically update the **TransitStatsLog** in Notion with significant changes (Infrastructure, UX/UI, Refactors, Fixes).
-- Use the **NavigatorLog** structure as the gold standard for consistency.
+- Use the **NavigatorLog** structure as the gold standard for consistency, but note that **TransitStatsLog** now includes specific **Issue** and **Fix** fields for each entry.
 - Only update when changes are "important" or complete a logical task block.
 
 ## Git & Deployment

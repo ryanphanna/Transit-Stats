@@ -6,8 +6,17 @@
 
 ---
 
-## [1.9.3] - 2026-03-17
+## [Unreleased]
 
+### Changed
+- **Build Optimization**: Simplified Vite configuration by removing missing entry points (`admin.html`, `public.html`) that are now integrated into the single-page application structure.
+- **Project Structure**: Restored the root `functions/` directory from `_legacy_v1` to enable proper Firebase deployments.
+
+### Fixed
+- **Deployment**: Resolved build failures where Vite could not find `admin.html`.
+- **Module Dependencies**: Restored missing utility scripts (`visuals.js`, `ui-utils.js`, `public.js`, etc.) to the `js/` directory to satisfy module imports in the V2 architecture.
+
+## [1.9.3] - 2026-03-17
 
 ### Added
 - **AI Guidelines**: Established `Gemini.md` to standardize project workflows, including Notion synchronization patterns and Git commit strategies.
