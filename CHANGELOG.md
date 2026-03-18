@@ -1,6 +1,17 @@
 # Changelog
 - **Web App**: `v1.9.5`
 
+## [Unreleased]
+
+### Security
+- **Patched `fast-xml-parser`**: Upgraded to `v5.5.6` to address a high-severity vulnerability where numeric entity expansion could bypass all entity expansion limits, causing excessive memory and CPU consumption (incomplete fix for GHSA-8gc5-j5rx-235r).
+- **CodeQL Remediation**: Fixed multiple security alerts identified by CodeQL:
+  - **Unvalidated Dynamic Method Call**: Secured the SMS command dispatcher in `functions/lib/dispatcher.js` by using `hasOwnProperty` to prevent unexpected method invocation.
+  - **Polynomial ReDoS**: Refined the "and" to "&" normalization regex in `functions/lib/utils.js` to eliminate backtracking risks.
+  - **Incomplete String Escaping**: Hardened `js/admin.js` by properly escaping backslashes and single quotes in the `escapeForJs` helper, preventing potential script injection.
+  - **Subresource Integrity (SRI)**: Added cryptographic `integrity` hashes and `crossorigin="anonymous"` attributes to all external Leaflet and MarkerCluster scripts/styles in `index.html` to ensure asset authenticity.
+- **Dependency Hardening**: Resolved critical vulnerabilities in `flatted` and `fast-xml-parser` transit dependencies via `npm audit fix` in both root and Cloud Functions.
+
 ## [1.9.5] - 2026-03-18
 
 ### Fixed

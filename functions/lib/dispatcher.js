@@ -127,7 +127,7 @@ async function handlePrivateCommands(phoneNumber, user, upperBody) {
     'LINK': handlers.handleJourneyLink,
   };
 
-  if (commands[upperBody]) {
+  if (Object.prototype.hasOwnProperty.call(commands, upperBody)) {
     await commands[upperBody](phoneNumber, user);
     return true;
   }

@@ -361,7 +361,7 @@ window.Admin = Admin;
 
 // --- Helpers for legacy code compatibility ---
 const escapeHtml = (str) => Utils.escapeHtml ? Utils.escapeHtml(str) : str;
-const escapeForJs = (str) => str.replace(/'/g, "\\'");
+const escapeForJs = (str) => str.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 
 // ─── GTFS Route Import ────────────────────────────────────────────────────────
 
