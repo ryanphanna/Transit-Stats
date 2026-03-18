@@ -1,12 +1,12 @@
 # Changelog
 
 **Current Project Versions:**
-- **Web App**: `v1.9.3`
+- **Web App**: `v1.9.4`
 - **Cloud Functions**: `v1.5.3`
 
 ---
 
-## [Unreleased]
+## [1.9.4] - 2026-03-18
 
 ### Changed
 - **Build Optimization**: Simplified Vite configuration by removing missing entry points (`admin.html`, `public.html`) that are now integrated into the single-page application structure.
