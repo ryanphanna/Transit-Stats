@@ -36,21 +36,36 @@ async function init() {
     initDOM();
     setupEventListeners();
     setupAuthObserver();
+
+    // Defer Stats, Map, and RouteTracker until Trips has its first snapshot, so they
+    // don’t compete with the initial read and can use Trips.allCompletedTrips directly.
+    Trips._readyPromise.then(() => {
+        Stats.init();
+        MapEngine.init();
+        RouteTracker.init();
+    });
 }
 
 function initDOM() {
+    initHeaderDOM();
+    initAuthDOM();
+    initModalDOM();
+    initViewDOM();
+    initTripEditDOM();
+}
+
+function initHeaderDOM() {
     DOM.header = {
         container: document.querySelector('.header'),
         navAdmin: document.getElementById('nav-admin'),
         navInsights: document.getElementById('nav-insights'),
-        navSettings: document.getElementById('nav-settings')
+        navSettings: document.getElementById('nav-settings'),
+        navMap: document.getElementById('nav-map'),
+        profileName: document.getElementById('profile-name')
     };
+}
 
-    DOM.modals = {
-        backdrop: document.getElementById('modal-backdrop'),
-        settings: document.getElementById('modal-settings')
-    };
-
+function initAuthDOM() {
     DOM.auth = {
         emailInput: document.getElementById('auth-email'),
         passwordInput: document.getElementById('auth-password'),
@@ -66,15 +81,20 @@ function initDOM() {
         displayEmail: document.getElementById('auth-display-email'),
         statusMsg: document.getElementById('auth-status')
     };
+}
 
-    // Defer Stats, Map, and RouteTracker until Trips has its first snapshot, so they
-    // don’t compete with the initial read and can use Trips.allCompletedTrips directly.
-    Trips._readyPromise.then(() => {
-        Stats.init();
-        MapEngine.init();
-        RouteTracker.init();
-    });
+function initModalDOM() {
+    DOM.modals = {
+        backdrop: document.getElementById('modal-backdrop'),
+        settings: document.getElementById('modal-settings'),
+        btnLogout: document.getElementById('btn-logout'),
+        btnCloseSettings: document.getElementById('btn-close-settings'),
+        themeLight: document.getElementById('theme-light'),
+        themeDark: document.getElementById('theme-dark')
+    };
+}
 
+function initViewDOM() {
     DOM.views = {
         auth: document.getElementById('view-auth'),
         dashboard: document.getElementById('view-dashboard'),
@@ -82,22 +102,48 @@ function initDOM() {
         admin: document.getElementById('view-admin'),
         insights: document.getElementById('view-insights')
     };
+    
+    // Dashboard specific shortcuts
+    DOM.dash = {
+        navMap: document.getElementById('dash-nav-map'),
+        navInsights: document.getElementById('dash-nav-insights')
+    };
+}
+
+function initTripEditDOM() {
+    DOM.tripEdit = {
+        id: document.getElementById('edit-trip-id'),
+        route: document.getElementById('edit-route'),
+        startStop: document.getElementById('edit-start-stop'),
+        endStop: document.getElementById('edit-end-stop'),
+        direction: document.getElementById('edit-direction'),
+        agency: document.getElementById('edit-agency'),
+        btnSave: document.getElementById('btn-save-edit'),
+        btnDelete: document.getElementById('btn-delete-trip')
+    };
 }
 
 function setupEventListeners() {
-    // 1. Navigation
+    setupNavListeners();
+    setupAuthListeners();
+    setupTripEditListeners();
+    setupModalListeners();
+    setupThemeListeners();
+}
+
+function setupNavListeners() {
     document.querySelector('.logo').addEventListener('click', () => switchView('dashboard'));
     DOM.header.navAdmin?.addEventListener('click', () => switchView('admin'));
     DOM.header.navInsights?.addEventListener('click', () => switchView('insights'));
     DOM.header.navSettings?.addEventListener('click', openSettings);
-    document.getElementById('nav-map')?.addEventListener('click', () => switchView('map'));
+    DOM.header.navMap?.addEventListener('click', () => switchView('map'));
 
-    // 2. Dash Shortcuts
-    document.getElementById('dash-nav-map')?.addEventListener('click', () => switchView('map'));
-    document.getElementById('dash-nav-insights')?.addEventListener('click', () => switchView('insights'));
-    
-    // 3. Stats Toggles (handled in Trips module now, but we check IDs)
-    // 4. Auth — Step 1: email entry
+    // Dash Shortcuts
+    DOM.dash.navMap?.addEventListener('click', () => switchView('map'));
+    DOM.dash.navInsights?.addEventListener('click', () => switchView('insights'));
+}
+
+function setupAuthListeners() {
     DOM.auth.emailInput.addEventListener('input', () => {
         DOM.auth.btnContinue.disabled = !DOM.auth.emailInput.value.trim();
     });
@@ -116,7 +162,6 @@ function setupEventListeners() {
         DOM.auth.statusMsg.classList.add('hidden');
     });
 
-    // Step 2: magic link
     DOM.auth.btnMagic.addEventListener('click', async () => {
         const email = DOM.auth.emailInput.value.trim();
         try {
@@ -131,14 +176,12 @@ function setupEventListeners() {
         }
     });
 
-    // Step 2: show password input
     DOM.auth.btnUsePassword.addEventListener('click', () => {
         DOM.auth.loginOptions.classList.add('hidden');
         DOM.auth.passwordInputGroup.classList.remove('hidden');
         DOM.auth.passwordInput.focus();
     });
 
-    // Step 2: sign in with password
     DOM.auth.btnSignIn.addEventListener('click', async () => {
         const email = DOM.auth.emailInput.value.trim();
         const pwd = DOM.auth.passwordInput.value;
@@ -169,65 +212,69 @@ function setupEventListeners() {
             showAuthError(err.message);
         }
     });
+}
 
-    // 5. Trip Management
-    document.getElementById('btn-save-edit')?.addEventListener('click', async () => {
-        const id = document.getElementById('edit-trip-id').value;
+function setupTripEditListeners() {
+    DOM.tripEdit.btnSave?.addEventListener('click', async () => {
+        const id = DOM.tripEdit.id.value;
         const data = {
-            route: document.getElementById('edit-route').value.trim(),
-            startStop: document.getElementById('edit-start-stop').value.trim(),
-            endStop: document.getElementById('edit-end-stop').value.trim(),
-            direction: document.getElementById('edit-direction').value.trim(),
-            agency: document.getElementById('edit-agency').value
+            route: DOM.tripEdit.route.value.trim(),
+            startStop: DOM.tripEdit.startStop.value.trim(),
+            endStop: DOM.tripEdit.endStop.value.trim(),
+            direction: DOM.tripEdit.direction.value.trim(),
+            agency: DOM.tripEdit.agency.value
         };
 
         if (!data.route) return alert("Route is required.");
 
-        const btn = document.getElementById('btn-save-edit');
-        btn.disabled = true;
-        btn.textContent = 'Saving...';
+        DOM.tripEdit.btnSave.disabled = true;
+        DOM.tripEdit.btnSave.textContent = 'Saving...';
         try {
             await Trips.update(id, data);
             closeAllModals();
         } catch (err) {
             alert("Update failed: " + err.message);
         } finally {
-            btn.disabled = false;
-            btn.textContent = 'Save Changes';
+            DOM.tripEdit.btnSave.disabled = false;
+            DOM.tripEdit.btnSave.textContent = 'Save Changes';
         }
     });
 
-    document.getElementById('btn-delete-trip')?.addEventListener('click', async () => {
-        const id = document.getElementById('edit-trip-id').value;
+    DOM.tripEdit.btnDelete?.addEventListener('click', async () => {
+        const id = DOM.tripEdit.id.value;
         if (!confirm("Are you sure you want to delete this trip?")) return;
 
-        const btn = document.getElementById('btn-delete-trip');
-        btn.disabled = true;
-        btn.textContent = 'Deleting...';
+        DOM.tripEdit.btnDelete.disabled = true;
+        DOM.tripEdit.btnDelete.textContent = 'Deleting...';
         try {
             await Trips.delete(id);
             closeAllModals();
         } catch (err) {
             alert("Delete failed: " + err.message);
         } finally {
-            btn.disabled = false;
-            btn.textContent = 'Delete Trip';
+            DOM.tripEdit.btnDelete.disabled = false;
+            DOM.tripEdit.btnDelete.textContent = 'Delete Trip';
         }
     });
+}
 
-    // 6. Settings / Logout
-    document.getElementById('btn-logout')?.addEventListener('click', () => {
+function setupModalListeners() {
+    DOM.modals.btnLogout?.addEventListener('click', () => {
         Auth.signOut();
         closeSettings();
     });
 
-    document.getElementById('btn-close-settings')?.addEventListener('click', closeSettings);
+    DOM.modals.btnCloseSettings?.addEventListener('click', closeSettings);
     
-    // Global Close Support
     document.querySelectorAll('[data-close-modal]').forEach(btn => {
         btn.addEventListener('click', closeAllModals);
     });
     DOM.modals.backdrop?.addEventListener('click', closeAllModals);
+}
+
+function setupThemeListeners() {
+    DOM.modals.themeLight?.addEventListener('click', () => setTheme('light'));
+    DOM.modals.themeDark?.addEventListener('click', () => setTheme('dark'));
 }
 
 function closeAllModals() {
@@ -274,11 +321,9 @@ function setTheme(theme) {
     document.body.classList.toggle('dark', theme === 'dark');
     
     // Update toggle buttons
-    const btnLight = document.getElementById('theme-light');
-    const btnDark = document.getElementById('theme-dark');
-    if (btnLight && btnDark) {
-        btnLight.classList.toggle('active', theme === 'light');
-        btnDark.classList.toggle('active', theme === 'dark');
+    if (DOM.modals.themeLight && DOM.modals.themeDark) {
+        DOM.modals.themeLight.classList.toggle('active', theme === 'light');
+        DOM.modals.themeDark.classList.toggle('active', theme === 'dark');
     }
 
     // Update Map if active
@@ -287,9 +332,7 @@ function setTheme(theme) {
     }
 }
 
-// Bind Theme Buttons
-document.getElementById('theme-light')?.addEventListener('click', () => setTheme('light'));
-document.getElementById('theme-dark')?.addEventListener('click', () => setTheme('dark'));
+// Theme listeners are now moved to setupEventListeners() via setupThemeListeners()
 
 // Load Preference
 const savedTheme = localStorage.getItem('ts_theme') || 'light';
@@ -317,8 +360,7 @@ function setupAuthObserver() {
             window.isAdmin = verification.isAdmin;
             
             DOM.header.navAdmin?.classList.toggle('hidden', !State.isAdmin);
-            const profileName = document.getElementById('profile-name');
-            if (profileName) profileName.textContent = user.displayName || user.email.split('@')[0];
+            if (DOM.header.profileName) DOM.header.profileName.textContent = user.displayName || user.email.split('@')[0];
             
             switchView('dashboard');
             

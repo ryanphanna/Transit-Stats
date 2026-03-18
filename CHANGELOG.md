@@ -1,11 +1,7 @@
 # Changelog
+- **Web App**: `v1.9.5`
 
-**Current Project Versions:**
-- **Web App**: `v1.9.4`
-- **Cloud Functions**: `v1.5.3`
-
-
-## [Unreleased]
+## [1.9.5] - 2026-03-18
 
 ### Fixed
 - **Deployment**: Resolved `npm ci` failures in CI/CD by syncing `package-lock.json` with the `undici` and `@tootallnate/once` version overrides in `package.json`.
@@ -14,6 +10,7 @@
 ### Refactor
 - **Node.js**: Standardized Node.js engine to version 22 across the project for consistency.
 - **SMS System**: Modularized the monolithic `functions/sms.js` by extracting command dispatching into a dedicated `dispatcher.js` module.
+- **Frontend Architecture**: Refactored `js/main.js` to modularize DOM initialization and event listener setup, improving maintainability and reducing the size of the `initDOM()` function.
 - **Error Handling**: Improved error logging and reliability for SMS request dispatching.
 
 ## [1.9.4] - 2026-03-18
