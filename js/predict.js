@@ -248,13 +248,36 @@ export const PredictionEngine = {
         return /^\d/.test(s) ? s.replace(/[a-zA-Z]+(\s.*)?$/, '').trim() : s;
     },
 
-    _normalizeDirection(dir) {
-        if (!dir) return null;
-        const d = dir.toString().toLowerCase().replace(/bound$/i, '').trim();
-        if (d === 'n' || d === 'nb' || d === 'north') return 'Northbound';
-        if (d === 's' || d === 'sb' || d === 'south') return 'Southbound';
-        if (d === 'e' || d === 'eb' || d === 'east' || d === 'eastward') return 'Eastbound';
-        if (d === 'w' || d === 'wb' || d === 'west') return 'Westbound';
-        return dir.trim();
+    _normalizeDirection(input) {
+        if (!input) return null;
+
+        const upper = input.toString().trim().toUpperCase();
+
+        // North/Northbound
+        if (['N', 'NB', 'N/B', 'NORTH', 'NORTHBOUND', 'NORTHWARD'].includes(upper)) return 'Northbound';
+
+        // South/Southbound
+        if (['S', 'SB', 'S/B', 'SOUTH', 'SOUTHBOUND', 'SOUTHWARD'].includes(upper)) return 'Southbound';
+
+        // East/Eastbound
+        if (['E', 'EB', 'E/B', 'EAST', 'EASTBOUND', 'EASTWARD'].includes(upper)) return 'Eastbound';
+
+        // West/Westbound
+        if (['W', 'WB', 'W/B', 'WEST', 'WESTBOUND', 'WESTWARD'].includes(upper)) return 'Westbound';
+
+        // Clockwise
+        if (['CW', 'CLOCKWISE'].includes(upper)) return 'Clockwise';
+
+        // Counterclockwise
+        if (['CCW', 'COUNTERCLOCKWISE', 'ANTICLOCKWISE', 'ANTI-CLOCKWISE'].includes(upper)) return 'Counterclockwise';
+
+        // Inbound
+        if (['IB', 'IN', 'INBOUND'].includes(upper)) return 'Inbound';
+
+        // Outbound
+        if (['OB', 'OUT', 'OUTBOUND'].includes(upper)) return 'Outbound';
+
+        // Return original if no match (e.g. specific destination name)
+        return input.toString().trim();
     }
 };

@@ -12,8 +12,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha256-tXCrvaljxgtN5LT/Syb5Mm9T+yzPFGH98JVcoJT7JTk=" crossorigin="anonymous" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" integrity="sha256-+bdWuWOXMFkX0v9Cvr3OWClPiYefDQz9GGZP/7xZxdc=" crossorigin="anonymous" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" integrity="sha256-LWhzWaQGZRsWFrrJxg+6Zn8TT84k0/trtiHBc6qcGpY=" crossorigin="anonymous" />
-    <!-- Global Styles -->
     <link rel="stylesheet" href="styles/main.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <!-- Persistent Header -->
@@ -25,8 +26,8 @@
             <nav id="user-nav" class="nav-links">
                 <button id="nav-admin" class="btn btn-ghost hidden">Data</button>
                 <button id="nav-insights" class="btn btn-ghost">Insights</button>
-                <button id="nav-map" class="btn btn-icon" title="Map">🗺️</button>
-                <button id="nav-settings" class="btn btn-icon" title="Settings">⚙️</button>
+                <button id="nav-map" class="btn btn-icon" title="Map"><i data-lucide="map"></i></button>
+                <button id="nav-settings" class="btn btn-icon" title="Settings"><i data-lucide="settings"></i></button>
             </nav>
         </div>
     </header>
@@ -36,7 +37,7 @@
         <!-- Auth View -->
         <section id="view-auth" class="view auth-view active">
             <div class="auth-card card">
-                <div class="brand-icon">🚍</div>
+                <div class="brand-icon"><i data-lucide="bus"></i></div>
                 <h1 class="auth-title">TransitStats</h1>
                 <p class="auth-subtitle">Your Personal Transit Dashboard</p>
                 
@@ -79,14 +80,14 @@
                 <aside class="col-profile">
                     <div class="card profile-card">
                         <div class="profile-header">
-                            <div id="profile-avatar" class="avatar">🚍</div>
+                        <div id="profile-avatar" class="avatar"><i data-lucide="user"></i></div>
                             <div class="profile-info">
                                 <h2 id="profile-name">Traveler</h2>
                                 <p id="profile-status">Ready to ride</p>
                             </div>
                         </div>
                         <div class="streak-box">
-                            <div class="streak-title">🔥 Riding Streak</div>
+                            <div class="streak-title"><i data-lucide="flame" class="icon-inline"></i> Riding Streak</div>
                             <div class="streak-data">
                                 <div class="streak-item">
                                     <strong id="stat-current-streak" class="text-accent">0</strong>
@@ -103,7 +104,7 @@
                     
                     <div class="card">
                         <div class="card-header">
-                            <h3>📈 Activity</h3>
+                            <h3><i data-lucide="trending-up" class="icon-inline"></i> Activity</h3>
                         </div>
                         <div id="sparkline-container" class="sparkline-container"></div>
                     </div>
@@ -113,7 +114,7 @@
                 <div class="col-feed">
                     <div id="prediction-card" class="card prediction-card" style="display: none;">
                         <div class="prediction-header">
-                            <span class="prediction-icon">✨</span>
+                            <span class="prediction-icon"><i data-lucide="sparkles"></i></span>
                             <span class="prediction-label">Next Predicted Trip</span>
                         </div>
                         <div id="prediction-content" class="prediction-content">
@@ -123,7 +124,7 @@
 
                     <div class="card">
                         <div class="card-header">
-                            <h3>📜 Recent Trips</h3>
+                            <h3><i data-lucide="history" class="icon-inline"></i> Recent Trips</h3>
                         </div>
                         <div id="recent-trips-list" class="feed-list">
                             <div class="loading-state">Loading trips...</div>
@@ -135,7 +136,7 @@
                 <aside class="col-stats">
                     <div class="card stats-card">
                         <div class="card-header">
-                            <h3>📊 Travel Stats</h3>
+                            <h3><i data-lucide="bar-chart-3" class="icon-inline"></i> Travel Stats</h3>
                             <div class="toggle-group">
                                 <button id="toggle-stats-30-insights" class="toggle-btn active">30d</button>
                                 <button id="toggle-stats-all-insights" class="toggle-btn">All</button>
@@ -163,7 +164,7 @@
 
                     <div class="card peak-times-card">
                         <div class="card-header">
-                            <h3>🕒 Peak Riding Times</h3>
+                            <h3><i data-lucide="clock" class="icon-inline"></i> Peak Riding Times</h3>
                         </div>
                         <div id="time-of-day-chart-insights" class="chart-compact">
                             <div class="loading-state">Calculating peaks...</div>
@@ -172,7 +173,7 @@
 
                     <div class="card">
                         <div class="card-header">
-                            <h3>🚌 Popular Routes</h3>
+                            <h3><i data-lucide="route" class="icon-inline"></i> Popular Routes</h3>
                         </div>
                         <div id="top-routes-list-insights" class="list-compact">
                             <div class="loading-state">Loading...</div>
@@ -181,7 +182,7 @@
 
                     <div class="card">
                         <div class="card-header">
-                            <h3>📍 Frequent Stops</h3>
+                            <h3><i data-lucide="map-pin" class="icon-inline"></i> Frequent Stops</h3>
                         </div>
                         <div id="top-stops-list-insights" class="list-compact">
                             <div class="loading-state">Loading...</div>
@@ -212,7 +213,7 @@
                     <button class="pill" data-filter="exiting">Exiting</button>
                     <button class="pill" data-filter="both">Both</button>
                 </div>
-                <button id="btn-locate" class="btn btn-circle" title="Find Me">📍</button>
+                <button id="btn-locate" class="btn btn-circle" title="Find Me"><i data-lucide="locate-fixed"></i></button>
             </div>
         </section>
 
@@ -224,7 +225,7 @@
                     <aside class="col-inbox">
                         <div class="card">
                             <div class="card-header">
-                                <h3>📥 Inbox</h3>
+                                <h3><i data-lucide="inbox" class="icon-inline"></i> Inbox</h3>
                                 <span id="inbox-count" class="badge">0</span>
                             </div>
                             <p class="text-secondary mb-3" style="font-size: 0.8rem;">Unlinked stop names from trips. Link them to your library.</p>
@@ -239,7 +240,7 @@
                     <div class="col-library">
                         <div class="card">
                             <div class="card-header">
-                                <h3>📚 Stop Library</h3>
+                                <h3><i data-lucide="library" class="icon-inline"></i> Stop Library</h3>
                                 <button id="btn-new-stop" class="btn btn-primary btn-sm">+ New Stop</button>
                             </div>
                             <div class="admin-filters mb-4">
@@ -259,7 +260,7 @@
 
                             <div class="section minimal-card dashboard-stats-card">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                                    <h3 class="stat-card-title" style="margin-bottom: 0;">🗺️ Route Tracker</h3>
+                                    <h3 class="stat-card-title" style="margin-bottom: 0;"><i data-lucide="map" class="icon-inline"></i> Route Tracker</h3>
                                     <select id="routeTrackerAgency" onchange="setRouteTrackerAgency(this.value)" style="font-size: 0.8em; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-weight: 600;">
                                         <option value="TTC">TTC</option>
                                         <option value="OC Transpo">OC Transpo</option>
@@ -292,7 +293,7 @@
     <div id="modal-edit-trip" class="modal hidden">
         <div class="modal-header">
             <h2>Edit Trip</h2>
-            <button class="btn-close" data-close-modal>✕</button>
+            <button class="btn-close" data-close-modal><i data-lucide="x"></i></button>
         </div>
         <div class="modal-body">
             <input type="hidden" id="edit-trip-id">
@@ -337,7 +338,7 @@
     <div id="modal-settings" class="modal hidden">
         <div class="modal-header">
             <h2>Settings</h2>
-            <button class="btn-close" id="btn-close-settings">✕</button>
+            <button class="btn-close" id="btn-close-settings"><i data-lucide="x"></i></button>
         </div>
         <div class="modal-body">
             <div class="settings-group">
@@ -355,7 +356,7 @@
     <div id="modal-link-stop" class="modal hidden">
         <div class="modal-header">
             <h2>Link Stop</h2>
-            <button class="btn-close" data-close-modal>✕</button>
+            <button class="btn-close" data-close-modal><i data-lucide="x"></i></button>
         </div>
         <div class="modal-body">
             <div class="insight-row mb-4">
@@ -379,7 +380,7 @@
     <div id="modal-stop-form" class="modal hidden">
         <div class="modal-header">
             <h2 id="stop-form-title">Edit Stop</h2>
-            <button class="btn-close" data-close-modal>✕</button>
+            <button class="btn-close" data-close-modal><i data-lucide="x"></i></button>
         </div>
         <div class="modal-body">
             <input type="hidden" id="stop-form-id">
@@ -412,7 +413,7 @@
     <div id="modal-divvy" class="modal hidden">
         <div class="modal-header">
             <h2>Divvy Up Trips</h2>
-            <button class="btn-close" data-close-modal>✕</button>
+            <button class="btn-close" data-close-modal><i data-lucide="x"></i></button>
         </div>
         <div class="modal-body">
             <div id="divvy-list" class="feed-list"></div>

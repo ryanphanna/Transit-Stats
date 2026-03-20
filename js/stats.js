@@ -32,7 +32,12 @@ export const Stats = {
                 routeCounts[t.route] = (routeCounts[t.route] || 0) + 1;
             }
 
-            // Count Stops
+            // Count Stops — intentionally union of boarding + exiting stops.
+            // The "Stops" metric represents every distinct physical stop the user has
+            // ever touched, regardless of role. Once all stops are normalized to
+            // canonical names via the stop library, duplicate entries within a single
+            // trip (e.g. a stop that is both a start and an end across different trips)
+            // will be naturally deduplicated by the shared key in stopCounts.
             const start = t.startStopName || t.startStop || t.startStopCode;
             const end = t.endStopName || t.endStop || t.endStopCode;
             if (start) stopCounts[start] = (stopCounts[start] || 0) + 1;

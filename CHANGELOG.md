@@ -1,5 +1,20 @@
 # Changelog
-- **Web App**: `v1.9.6`
+- **Web App**: `v1.9.7-dev`
+
+## [Unreleased]
+
+### Added
+- **Lucide SVG Icon System**: Replaced all platform-dependent emojis and character icons with a consistent, premium SVG icon set from Lucide across navigation, card headers, and the trip feed.
+- **Integrated Notification System**: Replaced native `alert()` browser dialogs with the application's internal toast notification system for a more integrated and non-blocking user experience.
+
+### Changed
+- **Formalized Trip Initialization**: Introduced `Trips._readyPromise` to ensure the dashboard, map, and analytics modules wait for the primary Firestore data snapshot before initializing, preventing race conditions.
+- **Synchronized Direction Normalization**: Updated the client-side prediction engine to match cloud functions, adding support for `Clockwise`, `Counterclockwise`, `Inbound`, and `Outbound` directions.
+
+### Fixed
+- **Lucide Rendering Robustness**: Implemented a `refreshIcons` utility with an automatic retry mechanism to handle race conditions during CDN script loading and ensure icons render correctly on all views.
+- **Stop Metric Interpretation**: Documented the "Stops" count logic in `stats.js` to clarify that it represents the union of unique boarding and exiting locations.
+- **UI Aesthetic Refinement**: Adjusted icon alignment, stroke weights, and brand-icon dimensions to ensure a polished look in both light and dark modes.
 
 ## [1.9.6] - 2026-03-18
 

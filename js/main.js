@@ -7,6 +7,7 @@ import { Stats } from './stats.js';
 import { MapEngine } from './map-engine.js';
 import { PredictionEngine } from './predict.js';
 import { RouteTracker } from './route-tracker.js';
+import { UI } from './ui-utils.js';
 
 // Expose to window for legacy onclick handlers and inter-module access
 window.Auth = Auth;
@@ -15,6 +16,7 @@ window.Admin = Admin;
 window.Stats = Stats;
 window.MapEngine = MapEngine;
 window.Utils = Utils;
+window.refreshIcons = refreshIcons;
 
 /**
  * TransitStats V2 - Main Entry Point
@@ -36,6 +38,7 @@ async function init() {
     initDOM();
     setupEventListeners();
     setupAuthObserver();
+    refreshIcons();
 
     // Defer Stats, Map, and RouteTracker until Trips has its first snapshot, so they
     // don’t compete with the initial read and can use Trips.allCompletedTrips directly.
@@ -43,6 +46,7 @@ async function init() {
         Stats.init();
         MapEngine.init();
         RouteTracker.init();
+        refreshIcons();
     });
 }
 
@@ -225,7 +229,7 @@ function setupTripEditListeners() {
             agency: DOM.tripEdit.agency.value
         };
 
-        if (!data.route) return alert("Route is required.");
+        if (!data.route) return UI.showNotification("Route number or name is required.");
 
         DOM.tripEdit.btnSave.disabled = true;
         DOM.tripEdit.btnSave.textContent = 'Saving...';
@@ -233,7 +237,7 @@ function setupTripEditListeners() {
             await Trips.update(id, data);
             closeAllModals();
         } catch (err) {
-            alert("Update failed: " + err.message);
+            UI.showNotification("Update failed: " + err.message);
         } finally {
             DOM.tripEdit.btnSave.disabled = false;
             DOM.tripEdit.btnSave.textContent = 'Save Changes';
@@ -250,7 +254,7 @@ function setupTripEditListeners() {
             await Trips.delete(id);
             closeAllModals();
         } catch (err) {
-            alert("Delete failed: " + err.message);
+            UI.showNotification("Delete failed: " + err.message);
         } finally {
             DOM.tripEdit.btnDelete.disabled = false;
             DOM.tripEdit.btnDelete.textContent = 'Delete Trip';
@@ -312,6 +316,8 @@ function switchView(viewName) {
     if (viewName === 'admin') {
         Admin.init();
     }
+
+    refreshIcons();
 }
 
 // --- Theme Management ---
@@ -404,5 +410,17 @@ function showAuthSuccess(msg) {
     DOM.auth.statusMsg.classList.remove('hidden');
 }
 
+function refreshIcons() {
+    if (window.lucide) {
+        lucide.createIcons();
+    } else {
+        // Retry shortly if it's not loaded yet
+        setTimeout(() => {
+            if (window.lucide) lucide.createIcons();
+        }, 100);
+    }
+}
+
 // Boot
 document.addEventListener('DOMContentLoaded', init);
+

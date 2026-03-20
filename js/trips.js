@@ -12,8 +12,11 @@ export const Trips = {
     activeTrip: null,
     statsRange: 30,
     unsubscribe: null,
+    _resolveReady: null,
+    _readyPromise: null,
 
     async init() {
+        this._readyPromise = new Promise(resolve => { this._resolveReady = resolve; });
         this.setupToggles();
         this.listen();
         await this.loadStopsLibrary();
@@ -78,6 +81,12 @@ export const Trips = {
                 
                 // Update Map
                 MapEngine.updateTrips(this.allTrips);
+
+                // Resolve ready promise on first load
+                if (this._resolveReady) {
+                    this._resolveReady();
+                    this._resolveReady = null;
+                }
             }, err => {
                 console.error("Trips error:", err);
             });
@@ -127,6 +136,7 @@ export const Trips = {
             const card = this.renderTripCard(trip);
             list.appendChild(card);
         });
+        if (window.refreshIcons) window.refreshIcons();
     },
 
     renderTripCard(trip) {
@@ -149,7 +159,7 @@ export const Trips = {
                         <span class="stop-name">${endStop}</span>
                     </div>
                 </div>
-                <button class="btn-edit-trip" title="Edit Trip">✏️</button>
+                <button class="btn-edit-trip" title="Edit Trip"><i data-lucide="edit-2"></i></button>
             </div>
             <div class="trip-meta">
                 <div class="trip-date">${dateStr}</div>

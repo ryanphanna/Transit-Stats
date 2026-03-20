@@ -23,6 +23,10 @@ serviceAccountKey.json
 *-firebase-adminsdk-*.json
 migrations/admin-emails.config.js
 
+# AI context files
+CLAUDE.md
+GEMINI.md
+
 # IDE
 .idea/
 .vscode/

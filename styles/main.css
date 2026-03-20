@@ -162,6 +162,29 @@ body.dark .header {
 .nav-links .btn {
   padding: 8px 12px;
   font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-inline {
+  width: 18px;
+  height: 18px;
+  vertical-align: -4px;
+  margin-right: 6px;
+  stroke-width: 2.5;
+}
+
+.lucide {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.5px;
+  display: inline-block;
+}
+
+.icon-lg {
+  width: 32px;
+  height: 32px;
 }
 
 /* --- Views --- */
@@ -197,8 +220,17 @@ body.dark .header {
 }
 
 .brand-icon {
-  font-size: 48px;
   margin-bottom: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 48px;
+}
+.brand-icon i, .brand-icon svg {
+  width: 48px;
+  height: 48px;
+  stroke-width: 2px;
+  color: var(--accent);
 }
 
 .auth-title { margin: 0; font-size: 2rem; font-weight: 900; }
