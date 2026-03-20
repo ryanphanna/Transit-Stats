@@ -1,9 +1,11 @@
 # Changelog
-- **Web App**: `v1.9.7-dev`
+- **Web App**: `v1.9.7`
 
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+## [1.9.7] - 2026-03-20
 
 ### Added
 - **Lucide SVG Icon System**: Replaced all platform-dependent emojis and character icons with a consistent, premium SVG icon set from Lucide across navigation, card headers, and the trip feed.
