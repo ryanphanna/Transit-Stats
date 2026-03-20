@@ -214,7 +214,7 @@ All notable changes to this project will be documented in this file.
 ---
 
 ## Older Releases
-Historical changes prior to version 1.8.3 can be found in the [Changelog Archive](./CHANGELOG_ARCHIVE.md).
+Historical changes can be found in the [Changelog Archive](./CHANGELOG_ARCHIVE.md).
 
 ---
 *See [migrations/](./migrations/) for scripts to address technical debt.*

@@ -1,6 +1,6 @@
 # Changelog Archive
 
-All notable changes to this project prior to version 1.8.3 are documented in this file.
+All notable changes prior to those in [CHANGELOG.md](./CHANGELOG.md) are documented in this file.
 For recent changes, see [CHANGELOG.md](./CHANGELOG.md).
 
 ## [1.8.2] - 2026-03-10
@@ -8,18 +8,6 @@ For recent changes, see [CHANGELOG.md](./CHANGELOG.md).
 ### Added
 - **Diagnostic Logging**: Added verbose console logs to `js/stats.js` and `js/trips.js` to track Firestore data retrieval and pinpoint the "0 trips" data loading issue.
 - **Dashboard Profile Header**: Integrated user profile data (avatar and display name) directly into the dashboard card in `index.html` to provide immediate feedback on authentication state.
-
-### Changed
-- **UI Layout Overhaul**: Refactored the dashboard from a centered card to a floating sidebar panel (`.dashboard-floating-panel`) in `styles/layout.css`, improving map visibility and flow.
-- **Improved Interaction**: Updated pointer-event rules in CSS to ensure the Admin, Settings, and Filter buttons are consistently responsive.
-- **Responsive Dashboard Positioning**: Added media queries to ensure the dashboard panel adapts correctly on mobile devices.
-
-### Fixed
-- **Navigation Button Dead-Zone**: Resolved a layout issue where the dashboard container was overlapping and blocking interactive header elements.
-- **Centering Logic**: Fixed rigid centering constraints that caused UI jumps between login and authenticated states.
-
-
-### Added
 - **PRESTO Importer (Local-First)** (`js/importer.js`): Standalone client-side CSV parser that transforms PRESTO transaction reports into map-ready spatial points.
 - **Standalone PRESTO Importer** (`presto.html`): Extracted the client-side CSV parser and visualization into its own dedicated entry point rather than cluttering the main login screen.
 - **Privacy-First Storage** (`js/importer.js`): Imported data is stored exclusively in the browser's `localStorage`. No data is uploaded to Firestore, ensuring public users can explore their history without creating an account or leaking personal data.
@@ -27,8 +15,17 @@ For recent changes, see [CHANGELOG.md](./CHANGELOG.md).
 - **Heatmap Layering** (`js/visuals.js`): Updated the visualization engine to overlay local import data (in Amber) with manual cloud trips. Includes a toggle to show/hide imported activity independently.
 - **Decoupled Initialization** (`js/main.js`): Refactored the app lifecycle to load canonical stops and initialize the map engine before login, enabling unauthenticated tool usage.
 
+### Changed
+- **UI Layout Overhaul**: Refactored the dashboard from a centered card to a floating sidebar panel (`.dashboard-floating-panel`) in `styles/layout.css`, improving map visibility and flow.
+- **Improved Interaction**: Updated pointer-event rules in CSS to ensure the Admin, Settings, and Filter buttons are consistently responsive.
+- **Responsive Dashboard Positioning**: Added media queries to ensure the dashboard panel adapts correctly on mobile devices.
+
 ### Removed
 - Removed the PRESTO drag-and-drop zone from the unauthenticated state of `index.html`. Users must now visit `/presto` directly.
+
+### Fixed
+- **Navigation Button Dead-Zone**: Resolved a layout issue where the dashboard container was overlapping and blocking interactive header elements.
+- **Centering Logic**: Fixed rigid centering constraints that caused UI jumps between login and authenticated states.
 
 ## [1.8.1] - 2026-03-10
 
@@ -86,18 +83,7 @@ For recent changes, see [CHANGELOG.md](./CHANGELOG.md).
 ### Documentation
 - **Vulnerability Reporting** (`SECURITY.md`): Updated the security policy to direct all vulnerability reports to the secure GitHub Private Vulnerability Reporting tool, replacing the previous manual process.
 
-### Fixed
-- 
-
 ## [1.7.0] / [1.3.0] - 2026-03-08
-
-### Fixed
-- **END Trip Crash (Critical)** (`functions/lib/handlers.js`): `handleEndTrip` was crashing before updating Firestore because `getRecentCompletedTrips` (used for silent prediction evaluation) requires a composite index that did not exist. Moved the history fetch inside the prediction `try-catch` block so a missing index or query failure can never prevent a trip from being ended or the reply from being sent.
-- **Idempotency Race Condition** (`functions/lib/db.js`): `checkIdempotency` used a read-then-write pattern that allowed two simultaneous Twilio retries to both slip through, creating duplicate trips. Replaced with an atomic `create()` call that fails with `ALREADY_EXISTS` if another request already claimed the message.
-- **Gemini Field Confusion** (`functions/lib/gemini.js`): Gemini was confusing route numbers and stop codes when both appeared in the same message (e.g. stop code landing in the route field). Improved the prompt to explicitly instruct Gemini to never infer or guess a route, and to only treat a number as a stop_id when it is explicitly labeled as a stop in the message text. Removed the previous digit-count heuristic ("4-digit") which was incorrect for many cities where stop codes are 3–5+ digits.
-
-### Changed
-- **CI/CD: Auto-deploy Functions** (`.github/workflows/firebase-hosting-merge.yml`): Added a functions deployment step to the merge workflow. Cloud Functions were previously never auto-deployed on push to `main`, meaning every function change since GitHub Actions was set up had silently gone unshipped.
 
 ### Added
 - **Trip Validity Filter** (`js/predict.js`): `_isValidTrip()` screens the candidate pool before voting. Trips with null stop names, sentence-length stop names (> 60 chars), SMS-sentence patterns (`"just boarded"`, `"headed northbound"`, etc.), or word-only route fragments (`"St"`, `"Station"`, `"Park"`) are excluded. Catches all known bad-parse trips without affecting legitimate routes including alphanumeric variants like `52g`.
@@ -109,6 +95,7 @@ For recent changes, see [CHANGELOG.md](./CHANGELOG.md).
 - **Admin Inbox Clustering** (`js/admin.js`): Pending stops are now grouped by their normalized intersection form before display. Variant spellings of the same stop collapse into one inbox entry with an "Also seen as:" row, and their trip counts are summed. A `pendingVariantsMap` is maintained so that linking or accepting any clustered entry automatically resolves all variants at once — adding each spelling as an alias and verifying all affected trips in a single action.
 
 ### Changed
+- **CI/CD: Auto-deploy Functions** (`.github/workflows/firebase-hosting-merge.yml`): Added a functions deployment step to the merge workflow. Cloud Functions were previously never auto-deployed on push to `main`, meaning every function change since GitHub Actions was set up had silently gone unshipped.
 - **Prediction Engine v3** (`js/predict.js`): Bumped version to 3. Four improvements shipped together:
   - **Trip validity filtering** — `_isValidTrip()` excludes malformed SMS-parse trips from the candidate pool before voting.
   - **Stop canonicalization** — `_stopMatch` resolves names through the stops library so alias variants collapse to one canonical form. Library is injected at load time via `PredictionEngine.stopsLibrary`.
@@ -120,10 +107,14 @@ For recent changes, see [CHANGELOG.md](./CHANGELOG.md).
 - **Enhanced Stop Library Lookup** (`js/trips.js`): `lookupStopInLibrary()` now tries the normalized intersection form alongside exact matching, so stops entered with different separators or casing still resolve to a verified library entry.
 - **HTML Structure** (`index.html`): Moved `appContent` and `mapPage` out of `authSection` to be siblings at the container level, matching the original pre-redesign structure.
 - **Auth State Management** (`js/auth.js`): `showApp()` now explicitly shows `appContent` and `mapPage` on login; `showAuth()` hides `mapPage` on logout.
+
+### Removed
 - **Dead Code Removal** (`js/trips.js`): Removed event listener setup for `stopInput`, `routeInput`, `startBtn`, `endBtn`, and `cancelTrip` — all removed from the UI when web trip logging was dropped in favour of SMS-only entry.
-- **Documentation**: Updated `ROADMAP.md` format to match the hybrid layout used in the Navigator project.
 
 ### Fixed
+- **END Trip Crash (Critical)** (`functions/lib/handlers.js`): `handleEndTrip` was crashing before updating Firestore because `getRecentCompletedTrips` (used for silent prediction evaluation) requires a composite index that did not exist. Moved the history fetch inside the prediction `try-catch` block so a missing index or query failure can never prevent a trip from being ended or the reply from being sent.
+- **Idempotency Race Condition** (`functions/lib/db.js`): `checkIdempotency` used a read-then-write pattern that allowed two simultaneous Twilio retries to both slip through, creating duplicate trips. Replaced with an atomic `create()` call that fails with `ALREADY_EXISTS` if another request already claimed the message.
+- **Gemini Field Confusion** (`functions/lib/gemini.js`): Gemini was confusing route numbers and stop codes when both appeared in the same message (e.g. stop code landing in the route field). Improved the prompt to explicitly instruct Gemini to never infer or guess a route, and to only treat a number as a stop_id when it is explicitly labeled as a stop in the message text. Removed the previous digit-count heuristic ("4-digit") which was incorrect for many cities where stop codes are 3–5+ digits.
 - **Prediction Engine blind spot** (`js/trips.js`): `allCompletedTrips` was always empty for SMS-based users because the filter checked `endStop` (web schema) while SMS trips use `endStopName`. The prediction engine was evaluating against zero history on every trip.
 - **Direction comparison bug** (`js/predict.js`): `evaluate()` compared raw direction strings — `"SOUTH" === "Southbound"` returned false, causing hits to be logged as misses. Both sides now pass through `_normalizeDirection()` before comparison.
 - **Direction abbreviations** (`js/predict.js`): `_normalizeDirection()` now handles `nb/sb/eb/wb` and `"eastward"` in addition to existing cardinal and full-word forms.
@@ -134,6 +125,9 @@ For recent changes, see [CHANGELOG.md](./CHANGELOG.md).
 - **Malformed HTML** (`js/map-engine.js`): Removed duplicate opening `<div>` in the "No location data" placeholder, which left an unclosed element in the DOM.
 - **Login Button Responsiveness**: Resolved an issue where the "Continue" button could be unresponsive during hot-reloads by updating initialization logic in `js/main.js` to check `document.readyState`.
 - **Form Submission**: Added `e.preventDefault()` to the "Continue" button in `js/auth.js` to prevent unintended form submissions.
+
+### Documentation
+- Updated `ROADMAP.md` format to match the hybrid layout used in the Navigator project.
 
 ## [1.6.0] - 2026-03-08
 
@@ -173,21 +167,21 @@ For recent changes, see [CHANGELOG.md](./CHANGELOG.md).
 
 ## [1.1.9] - 2026-03-07
 
+### Fixed
+- **Observability**: Added verbose request body logging and validation audit logs to help diagnose delivery issues without exposing PII.
+
 ### Security
 - **Secret Migration (Critical)**: Migrated all cloud function secrets (`TWILIO_AUTH_TOKEN`, `TWILIO_ACCOUNT_SID`, `TWILIO_PHONE_NUMBER`, `GEMINI_API_KEY`) from deprecated `functions.config()` to the modern `defineSecret` (Firebase params module). This resolves critical "500 Internal Server Error" crashes in newer Node.js 20 environments where the legacy config object is no longer available.
 - **Webhook Hardening**: Re-implemented Twilio signature validation with a robust fallback mechanism that accounts for Firebase Functions' URL path rewriting (stripping `/sms`). The system now intelligently validates signatures against both the original reconstructed URL and a strict `/sms` suffix.
 
-### Fixed
-- **Observability**: Added verbose request body logging and validation audit logs to help diagnose delivery issues without exposing PII.
-
 ## [1.4.9] - 2026-03-07
-
-### Security
-- **Complete String Escaping (High)**: Addressed a CodeQL `incomplete-sanitization` vulnerability in `js/admin.js` where backslashes and double quotes were not properly escaped in dynamic strings interpolated into inline HTML event handlers. Implemented a robust `escapeForJs()` helper to securely sanitize all dynamic JavaScript variables injected into DOM attributes, preventing potential Cross-Site Scripting (XSS) and injection attacks via maliciously crafted stop names or aliases.
 
 ### Fixed
 - **Maps**: Corrected tile server SSL validation for `memomaps.de` and `openstreetmap.org` in `js/map-engine.js` and `js/public.js`. Resolved "Mixed Content" and SSL certificate errors that caused the map layer to fail to load in several regions.
 - **Testing**: Added `take_screenshot.js` utility for automated UI auditing.
+
+### Security
+- **Complete String Escaping (High)**: Addressed a CodeQL `incomplete-sanitization` vulnerability in `js/admin.js` where backslashes and double quotes were not properly escaped in dynamic strings interpolated into inline HTML event handlers. Implemented a robust `escapeForJs()` helper to securely sanitize all dynamic JavaScript variables injected into DOM attributes, preventing potential Cross-Site Scripting (XSS) and injection attacks via maliciously crafted stop names or aliases.
 
 ## [1.1.8] - 2026-03-07
 
@@ -386,14 +380,23 @@ For recent changes, see [CHANGELOG.md](./CHANGELOG.md).
 
 ## [1.1.1] - 2026-02-12
 
+### Changed
+- **Map Interaction**: Improved stability of map interactions by preventing re-initialization errors.
+
 ### Fixed
 - **Crash Prevention**: Fixed critical crashes in `calculateFounderStats` and `generateTimeOfDayStats` by adding null checks for missing DOM elements.
 - **Admin Panel**: Fixed HTML attribute injection vulnerability in the stop editor that caused syntax errors when editing stops with aliases.
 
-### Changed
-- **Map Interaction**: Improved stability of map interactions by preventing re-initialization errors.
-
 ## [1.1.0] - 2026-01-25
+
+### Added
+- **Migration Scripts**: Added database migration tools for legacy field cleanup.
+- **Documentation**: Comprehensive security model and setup guides (`SECURITY.md`, `setup-admin.md`).
+
+### Changed
+- **Gemini Retry Logic**: Automatic retry with exponential backoff for AI parsing failures.
+- **Configuration Validation**: Cold-start validation of all required environment variables.
+- **Error Handling**: Improved error logging and user-friendly error messages.
 
 ### Security
 - **Authentication Hardening**: Fixed whitelist bypass vulnerability in password authentication.
@@ -401,15 +404,6 @@ For recent changes, see [CHANGELOG.md](./CHANGELOG.md).
 - **XSS Protection**: Implemented comprehensive HTML sanitization across all user-generated content.
 - **Input Validation**: Added validation for stop data, trip data, and user inputs.
 - **Firestore Rules**: Enhanced security rules with detailed data model documentation.
-
-### Changed
-- **Gemini Retry Logic**: Automatic retry with exponential backoff for AI parsing failures.
-- **Configuration Validation**: Cold-start validation of all required environment variables.
-- **Error Handling**: Improved error logging and user-friendly error messages.
-
-### Added
-- **Migration Scripts**: Added database migration tools for legacy field cleanup.
-- **Documentation**: Comprehensive security model and setup guides (`SECURITY.md`, `setup-admin.md`).
 
 ---
 *See [migrations/](./migrations/) for scripts to address technical debt.*
