@@ -1,5 +1,6 @@
 import { db } from './firebase.js';
 import { Utils } from './utils.js';
+import { UI } from './ui-utils.js';
 
 /**
  * TransitStats V2 - Admin Data Manager Module
@@ -40,7 +41,28 @@ export const Admin = {
 
         // Form Actions
         document.getElementById('btn-save-stop')?.addEventListener('click', () => this.saveStop());
-        document.getElementById('btn-delete-stop')?.addEventListener('click', () => this.deleteStop());
+
+        let _deleteStopArmed = false;
+        let _deleteStopTimer = null;
+        document.getElementById('btn-delete-stop')?.addEventListener('click', (e) => {
+            const btn = e.currentTarget;
+            if (!_deleteStopArmed) {
+                _deleteStopArmed = true;
+                btn.textContent = 'Tap again to confirm';
+                btn.classList.add('btn-danger');
+                _deleteStopTimer = setTimeout(() => {
+                    _deleteStopArmed = false;
+                    btn.textContent = 'Delete Stop';
+                    btn.classList.remove('btn-danger');
+                }, 3000);
+                return;
+            }
+            clearTimeout(_deleteStopTimer);
+            _deleteStopArmed = false;
+            btn.textContent = 'Delete Stop';
+            btn.classList.remove('btn-danger');
+            this.deleteStop();
+        });
     },
 
     async loadAll() {
@@ -200,18 +222,24 @@ export const Admin = {
             return;
         }
 
-        list.innerHTML = filtered.map(i => `
+        const withSuggestions = filtered.filter(i => i.suggestion);
+        const bulkBtn = withSuggestions.length > 1
+            ? `<button class="btn btn-outline full-width btn-sm mb-3" onclick="window.Admin.acceptAllSuggestions()">Accept all ${withSuggestions.length} suggestions</button>`
+            : '';
+
+        list.innerHTML = bulkBtn + filtered.map(i => `
             <div class="inbox-item">
                 <div class="inbox-item-content">
-                    <span class="inbox-item-name"><span class="badge-count">${i.count}</span>${i.name}</span>
-                    <span class="inbox-item-meta">${i.routes.slice(0, 3).join(', ')}${i.routes.length > 3 ? '...' : ''}</span>
+                    <span class="inbox-item-name"><span class="badge-count">${i.count}</span>${Utils.hide(i.name)}</span>
+                    <span class="inbox-item-meta">${i.routes.slice(0, 3).map(r => Utils.hide(r)).join(', ')}${i.routes.length > 3 ? '...' : ''}</span>
                     ${i.suggestion ? `
                         <div class="mt-2" style="font-size: 0.7rem; color: var(--success);">
-                            Suggest: ${i.suggestion.stop.name} (${i.suggestion.score}%)
+                            → ${Utils.hide(i.suggestion.stop.name)} (${i.suggestion.score}%)
                         </div>
                     ` : ''}
                 </div>
                 <div class="inbox-actions">
+                    ${i.suggestion ? `<button class="btn btn-sm btn-outline" onclick="window.Admin.acceptSuggestion('${Utils.hide(i.name)}', '${i.suggestion.stop.id}')">Accept</button>` : ''}
                     <button class="btn btn-primary btn-sm" onclick="window.Admin.openLinkModal('${Utils.hide(i.name)}')">Link</button>
                 </div>
             </div>
@@ -300,7 +328,7 @@ export const Admin = {
         const code = document.getElementById('stop-form-code').value.trim();
         const agency = document.getElementById('stop-form-agency').value;
 
-        if (!name) return alert('Name is required');
+        if (!name) return UI.showNotification('Name is required.');
 
         const data = { name, code, agency, updatedAt: new Date() };
 
@@ -313,20 +341,20 @@ export const Admin = {
             this.closeModals();
             await this.loadAll();
         } catch (err) {
-            alert('Save failed: ' + err.message);
+            UI.showNotification('Save failed: ' + err.message);
         }
     },
 
     async deleteStop() {
         const id = document.getElementById('stop-form-id').value;
-        if (!id || !confirm('Permanently delete this stop from library?')) return;
+        if (!id) return;
 
         try {
             await db.collection('stops').doc(id).delete();
             this.closeModals();
             await this.loadAll();
         } catch (err) {
-            alert('Delete failed: ' + err.message);
+            UI.showNotification('Delete failed: ' + err.message);
         }
     },
 
@@ -347,6 +375,44 @@ export const Admin = {
             }
         } else {
             this.closeModals();
+        }
+    },
+
+    async acceptSuggestion(rawName, stopId) {
+        const stop = this.stopsLibrary.find(s => s.id === stopId);
+        if (!stop) return;
+        const aliases = stop.aliases || [];
+        if (!aliases.includes(rawName)) {
+            aliases.push(rawName);
+            try {
+                await db.collection('stops').doc(stopId).update({ aliases, updatedAt: new Date() });
+                await this.loadAll();
+            } catch (err) {
+                UI.showNotification('Failed to accept suggestion: ' + err.message);
+            }
+        }
+    },
+
+    async acceptAllSuggestions() {
+        const toUpdate = {};
+        this.inbox.filter(i => i.suggestion).forEach(i => {
+            const stop = i.suggestion.stop;
+            if (!toUpdate[stop.id]) toUpdate[stop.id] = { aliases: [...(stop.aliases || [])] };
+            if (!toUpdate[stop.id].aliases.includes(i.name)) {
+                toUpdate[stop.id].aliases.push(i.name);
+            }
+        });
+
+        const batch = db.batch();
+        Object.entries(toUpdate).forEach(([id, { aliases }]) => {
+            batch.update(db.collection('stops').doc(id), { aliases, updatedAt: new Date() });
+        });
+
+        try {
+            await batch.commit();
+            await this.loadAll();
+        } catch (err) {
+            UI.showNotification('Bulk accept failed: ' + err.message);
         }
     },
 

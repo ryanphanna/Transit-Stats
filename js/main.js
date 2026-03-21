@@ -244,10 +244,26 @@ function setupTripEditListeners() {
         }
     });
 
+    let _deleteArmed = false;
+    let _deleteArmTimer = null;
+
     DOM.tripEdit.btnDelete?.addEventListener('click', async () => {
         const id = DOM.tripEdit.id.value;
-        if (!confirm("Are you sure you want to delete this trip?")) return;
 
+        if (!_deleteArmed) {
+            _deleteArmed = true;
+            DOM.tripEdit.btnDelete.textContent = 'Tap again to confirm';
+            DOM.tripEdit.btnDelete.classList.add('btn-danger');
+            _deleteArmTimer = setTimeout(() => {
+                _deleteArmed = false;
+                DOM.tripEdit.btnDelete.textContent = 'Delete Trip';
+                DOM.tripEdit.btnDelete.classList.remove('btn-danger');
+            }, 3000);
+            return;
+        }
+
+        clearTimeout(_deleteArmTimer);
+        _deleteArmed = false;
         DOM.tripEdit.btnDelete.disabled = true;
         DOM.tripEdit.btnDelete.textContent = 'Deleting...';
         try {
@@ -258,6 +274,7 @@ function setupTripEditListeners() {
         } finally {
             DOM.tripEdit.btnDelete.disabled = false;
             DOM.tripEdit.btnDelete.textContent = 'Delete Trip';
+            DOM.tripEdit.btnDelete.classList.remove('btn-danger');
         }
     });
 }

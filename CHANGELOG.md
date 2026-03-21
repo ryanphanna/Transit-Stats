@@ -1,7 +1,25 @@
 # Changelog
-- **Web App**: `v1.9.7`
 
 All notable changes to this project will be documented in this file.
+
+## [1.9.8] - 2026-03-21
+
+### Added
+- **Auto-Journey Linking**: When a trip ends, the system automatically checks if the previous completed trip ended at the same boarding stop within 60 minutes. If so, both trips are silently linked with a shared `journeyId` and a note is appended to the END confirmation SMS (e.g. "Linked to your Route 510 trip (8 min transfer)").
+- **Journey Feed Connector**: Linked trip legs now display a visual connector in the Recent Trips feed showing the transfer gap and a break button to unlink them. The Firestore snapshot listener re-renders automatically on change.
+- **Direction on Trip Cards**: Trip cards in the feed now show abbreviated direction (NB, SB, EB, WB, etc.) when present, making it easy to distinguish same-route trips in opposite directions.
+- **Insights View Header**: Added a "Commute Highlights" card header with medal icon to the Insights view, which previously rendered as a blank unlabelled card.
+- **One-Click Suggestion Accept**: Inbox items with a fuzzy-match suggestion now show an "Accept" button that links the stop alias in one click without opening the link modal.
+- **Bulk Accept Suggestions**: When 2 or more inbox items have suggestions, an "Accept all X suggestions" button appears at the top of the inbox to batch-link them in a single Firestore write.
+
+### Changed
+- **Journey Linking UX**: Moved journey detection from trip start (SMS prompt) to trip end (auto-link). The LINK command remains as a manual fallback. This eliminates the need to reply to a suggestion mid-trip.
+- **DISCARD Cleanup**: Discarding an active trip that was already linked into a journey now removes the `journeyId` from the partner trip, preventing dangling references.
+
+### Fixed
+- **XSS in Trip Feed**: Route names, stop names, and corridor keys injected into `innerHTML` in `renderTripCard`, `renderList`, and `renderHighlights` are now escaped via `Utils.hide()`.
+- **Sparkline Average Line**: Fixed a coordinate space mismatch where `bottom: calc(20px + avgPct%)` resolved `%` against the full border-box height (64px) rather than the content area (40px), causing the avg line to float above the bars. Now scaled by `40/64`.
+- **Native Dialog Removal**: Replaced remaining `confirm()` call for trip deletion in `main.js` and `alert()`/`confirm()` calls in `admin.js` with the app's toast notification system and a two-step button confirmation.
 
 ## [1.9.7] - 2026-03-20
 

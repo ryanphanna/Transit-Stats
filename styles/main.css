@@ -386,6 +386,7 @@ body.dark .header {
 .trip-meta { text-align: right; }
 .trip-date { font-weight: 700; font-size: 0.85rem; }
 .trip-duration { font-size: 0.8rem; color: var(--text-secondary); }
+.trip-direction { font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.03em; }
 
 /* --- Stats --- */
 .stats-grid {
@@ -674,6 +675,14 @@ input:focus, select:focus {
   color: var(--danger);
 }
 .btn-danger-outline:hover { background: var(--danger); color: white; }
+.btn-danger { background: var(--danger); border-color: var(--danger); color: white; }
+
+/* --- Journey Connector --- */
+.journey-connector { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: -4px 0; }
+.journey-line { width: 2px; height: 10px; background: var(--accent); opacity: 0.3; border-radius: 1px; }
+.journey-badge { display: flex; align-items: center; gap: 6px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 20px; padding: 3px 10px; font-size: 0.72rem; color: var(--text-secondary); font-weight: 500; }
+.btn-break-journey { background: none; border: none; padding: 0; cursor: pointer; color: var(--text-secondary); display: flex; align-items: center; opacity: 0.5; transition: opacity 0.15s, color 0.15s; }
+.btn-break-journey:hover { opacity: 1; color: var(--danger); }
 
 /* --- Advanced Analytics --- */
 .insight-row {

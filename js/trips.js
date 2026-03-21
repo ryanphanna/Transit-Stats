@@ -1,4 +1,4 @@
-import { db } from './firebase.js';
+import firebase, { db } from './firebase.js';
 import { Stats } from './stats.js';
 import { MapEngine } from './map-engine.js';
 import { Utils } from './utils.js';
@@ -132,9 +132,13 @@ export const Trips = {
         }
 
         list.innerHTML = '';
-        this.allTrips.slice(0, 20).forEach(trip => {
-            const card = this.renderTripCard(trip);
-            list.appendChild(card);
+        const visible = this.allTrips.slice(0, 20);
+        visible.forEach((trip, i) => {
+            list.appendChild(this.renderTripCard(trip));
+            const next = visible[i + 1];
+            if (trip.journeyId && next?.journeyId === trip.journeyId) {
+                list.appendChild(this.renderJourneyConnector(trip, next));
+            }
         });
         if (window.refreshIcons) window.refreshIcons();
     },
@@ -149,20 +153,25 @@ export const Trips = {
         const startStop = Utils.normalizeIntersectionStop(trip.startStopName || trip.startStop || trip.startStopCode) || 'Unknown';
         const endStop = Utils.normalizeIntersectionStop(trip.endStopName || trip.endStop || trip.endStopCode) || '...';
 
+        const dirAbbr = { Northbound: 'NB', Southbound: 'SB', Eastbound: 'EB', Westbound: 'WB',
+            Clockwise: 'CW', Counterclockwise: 'CCW', Inbound: 'IB', Outbound: 'OB' };
+        const direction = trip.direction ? (dirAbbr[trip.direction] || Utils.hide(trip.direction)) : '';
+
         card.innerHTML = `
             <div class="trip-info">
                 <div class="trip-main">
-                    <div class="trip-route-pill">${trip.route}</div>
+                    <div class="trip-route-pill">${Utils.hide(trip.route)}</div>
                     <div class="trip-path">
-                        <span class="stop-name">${startStop}</span>
+                        <span class="stop-name">${Utils.hide(startStop)}</span>
                         <span class="path-arrow">→</span>
-                        <span class="stop-name">${endStop}</span>
+                        <span class="stop-name">${Utils.hide(endStop)}</span>
                     </div>
                 </div>
                 <button class="btn-edit-trip" title="Edit Trip"><i data-lucide="edit-2"></i></button>
             </div>
             <div class="trip-meta">
                 <div class="trip-date">${dateStr}</div>
+                ${direction ? `<div class="trip-direction">${direction}</div>` : ''}
                 <div class="trip-duration">${trip.duration || 0} min</div>
             </div>
         `;
@@ -172,6 +181,43 @@ export const Trips = {
         });
 
         return card;
+    },
+
+    renderJourneyConnector(laterTrip, earlierTrip) {
+        const el = document.createElement('div');
+        el.className = 'journey-connector';
+
+        let gapStr = '';
+        try {
+            const laterStart = laterTrip.startTime?.toDate ? laterTrip.startTime.toDate() : new Date(laterTrip.startTime);
+            const earlierEnd = earlierTrip.endTime?.toDate ? earlierTrip.endTime.toDate() : new Date(earlierTrip.endTime);
+            const gapMin = Math.round((laterStart - earlierEnd) / 60000);
+            gapStr = gapMin < 1 ? '<1 min transfer' : `${gapMin} min transfer`;
+        } catch (_) {}
+
+        el.innerHTML = `
+            <div class="journey-line"></div>
+            <div class="journey-badge">
+                <i data-lucide="link-2" class="icon-inline"></i>
+                <span>${gapStr}</span>
+                <button class="btn-break-journey" title="Break link"><i data-lucide="x"></i></button>
+            </div>
+            <div class="journey-line"></div>
+        `;
+
+        el.querySelector('.btn-break-journey').addEventListener('click', () => {
+            this.breakJourneyLink(laterTrip.id, earlierTrip.id);
+        });
+
+        return el;
+    },
+
+    async breakJourneyLink(tripAId, tripBId) {
+        const del = firebase.firestore.FieldValue.delete();
+        const batch = db.batch();
+        batch.update(db.collection('trips').doc(tripAId), { journeyId: del });
+        batch.update(db.collection('trips').doc(tripBId), { journeyId: del });
+        await batch.commit();
     },
 
     renderStats() {
@@ -221,7 +267,7 @@ export const Trips = {
 
         container.innerHTML = items.map(item => `
             <div class="compact-row">
-                <span class="row-label">${item.name}</span>
+                <span class="row-label">${Utils.hide(item.name)}</span>
                 <span class="row-value">${item.count}</span>
             </div>
         `).join('');
@@ -253,7 +299,7 @@ export const Trips = {
             const polyline = `<polyline points="${pts.join(' ')}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`;
             return `
             <div class="insight-row mb-3">
-                <div class="insight-title">${c.name} <span class="badge">${c.count}x</span></div>
+                <div class="insight-title">${Utils.hide(c.name)} <span class="badge">${c.count}x</span></div>
                 <svg class="insight-sparkline" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${polyline}</svg>
             </div>`;
         }).join('');
@@ -299,9 +345,14 @@ export const Trips = {
             <div class="spark-bar" style="height: ${Math.max((count/max)*100, 10)}%" title="${points.length - 1 - i} days ago: ${count} trips"></div>
         `).join('');
 
+        // avgPct is relative to the content area (container height minus padding).
+        // The `bottom` % in CSS resolves against the full border-box height (64px),
+        // so scale: content area = 64 - 20 (bottom padding) - 4 (top padding) = 40px → factor 40/64.
+        const avgLinePct = avgPct * (40 / 64);
+
         container.innerHTML = `
             ${bars}
-            <div class="spark-avg-line" style="bottom: calc(20px + ${avgPct}%)" title="avg ${avg.toFixed(1)}/day"></div>
+            <div class="spark-avg-line" style="bottom: calc(20px + ${avgLinePct}%)" title="avg ${avg.toFixed(1)}/day"></div>
             <div class="spark-label">${total} trips · ${avg.toFixed(1)}/day avg</div>
         `;
     },

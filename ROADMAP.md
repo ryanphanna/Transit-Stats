@@ -1,6 +1,6 @@
 # Roadmap
 
-This document outlines the feature roadmap for the Transit Stats application.
+Transit Stats is a premium transit trip tracker for enthusiasts to analyze ridership patterns and visualize personal transit usage. This roadmap outlines our path from a personal trip logger to a comprehensive transit intelligence platform.
 
 - **[Engine](./docs/ROADMAP_TECHNICAL.md):** Underlying technology, data processing, and prediction logic goals.
 

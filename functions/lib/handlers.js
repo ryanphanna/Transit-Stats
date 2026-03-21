@@ -119,7 +119,23 @@ async function handleDiscard(phoneNumber, user) {
     `Route ${activeTrip.route} ${activeTrip.direction}` :
     `Route ${activeTrip.route}`;
 
-  await db.collection('trips').doc(activeTrip.id).delete();
+  // If this active trip was linked into a journey, clean up the partner's journeyId
+  if (activeTrip.journeyId) {
+    const partnerSnap = await db.collection('trips')
+      .where('userId', '==', user.userId)
+      .where('journeyId', '==', activeTrip.journeyId)
+      .get();
+    const batch = db.batch();
+    partnerSnap.docs.forEach(doc => {
+      if (doc.id !== activeTrip.id) {
+        batch.update(doc.ref, { journeyId: admin.firestore.FieldValue.delete() });
+      }
+    });
+    batch.delete(db.collection('trips').doc(activeTrip.id));
+    await batch.commit();
+  } else {
+    await db.collection('trips').doc(activeTrip.id).delete();
+  }
   await clearPendingState(phoneNumber);
 
   await sendSmsReply(phoneNumber, `✅ Deleted ${routeDisplay}.`);
@@ -590,7 +606,36 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     console.error('Error grading prediction:', predictionErr);
   }
 
-  await sendSmsReply(phoneNumber, `✅ Ended ${routeDisplay} at Stop ${endStopDisplay} (${duration} min trip)`);
+  // Auto-link journey: if the previous completed trip ended at this trip's boarding stop within 60 min, link silently
+  let journeyNote = '';
+  try {
+    const recentTrips = await getRecentCompletedTrips(user.userId, 5);
+    const thisStartTime = activeTrip.startTime.toDate ? activeTrip.startTime.toDate() : new Date(activeTrip.startTime);
+    const thisStartStop = activeTrip.startStopName || activeTrip.startStop;
+
+    const prevTrip = recentTrips.find(t => {
+      if (t.id === activeTrip.id) return false;
+      if (!t.endTime || !t.endStopName) return false;
+      const prevEnd = t.endTime.toDate ? t.endTime.toDate() : new Date(t.endTime);
+      const gapMinutes = (thisStartTime - prevEnd) / 60000;
+      return gapMinutes >= 0 && gapMinutes <= 60 && PredictionEngine._stopMatch(t.endStopName, thisStartStop);
+    });
+
+    if (prevTrip) {
+      const journeyId = prevTrip.journeyId || activeTrip.journeyId || randomUUID();
+      const batch = db.batch();
+      batch.update(db.collection('trips').doc(prevTrip.id), { journeyId });
+      batch.update(db.collection('trips').doc(activeTrip.id), { journeyId });
+      await batch.commit();
+      const prevEnd = prevTrip.endTime.toDate ? prevTrip.endTime.toDate() : new Date(prevTrip.endTime);
+      const gapStr = Math.round((thisStartTime - prevEnd) / 60000);
+      journeyNote = `\nLinked to your Route ${prevTrip.route} trip (${gapStr < 1 ? '<1' : gapStr} min transfer).`;
+    }
+  } catch (journeyErr) {
+    console.error('Error auto-linking journey:', journeyErr);
+  }
+
+  await sendSmsReply(phoneNumber, `✅ Ended ${routeDisplay} at Stop ${endStopDisplay} (${duration} min trip)${journeyNote}`);
 }
 
 /**
