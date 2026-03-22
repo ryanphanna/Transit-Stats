@@ -14,6 +14,7 @@ const {
   getVerificationData,
   isEmailAllowed,
   getUserByPhone,
+  getUserProfile,
   lookupStop,
   getRoutesAtStop,
   db,
@@ -63,8 +64,7 @@ LINK - join last two trips as one journey
 INCOMPLETE - forgot to end a trip
 DISCARD - didn't board, delete the trip
 REGISTER [email] - link account
-
-Ask me anything about your trips, e.g. "How long does my commute usually take?"`,
+ASK [question] - AI stats (premium)`,
   );
 }
 
@@ -621,13 +621,27 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
 }
 
 /**
- * Handle natural-language query
+ * Handle natural-language query (premium feature)
  */
 async function handleQuery(phoneNumber, user, question) {
+  const profile = await getUserProfile(user.userId);
+  if (!profile?.isPremium) {
+    await sendSmsReply(phoneNumber,
+      'AI Stats is a premium feature. Text STATS for your 30-day summary.',
+    );
+    return;
+  }
+
+  if (!question) {
+    await sendSmsReply(phoneNumber, 'Ask me anything about your trips, e.g. "ASK how many trips have I taken on Fridays?"');
+    return;
+  }
+
   const snapshot = await db.collection('trips')
     .where('userId', '==', user.userId)
-    .where('endStopName', '!=', null) // Corrected from endStop to endStopName to match schema
-    .limit(100).get();
+    .where('endTime', '!=', null)
+    .orderBy('endTime', 'desc')
+    .limit(200).get();
 
   const trips = snapshot.docs.map((d) => d.data());
 

@@ -2,7 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.9.11] - 2026-03-22
+
+### Added
+- **Premium AI Stats**: Natural-language trip queries are now a premium feature gated behind `isPremium: true` on the user's Firestore profile. Non-premium users who trigger a query receive a prompt to use `STATS` instead.
+- **`ASK` command**: Registered users can send `ASK [question]` as an explicit entry point for AI Stats (e.g. "ASK what's my most used stop?"). Premium-only; returns an upsell message otherwise.
+- **Richer AI context**: `aggregateTripStats` now includes most-boarded stops, most-exited stops, time-of-day breakdown, and a per-day trip count map, giving the AI enough to answer specific date queries (e.g. "how many trips on March 22?").
+- **Users admin page**: New "Users" view in the web app (admin-only) listing all profiles with their premium status and linked phone number. Admins can grant or revoke premium access with a single click, without touching Firestore directly.
+- **Prediction accuracy in Settings**: Settings modal now shows route and end-stop prediction accuracy (e.g. "Route: 73% (45/62) · End stop: 81% (50/62)") for admin users, pulled live from the `predictionAccuracy` collection.
 
 ### Changed
 - **XSS hardening**: `admin.js` inline `onclick=` attributes for `openStopForm`, `acceptSuggestion`, `openLinkModal`, and `linkToStop` now use `UI.escapeForJs()` for JS-context escaping (previously `Utils.hide()` which is HTML-only and breaks on names containing single quotes). Stop library cards now escape `name`, `code`, `agency`, and alias pills via `Utils.hide()`.
@@ -12,8 +19,14 @@ All notable changes to this project will be documented in this file.
 - **Firestore listener cleanup**: `Trips.unsubscribe()` now called in the auth signout path before clearing user state, preventing stale snapshot listeners from firing post-signout.
 - **Data safety**: `trips.js` `renderTripCard` now guards against `null`/`undefined` `startTime`, rendering `—` instead of "Invalid Date".
 
+### Fixed
+- **`ASK` with no question**: Bare `ASK` now returns a helpful example prompt instead of sending an empty string to Gemini.
+- **AI Stats trip ordering**: `handleQuery` now fetches the 200 most recent trips ordered by `endTime desc` instead of an arbitrary 200.
+- **No date context in AI prompt**: Today's date (Toronto timezone) is now injected into the Gemini prompt so time-relative questions ("this month", "last Friday", specific dates) work correctly.
+
 ### Removed
 - **Dead code in `ui-utils.js`**: Removed `loadSavedTheme`, `setTheme`, `updateThemeButtons`, `fadeInSection`, `openSettings`, `closeSettings` and their `window.*` global exports — all used stale element IDs or approaches superseded by `main.js`.
+
 
 ## [1.9.10] - 2026-03-22
 

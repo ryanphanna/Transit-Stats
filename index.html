@@ -25,6 +25,7 @@
             </h1>
             <nav id="user-nav" class="nav-links">
                 <button id="nav-admin" class="btn btn-ghost hidden">Data</button>
+                <button id="nav-users" class="btn btn-ghost hidden">Users</button>
                 <button id="nav-insights" class="btn btn-ghost">Insights</button>
                 <button id="nav-map" class="btn btn-icon" title="Map"><i data-lucide="map"></i></button>
                 <button id="nav-settings" class="btn btn-icon" title="Settings"><i data-lucide="settings"></i></button>
@@ -220,6 +221,22 @@
             </div>
         </section>
 
+        <!-- Users View -->
+        <section id="view-users" class="view hidden">
+            <div class="container" style="max-width: 640px; padding-top: 2rem;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i data-lucide="users" class="icon-inline"></i> Users</h3>
+                        <span id="users-count" class="badge"></span>
+                    </div>
+                    <p class="text-secondary mb-3" style="font-size:0.8rem;">Manage user profiles and premium access.</p>
+                    <div id="users-list" class="inbox-list">
+                        <div class="loading-state">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Admin View -->
         <section id="view-admin" class="view admin-view hidden">
             <div class="container admin-container">
@@ -364,6 +381,10 @@
                     <button id="theme-light" class="toggle-btn w-50 active">Light</button>
                     <button id="theme-dark" class="toggle-btn w-50">Dark</button>
                 </div>
+            </div>
+            <div id="prediction-accuracy-section" class="settings-group hidden" style="border-top: 1px solid var(--border-color); padding-top: 1rem; margin-top: 1rem;">
+                <label>Prediction Accuracy</label>
+                <p id="prediction-accuracy-stat" class="text-secondary" style="font-size: 0.85rem; margin-top: 0.4rem;">Loading...</p>
             </div>
             <button id="btn-logout" class="btn btn-danger-outline full-width mt-4">Log Out</button>
         </div>
