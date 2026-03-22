@@ -1,6 +1,6 @@
 {
     "name": "transit-stats",
-    "version": "1.9.10",
+    "version": "1.9.11",
     "description": "Personal transit trip tracker for enthusiasts to analyze ridership patterns.",
     "engines": {
         "node": "22"
@@ -19,12 +19,13 @@
         "test": "vitest run"
     },
     "devDependencies": {
-        "@vitest/ui": "^4.0.18",
+        "@vitest/ui": "^4.1.0",
         "firebase": "^12.9.0",
         "jsdom": "^29.0.0",
-        "vite": "^7.3.1",
-        "vitest": "^4.0.18"
+        "vite": "^8.0.1",
+        "vitest": "^4.1.0"
     },
+
     "dependencies": {
         "firebase-admin": "^13.7.0",
         "playwright": "^1.58.2"
