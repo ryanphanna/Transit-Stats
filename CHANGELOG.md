@@ -27,6 +27,10 @@ All notable changes to this project will be documented in this file.
 ### Removed
 - **Dead code in `ui-utils.js`**: Removed `loadSavedTheme`, `setTheme`, `updateThemeButtons`, `fadeInSection`, `openSettings`, `closeSettings` and their `window.*` global exports — all used stale element IDs or approaches superseded by `main.js`.
 
+### Chore
+- **Dependency Updates**: Bumped `vite` to 8.0.1, `vitest` to 4.1.0, `jsdom` to 29.0.0, and updated several functions dependencies (`firebase-functions`, `twilio`, `fast-xml-parser`) to their latest secure versions.
+- **Workflow Security**: Updated GitHub Actions to `actions/checkout@v4` and pinned dependencies for deployment transparency.
+
 
 ## [1.9.10] - 2026-03-22
 
