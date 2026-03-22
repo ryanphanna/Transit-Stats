@@ -3,6 +3,7 @@ import { Utils } from './utils.js';
 import { Auth } from './auth.js';
 import { Trips } from './trips.js';
 import { Admin } from './admin.js';
+import { Users } from './users.js';
 import { Stats } from './stats.js';
 import { MapEngine } from './map-engine.js';
 import { PredictionEngine } from './predict.js';
@@ -13,6 +14,7 @@ import { UI } from './ui-utils.js';
 window.Auth = Auth;
 window.Trips = Trips;
 window.Admin = Admin;
+window.Users = Users;
 window.Stats = Stats;
 window.MapEngine = MapEngine;
 window.Utils = Utils;
@@ -62,6 +64,7 @@ function initHeaderDOM() {
     DOM.header = {
         container: document.querySelector('.header'),
         navAdmin: document.getElementById('nav-admin'),
+        navUsers: document.getElementById('nav-users'),
         navInsights: document.getElementById('nav-insights'),
         navSettings: document.getElementById('nav-settings'),
         navMap: document.getElementById('nav-map'),
@@ -104,6 +107,7 @@ function initViewDOM() {
         dashboard: document.getElementById('view-dashboard'),
         map: document.getElementById('view-map'),
         admin: document.getElementById('view-admin'),
+        users: document.getElementById('view-users'),
         insights: document.getElementById('view-insights')
     };
     
@@ -138,6 +142,7 @@ function setupEventListeners() {
 function setupNavListeners() {
     document.querySelector('.logo').addEventListener('click', () => switchView('dashboard'));
     DOM.header.navAdmin?.addEventListener('click', () => switchView('admin'));
+    DOM.header.navUsers?.addEventListener('click', () => switchView('users'));
     DOM.header.navInsights?.addEventListener('click', () => switchView('insights'));
     DOM.header.navSettings?.addEventListener('click', openSettings);
     DOM.header.navMap?.addEventListener('click', () => switchView('map'));
@@ -334,6 +339,10 @@ function switchView(viewName) {
         Admin.init();
     }
 
+    if (viewName === 'users') {
+        Users.init();
+    }
+
     refreshIcons();
 }
 
@@ -383,6 +392,7 @@ function setupAuthObserver() {
             window.isAdmin = verification.isAdmin;
             
             DOM.header.navAdmin?.classList.toggle('hidden', !State.isAdmin);
+            DOM.header.navUsers?.classList.toggle('hidden', !State.isAdmin);
             if (DOM.header.profileName) DOM.header.profileName.textContent = user.displayName || user.email.split('@')[0];
             
             switchView('dashboard');

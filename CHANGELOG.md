@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 - **Premium AI Stats**: Natural-language trip queries are now a premium feature gated behind `isPremium: true` on the user's Firestore profile. Non-premium users who trigger a query receive a prompt to use `STATS` instead.
 - **`ASK` command**: Registered users can send `ASK [question]` as an explicit entry point for AI Stats (e.g. "ASK what's my most used stop?"). Premium-only; returns an upsell message otherwise.
 - **Richer AI context**: `aggregateTripStats` now includes most-boarded stops, most-exited stops, and a time-of-day breakdown (morning/midday/afternoon/evening/night), giving the AI more to work with for natural-language answers.
+- **Users admin page**: New "Users" view in the web app (admin-only) listing all profiles with their premium status and linked phone number. Admins can grant or revoke premium access with a single click, without touching Firestore directly.
 
 ## [1.9.10] - 2026-03-22
 

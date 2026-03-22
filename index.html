@@ -25,6 +25,7 @@
             </h1>
             <nav id="user-nav" class="nav-links">
                 <button id="nav-admin" class="btn btn-ghost hidden">Data</button>
+                <button id="nav-users" class="btn btn-ghost hidden">Users</button>
                 <button id="nav-insights" class="btn btn-ghost">Insights</button>
                 <button id="nav-map" class="btn btn-icon" title="Map"><i data-lucide="map"></i></button>
                 <button id="nav-settings" class="btn btn-icon" title="Settings"><i data-lucide="settings"></i></button>
@@ -217,6 +218,22 @@
                     <button class="pill" data-filter="both">Both</button>
                 </div>
                 <button id="btn-locate" class="btn btn-circle" title="Find Me"><i data-lucide="locate-fixed"></i></button>
+            </div>
+        </section>
+
+        <!-- Users View -->
+        <section id="view-users" class="view hidden">
+            <div class="container" style="max-width: 640px; padding-top: 2rem;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i data-lucide="users" class="icon-inline"></i> Users</h3>
+                        <span id="users-count" class="badge"></span>
+                    </div>
+                    <p class="text-secondary mb-3" style="font-size:0.8rem;">Manage user profiles and premium access.</p>
+                    <div id="users-list" class="inbox-list">
+                        <div class="loading-state">Loading...</div>
+                    </div>
+                </div>
             </div>
         </section>
 
