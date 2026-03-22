@@ -416,6 +416,24 @@ function setupAuthObserver() {
 function openSettings() {
     DOM.modals.backdrop?.classList.remove('hidden');
     DOM.modals.settings?.classList.remove('hidden');
+
+    if (State.isAdmin && State.user) {
+        const section = document.getElementById('prediction-accuracy-section');
+        const stat = document.getElementById('prediction-accuracy-stat');
+        if (section && stat) {
+            section.classList.remove('hidden');
+            db.collection('predictionAccuracy').doc(State.user.uid).get().then(doc => {
+                if (!doc.exists) { stat.textContent = 'No predictions graded yet.'; return; }
+                const d = doc.data();
+                const routePct = d.total ? Math.round((d.hits / d.total) * 100) : null;
+                const endPct = d.endStopTotal ? Math.round((d.endStopHits / d.endStopTotal) * 100) : null;
+                const parts = [];
+                if (routePct !== null) parts.push(`Route: ${routePct}% (${d.hits}/${d.total})`);
+                if (endPct !== null) parts.push(`End stop: ${endPct}% (${d.endStopHits}/${d.endStopTotal})`);
+                stat.textContent = parts.length ? parts.join(' · ') : 'No data yet.';
+            }).catch(() => { stat.textContent = 'Could not load.'; });
+        }
+    }
 }
 
 function closeSettings() {
