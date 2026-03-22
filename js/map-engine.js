@@ -1,3 +1,5 @@
+import { UI } from './ui-utils.js';
+
 /**
  * TransitStats V2 Map Engine
  * Handles Leaflet integration and geospatial visualization of trip data.
@@ -144,12 +146,15 @@ export const MapEngine = {
     },
 
     locateUser() {
-        if (!navigator.geolocation) return alert("Geolocation not supported");
+        if (!navigator.geolocation) {
+            UI.showNotification("Geolocation not supported by this browser.");
+            return;
+        }
 
         navigator.geolocation.getCurrentPosition(pos => {
             const { latitude, longitude } = pos.coords;
             this.map.setView([latitude, longitude], 15);
-            
+
             L.circleMarker([latitude, longitude], {
                 radius: 10,
                 fillColor: '#ef4444',
@@ -159,7 +164,7 @@ export const MapEngine = {
                 fillOpacity: 0.5
             }).addTo(this.map).bindPopup("You are here").openPopup();
         }, err => {
-            alert("Could not get location: " + err.message);
+            UI.showNotification("Could not get location: " + err.message);
         });
     }
 };

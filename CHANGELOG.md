@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- **XSS hardening**: `admin.js` inline `onclick=` attributes for `openStopForm`, `acceptSuggestion`, `openLinkModal`, and `linkToStop` now use `UI.escapeForJs()` for JS-context escaping (previously `Utils.hide()` which is HTML-only and breaks on names containing single quotes). Stop library cards now escape `name`, `code`, `agency`, and alias pills via `Utils.hide()`.
+- **XSS hardening**: `templates.js` template cards and quick chips converted from inline `onclick=` with raw data to `data-route`/`data-stop` HTML attributes with `Utils.hide()` escaping and `addEventListener` delegation.
+- **Error notifications**: All remaining `alert()` calls replaced with `UI.showNotification()` — `map-engine.js` geolocation errors, `admin.js` `linkToStop` failure, GTFS import success/failure, and `deleteRoute` failure.
+- **Destructive confirmations**: `importGtfsRoutes` and `deleteRoute` converted from `confirm()` to the two-step button pattern. `templates.delete()` `confirm()` removed since the swipe gesture already serves as confirmation UX.
+- **Firestore listener cleanup**: `Trips.unsubscribe()` now called in the auth signout path before clearing user state, preventing stale snapshot listeners from firing post-signout.
+- **Data safety**: `trips.js` `renderTripCard` now guards against `null`/`undefined` `startTime`, rendering `—` instead of "Invalid Date".
+
+### Removed
+- **Dead code in `ui-utils.js`**: Removed `loadSavedTheme`, `setTheme`, `updateThemeButtons`, `fadeInSection`, `openSettings`, `closeSettings` and their `window.*` global exports — all used stale element IDs or approaches superseded by `main.js`.
+
 ## [1.9.10] - 2026-03-22
 
 ### Added

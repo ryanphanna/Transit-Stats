@@ -1,64 +1,6 @@
 
 // TransitStats UI Utility Module
 export const UI = {
-    loadSavedTheme: function () {
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'dark') {
-            document.body.setAttribute('data-theme', 'dark');
-            this.updateThemeButtons('dark');
-        } else {
-            this.updateThemeButtons('light');
-        }
-    },
-
-    /**
-     * Set the application theme
-     * @param {string} theme - 'light' or 'dark'
-     */
-    setTheme: function (theme) {
-        if (theme === 'dark') {
-            document.body.setAttribute('data-theme', 'dark');
-            localStorage.setItem('theme', 'dark');
-        } else {
-            document.body.removeAttribute('data-theme');
-            localStorage.setItem('theme', 'light');
-        }
-        this.updateThemeButtons(theme);
-
-        // Refresh map if it exists to pick up new theme tiles
-        if (window.MapEngine && typeof window.MapEngine.refresh === 'function') {
-            window.MapEngine.refresh();
-        }
-    },
-
-    /**
-     * Update theme toggle button styles
-     */
-    updateThemeButtons: function (theme) {
-        const themeLightBtn = document.getElementById('themeLightBtn');
-        const themeDarkBtn = document.getElementById('themeDarkBtn');
-
-        if (themeLightBtn && themeDarkBtn) {
-            if (theme === 'dark') {
-                themeDarkBtn.style.background = 'var(--accent-primary)';
-                themeDarkBtn.style.borderColor = 'var(--accent-primary)';
-                themeDarkBtn.style.color = 'white';
-
-                themeLightBtn.style.background = 'transparent';
-                themeLightBtn.style.borderColor = 'var(--border-color)';
-                themeLightBtn.style.color = 'var(--text-secondary)';
-            } else {
-                themeLightBtn.style.background = 'var(--accent-primary)';
-                themeLightBtn.style.borderColor = 'var(--accent-primary)';
-                themeLightBtn.style.color = 'white';
-
-                themeDarkBtn.style.background = 'transparent';
-                themeDarkBtn.style.borderColor = 'var(--border-color)';
-                themeDarkBtn.style.color = 'var(--text-secondary)';
-            }
-        }
-    },
-
     /**
      * HTML sanitization to prevent XSS
      */
@@ -80,18 +22,6 @@ export const UI = {
         if (indicator) {
             indicator.className = online ? 'status-online' : 'status-offline';
         }
-    },
-
-    /**
-     * Apply a simple fade-in animation to a section
-     */
-    fadeInSection: function (element) {
-        if (!element) return;
-        element.style.opacity = '0';
-        element.style.transition = 'opacity 0.4s ease';
-        setTimeout(() => {
-            element.style.opacity = '1';
-        }, 10);
     },
 
     /**
@@ -124,22 +54,6 @@ export const UI = {
             notification.style.transition = 'all 0.3s ease';
             setTimeout(() => notification.remove(), 300);
         }, 4000);
-    },
-
-    /**
-     * Settings Modal Management
-     */
-    openSettings: function () {
-        const modal = document.getElementById('settingsModal');
-        if (modal) {
-            modal.style.display = 'block';
-            this.fadeInSection(modal);
-        }
-    },
-
-    closeSettings: function () {
-        const modal = document.getElementById('settingsModal');
-        if (modal) modal.style.display = 'none';
     },
 
     /**
@@ -178,8 +92,5 @@ export const UI = {
 
 // Expose to window for legacy compatibility if needed
 window.UI = UI;
-window.setTheme = UI.setTheme.bind(UI);
 window.escapeHtml = UI.escapeHtml;
 window.showNotification = UI.showNotification;
-window.openSettings = UI.openSettings.bind(UI);
-window.closeSettings = UI.closeSettings.bind(UI);
