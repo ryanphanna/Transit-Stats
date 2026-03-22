@@ -328,15 +328,15 @@ export const Admin = {
         }
 
         list.innerHTML = filtered.map(s => `
-            <div class="stop-card" onclick="window.Admin.openStopForm('edit', '${s.id}')">
-                <div class="stop-card-name">${s.name}</div>
+            <div class="stop-card" onclick="window.Admin.openStopForm('edit', '${UI.escapeForJs(s.id)}')">
+                <div class="stop-card-name">${Utils.hide(s.name)}</div>
                 <div class="stop-card-meta">
-                    <span class="text-accent">#${s.code || '---'}</span>
-                    <span>${s.agency || 'Other'}</span>
+                    <span class="text-accent">#${Utils.hide(s.code) || '---'}</span>
+                    <span>${Utils.hide(s.agency) || 'Other'}</span>
                 </div>
                 ${s.aliases?.length ? `
                     <div class="alias-list">
-                        ${s.aliases.map(a => `<span class="alias-pill">${a}</span>`).join('')}
+                        ${s.aliases.map(a => `<span class="alias-pill">${Utils.hide(a)}</span>`).join('')}
                     </div>
                 ` : ''}
             </div>
@@ -371,8 +371,8 @@ export const Admin = {
                     ` : ''}
                 </div>
                 <div class="inbox-actions">
-                    ${i.suggestion ? `<button class="btn btn-sm btn-outline" onclick="window.Admin.acceptSuggestion('${Utils.hide(i.name)}', '${i.suggestion.stop.id}')">Accept</button>` : ''}
-                    <button class="btn btn-primary btn-sm" onclick="window.Admin.openLinkModal('${Utils.hide(i.name)}')">Link</button>
+                    ${i.suggestion ? `<button class="btn btn-sm btn-outline" onclick="window.Admin.acceptSuggestion('${UI.escapeForJs(i.name)}', '${UI.escapeForJs(i.suggestion.stop.id)}')">Accept</button>` : ''}
+                    <button class="btn btn-primary btn-sm" onclick="window.Admin.openLinkModal('${UI.escapeForJs(i.name)}')">Link</button>
                 </div>
             </div>
         `).join('');
@@ -431,9 +431,9 @@ export const Admin = {
 
             if (matches.length > 0) {
                 results.innerHTML = matches.map(m => `
-                    <div class="compact-row" style="cursor:pointer;" onclick="window.Admin.linkToStop('${m.id}')">
-                        <span class="row-label">${m.name}</span>
-                        <span class="row-value">${m.agency}</span>
+                    <div class="compact-row" style="cursor:pointer;" onclick="window.Admin.linkToStop('${UI.escapeForJs(m.id)}')">
+                        <span class="row-label">${Utils.hide(m.name)}</span>
+                        <span class="row-value">${Utils.hide(m.agency)}</span>
                     </div>
                 `).join('');
                 results.classList.remove('hidden');
@@ -503,7 +503,7 @@ export const Admin = {
                 this.closeModals();
                 await this.loadAll();
             } catch (err) {
-                alert('Linking failed: ' + err.message);
+                UI.showNotification('Linking failed: ' + err.message);
             }
         } else {
             this.closeModals();
@@ -661,6 +661,9 @@ window.previewGtfsRoutes = function () {
     reader.readAsText(file);
 };
 
+let _gtfsImportArmed = false;
+let _gtfsImportTimer = null;
+
 /** Batch-write parsed routes into Firestore, replacing all routes for the agency */
 window.importGtfsRoutes = async function () {
     const agency = document.getElementById('gtfsAgencySelect').value;
@@ -668,11 +671,21 @@ window.importGtfsRoutes = async function () {
 
     if (!gtfsParsedRoutes.length) return;
 
-    const confirmed = confirm(
-        `This will delete all existing routes for ${agency} and replace them with ${gtfsParsedRoutes.length} routes from the file. Continue?`
-    );
-    if (!confirmed) return;
+    if (!_gtfsImportArmed) {
+        _gtfsImportArmed = true;
+        importBtn.textContent = `Replace ${agency} routes — tap again to confirm`;
+        importBtn.classList.add('btn-danger');
+        _gtfsImportTimer = setTimeout(() => {
+            _gtfsImportArmed = false;
+            importBtn.textContent = 'Import Routes';
+            importBtn.classList.remove('btn-danger');
+        }, 3000);
+        return;
+    }
 
+    clearTimeout(_gtfsImportTimer);
+    _gtfsImportArmed = false;
+    importBtn.classList.remove('btn-danger');
     importBtn.disabled = true;
     importBtn.textContent = 'Importing...';
 
@@ -704,18 +717,19 @@ window.importGtfsRoutes = async function () {
             await batch.commit();
         }
 
+        const importedCount = gtfsParsedRoutes.length;
         importBtn.textContent = 'Import Routes';
         document.getElementById('gtfsFileInput').value = '';
         document.getElementById('gtfsPreview').style.display = 'none';
         gtfsParsedRoutes = [];
 
         await loadRouteLibrary();
-        alert(`Successfully imported ${gtfsParsedRoutes.length || 'all'} routes for ${agency}.`);
+        UI.showNotification(`Successfully imported ${importedCount} routes for ${agency}.`, 'success');
     } catch (err) {
         console.error('GTFS import error:', err);
         importBtn.textContent = 'Import Routes';
         importBtn.disabled = false;
-        alert('Import failed: ' + err.message);
+        UI.showNotification('Import failed: ' + err.message);
     }
 };
 
@@ -762,13 +776,24 @@ async function loadRouteLibrary() {
     }
 }
 
+let _deleteRouteArmed = null;
+let _deleteRouteTimer = null;
+
 window.deleteRoute = async function (routeId) {
-    if (!confirm('Delete this route?')) return;
+    if (_deleteRouteArmed !== routeId) {
+        if (_deleteRouteTimer) clearTimeout(_deleteRouteTimer);
+        _deleteRouteArmed = routeId;
+        _deleteRouteTimer = setTimeout(() => { _deleteRouteArmed = null; }, 3000);
+        UI.showNotification('Tap again to confirm delete.');
+        return;
+    }
+    clearTimeout(_deleteRouteTimer);
+    _deleteRouteArmed = null;
     try {
         await db.collection('routes').doc(routeId).delete();
         await loadRouteLibrary();
     } catch (err) {
-        alert('Failed to delete route: ' + err.message);
+        UI.showNotification('Failed to delete route: ' + err.message);
     }
 };
 

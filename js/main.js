@@ -393,6 +393,7 @@ function setupAuthObserver() {
             // Pre-init Admin if needed
             if (State.isAdmin) Admin.loadAll();
         } else {
+            if (Trips.unsubscribe) { Trips.unsubscribe(); Trips.unsubscribe = null; }
             State.user = null;
             State.isAdmin = false;
             window.isAdmin = false;

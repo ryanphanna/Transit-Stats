@@ -147,8 +147,11 @@ export const Trips = {
         const card = document.createElement('div');
         card.className = 'trip-card';
         
-        const startTime = trip.startTime?.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
-        const dateStr = startTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const rawStart = trip.startTime;
+        const startTime = rawStart?.toDate ? rawStart.toDate() : new Date(rawStart || Date.now());
+        const dateStr = isNaN(startTime.getTime())
+            ? '—'
+            : startTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         
         const startStop = Utils.normalizeIntersectionStop(trip.startStopName || trip.startStop || trip.startStopCode) || 'Unknown';
         const endStop = Utils.normalizeIntersectionStop(trip.endStopName || trip.endStop || trip.endStopCode) || '...';

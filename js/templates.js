@@ -1,5 +1,6 @@
 
 import { db, Timestamp } from './firebase.js';
+import { Utils } from './utils.js';
 
 /**
  * Templates Module - Handles all template-related functionality
@@ -59,16 +60,21 @@ export const Templates = {
 
         templatesSection.style.display = 'block';
         templatesList.innerHTML = templates.slice(0, 3).map(t => `
-            <div class="template-card" onclick="Trips.startFromTemplate('${t.route}', '${t.startStop}')">
+            <div class="template-card" data-route="${Utils.hide(t.route)}" data-stop="${Utils.hide(t.startStop)}">
                 <div class="template-icon" style="margin-bottom: 12px; color: var(--accent-electric);">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path>
                     </svg>
                 </div>
-                <div class="route-name" style="font-weight: 700; font-size: 1.1em; color: var(--text-primary); margin-bottom: 4px;">${t.route}</div>
-                <div class="stop-name" style="font-size: 0.9em; color: var(--text-secondary);">From ${t.startStop}</div>
+                <div class="route-name" style="font-weight: 700; font-size: 1.1em; color: var(--text-primary); margin-bottom: 4px;">${Utils.hide(t.route)}</div>
+                <div class="stop-name" style="font-size: 0.9em; color: var(--text-secondary);">From ${Utils.hide(t.startStop)}</div>
             </div>
         `).join('');
+        templatesList.querySelectorAll('.template-card').forEach(card => {
+            card.addEventListener('click', () => {
+                window.Trips?.startFromTemplate(card.dataset.route, card.dataset.stop);
+            });
+        });
     },
 
     displayProfile: function (templates) {
@@ -126,20 +132,23 @@ export const Templates = {
 
         container.style.display = 'flex';
         container.innerHTML = templates.slice(0, 5).map(t =>
-            `<div class="template-chip" onclick="Trips.useQuickTemplate('${t.route}', '${t.startStop}')">
-                ${t.route} • ${t.startStop}
+            `<div class="template-chip" data-route="${Utils.hide(t.route)}" data-stop="${Utils.hide(t.startStop)}">
+                ${Utils.hide(t.route)} • ${Utils.hide(t.startStop)}
             </div>`
         ).join('');
+        container.querySelectorAll('.template-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                window.Trips?.useQuickTemplate(chip.dataset.route, chip.dataset.stop);
+            });
+        });
     },
 
     delete: function (templateId) {
-        if (confirm('Delete this template?')) {
-            db.collection('templates').doc(templateId).delete()
-                .then(() => {
-                    this._cache = null; // invalidate cache
-                    this.load();
-                });
-        }
+        db.collection('templates').doc(templateId).delete()
+            .then(() => {
+                this._cache = null; // invalidate cache
+                this.load();
+            });
     }
 };
 
