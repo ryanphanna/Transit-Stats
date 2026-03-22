@@ -64,7 +64,7 @@ async function dispatch(phoneNumber, body, messageSid) {
   }
 
   // 6. Private/Member Commands
-  const privateHandled = await handlePrivateCommands(phoneNumber, user, upperBody);
+  const privateHandled = await handlePrivateCommands(phoneNumber, user, upperBody, body);
   if (privateHandled) return '';
 
   // 7. Core Trip Logic (Parsing & Heuristics)
@@ -118,7 +118,17 @@ async function handlePublicCommands(phoneNumber, upperBody, rawBody) {
 /**
  * Commands for registered users (STATUS, STATS, etc.)
  */
-async function handlePrivateCommands(phoneNumber, user, upperBody) {
+async function handlePrivateCommands(phoneNumber, user, upperBody, rawBody) {
+  if (upperBody === 'ASK') {
+    await handlers.handleQuery(phoneNumber, user, '');
+    return true;
+  }
+
+  if (upperBody.startsWith('ASK ')) {
+    await handlers.handleQuery(phoneNumber, user, rawBody.substring(4).trim());
+    return true;
+  }
+
   const commands = {
     'STATUS': handlers.handleStatus,
     'STATS': handlers.handleStatsCommand,

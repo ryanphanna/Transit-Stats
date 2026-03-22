@@ -50,6 +50,9 @@ async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
 function aggregateTripStats(trips) {
   const routeMap = {};
   const pairMap = {};
+  const boardingStopMap = {};
+  const exitStopMap = {};
+  const hourMap = {};
 
   trips.forEach((trip) => {
     const route = trip.route || 'Unknown';
@@ -65,6 +68,19 @@ function aggregateTripStats(trips) {
     if (!pairMap[pairKey]) pairMap[pairKey] = { route, count: 0, durations: [] };
     pairMap[pairKey].count++;
     if (dur > 0) pairMap[pairKey].durations.push(dur);
+
+    if (startStop !== 'Unknown') {
+      boardingStopMap[startStop] = (boardingStopMap[startStop] || 0) + 1;
+    }
+    if (endStop !== 'Unknown') {
+      exitStopMap[endStop] = (exitStopMap[endStop] || 0) + 1;
+    }
+
+    if (trip.startTime) {
+      const date = trip.startTime.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
+      const hour = date.getHours();
+      hourMap[hour] = (hourMap[hour] || 0) + 1;
+    }
   });
 
   const avg = (arr) => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
@@ -86,7 +102,27 @@ function aggregateTripStats(trips) {
     maxDuration: data.durations.length ? Math.max(...data.durations) : null,
   })).sort((a, b) => b.count - a.count).slice(0, 20);
 
-  return { total: trips.length, routeStats, pairStats };
+  const boardingStops = Object.entries(boardingStopMap)
+    .map(([stop, count]) => ({ stop, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  const exitStops = Object.entries(exitStopMap)
+    .map(([stop, count]) => ({ stop, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  const timeOfDay = { morning: 0, midday: 0, afternoon: 0, evening: 0, night: 0 };
+  Object.entries(hourMap).forEach(([hour, count]) => {
+    const h = parseInt(hour);
+    if (h >= 6 && h <= 9) timeOfDay.morning += count;
+    else if (h >= 10 && h <= 14) timeOfDay.midday += count;
+    else if (h >= 15 && h <= 18) timeOfDay.afternoon += count;
+    else if (h >= 19 && h <= 22) timeOfDay.evening += count;
+    else timeOfDay.night += count;
+  });
+
+  return { total: trips.length, routeStats, pairStats, boardingStops, exitStops, timeOfDay };
 }
 
 /**
@@ -165,7 +201,10 @@ User question: "${question}"
 Their transit data:
 - Total completed trips: ${stats.total}
 - Top routes: ${JSON.stringify(stats.routeStats.slice(0, 5))}
-- Top stop pairs: ${JSON.stringify(stats.pairStats.slice(0, 10))}
+- Top stop pairs (start → end): ${JSON.stringify(stats.pairStats.slice(0, 10))}
+- Most boarded stops: ${JSON.stringify(stats.boardingStops?.slice(0, 5) || [])}
+- Most exited stops: ${JSON.stringify(stats.exitStops?.slice(0, 5) || [])}
+- Trips by time of day: ${JSON.stringify(stats.timeOfDay || {})}
 
 If the data doesn't contain enough info to answer, say so briefly.`;
 
