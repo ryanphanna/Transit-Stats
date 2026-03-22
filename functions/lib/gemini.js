@@ -122,7 +122,16 @@ function aggregateTripStats(trips) {
     else timeOfDay.night += count;
   });
 
-  return { total: trips.length, routeStats, pairStats, boardingStops, exitStops, timeOfDay };
+  // Daily trip counts (YYYY-MM-DD → count) for specific date queries
+  const dailyCounts = {};
+  trips.forEach((trip) => {
+    if (!trip.startTime) return;
+    const date = trip.startTime.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
+    const key = date.toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });
+    dailyCounts[key] = (dailyCounts[key] || 0) + 1;
+  });
+
+  return { total: trips.length, routeStats, pairStats, boardingStops, exitStops, timeOfDay, dailyCounts };
 }
 
 /**
@@ -191,20 +200,24 @@ async function answerQueryWithGemini(question, stats) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }); // YYYY-MM-DD
     const prompt = `You are a transit stats assistant for TransitStats. ` +
       `Answer the user's question using their personal transit data below. ` +
       `Be concise and friendly. Keep the response under 300 characters ` +
       `if possible so it fits in an SMS.
 
+Today's date: ${today}
+
 User question: "${question}"
 
-Their transit data:
-- Total completed trips: ${stats.total}
+Their transit data (most recent 200 completed trips):
+- Total completed trips in this dataset: ${stats.total}
 - Top routes: ${JSON.stringify(stats.routeStats.slice(0, 5))}
 - Top stop pairs (start → end): ${JSON.stringify(stats.pairStats.slice(0, 10))}
 - Most boarded stops: ${JSON.stringify(stats.boardingStops?.slice(0, 5) || [])}
 - Most exited stops: ${JSON.stringify(stats.exitStops?.slice(0, 5) || [])}
 - Trips by time of day: ${JSON.stringify(stats.timeOfDay || {})}
+- Trips per day (YYYY-MM-DD): ${JSON.stringify(stats.dailyCounts || {})}
 
 If the data doesn't contain enough info to answer, say so briefly.`;
 

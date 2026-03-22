@@ -632,9 +632,15 @@ async function handleQuery(phoneNumber, user, question) {
     return;
   }
 
+  if (!question) {
+    await sendSmsReply(phoneNumber, 'Ask me anything about your trips, e.g. "ASK how many trips have I taken on Fridays?"');
+    return;
+  }
+
   const snapshot = await db.collection('trips')
     .where('userId', '==', user.userId)
-    .where('endStopName', '!=', null)
+    .where('endTime', '!=', null)
+    .orderBy('endTime', 'desc')
     .limit(200).get();
 
   const trips = snapshot.docs.map((d) => d.data());
