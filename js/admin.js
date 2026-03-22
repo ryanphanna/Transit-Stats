@@ -8,6 +8,7 @@ import { UI } from './ui-utils.js';
 export const Admin = {
     stopsLibrary: [],
     inbox: [],
+    consolidation: [],
     filters: {
         libSearch: '',
         libAgency: 'All',
@@ -68,7 +69,8 @@ export const Admin = {
     async loadAll() {
         await Promise.all([
             this.loadLibrary(),
-            this.loadInbox()
+            this.loadInbox(),
+            this.loadConsolidation(),
         ]);
         this.render();
     },
@@ -132,6 +134,135 @@ export const Admin = {
         }
     },
 
+    async loadConsolidation() {
+        try {
+            const tripsToScan = window.Trips?.allTrips?.length ?
+                window.Trips.allTrips : [];
+
+            let trips = tripsToScan;
+            if (!trips.length) {
+                const snap = await db.collection('trips')
+                    .where('userId', '==', window.currentUser.uid)
+                    .orderBy('startTime', 'desc')
+                    .limit(500)
+                    .get();
+                trips = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            }
+
+            // Group by route + direction, count occurrences of each raw stop name
+            const groups = {};
+            for (const trip of trips) {
+                const route = (trip.route || '').toString().trim();
+                const dir = (trip.direction || '').toString().trim();
+                const key = `${route}||${dir}`;
+                if (!groups[key]) groups[key] = { route, direction: dir, starts: {}, ends: {} };
+
+                for (const [field, bucket] of [['startStopName', 'starts'], ['endStopName', 'ends']]) {
+                    const raw = trip[field];
+                    if (!raw) continue;
+                    const canon = Utils.canonicalizeForMatch(raw);
+                    if (!canon) continue;
+                    if (!groups[key][bucket][canon]) groups[key][bucket][canon] = {};
+                    groups[key][bucket][canon][raw] = (groups[key][bucket][canon][raw] || 0) + 1;
+                }
+            }
+
+            // Find canonical keys that have 2+ distinct raw variants
+            const results = [];
+            for (const group of Object.values(groups)) {
+                for (const [field, bucket] of [['startStopName', 'starts'], ['endStopName', 'ends']]) {
+                    for (const variantCounts of Object.values(group[bucket])) {
+                        const variants = Object.entries(variantCounts).sort((a, b) => b[1] - a[1]);
+                        if (variants.length < 2) continue;
+                        // Most frequent variant is the canonical
+                        const canonical = Utils.normalizeIntersectionStop(variants[0][0]);
+                        const others = variants.slice(1).map(([name]) => name);
+                        results.push({
+                            route: group.route,
+                            direction: group.direction,
+                            field,
+                            canonical,
+                            others,
+                            allVariants: variants.map(([name, count]) => ({ name, count })),
+                        });
+                    }
+                }
+            }
+
+            this.consolidation = results;
+            const counter = document.getElementById('consolidation-count');
+            if (counter) counter.textContent = results.length || '';
+        } catch (err) {
+            console.error('Consolidation load error:', err);
+        }
+    },
+
+    renderConsolidation() {
+        const list = document.getElementById('consolidation-list');
+        if (!list) return;
+
+        if (this.consolidation.length === 0) {
+            list.innerHTML = '<div class="loading-state">No variants found.</div>';
+            return;
+        }
+
+        list.innerHTML = this.consolidation.map((item, i) => `
+            <div class="inbox-item">
+                <div class="inbox-item-content">
+                    <span class="inbox-item-name">
+                        <span class="badge-count">${item.allVariants.length}</span>${Utils.hide(item.canonical)}
+                    </span>
+                    <span class="inbox-item-meta">
+                        Route ${Utils.hide(item.route)}${item.direction ? ' ' + Utils.hide(item.direction) : ''} &middot; ${item.field === 'startStopName' ? 'boarding' : 'exit'}
+                    </span>
+                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">
+                        ${item.others.map(v => Utils.hide(v)).join(' &middot; ')}
+                    </div>
+                </div>
+                <div class="inbox-actions">
+                    <button class="btn btn-primary btn-sm" onclick="window.Admin.consolidateGroup(${i})">Merge</button>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    async consolidateGroup(index) {
+        const item = this.consolidation[index];
+        if (!item) return;
+
+        const variantSet = new Set(item.others);
+
+        try {
+            const snap = await db.collection('trips')
+                .where('userId', '==', window.currentUser.uid)
+                .where('route', '==', item.route)
+                .get();
+
+            const toUpdate = snap.docs.filter(doc => {
+                const data = doc.data();
+                const tripDir = (data.direction || '').toString().trim();
+                if (tripDir !== item.direction) return false;
+                const val = data[item.field];
+                return val && variantSet.has(val);
+            });
+
+            if (toUpdate.length === 0) {
+                UI.showNotification('Nothing to update.');
+                return;
+            }
+
+            const batch = db.batch();
+            toUpdate.forEach(doc => batch.update(doc.ref, { [item.field]: item.canonical }));
+            await batch.commit();
+
+            UI.showNotification(`Merged ${toUpdate.length} trip${toUpdate.length !== 1 ? 's' : ''} into "${item.canonical}".`);
+            await this.loadConsolidation();
+            this.renderConsolidation();
+        } catch (err) {
+            UI.showNotification('Merge failed: ' + err.message);
+        }
+    },
+
     isLinked(name) {
         const norm = name.toLowerCase();
         return this.stopsLibrary.some(s => 
@@ -177,6 +308,7 @@ export const Admin = {
     render() {
         this.renderLibrary();
         this.renderInbox();
+        this.renderConsolidation();
     },
 
     renderLibrary() {

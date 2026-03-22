@@ -14,13 +14,15 @@ function toTitleCase(str) {
   if (!str) return str;
 
   // Replace " and " with " & " (case insensitive)
-  const withAmpersand = str.replace(/\s+and\s+/gi, ' & ');
+  // Normalize spaces around slashes so "Spadina / Nassau" and "Spadina/Nassau" both become "Spadina/Nassau"
+  const normalized = str.replace(/\s+and\s+/gi, ' & ').replace(/\s*\/\s*/g, '/');
 
-  return withAmpersand
+  return normalized
     .toLowerCase()
     .split(/\s+/)
     .map((word) => {
-      return word.charAt(0).toUpperCase() + word.slice(1);
+      // Capitalize across slash-separated parts (e.g. "spadina/king" → "Spadina/King")
+      return word.split('/').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('/');
     })
     .join(' ');
 }
@@ -113,8 +115,8 @@ function isValidRoute(route) {
  */
 function getStopDisplay(stopCode, stopName, legacyStop = null) {
   if (stopCode) return stopCode;
-  if (stopName) return stopName;
-  if (legacyStop) return legacyStop;
+  if (stopName) return toTitleCase(stopName);
+  if (legacyStop) return toTitleCase(legacyStop);
   return 'Unknown';
 }
 
@@ -134,12 +136,35 @@ function determineReliability(stateExpiresAt) {
   return delayMinutes > 2 ? 'delayed_start' : 'actual';
 }
 
+/**
+ * Normalize a route identifier — uppercases trailing letter suffixes (e.g. "510a" → "510A")
+ * @param {string} route - Raw route string
+ * @returns {string} Normalized route
+ */
+function normalizeRoute(route) {
+  if (!route) return route;
+  return route.trim().replace(/([a-zA-Z]+)$/, (m) => m.toUpperCase());
+}
+
+/**
+ * Get display string for a route, uppercasing any trailing letters (e.g. "510a" → "510A")
+ * @param {string} route - Route identifier
+ * @param {string|null} direction - Optional direction string
+ * @returns {string} Display string for the route
+ */
+function getRouteDisplay(route, direction = null) {
+  const r = normalizeRoute(route ? route.toString() : route);
+  return direction ? `Route ${r} ${direction}` : `Route ${r}`;
+}
+
 module.exports = {
   toTitleCase,
   escapeXml,
   normalizeDirection,
+  normalizeRoute,
   generateVerificationCode,
   isValidRoute,
   getStopDisplay,
+  getRouteDisplay,
   determineReliability,
 };

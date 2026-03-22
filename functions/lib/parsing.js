@@ -2,7 +2,7 @@
  * Message parsing logic for transit trip tracking
  */
 const { KNOWN_AGENCIES } = require('./constants');
-const { toTitleCase, normalizeDirection } = require('./utils');
+const { toTitleCase, normalizeDirection, normalizeRoute } = require('./utils');
 
 /**
  * Parse stop input to determine if it's a stop code (all digits) or stop name (contains letters)
@@ -48,7 +48,7 @@ function parseMultiLineTripFormat(body, defaultAgency) {
     return null;
   }
 
-  const route = toTitleCase(lines[0]);
+  const route = normalizeRoute(lines[0]);
   const stop = toTitleCase(lines[1]);
 
   // Normalize direction if present on line 3

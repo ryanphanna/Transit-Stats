@@ -229,7 +229,7 @@ async function handleFallback(phoneNumber, user, body) {
     source: 'sms_fallback',
   });
 
-  await sendSmsReply(phoneNumber, `❌ Could not understand. Try:\n[Route]\n[Stop]`);
+  await sendSmsReply(phoneNumber, `Could not understand. Try:\n[Route]\n[Stop]`);
 }
 
 module.exports = {

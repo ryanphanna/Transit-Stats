@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.9] - 2026-03-22
+
+### Changed
+- **SMS Message Polish**: Removed all emojis (✅, ❌, ⚠️, 📊) from SMS replies for a cleaner, more professional tone.
+- **SMS Stop Name Display**: Removed the redundant "Stop" prefix from stop names in confirmation messages (e.g. "from Spadina/King" instead of "from Stop Spadina/King").
+- **Journey Note Formatting**: Added a blank line before the auto-linked journey note in end-trip confirmations so it reads as a separate thought.
+- **Instruction Tail Shortened**: Condensed the per-trip instruction footer from four commands to "END [stop] to finish. INFO for help." to reduce noise for regular users.
+
+### Fixed
+- **Slash Intersection Casing**: `toTitleCase` now normalizes spaces around `/` and capitalizes each part, so "Spadina / Nassau" and "Spadina/king" both become "Spadina/Nassau" and "Spadina/King".
+- **Stop Display Normalization**: `getStopDisplay` now applies `toTitleCase` on all returned values, fixing existing stored stop names that were saved in lowercase or with inconsistent slash spacing.
+- **Route Letter Casing at Storage**: Added `normalizeRoute` helper that uppercases trailing route variant letters (e.g. "510a" → "510A") and applied it at parse time in `parseMultiLineTripFormat` and at the entry point of `handleTripLog`, so routes are stored correctly regardless of input source (manual or AI).
+- **Route Letter Casing in Display**: `getRouteDisplay` now delegates to `normalizeRoute` internally for consistency.
+- **Stop Separator Normalization**: `normalizeIntersectionStop` (client-side) now handles `-` and `and` as intersection separators alongside `/`, `&`, and `at`. Separator in output changed from ` / ` to `/` to match backend format. Added `canonicalizeForMatch` for comparison-only normalization.
+
+### Added
+- **Consolidation Panel**: New section in the admin view that scans trip history for stop name variants (e.g. "Spadina/Nassau", "Spadina & Nassau", "Spadina / Nassau") grouped by route and direction. Shows the canonical form (most frequent variant) alongside all others, with a Merge button that batch-updates affected trips in Firestore.
+
 ## [1.9.8] - 2026-03-21
 
 ### Added

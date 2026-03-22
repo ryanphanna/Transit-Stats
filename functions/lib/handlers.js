@@ -25,7 +25,9 @@ const {
 const { PredictionEngine } = require('./predict.js');
 const {
   getStopDisplay,
+  getRouteDisplay,
   normalizeDirection,
+  normalizeRoute,
   generateVerificationCode,
   determineReliability,
 } = require('./utils');
@@ -91,15 +93,13 @@ async function handleStatus(phoneNumber, user) {
     activeTrip.startStop,
   );
 
-  const routeDisplay = activeTrip.direction ?
-    `Route ${activeTrip.route} ${activeTrip.direction}` :
-    `Route ${activeTrip.route}`;
+  const routeDisplay = getRouteDisplay(activeTrip.route, activeTrip.direction);
 
   const message = `Active trip:
-${routeDisplay} from Stop ${startStopDisplay}
+${routeDisplay} from ${startStopDisplay}
 Started ${timeStr} (${elapsedMin} min ago)
 
-END + STOP to finish. INCOMPLETE if you forgot to end. DISCARD if you didn't board. INFO for help.`;
+END [stop] to finish. INFO for help.`;
 
   await sendSmsReply(phoneNumber, message);
 }
@@ -115,9 +115,7 @@ async function handleDiscard(phoneNumber, user) {
     return;
   }
 
-  const routeDisplay = activeTrip.direction ?
-    `Route ${activeTrip.route} ${activeTrip.direction}` :
-    `Route ${activeTrip.route}`;
+  const routeDisplay = getRouteDisplay(activeTrip.route, activeTrip.direction);
 
   // If this active trip was linked into a journey, clean up the partner's journeyId
   if (activeTrip.journeyId) {
@@ -138,7 +136,7 @@ async function handleDiscard(phoneNumber, user) {
   }
   await clearPendingState(phoneNumber);
 
-  await sendSmsReply(phoneNumber, `✅ Deleted ${routeDisplay}.`);
+  await sendSmsReply(phoneNumber, `Deleted ${routeDisplay}.`);
 }
 
 /**
@@ -152,9 +150,7 @@ async function handleIncomplete(phoneNumber, user) {
     return;
   }
 
-  const routeDisplay = activeTrip.direction ?
-    `Route ${activeTrip.route} ${activeTrip.direction}` :
-    `Route ${activeTrip.route}`;
+  const routeDisplay = getRouteDisplay(activeTrip.route, activeTrip.direction);
 
   await db.collection('trips').doc(activeTrip.id).update({
     incomplete: true,
@@ -163,7 +159,7 @@ async function handleIncomplete(phoneNumber, user) {
     duration: null,
   });
 
-  await sendSmsReply(phoneNumber, `✅ Marked ${routeDisplay} as incomplete.`);
+  await sendSmsReply(phoneNumber, `Marked ${routeDisplay} as incomplete.`);
 }
 
 /**
@@ -274,6 +270,7 @@ async function handleVerificationCode(phoneNumber, code) {
  * Handle trip logging
  */
 async function handleTripLog(phoneNumber, user, stopInput, route, direction, agency, options = {}) {
+  route = normalizeRoute(route);
   const activeTrip = await getActiveTrip(user.userId);
   const parsedStop = parseStopInput(stopInput);
   const stopDisplay = getStopDisplay(parsedStop.stopCode, parsedStop.stopName);
@@ -283,13 +280,8 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
   const boardingLocation = stopData ? { lat: stopData.lat, lng: stopData.lng } : null;
 
   if (activeTrip) {
-    const activeTripRouteDisplay = activeTrip.direction ?
-      `Route ${activeTrip.route} ${activeTrip.direction}` :
-      `Route ${activeTrip.route}`;
-
-    const newTripRouteDisplay = direction ?
-      `Route ${route} ${direction}` :
-      `Route ${route}`;
+    const activeTripRouteDisplay = getRouteDisplay(activeTrip.route, activeTrip.direction);
+    const newTripRouteDisplay = getRouteDisplay(route, direction);
 
     await setPendingState(phoneNumber, {
       type: 'confirm_start',
@@ -319,7 +311,7 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
 
     const message = `${activeTripRouteDisplay} from ` +
       `${getStopDisplay(activeTrip.startStopCode, activeTrip.startStopName, activeTrip.startStop)} ` +
-      `was not ended. ⚠️
+      `was not ended.
 
 START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDisplay}. DISCARD to delete.`;
 
@@ -367,7 +359,7 @@ START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDispla
     endStopPrediction: endStopPrediction || null,
   });
 
-  const routeDisplay = direction ? `Route ${route} ${direction}` : `Route ${route}`;
+  const routeDisplay = getRouteDisplay(route, direction);
   const finalStopDisplay = getStopDisplay(
     stopData ? stopData.stopCode : parsedStop.stopCode,
     stopData ? stopData.stopName : parsedStop.stopName,
@@ -382,14 +374,14 @@ START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDispla
       const gapMinutes = (new Date() - lastEnd) / 60000;
       if (gapMinutes >= 0 && gapMinutes <= 45 && PredictionEngine._stopMatch(lastTrip.endStopName, startStopName)) {
         const gapStr = gapMinutes < 1 ? '<1' : Math.round(gapMinutes);
-        journeySuggestion = `\n\nContinues your Route ${lastTrip.route} trip (${gapStr} min transfer). Reply LINK to join as a journey.`;
+        journeySuggestion = `\n\nContinues your ${getRouteDisplay(lastTrip.route)} trip (${gapStr} min transfer). Reply LINK to join as a journey.`;
       }
     }
   } catch (_) { /* non-critical */ }
 
-  await sendSmsReply(phoneNumber, `✅ Started ${routeDisplay} from Stop ${finalStopDisplay}.
+  await sendSmsReply(phoneNumber, `Started ${routeDisplay} from ${finalStopDisplay}.
 
-END + STOP to finish. INCOMPLETE if you forgot to end. DISCARD if you didn't board. INFO for help.${journeySuggestion}`);
+END [stop] to finish. INFO for help.${journeySuggestion}`);
 }
 
 /**
@@ -399,9 +391,7 @@ async function handleConfirmStart(phoneNumber, user, state) {
   const activeTrip = state.activeTrip;
   const newTrip = state.newTrip;
 
-  const oldTripRouteDisplay = activeTrip.direction ?
-    `Route ${activeTrip.route} ${activeTrip.direction}` :
-    `Route ${activeTrip.route}`;
+  const oldTripRouteDisplay = getRouteDisplay(activeTrip.route, activeTrip.direction);
 
   let confirmPrediction = null;
   let confirmEndStopPrediction = null;
@@ -450,15 +440,12 @@ async function handleConfirmStart(phoneNumber, user, state) {
   await clearPendingState(phoneNumber);
 
   const newStopDisplay = getStopDisplay(newTrip.stopCode, newTrip.stopName);
-  const normalizedDirection = normalizeDirection(newTrip.direction);
-  const newRouteDisplay = normalizedDirection ?
-    `Route ${newTrip.route} ${normalizedDirection}` :
-    `Route ${newTrip.route}`;
+  const newRouteDisplay = getRouteDisplay(newTrip.route, normalizeDirection(newTrip.direction));
 
-  await sendSmsReply(phoneNumber, `✅ ${oldTripRouteDisplay} marked incomplete.
-✅ Started ${newRouteDisplay} from Stop ${newStopDisplay}.
+  await sendSmsReply(phoneNumber, `${oldTripRouteDisplay} marked incomplete.
+Started ${newRouteDisplay} from ${newStopDisplay}.
 
-END + STOP to finish. INCOMPLETE if you forgot to end. DISCARD if you didn't board. INFO for help.`);
+END [stop] to finish. INFO for help.`);
 }
 
 /**
@@ -476,12 +463,9 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     const activeRoute = activeTrip.route.toString().toLowerCase();
     const verifyRoute = routeVerification.toString().toLowerCase();
     if (activeRoute !== verifyRoute) {
-      const routeDisplay = activeTrip.direction ?
-        `Route ${activeTrip.route} ${activeTrip.direction}` :
-        `Route ${activeTrip.route}`;
       await sendSmsReply(
         phoneNumber,
-        `❌ Route mismatch. Active trip is ${routeDisplay}, not Route ${routeVerification}.`,
+        `Route mismatch. Active trip is ${getRouteDisplay(activeTrip.route, activeTrip.direction)}, not Route ${routeVerification}.`,
       );
       return;
     }
@@ -511,9 +495,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     verified: activeTrip.verified && (endStopData !== null),
   });
 
-  const routeDisplay = activeTrip.direction ?
-    `Route ${activeTrip.route} ${activeTrip.direction}` :
-    `Route ${activeTrip.route}`;
+  const routeDisplay = getRouteDisplay(activeTrip.route, activeTrip.direction);
 
   // Grade the prediction that was committed at trip start
   try {
@@ -629,13 +611,13 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
       await batch.commit();
       const prevEnd = prevTrip.endTime.toDate ? prevTrip.endTime.toDate() : new Date(prevTrip.endTime);
       const gapStr = Math.round((thisStartTime - prevEnd) / 60000);
-      journeyNote = `\nLinked to your Route ${prevTrip.route} trip (${gapStr < 1 ? '<1' : gapStr} min transfer).`;
+      journeyNote = `\n\nLinked to your ${getRouteDisplay(prevTrip.route)} trip (${gapStr < 1 ? '<1' : gapStr} min transfer).`;
     }
   } catch (journeyErr) {
     console.error('Error auto-linking journey:', journeyErr);
   }
 
-  await sendSmsReply(phoneNumber, `✅ Ended ${routeDisplay} at Stop ${endStopDisplay} (${duration} min trip)${journeyNote}`);
+  await sendSmsReply(phoneNumber, `Ended ${routeDisplay} at ${endStopDisplay} (${duration} min trip)${journeyNote}`);
 }
 
 /**
@@ -706,7 +688,7 @@ async function handleStatsCommand(phoneNumber, user) {
 
   await sendSmsReply(
     phoneNumber,
-    `📊 Last 30 Days\n${recent.length} trips • ${uniqueRoutes} routes • ` +
+    `Last 30 Days\n${recent.length} trips • ${uniqueRoutes} routes • ` +
     `${totalHours} hrs${comparison}\n${thisMonth.length} trips so far in ${monthName}`,
   );
 }
@@ -778,7 +760,7 @@ async function handleJourneyLink(phoneNumber, user) {
   const gapStr = gapMinutes < 1 ? '<1' : Math.round(gapMinutes);
   await sendSmsReply(
     phoneNumber,
-    `✅ Route ${earlierTrip.route} → Route ${laterTrip.route} linked as a journey (${gapStr} min transfer).`,
+    `${getRouteDisplay(earlierTrip.route)} → ${getRouteDisplay(laterTrip.route)} linked as a journey (${gapStr} min transfer).`,
   );
 }
 

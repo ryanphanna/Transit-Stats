@@ -10,8 +10,8 @@ export const Utils = {
     normalizeIntersectionStop(str) {
         if (!str) return str;
         const trimmed = str.trim();
-        
-        // Helper for proper title casing (skip small words)
+
+        // Helper for proper title casing
         const titleCase = s => s.replace(/\b\w+/g, w =>
             ['at', 'and', 'the', 'of', 'for', 'on'].includes(w.toLowerCase())
                 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
@@ -21,17 +21,28 @@ export const Utils = {
         const codePrefix = trimmed.match(/^(\d{4,6})\s+(.+)$/);
         const core = codePrefix ? codePrefix[2] : trimmed;
 
-        // Intersection patterns: "/", "&", " at "
-        const intersectionMatch = core.match(/^(.+?)\s*(?:\/|&|\bat\b)\s*(.+)$/i);
-        
+        // Intersection patterns: "/", "&", "-", " at ", " and "
+        const intersectionMatch = core.match(/^(.+?)\s*(?:\/|&|-|\bat\b|\band\b)\s*(.+)$/i);
+
         if (intersectionMatch) {
             const a = titleCase(intersectionMatch[1].trim());
             const b = titleCase(intersectionMatch[2].trim());
-            const intersectionPart = `${a} / ${b}`;
+            const intersectionPart = `${a}/${b}`;
             return codePrefix ? `${codePrefix[1]} ${intersectionPart}` : intersectionPart;
         }
 
         return codePrefix ? trimmed : titleCase(trimmed);
+    },
+
+    /**
+     * Canonicalize a stop name purely for comparison/grouping — never stored.
+     * Collapses all separator variants and casing so variants map to the same key.
+     */
+    canonicalizeForMatch(str) {
+        if (!str) return null;
+        return str.trim().toLowerCase()
+            .replace(/\s*(?:\/|&|-|\bat\b|\band\b)\s*/gi, '/')
+            .replace(/\s+/g, ' ');
     },
 
     /**
