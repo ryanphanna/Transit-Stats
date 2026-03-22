@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.10] - 2026-03-22
+
+### Added
+- **Test suite**: 137 passing tests across `tests/parsing.test.js` (40), `tests/utils.test.js` (37), and `tests/predict.test.js` (60). Covers all 5 parsing functions, all 9 utility exports, and the full prediction engine including all internal scoring methods (`_baseRoute`, `_normalizeDirection`, `_isValidTrip`, `_canonicalizeStop`, `_stopMatch`, `_daySimilarity`, `_timeSimilarity`, `_recencyWeight`, `_durationSimilarity`) and integration behaviour of `guess` and `guessEndStop`.
+
 ## [1.9.9] - 2026-03-22
 
 ### Changed
