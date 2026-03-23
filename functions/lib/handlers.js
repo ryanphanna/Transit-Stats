@@ -659,7 +659,7 @@ async function handleQuery(phoneNumber, user, question) {
     await sendSmsReply(phoneNumber, 'AI limit reached. Try again later.');
     return;
   }
-  const answer = await answerQueryWithGemini(question, stats);
+  const answer = await answerQueryWithGemini(user.userId, question, trips, stats);
   await sendSmsReply(phoneNumber, answer);
 }
 
