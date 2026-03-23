@@ -309,9 +309,10 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
       },
     });
 
+    const activeTripElapsedMin = Math.round((Date.now() - activeTrip.startTime.toDate().getTime()) / 60000);
     const message = `${activeTripRouteDisplay} from ` +
       `${getStopDisplay(activeTrip.startStopCode, activeTrip.startStopName, activeTrip.startStop)} ` +
-      `was not ended.
+      `was not ended (started ${activeTripElapsedMin} min ago).
 
 START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDisplay}. DISCARD to delete.`;
 
@@ -443,6 +444,7 @@ async function handleConfirmStart(phoneNumber, user, state) {
   const newRouteDisplay = getRouteDisplay(newTrip.route, normalizeDirection(newTrip.direction));
 
   await sendSmsReply(phoneNumber, `${oldTripRouteDisplay} marked incomplete.
+
 Started ${newRouteDisplay} from ${newStopDisplay}.
 
 END [stop] to finish. INFO for help.`);
