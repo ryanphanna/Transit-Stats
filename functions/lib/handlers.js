@@ -693,17 +693,17 @@ async function handleStatsCommand(phoneNumber, user) {
   const uniqueRoutes = new Set(recent.map((t) => t.route).filter(Boolean)).size;
   const monthName = now.toLocaleString('en-US', { month: 'short' });
 
+  const profile = await getUserProfile(user.userId);
   let comparison = '';
-  if (previous.length > 0) {
+  if (profile?.isPremium && previous.length > 0) {
     const pct = Math.round(((recent.length - previous.length) / previous.length) * 100);
     const arrow = pct >= 0 ? '↑' : '↓';
-    comparison = `\n${arrow} ${Math.abs(pct)}% more trips vs prev 30 days`;
+    comparison = ` ${arrow} ${Math.abs(pct)}% vs prev 30 days.`;
   }
 
   await sendSmsReply(
     phoneNumber,
-    `Last 30 Days\n${recent.length} trips • ${uniqueRoutes} routes • ` +
-    `${totalHours} hrs${comparison}\n${thisMonth.length} trips so far in ${monthName}`,
+    `Last 30 days: ${recent.length} trips, ${uniqueRoutes} routes, ${totalHours} hours.${comparison} ${thisMonth.length} trips month to date.`,
   );
 }
 

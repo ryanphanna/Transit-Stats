@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- **STATS command formatting**: Reformatted reply to a cleaner sentence structure ("Last 30 days: X trips, Y routes, Z hours. N trips month to date."). The 30-day vs prior period comparison (↑/↓ %) is now premium-only, appended inline for users with `isPremium: true`.
+
 ## [1.9.11] - 2026-03-22
 
 ### Added
