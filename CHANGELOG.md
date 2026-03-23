@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **AI Search Tools**: GEMINI now has direct database search capabilities for all-time stats (Total trips, stops, and routes) via function calling. Use `ASK [question]` to query your entire history accurately.
+- **Testing**: Created `tests/gemini.test.js` with comprehensive unit tests for trip aggregation and AI data logic. Total test suite expanded to 144 passing tests.
+
 ### Refactor
 - **Journey Linking**: Removed redundant "Reply LINK" suggestion from trip start SMS; journey linking is now handled automatically at trip end.
 
