@@ -131,7 +131,12 @@ function aggregateTripStats(trips) {
     dailyCounts[key] = (dailyCounts[key] || 0) + 1;
   });
 
-  return { total: trips.length, routeStats, pairStats, boardingStops, exitStops, timeOfDay, dailyCounts };
+  const allStops = Array.from(new Set([
+    ...Object.keys(boardingStopMap),
+    ...Object.keys(exitStopMap),
+  ])).sort();
+
+  return { total: trips.length, routeStats, pairStats, boardingStops, exitStops, timeOfDay, dailyCounts, allStops };
 }
 
 /**
@@ -218,6 +223,7 @@ Their transit data (most recent 200 completed trips):
 - Most exited stops: ${JSON.stringify(stats.exitStops?.slice(0, 5) || [])}
 - Trips by time of day: ${JSON.stringify(stats.timeOfDay || {})}
 - Trips per day (YYYY-MM-DD): ${JSON.stringify(stats.dailyCounts || {})}
+- Full list of stops visited in this period: ${stats.allStops?.join(', ') || 'None'}
 
 If the data doesn't contain enough info to answer, say so briefly.`;
 
@@ -269,8 +275,11 @@ async function parseWithGemini(text) {
 
     Extraction Rules:
     - Direction: Normalize: "Northbound", "Southbound", "Eastbound", "Westbound".
-    - Route: Extract ONLY the route identifier explicitly mentioned (e.g., "504", "Line 1", "510a"). Routes are typically 1-3 digits or "Line X". Never infer or guess a route — if none is clearly stated, return null.
-    - Stop ID: A number explicitly labeled as a stop ("stop 815", "from stop 11986") in the message. If ambiguous, prefer stop_name over stop_id. Never put a route number in stop_id.
+    - Route: Extract ONLY the route identifier explicitly mentioned (e.g., "504", "Line 1", "510a").
+      Routes are typically 1-3 digits or "Line X". Never infer or guess a route —
+      if none is clearly stated, return null.
+    - Stop ID: A number explicitly labeled as a stop ("stop 815", "from stop 11986") in the message.
+      If ambiguous, prefer stop_name over stop_id. Never put a route number in stop_id.
     - Stop Name: Extract the full location name.
     - Ignore conversational text: "Just boarded", "I'm on", "taking", etc.
     - Sentiment: Determine if POSITIVE, NEGATIVE, or NEUTRAL.

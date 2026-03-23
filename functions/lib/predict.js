@@ -221,16 +221,16 @@ const PredictionEngine = {
   _canonicalizeStop: function (name) {
     if (!name) return null;
     const lower = name.trim().toLowerCase()
-      .replace(/\s*[\/&@]\s*/g, '/')
+      .replace(/\s*[/&@]\s*/g, '/')
       .replace(/\s+at\s+/g, '/');
     if (this.stopsLibrary && this.stopsLibrary.length > 0) {
       const match = this.stopsLibrary.find(s => {
         const candidates = [s.name, ...(s.aliases || [])];
         return candidates.some(c => c.trim().toLowerCase()
-          .replace(/\s*[\/&@]\s*/g, '/')
+          .replace(/\s*[/&@]\s*/g, '/')
           .replace(/\s+at\s+/g, '/') === lower);
       });
-      if (match) return match.name.toLowerCase().replace(/\s*[\/&@]\s*/g, '/').replace(/\s+at\s+/g, '/');
+      if (match) return match.name.toLowerCase().replace(/\s*[/&@]\s*/g, '/').replace(/\s+at\s+/g, '/');
     }
     return lower;
   },

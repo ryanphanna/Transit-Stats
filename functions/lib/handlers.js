@@ -333,7 +333,11 @@ START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDispla
     ]);
     PredictionEngine.stopsLibrary = stopsLibrary;
     const now = new Date();
-    prediction = PredictionEngine.guess(history, { stopName: startStopName, time: now, routesAtStop: routesAtStop || undefined });
+    prediction = PredictionEngine.guess(history, {
+      stopName: startStopName,
+      time: now,
+      routesAtStop: routesAtStop || undefined,
+    });
     endStopPrediction = PredictionEngine.guessEndStop(history, {
       route,
       startStopName,
@@ -366,23 +370,9 @@ START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDispla
     stopData ? stopData.stopName : parsedStop.stopName,
   );
 
-  // Detect journey continuation: last completed trip ended at this stop within 45 min
-  let journeySuggestion = '';
-  try {
-    const lastTrip = history && history.length > 0 ? history[0] : null;
-    if (lastTrip && lastTrip.endTime && lastTrip.endStopName) {
-      const lastEnd = lastTrip.endTime.toDate ? lastTrip.endTime.toDate() : new Date(lastTrip.endTime);
-      const gapMinutes = (new Date() - lastEnd) / 60000;
-      if (gapMinutes >= 0 && gapMinutes <= 45 && PredictionEngine._stopMatch(lastTrip.endStopName, startStopName)) {
-        const gapStr = gapMinutes < 1 ? '<1' : Math.round(gapMinutes);
-        journeySuggestion = `\n\nContinues your ${getRouteDisplay(lastTrip.route)} trip (${gapStr} min transfer). Reply LINK to join as a journey.`;
-      }
-    }
-  } catch (_) { /* non-critical */ }
-
   await sendSmsReply(phoneNumber, `Started ${routeDisplay} from ${finalStopDisplay}.
 
-END [stop] to finish. INFO for help.${journeySuggestion}`);
+END [stop] to finish. INFO for help.`);
 }
 
 /**
@@ -404,7 +394,11 @@ async function handleConfirmStart(phoneNumber, user, state) {
     ]);
     PredictionEngine.stopsLibrary = stopsLibrary;
     const now = new Date();
-    confirmPrediction = PredictionEngine.guess(history, { stopName: newTrip.stopName, time: now, routesAtStop: routesAtStop || undefined });
+    confirmPrediction = PredictionEngine.guess(history, {
+      stopName: newTrip.stopName,
+      time: now,
+      routesAtStop: routesAtStop || undefined,
+    });
     confirmEndStopPrediction = PredictionEngine.guessEndStop(history, {
       route: newTrip.route,
       startStopName: newTrip.stopName,
@@ -467,7 +461,8 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     if (activeRoute !== verifyRoute) {
       await sendSmsReply(
         phoneNumber,
-        `Route mismatch. Active trip is ${getRouteDisplay(activeTrip.route, activeTrip.direction)}, not Route ${routeVerification}.`,
+        `Route mismatch. Active trip is ${getRouteDisplay(activeTrip.route, activeTrip.direction)}, ` +
+        `not Route ${routeVerification}.`,
       );
       return;
     }
@@ -514,8 +509,10 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
       const isPartialHit = !isHit && dirMatch &&
         baseRoute(predRoute) === baseRoute(actualRoute) &&
         baseRoute(predRoute) !== '';
-      const predictedLabel = stored.route + (stored.direction ? ' ' + stored.direction : '') + ' from ' + stored.stop;
-      const actualLabel = activeTrip.route + (activeTrip.direction ? ' ' + activeTrip.direction : '') + ' from ' + (activeTrip.startStopName || '?');
+      const predictedLabel = stored.route + (stored.direction ? ' ' + stored.direction : '') +
+        ' from ' + stored.stop;
+      const actualLabel = activeTrip.route + (activeTrip.direction ? ' ' + activeTrip.direction : '') +
+        ' from ' + (activeTrip.startStopName || '?');
       // Grade end stop prediction
       const actualEndStop = endStopData ? endStopData.stopName : parsedEndStop.stopName;
       const storedEndStop = activeTrip.endStopPrediction;
@@ -560,7 +557,9 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
         );
         if (durationPrediction) {
           durationEndStopHit = PredictionEngine._stopMatch(durationPrediction.stop, actualEndStop);
-          console.log(`Duration end stop: ${durationEndStopHit ? 'HIT' : 'MISS'} | predicted ${durationPrediction.stop} (conf ${durationPrediction.confidence}%) | actual ${actualEndStop}`);
+          console.log(`Duration end stop: ${durationEndStopHit ? 'HIT' : 'MISS'} | ` +
+            `predicted ${durationPrediction.stop} (conf ${durationPrediction.confidence}%) | ` +
+            `actual ${actualEndStop}`);
         }
       } catch (dErr) {
         console.error('Error running duration end stop prediction:', dErr);
@@ -584,7 +583,8 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
       }
       await db.collection('predictionAccuracy').doc(user.userId).set(accuracyUpdate, { merge: true });
 
-      console.log(`Prediction graded for ${user.userId}: ${isHit ? 'HIT' : (isPartialHit ? 'PARTIAL' : 'MISS')} | ${predictedLabel} → ${actualLabel}`);
+      console.log(`Prediction graded for ${user.userId}: ${isHit ? 'HIT' : (isPartialHit ? 'PARTIAL' : 'MISS')} | ` +
+        `${predictedLabel} → ${actualLabel}`);
     }
   } catch (predictionErr) {
     console.error('Error grading prediction:', predictionErr);
@@ -613,7 +613,8 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
       await batch.commit();
       const prevEnd = prevTrip.endTime.toDate ? prevTrip.endTime.toDate() : new Date(prevTrip.endTime);
       const gapStr = Math.round((thisStartTime - prevEnd) / 60000);
-      journeyNote = `\n\nLinked to your ${getRouteDisplay(prevTrip.route)} trip (${gapStr < 1 ? '<1' : gapStr} min transfer).`;
+      journeyNote = `\n\nLinked to your ${getRouteDisplay(prevTrip.route)} trip ` +
+        `(${gapStr < 1 ? '<1' : gapStr} min transfer).`;
     }
   } catch (journeyErr) {
     console.error('Error auto-linking journey:', journeyErr);
@@ -635,7 +636,8 @@ async function handleQuery(phoneNumber, user, question) {
   }
 
   if (!question) {
-    await sendSmsReply(phoneNumber, 'Ask me anything about your trips, e.g. "ASK how many trips have I taken on Fridays?"');
+    await sendSmsReply(phoneNumber, 'Ask me anything about your trips, ' +
+      'e.g. "ASK how many trips have I taken on Fridays?"');
     return;
   }
 
@@ -693,7 +695,7 @@ async function handleStatsCommand(phoneNumber, user) {
   const totalMins = recent.reduce((sum, t) => sum + (t.duration || 0), 0);
   const totalHours = (totalMins / 60).toFixed(1);
   const uniqueRoutes = new Set(recent.map((t) => t.route).filter(Boolean)).size;
-  const monthName = now.toLocaleString('en-US', { month: 'short' });
+  // const monthName = now.toLocaleString('en-US', { month: 'short' }); (unused)
 
   const profile = await getUserProfile(user.userId);
   let comparison = '';
@@ -705,7 +707,8 @@ async function handleStatsCommand(phoneNumber, user) {
 
   await sendSmsReply(
     phoneNumber,
-    `Last 30 days: ${recent.length} trips, ${uniqueRoutes} routes, ${totalHours} hours.${comparison} ${thisMonth.length} trips month to date.`,
+    `Last 30 days: ${recent.length} trips, ${uniqueRoutes} routes, ${totalHours} hours.` +
+    `${comparison} ${thisMonth.length} trips month to date.`,
   );
 }
 
@@ -776,7 +779,8 @@ async function handleJourneyLink(phoneNumber, user) {
   const gapStr = gapMinutes < 1 ? '<1' : Math.round(gapMinutes);
   await sendSmsReply(
     phoneNumber,
-    `${getRouteDisplay(earlierTrip.route)} → ${getRouteDisplay(laterTrip.route)} linked as a journey (${gapStr} min transfer).`,
+    `${getRouteDisplay(earlierTrip.route)} → ${getRouteDisplay(laterTrip.route)} ` +
+    `linked as a journey (${gapStr} min transfer).`,
   );
 }
 

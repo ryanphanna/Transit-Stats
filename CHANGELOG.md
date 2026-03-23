@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Refactor
+- **Journey Linking**: Removed redundant "Reply LINK" suggestion from trip start SMS; journey linking is now handled automatically at trip end.
+
+### Fixed
+- **Lint**: Resolved 22 lint errors in Cloud Functions (`handlers.js`, `predict.js`, `db.js`, `gemini.js`) including line lengths, unused variables, and unnecessary regex escapes.
+- **AI Stats**: Enhanced natural-language queries by providing Gemini with a full index of recently visited stops, enabling specific questions about rare locations.
+
+
 ## [1.9.12] - 2026-03-22
 
 ### Changed
