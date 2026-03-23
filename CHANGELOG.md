@@ -2,10 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.9.12] - 2026-03-22
 
 ### Changed
 - **STATS command formatting**: Reformatted reply to a cleaner sentence structure ("Last 30 days: X trips, Y routes, Z hours. N trips month to date."). The 30-day vs prior period comparison (↑/↓ %) is now premium-only, appended inline for users with `isPremium: true`.
+
+### Chore
+- **Security**: Bumped `vitest` and `@vitest/ui` to 4.0.18 to resolve high-severity prototype pollution vulnerability in `flatted` (dev dependency only). All 137 tests pass.
 
 ## [1.9.11] - 2026-03-22
 
