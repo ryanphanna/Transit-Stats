@@ -458,7 +458,7 @@ async function getRecentCompletedTrips(userId, limit = 50) {
 async function getRoutesAtStop(stopCode, agency) {
   if (!stopCode || !agency) return null;
   try {
-    const docId = `${agency}_${stopCode}`.replace(/[^a-zA-Z0-9_\-]/g, '_');
+    const docId = `${agency}_${stopCode}`.replace(/[^a-zA-Z0-9_-]/g, '_');
     const doc = await db.collection('stopRoutes').doc(docId).get();
     if (!doc.exists) return null;
     return doc.data().routes || null;

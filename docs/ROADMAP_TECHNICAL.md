@@ -12,8 +12,6 @@ quality and coverage improvements.
 
 - [ ] **`STATS` command improvements** — extend the structured stats reply with weekly
   and monthly comparisons, not just all-time totals.
-- [ ] **`UNDO` command** — allow users to discard the most recent trip without opening
-  the web app. Useful for misfired trip starts.
 - [ ] **Ambiguous stop handling** — when a stop name matches multiple library entries
   (e.g. "King" on multiple routes), reply with a disambiguation prompt rather than
   picking arbitrarily.
