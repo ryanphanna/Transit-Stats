@@ -192,44 +192,165 @@ function sanitizeGeminiOutput(parsed) {
 }
 
 /**
- * Use Gemini to answer a natural-language question given aggregated trip stats
+ * Use Gemini to answer a natural-language question given aggregated trip stats,
+ * using function calling (tools) to search the database if needed.
+ * @param {string} userId - User identifier
  * @param {string} question - User question
- * @param {object} stats - Aggregated stats object
+ * @param {Array} recentTrips - Most recent 200 trips (raw)
+ * @param {object} stats - Aggregated stats for the recent 200 trips
  * @returns {Promise<string>} AI answer
  */
-async function answerQueryWithGemini(question, stats) {
+async function answerQueryWithGemini(userId, question, recentTrips, stats) {
   const apiKey = geminiApiKey.value();
   if (!apiKey) return 'AI unavailable right now.';
 
+  const admin = require('firebase-admin');
+  const db = admin.firestore();
+
+  // Define tools available to the AI
+  const tools = [
+    {
+      functionDeclarations: [
+        {
+          name: 'get_all_time_stats',
+          description: 'Get total counts for trips, routes, and stops across all time for this user.',
+        },
+        {
+          name: 'get_all_time_stop_stats',
+          description: 'Get the top boarding and exit stops (up to 20 each) ' +
+            'with their frequency count across all time.',
+        },
+        {
+          name: 'get_all_time_route_stats',
+          description: 'Get all routes taken and their frequency across all time.',
+        },
+        {
+          name: 'get_monthly_trip_counts',
+          description: 'Get the number of trips taken in each year/month recorded in history.',
+        },
+      ]
+    }
+  ];
+
+  // Tool implementations
+  const toolExecutors = {
+    get_all_time_stats: async () => {
+      const tripsCol = db.collection('trips').where('userId', '==', userId).where('endTime', '!=', null);
+      const snapshot = await tripsCol.count().get();
+      const count = snapshot.data().count;
+
+      const trips = await tripsCol.select('route', 'startStopName', 'endStopName').get();
+      const routes = new Set(trips.docs.map((t) => t.data().route).filter(Boolean)).size;
+      const boarding = new Set(trips.docs.map((t) => t.data().startStopName).filter(Boolean));
+      const exit = new Set(trips.docs.map((t) => t.data().endStopName).filter(Boolean));
+      const stops = new Set([...boarding, ...exit]).size;
+
+      return { totalTrips: count, uniqueRoutes: routes, uniqueStops: stops };
+    },
+    get_all_time_stop_stats: async () => {
+      const trips = await db.collection('trips')
+        .where('userId', '==', userId)
+        .where('endTime', '!=', null)
+        .select('startStopName', 'endStopName')
+        .get();
+
+      const boarding = {};
+      const exit = {};
+      trips.docs.forEach((d) => {
+        const t = d.data();
+        if (t.startStopName) boarding[t.startStopName] = (boarding[t.startStopName] || 0) + 1;
+        if (t.endStopName) exit[t.endStopName] = (exit[t.endStopName] || 0) + 1;
+      });
+
+      const topBoarding = Object.entries(boarding).sort((a, b) => b[1] - a[1]).slice(0, 20);
+      const topExit = Object.entries(exit).sort((a, b) => b[1] - a[1]).slice(0, 20);
+      return { topBoardingStops: topBoarding, topExitStops: topExit };
+    },
+    get_all_time_route_stats: async () => {
+      const trips = await db.collection('trips')
+        .where('userId', '==', userId)
+        .where('endTime', '!=', null)
+        .select('route')
+        .get();
+
+      const routes = {};
+      trips.docs.forEach((d) => {
+        const r = d.data().route;
+        if (r) routes[r] = (routes[r] || 0) + 1;
+      });
+      return Object.entries(routes).sort((a, b) => b[1] - a[1]);
+    },
+    get_monthly_trip_counts: async () => {
+      const trips = await db.collection('trips')
+        .where('userId', '==', userId)
+        .where('endTime', '!=', null)
+        .select('endTime')
+        .get();
+
+      const months = {};
+      trips.docs.forEach((d) => {
+        const ts = d.data().endTime;
+        const date = ts.toDate ? ts.toDate() : new Date(ts);
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        months[key] = (months[key] || 0) + 1;
+      });
+      return months;
+    },
+  };
+
   return await retryWithBackoff(async () => {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash',
+      tools: tools,
+    });
 
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }); // YYYY-MM-DD
-    const prompt = `You are a transit stats assistant for TransitStats. ` +
-      `Answer the user's question using their personal transit data below. ` +
-      `Be concise and friendly. Keep the response under 300 characters ` +
-      `if possible so it fits in an SMS.
+    const chat = model.startChat({
+      history: [],
+    });
+
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });
+    const introPrompt = `You are a transit stats assistant for TransitStats.
+Answer the user's question using their personal transit data below.
+Be concise and friendly. Keep the response under 300 characters for SMS.
+
+You have access to the most recent 200 trips in these stats:
+- Total completed trips in this window: ${stats.total}
+- Top 5 routes in window: ${JSON.stringify(stats.routeStats.slice(0, 5))}
+- Top stop pairs: ${JSON.stringify(stats.pairStats.slice(0, 5))}
+- Daily trip counts recently: ${JSON.stringify(stats.dailyCounts || {})}
+- Stops visited recently: ${stats.allStops?.join(', ')}
+
+IMPORTANT: To answer "all-time" questions or stats outside this recent window, ` +
+`CALL the available tools (get_all_time_stats, etc.). NEVER guess!
 
 Today's date: ${today}
+Question: "${question}"`;
 
-User question: "${question}"
+    let result = await chat.sendMessage(introPrompt);
+    let response = result.response;
 
-Their transit data (most recent 200 completed trips):
-- Total completed trips in this dataset: ${stats.total}
-- Top routes: ${JSON.stringify(stats.routeStats.slice(0, 5))}
-- Top stop pairs (start → end): ${JSON.stringify(stats.pairStats.slice(0, 10))}
-- Most boarded stops: ${JSON.stringify(stats.boardingStops?.slice(0, 5) || [])}
-- Most exited stops: ${JSON.stringify(stats.exitStops?.slice(0, 5) || [])}
-- Trips by time of day: ${JSON.stringify(stats.timeOfDay || {})}
-- Trips per day (YYYY-MM-DD): ${JSON.stringify(stats.dailyCounts || {})}
-- Full list of stops visited in this period: ${stats.allStops?.join(', ') || 'None'}
+    // Handle tool calls in a loop (up to 3 levels deep)
+    for (let i = 0; i < 3; i++) {
+      const calls = response.functionCalls();
+      if (!calls || calls.length === 0) break;
 
-If the data doesn't contain enough info to answer, say so briefly.`;
+      const results = await Promise.all(calls.map(async (call) => {
+        const executor = toolExecutors[call.name];
+        if (!executor) return { name: call.name, response: { error: 'Tool not found' } };
+        const data = await executor(call.args);
+        return { name: call.name, response: { content: data } };
+      }));
 
-    const result = await model.generateContent(prompt);
-    return result.response.text().trim();
-  }).catch(() => 'Sorry, I had trouble answering that. Try again?');
+      result = await chat.sendMessage(results.map((r) => ({ functionResponse: r })));
+      response = result.response;
+    }
+
+    return response.text().trim();
+  }).catch((err) => {
+    console.error('Gemini Tooling Error:', err);
+    return 'Sorry, I had trouble searching your data. Try again?';
+  });
 }
 
 /**
