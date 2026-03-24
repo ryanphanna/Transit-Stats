@@ -2,23 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.10.0] - 2026-03-24
 
 ### Added
 - **UI Heatmap**: Implemented a GitHub-style Activity Grid on the dashboard to visualize ridership patterns over the last 22 weeks. 
-- **AI Search Tools**: GEMINI now has direct database search capabilities for all-time stats (Total trips, stops, and routes) via function calling.
-- **Testing**: Added comprehensive unit tests for trip aggregation and AI data logic, expanding the suite to 144 passing tests.
+- **AI Search Tools**: GEMINI now has direct database search capabilities for all-time stats (Total trips, stops, and routes) via function calling. Use `ASK [question]` for accurate queries.
+- **Testing**: Added `tests/gemini.test.js` with comprehensive unit tests for trip aggregation and AI data logic. Suite expanded to 144 passing tests.
 
-### Security & Hardening
-- **ReDoS Protection**: Optimized high-frequency regex patterns in `utils.js` and `predict.js` to eliminate polynomial backtracking vulnerabilities identified by CodeQL.
-- **Dynamic Method Safety**: Secured the SMS command dispatcher in `dispatcher.js` using strict whitelisting to prevent unvalidated method invocation.
+### Security
+- **ReDoS Protection**: Fixed polynomial backtracking vulnerabilities in `utils.js` (normalizeRoute, toTitleCase) and `predict.js` (_baseRoute) identified by CodeQL.
+- **Dynamic Method Safety**: Secured the command dispatcher in `dispatcher.js` with strict whitelisting to prevent unvalidated method calls.
 
 ### Refactor
 - **Journey Linking**: Removed redundant "Reply LINK" suggestion from trip start SMS; journey linking is now handled automatically at trip end.
 
 ### Fixed
-- **Lint**: Resolved 22 lint errors in Cloud Functions (`handlers.js`, `predict.js`, `db.js`, `gemini.js`) including line lengths, unused variables, and unnecessary regex escapes.
-- **AI Stats**: Enhanced natural-language queries by providing Gemini with a full index of recently visited stops, enabling specific questions about rare locations.
+- **Lint**: Resolved 22 lint errors in Cloud Functions (`handlers.js`, `predict.js`, `db.js`, `gemini.js`) including line lengths and unnecessary escapes.
+- **AI Stats**: Enhanced natural-language queries by providing Gemini with a full index of recently visited stops.
+
 
 
 ## [1.9.12] - 2026-03-22
