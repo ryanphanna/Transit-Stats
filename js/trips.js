@@ -255,8 +255,8 @@ export const Trips = {
         const peakTimes = Stats.computePeakTimes(this.allTrips);
         this.renderPeakTimes(peakTimes);
 
-        const sparkPoints = Stats.computeSparkline(this.allTrips);
-        this.renderSparkline(sparkPoints);
+        const sparkPoints = Stats.computeActivityHeatmap(this.allTrips);
+        this.renderActivityGrid(sparkPoints);
     },
 
     renderList(containerId, items) {
@@ -336,28 +336,26 @@ export const Trips = {
         containers.forEach(c => c.innerHTML = html);
     },
 
-    renderSparkline(points) {
-        const container = document.getElementById('sparkline-container');
+    renderActivityGrid(points) {
+        const container = document.getElementById('activity-grid-container');
         if (!container) return;
 
-        const max = Math.max(...points, 1);
-        const total = points.reduce((a, b) => a + b, 0);
-        const avg = total / points.length;
-        const avgPct = (avg / max) * 100;
-        const bars = points.map((count, i) => `
-            <div class="spark-bar" style="height: ${Math.max((count/max)*100, 10)}%" title="${points.length - 1 - i} days ago: ${count} trips"></div>
-        `).join('');
+        // Group into week columns (7 days each)
+        container.innerHTML = '';
+        for (let i = 0; i < points.length; i += 7) {
+            const week = points.slice(i, i + 7);
+            const col = document.createElement('div');
+            col.className = 'grid-day-column';
 
-        // avgPct is relative to the content area (container height minus padding).
-        // The `bottom` % in CSS resolves against the full border-box height (64px),
-        // so scale: content area = 64 - 20 (bottom padding) - 4 (top padding) = 40px → factor 40/64.
-        const avgLinePct = avgPct * (40 / 64);
-
-        container.innerHTML = `
-            ${bars}
-            <div class="spark-avg-line" style="bottom: calc(20px + ${avgLinePct}%)" title="avg ${avg.toFixed(1)}/day"></div>
-            <div class="spark-label">${total} trips · ${avg.toFixed(1)}/day avg</div>
-        `;
+            week.forEach(d => {
+                const square = document.createElement('div');
+                const heat = Math.min(d.count, 4); // Cap at level 4
+                square.className = `grid-square heat-${heat}`;
+                square.title = `${d.date}: ${d.count} trips`;
+                col.appendChild(square);
+            });
+            container.appendChild(col);
+        }
     },
 
     renderStreaks() {

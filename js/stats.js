@@ -171,6 +171,37 @@ export const Stats = {
     },
     
     /**
+     * Compute trips per day for the last N weeks to fit a GitHub-style grid.
+     */
+    computeActivityHeatmap(trips, weeks = 22) {
+        const data = {};
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Fill last 154 days (22 weeks * 7 days)
+        for (let i = 0; i < weeks * 7; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() - i);
+            const key = d.toISOString().split('T')[0];
+            data[key] = 0;
+        }
+
+        trips.forEach(t => {
+            const date = t.startTime?.toDate ? t.startTime.toDate() : new Date(t.startTime);
+            if (isNaN(date.getTime())) return;
+            const key = date.toISOString().split('T')[0];
+            if (data[key] !== undefined) {
+                data[key]++;
+            }
+        });
+
+        // Return sorted by date ASC
+        return Object.entries(data)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([date, count]) => ({ date, count }));
+    },
+    
+    /**
      * Compute trips per day for the last N days.
      */
     computeSparkline(trips, days = 28) {
