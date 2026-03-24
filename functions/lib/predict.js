@@ -183,7 +183,11 @@ const PredictionEngine = {
    */
   _baseRoute: function (route) {
     const s = route.toString().trim();
-    return /^\d/.test(s) ? s.replace(/[a-zA-Z]+(\s.*)?$/, '').trim() : s;
+    // Only strip suffixes if it starts with a digit. 
+    // This allows pooling "510a" and "510 Shuttle" into data for "510".
+    if (!/^\d/.test(s)) return s;
+    const match = s.match(/^\d+/);
+    return match ? match[0] : s;
   },
 
   _normalizeDirection: function (dir) {

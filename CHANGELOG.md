@@ -5,8 +5,13 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
-- **AI Search Tools**: GEMINI now has direct database search capabilities for all-time stats (Total trips, stops, and routes) via function calling. Use `ASK [question]` to query your entire history accurately.
-- **Testing**: Created `tests/gemini.test.js` with comprehensive unit tests for trip aggregation and AI data logic. Total test suite expanded to 144 passing tests.
+- **UI Heatmap**: Implemented a GitHub-style Activity Grid on the dashboard to visualize ridership patterns over the last 22 weeks. 
+- **AI Search Tools**: GEMINI now has direct database search capabilities for all-time stats (Total trips, stops, and routes) via function calling.
+- **Testing**: Added comprehensive unit tests for trip aggregation and AI data logic, expanding the suite to 144 passing tests.
+
+### Security & Hardening
+- **ReDoS Protection**: Optimized high-frequency regex patterns in `utils.js` and `predict.js` to eliminate polynomial backtracking vulnerabilities identified by CodeQL.
+- **Dynamic Method Safety**: Secured the SMS command dispatcher in `dispatcher.js` using strict whitelisting to prevent unvalidated method invocation.
 
 ### Refactor
 - **Journey Linking**: Removed redundant "Reply LINK" suggestion from trip start SMS; journey linking is now handled automatically at trip end.
