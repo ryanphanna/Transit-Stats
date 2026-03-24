@@ -137,7 +137,8 @@ async function handlePrivateCommands(phoneNumber, user, upperBody, rawBody) {
     'LINK': handlers.handleJourneyLink,
   };
 
-  if (Object.prototype.hasOwnProperty.call(commands, upperBody)) {
+  // Strict whitelist to avoid unvalidated dynamic method invocation
+  if (['STATUS', 'STATS', 'INCOMPLETE', 'DISCARD', 'LINK'].includes(upperBody)) {
     await commands[upperBody](phoneNumber, user);
     return true;
   }

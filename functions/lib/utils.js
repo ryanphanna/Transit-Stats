@@ -15,7 +15,8 @@ function toTitleCase(str) {
 
   // Replace " and " with " & " (case insensitive)
   // Normalize spaces around slashes so "Spadina / Nassau" and "Spadina/Nassau" both become "Spadina/Nassau"
-  const normalized = str.replace(/\s+and\s+/gi, ' & ').replace(/\s*\/\s*/g, '/');
+  // Using a more constrained regex to avoid polynomial ReDoS on long space sequences
+  const normalized = str.replace(/ (and) /gi, ' & ').replace(/ *\/ */g, '/');
 
   return normalized
     .toLowerCase()
@@ -143,7 +144,23 @@ function determineReliability(stateExpiresAt) {
  */
 function normalizeRoute(route) {
   if (!route) return route;
-  return route.trim().replace(/([a-zA-Z]+)$/, (m) => m.toUpperCase());
+  const s = route.toString().trim();
+  
+  // Guard against extreme input length to provide baseline DoS protection
+  if (s.length > 100) return s;
+
+  // Find the index where trailing letters start (e.g., "510a" -> index 3)
+  // We scan backwards to find the boundary in O(N) without backtracking risk.
+  let i = s.length;
+  while (i > 0 && /[a-zA-Z]/.test(s[i - 1])) {
+    i--;
+  }
+  
+  if (i === s.length) return s; // No trailing letters
+  
+  const base = s.slice(0, i);
+  const suffix = s.slice(i);
+  return base + suffix.toUpperCase();
 }
 
 /**
