@@ -1045,3 +1045,60 @@ input:focus, select:focus {
     bottom: 0;
     left: 0;
 }
+/* --- Activity Grid (GitHub Style) --- */
+.activity-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: 12px;
+    padding-bottom: 2rem;
+    position: relative;
+    justify-content: flex-start;
+}
+
+.grid-day-column {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.grid-square {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: var(--bg-muted);
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.grid-square:hover {
+    transform: scale(1.3);
+    z-index: 10;
+    box-shadow: 0 0 10px var(--accent);
+}
+
+/* Heat Colors (TTC Indigo Theme) */
+.heat-0 { background: var(--bg-muted); opacity: 0.3; }
+.heat-1 { background: var(--accent-soft); opacity: 0.6; }
+.heat-2 { background: var(--accent-light); opacity: 0.8; }
+.heat-3 { background: var(--accent); }
+.heat-4 { background: var(--accent-electric); }
+
+.grid-legend {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    justify-content: flex-end;
+    margin-top: 8px;
+}
+
+.legend-square {
+    width: 8px;
+    height: 8px;
+    border-radius: 1px;
+}
+
+/* Layout adjustments */
+.sparkline-container { display: none; } /* Hide old sparkline */
