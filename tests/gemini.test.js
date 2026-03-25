@@ -80,4 +80,25 @@ describe('Gemini aggregateTripStats', () => {
     expect(stats.routeStats[0].route).toBe('Unknown');
     expect(stats.routeStats).toHaveLength(1);
   });
+
+  test('includes day of week breakdown', () => {
+    const stats = aggregateTripStats(mockTrips);
+    const total = Object.values(stats.dayOfWeek).reduce((a, b) => a + b, 0);
+    expect(total).toBe(3);
+    expect(typeof stats.dayOfWeek).toBe('object');
+    const validDays = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    Object.keys(stats.dayOfWeek).forEach(day => expect(validDays).toContain(day));
+  });
+
+  test('includes window date range', () => {
+    const stats = aggregateTripStats(mockTrips);
+    expect(stats.windowStart).toBe('2026-03-20');
+    expect(stats.windowEnd).toBe('2026-03-22');
+  });
+
+  test('returns null window dates for empty trips', () => {
+    const stats = aggregateTripStats([]);
+    expect(stats.windowStart).toBeNull();
+    expect(stats.windowEnd).toBeNull();
+  });
 });
