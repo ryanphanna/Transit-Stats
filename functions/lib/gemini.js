@@ -356,14 +356,16 @@ Answer the user's question using their personal transit data below.
 Be concise and friendly. Keep the response under 300 characters for SMS.
 
 You have access to the most recent 200 trips spanning ${stats.windowStart || '?'} to ${stats.windowEnd || today}:
-- Total completed trips in this window: ${stats.total}
+- Window size (NOT a date-filtered count): ${stats.total} trips
 - Top 5 routes in window: ${JSON.stringify(stats.routeStats.slice(0, 5))}
 - Top stop pairs: ${JSON.stringify(stats.pairStats.slice(0, 5))}
 - Trips by day of week in window: ${JSON.stringify(stats.dayOfWeek || {})}
-- Daily trip counts recently: ${JSON.stringify(stats.dailyCounts || {})}
+- Daily trip counts (YYYY-MM-DD): ${JSON.stringify(stats.dailyCounts || {})}
 - Stops visited recently: ${stats.allStops?.join(', ')}
 
-IMPORTANT: If the question asks about dates or ranges outside ${stats.windowStart || '?'}–${stats.windowEnd || today}, or asks about all-time stats, CALL the appropriate tool. NEVER guess!
+IMPORTANT:
+- "Window size" is NOT the answer to any date-scoped question. For "last month", "this year", or any specific period, sum the relevant entries from dailyCounts, or call get_monthly_trip_counts.
+- If the question asks about dates outside ${stats.windowStart || '?'}–${stats.windowEnd || today}, or asks for all-time stats, CALL the appropriate tool. NEVER guess!
 
 Today's date: ${today}
 Question: "${question}"`;
