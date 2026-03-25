@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - **Query logging**: Every `handleQuery` call now writes a fire-and-forget entry to `queryLogs` (userId, question, answer, tripWindowSize, timestamp, source).
+- **Admin user tier**: Profiles with `isAdmin: true` bypass the Gemini rate limit entirely. Premium users get 50 queries/hr (up from 10). Default remains 10/hr.
 - **Day-of-week query support**: `aggregateTripStats` now includes a `dayOfWeek` breakdown. Added `get_day_of_week_stats` all-time Firestore tool so Gemini can answer questions like "how many trips on Fridays?" or "what's my busiest day?".
 
 ### Fixed

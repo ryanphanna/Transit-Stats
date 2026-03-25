@@ -64,7 +64,8 @@ async function isRateLimited(phoneNumber) {
  * @param {string} phoneNumber - Phone number
  * @returns {boolean} true if Gemini rate limited (10 calls per hour)
  */
-async function isGeminiRateLimited(phoneNumber, isPremium = false) {
+async function isGeminiRateLimited(phoneNumber, isPremium = false, isAdmin = false) {
+  if (isAdmin) return false;
   const limit = isPremium ? 50 : 10;
   const rateLimitRef = db.collection('geminiRateLimits').doc(phoneNumber);
   const doc = await rateLimitRef.get();
@@ -94,7 +95,7 @@ async function isGeminiRateLimited(phoneNumber, isPremium = false) {
   }
 
   if (data.count >= limit) {
-    logger.info('Gemini rate limit exceeded', { From: phoneNumber, isPremium });
+    logger.info('Gemini rate limit exceeded', { From: phoneNumber, isPremium, isAdmin });
     return true;
   }
 
