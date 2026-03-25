@@ -655,7 +655,7 @@ async function handleQuery(phoneNumber, user, question) {
   }
 
   const stats = aggregateTripStats(trips);
-  if (await isGeminiRateLimited(phoneNumber)) {
+  if (await isGeminiRateLimited(phoneNumber, !!profile?.isPremium)) {
     await sendSmsReply(phoneNumber, 'AI limit reached. Try again later.');
     return;
   }
