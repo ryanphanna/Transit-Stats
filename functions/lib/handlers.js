@@ -661,6 +661,16 @@ async function handleQuery(phoneNumber, user, question) {
   }
   const answer = await answerQueryWithGemini(user.userId, question, trips, stats);
   await sendSmsReply(phoneNumber, answer);
+
+  // Fire-and-forget — never block or fail the reply
+  db.collection('queryLogs').add({
+    userId: user.userId,
+    question,
+    answer,
+    tripWindowSize: trips.length,
+    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    source: 'sms',
+  }).catch((err) => console.error('queryLogs write failed:', err));
 }
 
 /**
