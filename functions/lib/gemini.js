@@ -249,7 +249,21 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats) {
         {
           name: 'get_day_of_week_stats',
           description: 'Get trip counts by day of week (Monday, Tuesday, etc.) across all time. ' +
-            'Call this for questions about busiest days, Fridays, weekdays vs weekends, etc.',
+            'Call this for questions about busiest days, Fridays, weekdays vs weekends, etc. ' +
+            'Does NOT filter by year — use get_day_of_week_stats_for_year for year-specific questions.',
+        },
+        {
+          name: 'get_day_of_week_stats_for_year',
+          description: 'Get trip counts by day of week filtered to a specific year. ' +
+            'Call this for questions like "how many Tuesdays in 2026" or "busiest day this year". ' +
+            'Requires a year parameter (e.g. 2026).',
+          parameters: {
+            type: 'object',
+            properties: {
+              year: { type: 'number', description: 'The year to filter by (e.g. 2026)' },
+            },
+            required: ['year'],
+          },
         },
       ]
     }
@@ -332,6 +346,25 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats) {
         const ts = d.data().startTime;
         if (!ts) return;
         const date = ts.toDate ? ts.toDate() : new Date(ts);
+        const day = dayNames[date.getDay()];
+        days[day] = (days[day] || 0) + 1;
+      });
+      return days;
+    },
+    get_day_of_week_stats_for_year: async ({ year }) => {
+      const trips = await db.collection('trips')
+        .where('userId', '==', userId)
+        .where('endTime', '!=', null)
+        .select('startTime')
+        .get();
+
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const days = {};
+      trips.docs.forEach((d) => {
+        const ts = d.data().startTime;
+        if (!ts) return;
+        const date = ts.toDate ? ts.toDate() : new Date(ts);
+        if (date.getFullYear() !== year) return;
         const day = dayNames[date.getDay()];
         days[day] = (days[day] || 0) + 1;
       });
