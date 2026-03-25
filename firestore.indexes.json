@@ -57,6 +57,20 @@
         {
           "fieldPath": "endTime",
           "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "trips",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "endTime",
+          "order": "ASCENDING"
         },
         {
           "fieldPath": "startTime",
