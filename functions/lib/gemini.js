@@ -53,6 +53,10 @@ function aggregateTripStats(trips) {
   const boardingStopMap = {};
   const exitStopMap = {};
   const hourMap = {};
+  const dayOfWeekMap = {};
+  const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  let windowStart = null;
+  let windowEnd = null;
 
   trips.forEach((trip) => {
     const route = trip.route || 'Unknown';
@@ -80,6 +84,10 @@ function aggregateTripStats(trips) {
       const date = trip.startTime.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
       const hour = date.getHours();
       hourMap[hour] = (hourMap[hour] || 0) + 1;
+      const day = DAY_NAMES[date.getDay()];
+      dayOfWeekMap[day] = (dayOfWeekMap[day] || 0) + 1;
+      if (!windowStart || date < windowStart) windowStart = date;
+      if (!windowEnd || date > windowEnd) windowEnd = date;
     }
   });
 
@@ -136,7 +144,13 @@ function aggregateTripStats(trips) {
     ...Object.keys(exitStopMap),
   ])).sort();
 
-  return { total: trips.length, routeStats, pairStats, boardingStops, exitStops, timeOfDay, dailyCounts, allStops };
+  return {
+    total: trips.length,
+    routeStats, pairStats, boardingStops, exitStops, timeOfDay, dailyCounts, allStops,
+    dayOfWeek: dayOfWeekMap,
+    windowStart: windowStart ? windowStart.toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }) : null,
+    windowEnd: windowEnd ? windowEnd.toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }) : null,
+  };
 }
 
 /**
@@ -213,20 +227,29 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats) {
       functionDeclarations: [
         {
           name: 'get_all_time_stats',
-          description: 'Get total counts for trips, routes, and stops across all time for this user.',
+          description: 'Get total trip, route, and stop counts across all time. ' +
+            'Call this for "total ever", "all time", or "since I started" questions.',
         },
         {
           name: 'get_all_time_stop_stats',
-          description: 'Get the top boarding and exit stops (up to 20 each) ' +
-            'with their frequency count across all time.',
+          description: 'Get the top boarding and exit stops (up to 20 each) across all time. ' +
+            'Call this for all-time stop frequency questions.',
         },
         {
           name: 'get_all_time_route_stats',
-          description: 'Get all routes taken and their frequency across all time.',
+          description: 'Get all routes and their frequency across all time. ' +
+            'Call this for all-time route frequency questions.',
         },
         {
           name: 'get_monthly_trip_counts',
-          description: 'Get the number of trips taken in each year/month recorded in history.',
+          description: 'Get trip counts grouped by year-month across all time. ' +
+            'Call this for questions about a specific month, year, or date range ' +
+            'that may fall outside the recent window.',
+        },
+        {
+          name: 'get_day_of_week_stats',
+          description: 'Get trip counts by day of week (Monday, Tuesday, etc.) across all time. ' +
+            'Call this for questions about busiest days, Fridays, weekdays vs weekends, etc.',
         },
       ]
     }
@@ -296,6 +319,24 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats) {
       });
       return months;
     },
+    get_day_of_week_stats: async () => {
+      const trips = await db.collection('trips')
+        .where('userId', '==', userId)
+        .where('endTime', '!=', null)
+        .select('startTime')
+        .get();
+
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const days = {};
+      trips.docs.forEach((d) => {
+        const ts = d.data().startTime;
+        if (!ts) return;
+        const date = ts.toDate ? ts.toDate() : new Date(ts);
+        const day = dayNames[date.getDay()];
+        days[day] = (days[day] || 0) + 1;
+      });
+      return days;
+    },
   };
 
   return await retryWithBackoff(async () => {
@@ -314,15 +355,15 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats) {
 Answer the user's question using their personal transit data below.
 Be concise and friendly. Keep the response under 300 characters for SMS.
 
-You have access to the most recent 200 trips in these stats:
+You have access to the most recent 200 trips spanning ${stats.windowStart || '?'} to ${stats.windowEnd || today}:
 - Total completed trips in this window: ${stats.total}
 - Top 5 routes in window: ${JSON.stringify(stats.routeStats.slice(0, 5))}
 - Top stop pairs: ${JSON.stringify(stats.pairStats.slice(0, 5))}
+- Trips by day of week in window: ${JSON.stringify(stats.dayOfWeek || {})}
 - Daily trip counts recently: ${JSON.stringify(stats.dailyCounts || {})}
 - Stops visited recently: ${stats.allStops?.join(', ')}
 
-IMPORTANT: To answer "all-time" questions or stats outside this recent window, ` +
-`CALL the available tools (get_all_time_stats, etc.). NEVER guess!
+IMPORTANT: If the question asks about dates or ranges outside ${stats.windowStart || '?'}–${stats.windowEnd || today}, or asks about all-time stats, CALL the appropriate tool. NEVER guess!
 
 Today's date: ${today}
 Question: "${question}"`;
@@ -407,8 +448,13 @@ async function parseWithGemini(text) {
     - Tags: Extract 1-3 keyword tags (e.g., "crowded", "delayed", "clean").
 
     Examples:
-    - "Just boarded Route 1 NB" -> Route: "1", Dir: "Northbound"
-    - "Packed 504 from King" -> Route: "504", Tags: ["crowded"]
+    - "Just boarded Route 1 NB" -> intent: "START_TRIP", route: "1", direction: "Northbound"
+    - "Packed 504 from King" -> intent: "START_TRIP", route: "504", tags: ["crowded"]
+    - "How many trips have I taken in total ever?" -> intent: "QUERY", question: "How many trips have I taken in total ever?"
+    - "How many trips have I taken in 2026 so far?" -> intent: "QUERY", question: "How many trips have I taken in 2026 so far?"
+    - "LMK the number of trips I've taken in the last month" -> intent: "QUERY", question: "LMK the number of trips I've taken in the last month"
+    - "What's my most used route?" -> intent: "QUERY", question: "What's my most used route?"
+    - "Tell me my stats" -> intent: "QUERY", question: "Tell me my stats"
 
     Return ONLY JSON:
     {

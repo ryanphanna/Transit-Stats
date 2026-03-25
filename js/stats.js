@@ -220,5 +220,9 @@ export const Stats = {
             }
         });
         return counts;
+    },
+
+    init() {
+        console.log("Stats module initialized.");
     }
 };

@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- **Day-of-week query support**: `aggregateTripStats` now includes a `dayOfWeek` breakdown. Added `get_day_of_week_stats` all-time Firestore tool so Gemini can answer questions like "how many trips on Fridays?" or "what's my busiest day?".
+
+### Fixed
+- **SMS query classification**: Natural-language questions ("How many trips have I taken in 2026?", "LMK the number of trips last month") were misclassified as OTHER by Gemini and hit the fallback. Fixed by adding QUERY intent examples to the `parseWithGemini` prompt.
+- **Query window context**: Gemini now knows the date range of the 200-trip window, so it can correctly decide when to call all-time tools vs answer from the window. Tool descriptions also clarified to guide tool selection.
+
 ## [1.10.0] - 2026-03-24
 
 ### Added
