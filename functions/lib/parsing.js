@@ -75,6 +75,11 @@ function parseMultiLineTripFormat(body, defaultAgency) {
     }
   }
 
+  // Reject if route/stop don't look like actual transit data (e.g. a freeform question)
+  if (!isHeuristicLogValid(stop, route)) {
+    return null;
+  }
+
   return {
     route,
     stop,
