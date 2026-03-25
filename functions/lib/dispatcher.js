@@ -185,7 +185,18 @@ async function handleTripFlow(phoneNumber, user, body) {
  */
 async function handleAIIntent(phoneNumber, user, body) {
   const geminiResult = await parseWithGemini(body);
-  if (!geminiResult || geminiResult.intent === 'OTHER') return false;
+
+  // If Gemini missed a query (returned OTHER/null), fall back to a word-count
+  // heuristic. By this point in the dispatch chain all trip command formats
+  // have already been ruled out, so a multi-word sentence is almost certainly
+  // a natural-language question that Gemini mis-classified.
+  if (!geminiResult || geminiResult.intent === 'OTHER') {
+    if (body.trim().split(/\s+/).length >= 4) {
+      await handlers.handleQuery(phoneNumber, user, body.trim());
+      return true;
+    }
+    return false;
+  }
 
   const userProfile = await getUserProfile(user.userId);
   const defaultAgency = userProfile?.defaultAgency || 'TTC';
