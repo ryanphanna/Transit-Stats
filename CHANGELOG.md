@@ -2,16 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.12.0] - 2026-03-26
+
+### Added
+- **`get_trips_for_date` tool**: Gemini can now answer questions about a specific date (e.g. "how many trips on March 1?") by querying Firestore directly.
+- **`get_trips_for_date_range` tool**: Gemini can now answer questions about a date range (e.g. "how many trips between March 1 and March 15?").
+- **`get_route_stats_for_period` tool**: Gemini can now return per-route trip counts for a given date range (e.g. "what routes did I take in February?").
+- **`get_riding_streak` tool**: Gemini can now report the longest and current streak of consecutive riding days.
+- **`get_stop_pair_stats` tool**: Gemini can now answer origin/destination questions (e.g. "what days do I travel to York University?" or "how many times have I gone from Spadina to York U?").
+- **`get_average_trip_duration` tool**: Gemini can now report average trip duration overall or per route (e.g. "how long is a typical 505 trip?").
+- **`get_weekday_vs_weekend_stats` tool**: Gemini can now compare weekday vs weekend riding.
+- **`get_busiest_weeks` tool**: Gemini can now identify the top 5 busiest weeks by trip count.
+- **`get_unique_stops` tool**: Gemini can now report how many unique stops have been visited.
+
+### Fixed
+- **Login button unresponsive with autofill**: Browser autofill doesn't fire the `input` event, leaving the Continue button disabled. Now also listens to `change` so autofill correctly enables the button.
+
+### Changed
+- **`INCOMPLETE` renamed to `FORGOT`**: The command for marking an active trip as incomplete is now `FORGOT` for clarity. All SMS messages updated accordingly.
+- **Removed `LINK` command**: Manual journey linking via SMS removed — auto-linking at trip end handles this.
+- **Route display**: Removed "Route" prefix from all SMS messages (e.g. "505 from Spadina Station" instead of "Route 505 from Spadina Station").
+- **SMS message consistency**: Standardised "No active trip." for all commands with no active trip. Conflict state messages now always include the origin stop. "marked as incomplete" used consistently.
+
+### Fixed
+- **Confirm-start DISCARD/FORGOT**: In the "active trip conflict" state, `DISCARD` now cancels the new trip attempt (old trip stays active) instead of deleting the old trip. `FORGOT` now marks the old trip as incomplete and cancels the new trip. Updated conflict message to show all three options.
+- **Day-of-week year filter**: `get_day_of_week_stats_for_year` now coerces the `year` parameter to a number before filtering, fixing cases where Gemini passed it as a string and the function returned empty results (causing hallucinated answers).
+- **Natural language misclassified as trip start**: Questions like "How many trips have I made between Queens Park and York University?" were being parsed as trip starts. Fixed by tightening `isValidRoute` to only accept numeric/alphanumeric route codes (e.g. `505`, `510A`, `GO1`, `Line 1`) and adding clearer QUERY examples to the Gemini classification prompt.
+
+## [1.11.0] - 2026-03-25
 
 ### Added
 - **Query logging**: Every `handleQuery` call now writes a fire-and-forget entry to `queryLogs` (userId, question, answer, tripWindowSize, timestamp, source).
 - **Admin user tier**: Profiles with `isAdmin: true` bypass the Gemini rate limit entirely. Premium users get 50 queries/hr (up from 10). Default remains 10/hr.
-- **Day-of-week query support**: `aggregateTripStats` now includes a `dayOfWeek` breakdown. Added `get_day_of_week_stats` all-time Firestore tool so Gemini can answer questions like "how many trips on Fridays?" or "what's my busiest day?".
+- **Day-of-week query support**: `aggregateTripStats` now includes a `dayOfWeek` breakdown. Added `get_day_of_week_stats` and `get_day_of_week_stats_for_year` all-time Firestore tools so Gemini can answer questions like "how many trips on Fridays?" or "what's my busiest day in 2026?".
 
 ### Fixed
 - **SMS query classification**: Natural-language questions ("How many trips have I taken in 2026?", "LMK the number of trips last month") were misclassified as OTHER by Gemini and hit the fallback. Fixed by adding QUERY intent examples to the `parseWithGemini` prompt, plus a word-count fallback in `handleAIIntent`: if Gemini returns OTHER but the message is 4+ words (all trip formats already eliminated by this point), it routes to `handleQuery` directly.
 - **Query window context**: Gemini now knows the date range of the 200-trip window, so it can correctly decide when to call all-time tools vs answer from the window. Tool descriptions also clarified to guide tool selection.
+- **Firestore index**: Added composite index on `userId ASC + endTime ASC` required by the new all-time AI query tools.
+
+### Tests
+- Added coverage for `dayOfWeek` aggregation, window date boundaries, and query intent fallback path.
 
 ## [1.10.0] - 2026-03-24
 

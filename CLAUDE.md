@@ -28,19 +28,30 @@ Key frontend modules:
 
 **Firestore FieldValue**: Use `firebase.firestore.FieldValue.delete()` for removing fields client-side.
 
+## SMS Commands
+- `FORGOT` — marks active trip as incomplete (renamed from `INCOMPLETE`)
+- `DISCARD` — deletes active trip (or cancels new trip attempt in conflict state)
+- `STATUS`, `STATS`, `ASK [question]`, `REGISTER [email]`, `INFO`
+- `LINK` command was removed — journey linking is automatic at trip end
+
 ## Rules
 
 - **Insights view** contains ONLY the Commute Highlights section. No stats, toggles, peak times, or route/stop lists.
 - **No git push** without asking first.
 - **Keep CHANGELOG.md updated** under `[Unreleased]` as work is completed.
+- **Always deploy hosting alongside functions** (`firebase deploy --only hosting,functions`) — hosting-only changes (frontend fixes, auth) won't reach users otherwise.
 - **Log significant work** to the TransitStatsLog Notion database (see Gemini.md for Notion sync patterns).
-- The `Firebase for Transit Stats.json` key lives at `/Users/ryan/Desktop/Dev/` — use it for admin queries, never commit it.
+- The `Firebase for Transit Stats.json` key lives at `/Users/ryan/Desktop/Dev/Credentials/` — use it for admin queries, never commit it.
 
 ## Firestore Collections
 - `trips` — user trip documents (userId, route, startStop, endStop, startTime, endTime, duration, journeyId, etc.)
 - `stops` — stop library (name, code, agency, aliases, lat, lng)
 - `stopRoutes` — GTFS stop→route mapping
 - `routes` — GTFS route library
-- `profiles` — user profiles
+- `profiles` — user profiles (isPremium, isAdmin, defaultAgency)
 - `predictionStats` — per-trip prediction grading
 - `predictionAccuracy` — running accuracy summary per user
+- `queryLogs` — AI query history (userId, question, answer, timestamp)
+
+## AI Query Tools (functions/lib/gemini.js)
+`get_all_time_stats` · `get_all_time_stop_stats` · `get_all_time_route_stats` · `get_monthly_trip_counts` · `get_day_of_week_stats` · `get_day_of_week_stats_for_year` · `get_trips_for_date` · `get_trips_for_date_range` · `get_route_stats_for_period` · `get_riding_streak` · `get_stop_pair_stats` · `get_average_trip_duration` · `get_weekday_vs_weekend_stats` · `get_busiest_weeks` · `get_unique_stops`

@@ -265,6 +265,94 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats) {
             required: ['year'],
           },
         },
+        {
+          name: 'get_trips_for_date',
+          description: 'Get the number of trips taken on a specific calendar date. ' +
+            'Call this for questions like "how many trips on March 1?", "did I ride on Jan 1?", ' +
+            'or any question about a specific day\'s trip count.',
+          parameters: {
+            type: 'object',
+            properties: {
+              date: { type: 'string', description: 'The date in YYYY-MM-DD format (e.g. "2026-03-01")' },
+            },
+            required: ['date'],
+          },
+        },
+        {
+          name: 'get_trips_for_date_range',
+          description: 'Get the number of trips taken between two dates (inclusive). ' +
+            'Call this for questions like "how many trips between March 1 and March 15?" or ' +
+            '"how many trips in the first two weeks of February?".',
+          parameters: {
+            type: 'object',
+            properties: {
+              start_date: { type: 'string', description: 'Start date in YYYY-MM-DD format (inclusive)' },
+              end_date: { type: 'string', description: 'End date in YYYY-MM-DD format (inclusive)' },
+            },
+            required: ['start_date', 'end_date'],
+          },
+        },
+        {
+          name: 'get_route_stats_for_period',
+          description: 'Get trip counts per route between two dates. ' +
+            'Call this for questions like "how often did I take the 505 this month?" or ' +
+            '"what routes did I use in February?".',
+          parameters: {
+            type: 'object',
+            properties: {
+              start_date: { type: 'string', description: 'Start date in YYYY-MM-DD format (inclusive)' },
+              end_date: { type: 'string', description: 'End date in YYYY-MM-DD format (inclusive)' },
+            },
+            required: ['start_date', 'end_date'],
+          },
+        },
+        {
+          name: 'get_riding_streak',
+          description: 'Get the longest streak of consecutive days with at least one trip, ' +
+            'and the current streak. Call this for questions like "what\'s my longest streak?" ' +
+            'or "how many days in a row have I ridden?".',
+        },
+        {
+          name: 'get_average_trip_duration',
+          description: 'Get the average trip duration in minutes, optionally filtered by route. ' +
+            'Call this for questions like "what is my average commute time?" or ' +
+            '"how long is a typical 505 trip?".',
+          parameters: {
+            type: 'object',
+            properties: {
+              route: { type: 'string', description: 'Route number to filter by (optional, e.g. "505")' },
+            },
+          },
+        },
+        {
+          name: 'get_weekday_vs_weekend_stats',
+          description: 'Get trip counts split between weekdays (Mon–Fri) and weekends (Sat–Sun). ' +
+            'Call this for questions like "do I ride more on weekdays or weekends?".',
+        },
+        {
+          name: 'get_busiest_weeks',
+          description: 'Get the top weeks by trip count across all time. ' +
+            'Call this for questions like "what was my busiest week?" or "when do I ride the most?".',
+        },
+        {
+          name: 'get_unique_stops',
+          description: 'Get the total number of unique stops visited and a full list. ' +
+            'Call this for questions like "how many unique stops have I visited?" or "what stops have I used?".',
+        },
+        {
+          name: 'get_stop_pair_stats',
+          description: 'Get trip counts for a specific origin and/or destination stop, optionally ' +
+            'filtered by day of week. Call this for questions like "how many times have I gone from ' +
+            'Spadina to York University?", "what days do I travel to York U?", or ' +
+            '"how often do I board at Bloor?".',
+          parameters: {
+            type: 'object',
+            properties: {
+              start_stop: { type: 'string', description: 'Partial or full name of the boarding stop (optional)' },
+              end_stop: { type: 'string', description: 'Partial or full name of the exit stop (optional)' },
+            },
+          },
+        },
       ]
     }
   ];
@@ -351,7 +439,182 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats) {
       });
       return days;
     },
-    get_day_of_week_stats_for_year: async ({ year }) => {
+    get_unique_stops: async () => {
+      const snap = await db.collection('trips')
+        .where('userId', '==', userId)
+        .select('startStopName', 'endStopName')
+        .get();
+
+      const stops = new Set();
+      snap.docs.forEach((d) => {
+        const t = d.data();
+        if (t.startStopName) stops.add(t.startStopName);
+        if (t.endStopName) stops.add(t.endStopName);
+      });
+      return { unique_stop_count: stops.size, stops: [...stops].sort() };
+    },
+    get_busiest_weeks: async () => {
+      const snap = await db.collection('trips')
+        .where('userId', '==', userId)
+        .select('startTime')
+        .get();
+
+      const weeks = {};
+      snap.docs.forEach((d) => {
+        const ts = d.data().startTime;
+        if (!ts) return;
+        const date = ts.toDate ? ts.toDate() : new Date(ts);
+        const day = date.getDay();
+        const monday = new Date(date);
+        monday.setDate(date.getDate() - ((day + 6) % 7));
+        const key = monday.toISOString().slice(0, 10);
+        weeks[key] = (weeks[key] || 0) + 1;
+      });
+
+      return Object.entries(weeks)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([week, count]) => ({ week_starting: week, trips: count }));
+    },
+    get_weekday_vs_weekend_stats: async () => {
+      const snap = await db.collection('trips')
+        .where('userId', '==', userId)
+        .select('startTime')
+        .get();
+
+      let weekdays = 0;
+      let weekends = 0;
+      snap.docs.forEach((d) => {
+        const ts = d.data().startTime;
+        if (!ts) return;
+        const date = ts.toDate ? ts.toDate() : new Date(ts);
+        const day = date.getDay();
+        if (day === 0 || day === 6) weekends++;
+        else weekdays++;
+      });
+      return { weekdays, weekends, total: weekdays + weekends };
+    },
+    get_average_trip_duration: async ({ route }) => {
+      const snap = await db.collection('trips')
+        .where('userId', '==', userId)
+        .where('endTime', '!=', null)
+        .select('duration', 'route')
+        .get();
+
+      const durations = [];
+      snap.docs.forEach((d) => {
+        const t = d.data();
+        if (route && t.route?.toString() !== route.toString()) return;
+        if (t.duration > 0) durations.push(t.duration);
+      });
+
+      if (durations.length === 0) return { average_minutes: null, trip_count: 0 };
+      const avg = durations.reduce((a, b) => a + b, 0) / durations.length;
+      return { average_minutes: Math.round(avg), trip_count: durations.length };
+    },
+    get_stop_pair_stats: async ({ start_stop, end_stop }) => {
+      const snap = await db.collection('trips')
+        .where('userId', '==', userId)
+        .select('startStopName', 'endStopName', 'startTime')
+        .get();
+
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const matches = [];
+      const byDay = {};
+
+      snap.docs.forEach((d) => {
+        const t = d.data();
+        const start = (t.startStopName || '').toLowerCase();
+        const end = (t.endStopName || '').toLowerCase();
+        const startMatch = !start_stop || start.includes(start_stop.toLowerCase());
+        const endMatch = !end_stop || end.includes(end_stop.toLowerCase());
+        if (!startMatch || !endMatch) return;
+
+        const ts = t.startTime;
+        if (!ts) return;
+        const date = ts.toDate ? ts.toDate() : new Date(ts);
+        const day = dayNames[date.getDay()];
+        byDay[day] = (byDay[day] || 0) + 1;
+        matches.push({ from: t.startStopName, to: t.endStopName });
+      });
+
+      return { total: matches.length, by_day_of_week: byDay };
+    },
+    get_riding_streak: async () => {
+      const snap = await db.collection('trips')
+        .where('userId', '==', userId)
+        .select('startTime')
+        .get();
+
+      const days = new Set();
+      snap.docs.forEach((d) => {
+        const ts = d.data().startTime;
+        if (!ts) return;
+        const date = ts.toDate ? ts.toDate() : new Date(ts);
+        days.add(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`);
+      });
+
+      const sorted = [...days].sort();
+      let longest = 0;
+      let current = 0;
+      let prev = null;
+      for (const day of sorted) {
+        if (prev) {
+          const diff = (new Date(day) - new Date(prev)) / 86400000;
+          current = diff === 1 ? current + 1 : 1;
+        } else {
+          current = 1;
+        }
+        longest = Math.max(longest, current);
+        prev = day;
+      }
+
+      const today = new Date().toISOString().slice(0, 10);
+      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      const currentStreak = days.has(today) || days.has(yesterday) ? current : 0;
+
+      return { longest_streak_days: longest, current_streak_days: currentStreak };
+    },
+    get_route_stats_for_period: async ({ start_date, end_date }) => {
+      const start = new Date(`${start_date}T00:00:00`);
+      const end = new Date(`${end_date}T23:59:59`);
+      const snap = await db.collection('trips')
+        .where('userId', '==', userId)
+        .where('startTime', '>=', start)
+        .where('startTime', '<=', end)
+        .select('route')
+        .get();
+
+      const routes = {};
+      snap.docs.forEach((d) => {
+        const route = d.data().route;
+        if (!route) return;
+        routes[route] = (routes[route] || 0) + 1;
+      });
+      return routes;
+    },
+    get_trips_for_date_range: async ({ start_date, end_date }) => {
+      const start = new Date(`${start_date}T00:00:00`);
+      const end = new Date(`${end_date}T23:59:59`);
+      const snap = await db.collection('trips')
+        .where('userId', '==', userId)
+        .where('startTime', '>=', start)
+        .where('startTime', '<=', end)
+        .get();
+      return { start_date, end_date, count: snap.size };
+    },
+    get_trips_for_date: async ({ date }) => {
+      const start = new Date(`${date}T00:00:00`);
+      const end = new Date(`${date}T23:59:59`);
+      const snap = await db.collection('trips')
+        .where('userId', '==', userId)
+        .where('startTime', '>=', start)
+        .where('startTime', '<=', end)
+        .get();
+      return { date, count: snap.size };
+    },
+    get_day_of_week_stats_for_year: async ({ year: rawYear }) => {
+      const year = parseInt(rawYear, 10);
       const trips = await db.collection('trips')
         .where('userId', '==', userId)
         .where('endTime', '!=', null)
@@ -487,9 +750,12 @@ async function parseWithGemini(text) {
     - "Packed 504 from King" -> intent: "START_TRIP", route: "504", tags: ["crowded"]
     - "How many trips have I taken in total ever?" -> intent: "QUERY", question: "How many trips have I taken in total ever?"
     - "How many trips have I taken in 2026 so far?" -> intent: "QUERY", question: "How many trips have I taken in 2026 so far?"
+    - "How many trips have I made between Queens Park and York University?" -> intent: "QUERY", question: "How many trips have I made between Queens Park and York University?"
+    - "How often do I take the 505?" -> intent: "QUERY", question: "How often do I take the 505?"
     - "LMK the number of trips I've taken in the last month" -> intent: "QUERY", question: "LMK the number of trips I've taken in the last month"
     - "What's my most used route?" -> intent: "QUERY", question: "What's my most used route?"
     - "Tell me my stats" -> intent: "QUERY", question: "Tell me my stats"
+    - Any message starting with "How many", "How often", "What", "When", "Which", "Tell me", "Show me", or containing a "?" is QUERY, not START_TRIP.
 
     Return ONLY JSON:
     {

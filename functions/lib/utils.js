@@ -98,13 +98,11 @@ function isValidRoute(route) {
   // Clean up
   const cleanRoute = route.trim().toUpperCase();
 
-  // If it's a number, it's valid
-  if (/^\d+$/.test(cleanRoute)) return true;
+  // Valid formats: "505", "510A", "510B", "GO1", "Line 1", "Line 2"
+  if (/^[A-Z]{0,2}\d+[A-Z]?$/.test(cleanRoute)) return true;
+  if (/^LINE\s*\d+$/.test(cleanRoute)) return true;
 
-  // If it's in the bad list, it's invalid
-  if (BAD_ROUTE_SUFFIXES.includes(cleanRoute)) return false;
-
-  return true;
+  return false;
 }
 
 /**
@@ -171,7 +169,7 @@ function normalizeRoute(route) {
  */
 function getRouteDisplay(route, direction = null) {
   const r = normalizeRoute(route ? route.toString() : route);
-  return direction ? `Route ${r} ${direction}` : `Route ${r}`;
+  return direction ? `${r} ${direction}` : `${r}`;
 }
 
 module.exports = {

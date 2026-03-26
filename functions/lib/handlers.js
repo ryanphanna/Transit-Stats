@@ -60,8 +60,7 @@ NOTES (optional)
 Commands:
 STATUS - view active trip
 STATS - your last 30 days
-LINK - join last two trips as one journey
-INCOMPLETE - forgot to end a trip
+FORGOT - forgot to end a trip
 DISCARD - didn't board, delete the trip
 REGISTER [email] - link account
 ASK [question] - AI stats (premium)`,
@@ -99,7 +98,7 @@ async function handleStatus(phoneNumber, user) {
 ${routeDisplay} from ${startStopDisplay}
 Started ${timeStr} (${elapsedMin} min ago)
 
-END [stop] to finish. INFO for help.`;
+END [stop] to finish. FORGOT if you forgot to end. INFO for help.`;
 
   await sendSmsReply(phoneNumber, message);
 }
@@ -111,7 +110,7 @@ async function handleDiscard(phoneNumber, user) {
   const activeTrip = await getActiveTrip(user.userId);
 
   if (!activeTrip) {
-    await sendSmsReply(phoneNumber, 'No active trip to discard.');
+    await sendSmsReply(phoneNumber, 'No active trip.');
     return;
   }
 
@@ -140,13 +139,13 @@ async function handleDiscard(phoneNumber, user) {
 }
 
 /**
- * Handle INCOMPLETE command - marks end as unknown
+ * Handle FORGOT command - marks end as unknown
  */
 async function handleIncomplete(phoneNumber, user) {
   const activeTrip = await getActiveTrip(user.userId);
 
   if (!activeTrip) {
-    await sendSmsReply(phoneNumber, 'No active trip to mark incomplete.');
+    await sendSmsReply(phoneNumber, 'No active trip.');
     return;
   }
 
@@ -159,7 +158,7 @@ async function handleIncomplete(phoneNumber, user) {
     duration: null,
   });
 
-  await sendSmsReply(phoneNumber, `Marked ${routeDisplay} as incomplete.`);
+  await sendSmsReply(phoneNumber, `${routeDisplay} saved as incomplete.`);
 }
 
 /**
@@ -280,8 +279,8 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
   const boardingLocation = stopData ? { lat: stopData.lat, lng: stopData.lng } : null;
 
   if (activeTrip) {
-    const activeTripRouteDisplay = getRouteDisplay(activeTrip.route, activeTrip.direction);
-    const newTripRouteDisplay = getRouteDisplay(route, direction);
+    const activeTripRouteDisplay = getRouteDisplay(activeTrip.route);
+    const newTripRouteDisplay = getRouteDisplay(route);
 
     await setPendingState(phoneNumber, {
       type: 'confirm_start',
@@ -310,11 +309,12 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
     });
 
     const activeTripElapsedMin = Math.round((Date.now() - activeTrip.startTime.toDate().getTime()) / 60000);
-    const message = `${activeTripRouteDisplay} from ` +
-      `${getStopDisplay(activeTrip.startStopCode, activeTrip.startStopName, activeTrip.startStop)} ` +
-      `was not ended (started ${activeTripElapsedMin} min ago).
+    const activeTripStopDisplay = getStopDisplay(activeTrip.startStopCode, activeTrip.startStopName, activeTrip.startStop);
+    const message = `${activeTripRouteDisplay} from ${activeTripStopDisplay} was not ended (started ${activeTripElapsedMin} min ago).
 
-START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDisplay}. DISCARD to delete.`;
+START to begin ${newTripRouteDisplay} from ${stopDisplay}, and save ${activeTripRouteDisplay} from ${activeTripStopDisplay} as incomplete.
+
+FORGOT to save as incomplete. DISCARD to cancel new trip.`;
 
     await sendSmsReply(phoneNumber, message);
     return;
@@ -372,7 +372,7 @@ START to save incomplete trip and begin ${newTripRouteDisplay} from ${stopDispla
 
   await sendSmsReply(phoneNumber, `Started ${routeDisplay} from ${finalStopDisplay}.
 
-END [stop] to finish. INFO for help.`);
+END [stop] to finish. FORGOT if you forgot to end. INFO for help.`);
 }
 
 /**
@@ -437,11 +437,11 @@ async function handleConfirmStart(phoneNumber, user, state) {
   const newStopDisplay = getStopDisplay(newTrip.stopCode, newTrip.stopName);
   const newRouteDisplay = getRouteDisplay(newTrip.route, normalizeDirection(newTrip.direction));
 
-  await sendSmsReply(phoneNumber, `${oldTripRouteDisplay} marked incomplete.
+  await sendSmsReply(phoneNumber, `${oldTripRouteDisplay} marked as incomplete.
 
 Started ${newRouteDisplay} from ${newStopDisplay}.
 
-END [stop] to finish. INFO for help.`);
+END [stop] to finish. FORGOT if you forgot to end. INFO for help.`);
 }
 
 /**

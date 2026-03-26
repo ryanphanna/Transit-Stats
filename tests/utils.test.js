@@ -213,18 +213,18 @@ describe('getStopDisplay', () => {
 
 describe('getRouteDisplay', () => {
   test('basic route with no direction', () => {
-    expect(getRouteDisplay('501')).toBe('Route 501');
+    expect(getRouteDisplay('501')).toBe('501');
   });
 
   test('route with direction', () => {
-    expect(getRouteDisplay('501', 'Southbound')).toBe('Route 501 Southbound');
+    expect(getRouteDisplay('501', 'Southbound')).toBe('501 Southbound');
   });
 
   test('trailing lowercase letter in route is uppercased', () => {
-    expect(getRouteDisplay('510a')).toBe('Route 510A');
+    expect(getRouteDisplay('510a')).toBe('510A');
   });
 
   test('numeric route as number type is handled', () => {
-    expect(getRouteDisplay(501)).toBe('Route 501');
+    expect(getRouteDisplay(501)).toBe('501');
   });
 });

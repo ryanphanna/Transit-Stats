@@ -11,13 +11,14 @@ const {
   getUserByPhone,
   getUserProfile,
   shouldRespondToUnknown,
+  clearPendingState,
   db,
   admin,
 } = require('./db');
 const { sendSmsReply } = require('./twilio');
 const { parseWithGemini, constructStopInput } = require('./gemini');
 const { parseMultiLineTripFormat, parseEndTripFormat } = require('./parsing');
-const { isValidRoute, normalizeDirection } = require('./utils');
+const { isValidRoute, normalizeDirection, getRouteDisplay, getStopDisplay } = require('./utils');
 const handlers = require('./handlers');
 
 /**
@@ -89,10 +90,38 @@ async function handlePendingState(phoneNumber, body, upperBody, state) {
     return true;
   }
 
-  if (state.type === 'confirm_start' && upperBody === 'START') {
-    const user = await getUserByPhone(phoneNumber);
-    if (user) await handlers.handleConfirmStart(phoneNumber, user, state);
-    return true;
+  if (state.type === 'confirm_start') {
+    if (upperBody === 'START') {
+      const user = await getUserByPhone(phoneNumber);
+      if (user) await handlers.handleConfirmStart(phoneNumber, user, state);
+      return true;
+    }
+
+    if (upperBody === 'DISCARD') {
+      // Cancel the new trip attempt — old trip stays active
+
+      const activeRouteDisplay = getRouteDisplay(state.activeTrip.route, state.activeTrip.direction);
+      const activeStopDisplay = getStopDisplay(state.activeTrip.startStopCode, state.activeTrip.startStopName, state.activeTrip.startStop);
+      await clearPendingState(phoneNumber);
+      await sendSmsReply(phoneNumber, `New trip cancelled. ${activeRouteDisplay} from ${activeStopDisplay} still active.\n\nEND [stop] to finish. FORGOT if you forgot to end.`);
+      return true;
+    }
+
+    if (upperBody === 'FORGOT') {
+      // Mark old trip incomplete and cancel the new trip attempt
+
+      await db.collection('trips').doc(state.activeTrip.id).update({
+        incomplete: true,
+        endTime: state.activeTrip.startTime,
+        exitLocation: null,
+        duration: null,
+      });
+      const activeRouteDisplay = getRouteDisplay(state.activeTrip.route, state.activeTrip.direction);
+      const activeStopDisplay = getStopDisplay(state.activeTrip.startStopCode, state.activeTrip.startStopName, state.activeTrip.startStop);
+      await clearPendingState(phoneNumber);
+      await sendSmsReply(phoneNumber, `${activeRouteDisplay} from ${activeStopDisplay} saved as incomplete. New trip cancelled.`);
+      return true;
+    }
   }
 
   return false;
@@ -132,13 +161,12 @@ async function handlePrivateCommands(phoneNumber, user, upperBody, rawBody) {
   const commands = {
     'STATUS': handlers.handleStatus,
     'STATS': handlers.handleStatsCommand,
-    'INCOMPLETE': handlers.handleIncomplete,
+    'FORGOT': handlers.handleIncomplete,
     'DISCARD': handlers.handleDiscard,
-    'LINK': handlers.handleJourneyLink,
   };
 
   // Strict whitelist to avoid unvalidated dynamic method invocation
-  if (['STATUS', 'STATS', 'INCOMPLETE', 'DISCARD', 'LINK'].includes(upperBody)) {
+  if (['STATUS', 'STATS', 'FORGOT', 'DISCARD'].includes(upperBody)) {
     await commands[upperBody](phoneNumber, user);
     return true;
   }
@@ -229,7 +257,7 @@ async function handleAIIntent(phoneNumber, user, body) {
     await handlers.handleDiscard(phoneNumber, user);
     return true;
   case 'INCOMPLETE_TRIP':
-    await handlers.handleIncomplete(phoneNumber, user);
+    await handlers.handleIncomplete(phoneNumber, user); // internal Gemini intent, maps to FORGOT
     return true;
   case 'QUERY':
     await handlers.handleQuery(phoneNumber, user, geminiResult.question || body);

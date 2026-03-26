@@ -153,9 +153,11 @@ function setupNavListeners() {
 }
 
 function setupAuthListeners() {
-    DOM.auth.emailInput.addEventListener('input', () => {
+    const syncContinueBtn = () => {
         DOM.auth.btnContinue.disabled = !DOM.auth.emailInput.value.trim();
-    });
+    };
+    DOM.auth.emailInput.addEventListener('input', syncContinueBtn);
+    DOM.auth.emailInput.addEventListener('change', syncContinueBtn);
 
     DOM.auth.emailInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !DOM.auth.btnContinue.disabled) DOM.auth.btnContinue.click();
