@@ -16,7 +16,7 @@ All notable changes to this project will be documented in this file.
 - **`get_unique_stops` tool**: Gemini can now report how many unique stops have been visited.
 
 ### Fixed
-- **Login button unresponsive with autofill**: Browser autofill doesn't fire the `input` event, leaving the Continue button disabled. Now also listens to `change` so autofill correctly enables the button.
+- **Login button unresponsive with autofill**: Browser autofill often skips `input`/`change` events entirely. Now polls the input value for 2 seconds after load so the Continue button enables correctly regardless of how the field is filled.
 
 ### Changed
 - **`INCOMPLETE` renamed to `FORGOT`**: The command for marking an active trip as incomplete is now `FORGOT` for clarity. All SMS messages updated accordingly.
