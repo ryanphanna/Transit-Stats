@@ -368,6 +368,36 @@ body.dark .header {
   box-shadow: var(--shadow-sm);
 }
 
+.trip-card-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.trip-card.trip-needs-review {
+  border-color: var(--warning);
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.trip-review-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--warning);
+}
+
+.trip-review-banner i { flex-shrink: 0; width: 14px; height: 14px; }
+
+.trip-review-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
 .trip-info { display: flex; flex-direction: column; gap: 8px; flex: 1; }
 .trip-route-pill {
   display: inline-block;

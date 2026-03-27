@@ -29,6 +29,7 @@ const {
   getRouteDisplay,
   normalizeDirection,
   normalizeRoute,
+  isValidRoute,
   generateVerificationCode,
   determineReliability,
 } = require('./utils');
@@ -362,6 +363,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
     parsed_by: options.parsed_by || 'manual',
     prediction: prediction || null,
     endStopPrediction: endStopPrediction || null,
+    needs_review: !isValidRoute(route) || null,
   });
 
   const routeDisplay = getRouteDisplay(route, direction);

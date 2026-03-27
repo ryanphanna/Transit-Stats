@@ -146,13 +146,14 @@ export const Trips = {
     renderTripCard(trip) {
         const card = document.createElement('div');
         card.className = 'trip-card';
-        
+        if (trip.needs_review) card.classList.add('trip-needs-review');
+
         const rawStart = trip.startTime;
         const startTime = rawStart?.toDate ? rawStart.toDate() : new Date(rawStart || Date.now());
         const dateStr = isNaN(startTime.getTime())
             ? '—'
             : startTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        
+
         const startStop = Utils.normalizeIntersectionStop(trip.startStopName || trip.startStop || trip.startStopCode) || 'Unknown';
         const endStop = Utils.normalizeIntersectionStop(trip.endStopName || trip.endStop || trip.endStopCode) || '...';
 
@@ -160,28 +161,51 @@ export const Trips = {
             Clockwise: 'CW', Counterclockwise: 'CCW', Inbound: 'IB', Outbound: 'OB' };
         const direction = trip.direction ? (dirAbbr[trip.direction] || Utils.hide(trip.direction)) : '';
 
-        card.innerHTML = `
-            <div class="trip-info">
-                <div class="trip-main">
-                    <div class="trip-route-pill">${Utils.hide(trip.route)}</div>
-                    <div class="trip-path">
-                        <span class="stop-name">${Utils.hide(startStop)}</span>
-                        <span class="path-arrow">→</span>
-                        <span class="stop-name">${Utils.hide(endStop)}</span>
-                    </div>
+        const reviewBanner = trip.needs_review ? `
+            <div class="trip-review-banner">
+                <i data-lucide="alert-triangle"></i>
+                <span>Unrecognized route — is this a valid trip?</span>
+                <div class="trip-review-actions">
+                    <button class="btn btn-sm btn-outline btn-confirm-trip">Looks good</button>
+                    <button class="btn btn-sm btn-danger-outline btn-delete-trip">Delete</button>
                 </div>
-                <button class="btn-edit-trip" title="Edit Trip"><i data-lucide="edit-2"></i></button>
             </div>
-            <div class="trip-meta">
-                <div class="trip-date">${dateStr}</div>
-                ${direction ? `<div class="trip-direction">${direction}</div>` : ''}
-                <div class="trip-duration">${trip.duration || 0} min</div>
+        ` : '';
+
+        card.innerHTML = `
+            ${reviewBanner}
+            <div class="trip-card-body">
+                <div class="trip-info">
+                    <div class="trip-main">
+                        <div class="trip-route-pill">${Utils.hide(trip.route)}</div>
+                        <div class="trip-path">
+                            <span class="stop-name">${Utils.hide(startStop)}</span>
+                            <span class="path-arrow">→</span>
+                            <span class="stop-name">${Utils.hide(endStop)}</span>
+                        </div>
+                    </div>
+                    <button class="btn-edit-trip" title="Edit Trip"><i data-lucide="edit-2"></i></button>
+                </div>
+                <div class="trip-meta">
+                    <div class="trip-date">${dateStr}</div>
+                    ${direction ? `<div class="trip-direction">${direction}</div>` : ''}
+                    <div class="trip-duration">${trip.duration || 0} min</div>
+                </div>
             </div>
         `;
 
         card.querySelector('.btn-edit-trip').addEventListener('click', () => {
             this.openEditModal(trip.id);
         });
+
+        if (trip.needs_review) {
+            card.querySelector('.btn-confirm-trip').addEventListener('click', () => {
+                db.collection('trips').doc(trip.id).update({ needs_review: firebase.firestore.FieldValue.delete() });
+            });
+            card.querySelector('.btn-delete-trip').addEventListener('click', () => {
+                this.delete(trip.id);
+            });
+        }
 
         return card;
     },

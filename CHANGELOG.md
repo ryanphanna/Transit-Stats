@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- **Trip review banner**: Trips created with an unrecognized route (e.g. from a mis-parsed SMS) are now flagged with `needs_review: true` in Firestore and shown with a warning banner in the feed. Inline "Looks good" and "Delete" actions let you triage without leaving the feed.
+
 ## [1.12.0] - 2026-03-26
 
 ### Added
