@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [1.13.0] - 2026-03-28
 
+### Security
+- **Dependency updates**: Fixed 3 vulnerabilities (brace-expansion moderate, node-forge high, picomatch high) via `npm audit fix`.
+
 ### Fixed
 - **Login Flow and Boot Sequence**: 
   - Implemented a robust `readyState` check for application initialization, ensuring the app boots correctly even if the script loads after the DOM is ready (common in built/production environments).
