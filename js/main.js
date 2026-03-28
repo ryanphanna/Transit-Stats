@@ -160,8 +160,15 @@ function setupAuthListeners() {
     const syncContinueBtn = () => {
         const val = DOM.auth.emailInput.value.trim();
         if (val) cachedEmail = val;
-        DOM.auth.btnContinue.disabled = !val;
+        // Keep enabled if we have a current value OR a cached value.
+        // This prevents the button from disabling if Chrome clears the field on focus shift.
+        DOM.auth.btnContinue.disabled = !val && !cachedEmail;
     };
+    
+    // Proactively capture email on mousedown/pointerdown - before Focus/Blur events can clear it
+    DOM.auth.btnContinue.addEventListener('mousedown', syncContinueBtn);
+    DOM.auth.btnContinue.addEventListener('pointerdown', syncContinueBtn);
+
     DOM.auth.emailInput.addEventListener('input', syncContinueBtn);
     DOM.auth.emailInput.addEventListener('change', syncContinueBtn);
 
@@ -179,9 +186,12 @@ function setupAuthListeners() {
         if (e.key === 'Enter' && !DOM.auth.btnContinue.disabled) DOM.auth.btnContinue.click();
     });
 
-    DOM.auth.btnContinue.addEventListener('click', () => {
+    DOM.auth.btnContinue.addEventListener('click', (e) => {
         const email = DOM.auth.emailInput.value.trim() || cachedEmail;
-        if (!email) return;
+        if (!email) {
+            e.preventDefault();
+            return;
+        }
 
         DOM.auth.displayEmail.textContent = email;
         DOM.auth.emailStep.classList.add('hidden');
@@ -486,5 +496,10 @@ function refreshIcons() {
 }
 
 // Boot
-document.addEventListener('DOMContentLoaded', init);
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    // Already loaded (common in some module environments)
+    init();
+}
 
