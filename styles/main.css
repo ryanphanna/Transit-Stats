@@ -199,6 +199,10 @@ body.dark .header {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Autofill detection via animation — triggers animationstart on the input when browser autofills */
+@keyframes onAutofillStart { from {} to {} }
+input:-webkit-autofill { animation-name: onAutofillStart; }
+
 /* --- Auth View --- */
 .auth-view {
   display: flex;

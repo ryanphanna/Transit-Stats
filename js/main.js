@@ -159,12 +159,15 @@ function setupAuthListeners() {
     DOM.auth.emailInput.addEventListener('input', syncContinueBtn);
     DOM.auth.emailInput.addEventListener('change', syncContinueBtn);
 
-    // Browser autofill often skips input/change events — poll briefly after load
+    // Browser autofill often skips input/change events — poll for up to 10s after load
     let autofillChecks = 0;
     const autofillPoll = setInterval(() => {
         syncContinueBtn();
-        if (++autofillChecks >= 20) clearInterval(autofillPoll);
+        if (++autofillChecks >= 100) clearInterval(autofillPoll);
     }, 100);
+
+    // CSS animation-based autofill detection (catches autofill that fires after the poll ends)
+    DOM.auth.emailInput.addEventListener('animationstart', syncContinueBtn);
 
     DOM.auth.emailInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !DOM.auth.btnContinue.disabled) DOM.auth.btnContinue.click();

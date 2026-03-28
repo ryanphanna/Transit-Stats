@@ -13,7 +13,7 @@ export const RouteTracker = {
 
     init: function () {
         // Default to user's profile agency, fall back to TTC
-        const profileAgency = window.Profile?.currentProfile?.defaultAgency;
+        const profileAgency = window.currentUserProfile?.defaultAgency;
         this.currentAgency = profileAgency || 'TTC';
 
         const select = document.getElementById('routeTrackerAgency');
@@ -79,9 +79,9 @@ export const RouteTracker = {
     },
 
     _getRiddenSet: function (agency) {
-        if (!window.Trips?.allCompletedTrips) return new Set();
+        if (!window.Trips?.allTrips) return new Set();
         return new Set(
-            window.Trips.allCompletedTrips
+            window.Trips.allTrips
                 .filter(t => t.agency === agency && t.route)
                 .map(t => String(t.route).trim().toLowerCase())
         );

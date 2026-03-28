@@ -156,7 +156,7 @@ export const Profile = {
         if (typeof window.updateTripIndicator === 'function') window.updateTripIndicator();
         this.load();
 
-        if (profileSection) UI.fadeInSection(profileSection);
+        if (profileSection) profileSection.style.opacity = '1';
     }
 };
 

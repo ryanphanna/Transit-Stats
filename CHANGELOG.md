@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **Login Continue button**: Extended autofill detection poll from 2s to 10s and added CSS `animationstart` hook so the Continue button reliably enables when the browser autofills the email field.
+- **Route tracker broken**: `_getRiddenSet` was referencing `Trips.allCompletedTrips` (doesn't exist) instead of `Trips.allTrips` — route completion was always showing 0% ridden.
+- **Route tracker wrong agency**: `init` was reading `window.Profile.currentProfile.defaultAgency` instead of `window.currentUserProfile.defaultAgency` — always defaulted to TTC regardless of your profile.
+- **Profile view crash**: `UI.fadeInSection()` doesn't exist — replaced with direct opacity assignment so the Profile view no longer throws on open.
+
 ### Added
 - **Trip review banner**: Trips created with an unrecognized route (e.g. from a mis-parsed SMS) are now flagged with `needs_review: true` in Firestore and shown with a warning banner in the feed. Inline "Looks good" and "Delete" actions let you triage without leaving the feed.
 
