@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Security
+- **Dependency updates**: Fixed 3 vulnerabilities (brace-expansion moderate, node-forge high, picomatch high) via `npm audit fix`.
+
 ### Fixed
 - **Login Continue button**: Extended autofill detection poll from 2s to 10s and added CSS `animationstart` hook so the Continue button reliably enables when the browser autofills the email field.
 - **Route tracker broken**: `_getRiddenSet` was referencing `Trips.allCompletedTrips` (doesn't exist) instead of `Trips.allTrips` — route completion was always showing 0% ridden.
