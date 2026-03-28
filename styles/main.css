@@ -53,6 +53,7 @@ body.dark {
 }
 
 /* --- Base Styles --- */
+.hidden { display: none !important; }
 * { box-sizing: border-box; }
 body {
   margin: 0;
@@ -540,7 +541,8 @@ input:-webkit-autofill { animation-name: onAutofillStart; }
   box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
 }
 .btn-primary:active { transform: translateY(0); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-inactive { opacity: 0.5; cursor: default; }
 
 .btn-ghost {
   background: transparent;

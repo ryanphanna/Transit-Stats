@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- **Critical: Silent JS module crash on boot**: `setTheme()` was called at module-level (before `initDOM()`), causing `DOM.modals.themeLight` to throw a `TypeError` on `undefined`. This silently killed the entire module, meaning zero event listeners were ever attached — including for the Continue button, Sign In, and all nav. Root fix: moved `setTheme()` call inside `init()` after `initDOM()`.
+- **Auth step transition broken**: `.hidden` CSS utility class was referenced throughout `index.html` but never defined in `main.css`, so `classList.add('hidden')` had no visual effect. Added `.hidden { display: none !important; }`.
+- **Stats/Map/RouteTracker never initialized after login**: `Trips._readyPromise.then(...)` was guarded with `if (Trips._readyPromise)` in `init()`, but `_readyPromise` is always `null` at boot (it's only set when the user logs in and `Trips.init()` fires). Moved the `.then()` chain into `setupAuthObserver()`, directly after `Trips.init()`, so it always fires correctly on login.
+
+### Refactor
+- **`setTheme()` crash-proofed**: Added optional chaining to `DOM.modals?.themeLight` and `DOM.modals?.themeDark` guards so calling `setTheme` before the DOM is initialized is a safe no-op rather than a crash.
+- **Removed redundant inline HTML handlers**: Temporary `oninput`/`onclick` workarounds on the email input and Continue/Sign-in-with-Password buttons removed now that the module loads correctly. All auth logic lives exclusively in `setupAuthListeners()`.
+
 ## [1.13.0] - 2026-03-28
 
 ### Security

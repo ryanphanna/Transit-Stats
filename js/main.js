@@ -38,18 +38,10 @@ const DOM = {};
 async function init() {
     console.log("App booting...");
     initDOM();
+    setTheme(State.theme);
     setupEventListeners();
     setupAuthObserver();
     refreshIcons();
-
-    // Defer Stats, Map, and RouteTracker until Trips has its first snapshot, so they
-    // don’t compete with the initial read and can use Trips.allCompletedTrips directly.
-    Trips._readyPromise.then(() => {
-        Stats.init();
-        MapEngine.init();
-        RouteTracker.init();
-        refreshIcons();
-    });
 }
 
 function initDOM() {
@@ -153,43 +145,30 @@ function setupNavListeners() {
 }
 
 function setupAuthListeners() {
-    // Cache the last known email — Chrome autofill can clear .value the moment focus
-    // leaves the field (e.g. when clicking Continue), so we capture it proactively.
-    let cachedEmail = '';
+    const emailInput = DOM.auth.emailInput;
+    const btnContinue = DOM.auth.btnContinue;
 
-    const syncContinueBtn = () => {
-        const val = DOM.auth.emailInput.value.trim();
-        if (val) cachedEmail = val;
-        // Keep enabled if we have a current value OR a cached value.
-        // This prevents the button from disabling if Chrome clears the field on focus shift.
-        DOM.auth.btnContinue.disabled = !val && !cachedEmail;
+    // Visual-only toggle — btn is always clickable, we just dim it
+    const syncBtn = () => {
+        const hasEmail = emailInput.value.trim().length > 0;
+        btnContinue.classList.toggle('btn-inactive', !hasEmail);
     };
-    
-    // Proactively capture email on mousedown/pointerdown - before Focus/Blur events can clear it
-    DOM.auth.btnContinue.addEventListener('mousedown', syncContinueBtn);
-    DOM.auth.btnContinue.addEventListener('pointerdown', syncContinueBtn);
 
-    DOM.auth.emailInput.addEventListener('input', syncContinueBtn);
-    DOM.auth.emailInput.addEventListener('change', syncContinueBtn);
-
-    // Browser autofill often skips input/change events — poll for up to 10s after load
-    let autofillChecks = 0;
-    const autofillPoll = setInterval(() => {
-        syncContinueBtn();
-        if (++autofillChecks >= 100) clearInterval(autofillPoll);
-    }, 100);
-
-    // CSS animation-based autofill detection (catches autofill that fires after the poll ends)
-    DOM.auth.emailInput.addEventListener('animationstart', syncContinueBtn);
-
-    DOM.auth.emailInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !DOM.auth.btnContinue.disabled) DOM.auth.btnContinue.click();
+    // Keep button in sync as user types (or autofill fires)
+    emailInput.addEventListener('input', syncBtn);
+    emailInput.addEventListener('change', syncBtn);
+    emailInput.addEventListener('blur', syncBtn);
+    // animationstart fires when browser autofills (see @keyframes onAutofillStart in CSS)
+    emailInput.addEventListener('animationstart', syncBtn);
+    // Enter key on email field
+    emailInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') btnContinue.click();
     });
 
-    DOM.auth.btnContinue.addEventListener('click', (e) => {
-        const email = DOM.auth.emailInput.value.trim() || cachedEmail;
+    btnContinue.addEventListener('click', () => {
+        const email = emailInput.value.trim();
         if (!email) {
-            e.preventDefault();
+            emailInput.focus();
             return;
         }
 
@@ -200,7 +179,7 @@ function setupAuthListeners() {
     });
 
     DOM.auth.btnMagic.addEventListener('click', async () => {
-        const email = DOM.auth.emailInput.value.trim();
+        const email = emailInput.value.trim();
         try {
             DOM.auth.btnMagic.disabled = true;
             DOM.auth.btnMagic.textContent = 'Sending...';
@@ -220,7 +199,7 @@ function setupAuthListeners() {
     });
 
     DOM.auth.btnSignIn.addEventListener('click', async () => {
-        const email = DOM.auth.emailInput.value.trim();
+        const email = emailInput.value.trim();
         const pwd = DOM.auth.passwordInput.value;
         if (!email || !pwd) return;
 
@@ -241,7 +220,7 @@ function setupAuthListeners() {
     });
 
     DOM.auth.btnForgot.addEventListener('click', async () => {
-        const email = DOM.auth.emailInput.value.trim();
+        const email = emailInput.value.trim();
         try {
             await Auth.sendPasswordReset(email);
             showAuthSuccess('Reset email sent!');
@@ -381,7 +360,7 @@ function setTheme(theme) {
     document.body.classList.toggle('dark', theme === 'dark');
     
     // Update toggle buttons
-    if (DOM.modals.themeLight && DOM.modals.themeDark) {
+    if (DOM.modals?.themeLight && DOM.modals?.themeDark) {
         DOM.modals.themeLight.classList.toggle('active', theme === 'light');
         DOM.modals.themeDark.classList.toggle('active', theme === 'dark');
     }
@@ -394,9 +373,9 @@ function setTheme(theme) {
 
 // Theme listeners are now moved to setupEventListeners() via setupThemeListeners()
 
-// Load Preference
-const savedTheme = localStorage.getItem('ts_theme') || 'light';
-setTheme(savedTheme);
+// Load Preference — applied inside init() after initDOM() so DOM.modals is ready
+State.theme = localStorage.getItem('ts_theme') || 'light';
+document.body.classList.toggle('dark', State.theme === 'dark'); // apply body class immediately (no DOM.modals needed)
 
 // --- Firebase State Listener ---
 function setupAuthObserver() {
@@ -424,9 +403,16 @@ function setupAuthObserver() {
             if (DOM.header.profileName) DOM.header.profileName.textContent = user.displayName || user.email.split('@')[0];
             
             switchView('dashboard');
-            
-            // Initialize Trips
+
+            // Initialize Trips, then chain Stats/Map/RouteTracker once the first
+            // Firestore snapshot arrives — avoids competing reads on boot.
             Trips.init();
+            Trips._readyPromise.then(() => {
+                Stats.init();
+                MapEngine.init();
+                RouteTracker.init();
+                refreshIcons();
+            });
 
             // Pre-init Admin if needed
             if (State.isAdmin) Admin.loadAll();
