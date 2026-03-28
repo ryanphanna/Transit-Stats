@@ -8,7 +8,7 @@ All notable changes to this project will be documented in this file.
 - **Dependency updates**: Fixed 3 vulnerabilities (brace-expansion moderate, node-forge high, picomatch high) via `npm audit fix`.
 
 ### Fixed
-- **Login Continue button**: Extended autofill detection poll from 2s to 10s and added CSS `animationstart` hook so the Continue button reliably enables when the browser autofills the email field.
+- **Login Continue button**: Chrome clears the email field's `.value` when focus shifts to the Continue button — cached the last known value in `syncContinueBtn` so the click handler always has the email regardless of autofill timing.
 - **Route tracker broken**: `_getRiddenSet` was referencing `Trips.allCompletedTrips` (doesn't exist) instead of `Trips.allTrips` — route completion was always showing 0% ridden.
 - **Route tracker wrong agency**: `init` was reading `window.Profile.currentProfile.defaultAgency` instead of `window.currentUserProfile.defaultAgency` — always defaulted to TTC regardless of your profile.
 - **Profile view crash**: `UI.fadeInSection()` doesn't exist — replaced with direct opacity assignment so the Profile view no longer throws on open.

@@ -153,8 +153,14 @@ function setupNavListeners() {
 }
 
 function setupAuthListeners() {
+    // Cache the last known email — Chrome autofill can clear .value the moment focus
+    // leaves the field (e.g. when clicking Continue), so we capture it proactively.
+    let cachedEmail = '';
+
     const syncContinueBtn = () => {
-        DOM.auth.btnContinue.disabled = !DOM.auth.emailInput.value.trim();
+        const val = DOM.auth.emailInput.value.trim();
+        if (val) cachedEmail = val;
+        DOM.auth.btnContinue.disabled = !val;
     };
     DOM.auth.emailInput.addEventListener('input', syncContinueBtn);
     DOM.auth.emailInput.addEventListener('change', syncContinueBtn);
@@ -174,7 +180,7 @@ function setupAuthListeners() {
     });
 
     DOM.auth.btnContinue.addEventListener('click', () => {
-        const email = DOM.auth.emailInput.value.trim();
+        const email = DOM.auth.emailInput.value.trim() || cachedEmail;
         if (!email) return;
 
         DOM.auth.displayEmail.textContent = email;
