@@ -2,6 +2,7 @@
 
 ## Notion Synchronization
 - Periodically update the **TransitStatsLog** in Notion with significant changes (Infrastructure, UX/UI, Refactors, Fixes).
+- **TransitStatsLog Database ID**: `3269563c-9a49-80d4-b39b-eef09d8227e2`
 - Use the **NavigatorLog** structure as the gold standard for consistency, but note that **TransitStatsLog** now includes specific **Issue** and **Fix** fields for each entry.
 - Only update when changes are "important" or complete a logical task block.
 
