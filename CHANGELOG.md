@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.14.0] - 2026-03-30
 
 ### Fixed
 - **Critical: Silent JS module crash on boot**: `setTheme()` was called at module-level (before `initDOM()`), causing `DOM.modals.themeLight` to throw a `TypeError` on `undefined`. This silently killed the entire module, meaning zero event listeners were ever attached — including for the Continue button, Sign In, and all nav. Root fix: moved `setTheme()` call inside `init()` after `initDOM()`.
