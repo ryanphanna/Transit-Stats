@@ -5,9 +5,13 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Security
-- **Strict Rate Limiting**: Tightened the SMS request throttle from 60 requests per hour to a strict 8 requests per minute sliding window to prevent maliciously or accidentally massive Twilio/Gemini bills. 
-- **URL Spam Filter**: Implemented immediate rejection for incoming texts containing URLs (`http`, `www`, etc.) to block conventional text spam without invoking expensive AI or database reads.
-- **Dependency Hardening**: Resolved 8 high/moderate vulnerabilities in Cloud Functions dependencies (including `node-forge`, `path-to-regexp`, and `brace-expansion`) via `npm audit fix`.
+- **Strict SMS Rate Limiting**: Implemented a sliding window request throttle in `db.js`. Limits users to **8 messages per 1-minute window** (previously 60/hr) to protect against accidental SMS loops and malicious flooding that could trigger excessive Twilio and Gemini API costs.
+- **URL Spam Blocking**: Added a regex-based rejection layer in `dispatcher.js` that silently drops incoming texts containing URLs (`http`, `www`, etc.). This blocks common text spam without wasting expensive AI tokens on processing.
+- **Vulnerability Remediation**: Performed a critical security audit on Cloud Functions dependencies (`npm audit fix`). Key fixes include:
+    - **`node-forge` (CVE-2022-24771/24772)**: Patched high-severity forgery and DoS vulnerabilities.
+    - **`path-to-regexp` (ReDoS)**: Resolved potential Regular Expression Denial of Service vulnerabilities during route parameter parsing.
+    - **`brace-expansion`**: Patched memory exhaustion vulnerabilities that could cause server hangs.
+- **Enhanced Idempotency Guards**: Hardened the SMS entry point to ensure duplicate Twilio `MessageSid` signals are ignored at the atomic database level, preventing double-processing of trips on unstable networks.
 
 ## [1.14.1] - 2026-03-31
 
