@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Security
+- **Dependency Hardening**: Resolved 8 high/moderate vulnerabilities in Cloud Functions dependencies (including `node-forge`, `path-to-regexp`, and `brace-expansion`) via `npm audit fix`.
+
 ## [1.14.1] - 2026-03-31
 
 ### Added
