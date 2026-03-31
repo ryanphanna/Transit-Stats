@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 - **Trip destination predictions in SMS (admin only)**: When a trip is started, admins now see up to 3 ranked destination predictions in the confirmation SMS (e.g. "1. Dundas W (72%)"). Reply `END 1`, `END 2`, or `END 3` to end at a predicted stop without typing the stop name.
 - **`PredictionEngine.guessTopEndStops()`**: New method returning an array of top-N ranked exit stop predictions. Used to power the numbered shortcuts above; `guessEndStop()` is unchanged for backwards compatibility.
 
+### Fixed
+- **Auth button stuck in "Sending..."**: Fixed a bug where the "Send Magic Link" button remained disabled and stuck in the "Sending..." state after successfully sending an email. Added `finally` blocks to ensure all authentication buttons (Magic Link, Sign In, Forgot Password) reset to their interactive state regardless of success or failure.
+- **Missing loading state on password reset**: Added "Sending..." loading state to the "Forgot Password?" button for better user feedback.
+
 ## [1.14.0] - 2026-03-30
 
 ### Fixed

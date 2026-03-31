@@ -187,6 +187,7 @@ function setupAuthListeners() {
             showAuthSuccess('Magic link sent! Check your email.');
         } catch (err) {
             showAuthError(err.message);
+        } finally {
             DOM.auth.btnMagic.disabled = false;
             DOM.auth.btnMagic.textContent = 'Send Magic Link';
         }
@@ -210,6 +211,7 @@ function setupAuthListeners() {
             await Auth.signInWithPassword(email, pwd);
         } catch (err) {
             showAuthError(Auth.getErrorMessage(err.code || err.message));
+        } finally {
             DOM.auth.btnSignIn.disabled = false;
             DOM.auth.btnSignIn.textContent = 'Sign In';
         }
@@ -222,10 +224,15 @@ function setupAuthListeners() {
     DOM.auth.btnForgot.addEventListener('click', async () => {
         const email = emailInput.value.trim();
         try {
+            DOM.auth.btnForgot.disabled = true;
+            DOM.auth.btnForgot.textContent = 'Sending...';
             await Auth.sendPasswordReset(email);
             showAuthSuccess('Reset email sent!');
         } catch (err) {
             showAuthError(err.message);
+        } finally {
+            DOM.auth.btnForgot.disabled = false;
+            DOM.auth.btnForgot.textContent = 'Forgot Password?';
         }
     });
 }
