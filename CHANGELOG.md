@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.14.1] - 2026-03-31
 
 ### Added
 - **Trip destination predictions in SMS (admin only)**: When a trip is started, admins now see up to 3 ranked destination predictions in the confirmation SMS (e.g. "1. Dundas W (72%)"). Reply `END 1`, `END 2`, or `END 3` to end at a predicted stop without typing the stop name.
