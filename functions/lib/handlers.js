@@ -721,9 +721,17 @@ async function handleQuery(phoneNumber, user, question) {
  */
 async function handleStatsCommand(phoneNumber, user) {
   const now = new Date();
+  
+  // Windows
+  const sevenDaysAgo = new Date(now); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const fourteenDaysAgo = new Date(now); fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
   const thirtyDaysAgo = new Date(now); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const sixtyDaysAgo = new Date(now); sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
   const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  
+  // Previous month same period
+  const prevMonthFirst = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonthSameDay = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
 
   const snapshot = await db.collection('trips')
     .where('userId', '==', user.userId)
@@ -733,36 +741,48 @@ async function handleStatsCommand(phoneNumber, user) {
   const toDate = (t) => t.startTime?.toDate ? t.startTime.toDate() : new Date(t.startTime);
   const allTrips = snapshot.docs.map((d) => d.data()).filter((t) => t.endStopName != null || t.endStopCode != null);
 
-  const recent = allTrips.filter((t) => toDate(t) >= thirtyDaysAgo);
-  const previous = allTrips.filter((t) => {
+  // Filter buckets
+  const thisWeek = allTrips.filter((t) => toDate(t) >= sevenDaysAgo);
+  const lastWeek = allTrips.filter((t) => {
+    const d = toDate(t);
+    return d >= fourteenDaysAgo && d < sevenDaysAgo;
+  });
+  const last30 = allTrips.filter((t) => toDate(t) >= thirtyDaysAgo);
+  const prev30 = allTrips.filter((t) => {
     const d = toDate(t);
     return d >= sixtyDaysAgo && d < thirtyDaysAgo;
   });
   const thisMonth = allTrips.filter((t) => toDate(t) >= firstOfMonth);
+  const lastMonthToDate = allTrips.filter((t) => {
+    const d = toDate(t);
+    return d >= prevMonthFirst && d < prevMonthSameDay;
+  });
 
-  if (recent.length === 0 && thisMonth.length === 0) {
+  if (allTrips.length === 0) {
     await sendSmsReply(phoneNumber, 'No trips logged in the last 60 days.');
     return;
   }
 
-  const totalMins = recent.reduce((sum, t) => sum + (t.duration || 0), 0);
-  const totalHours = (totalMins / 60).toFixed(1);
-  const uniqueRoutes = new Set(recent.map((t) => t.route).filter(Boolean)).size;
-  // const monthName = now.toLocaleString('en-US', { month: 'short' }); (unused)
-
   const profile = await getUserProfile(user.userId);
-  let comparison = '';
-  if (profile?.isPremium && previous.length > 0) {
-    const pct = Math.round(((recent.length - previous.length) / previous.length) * 100);
-    const arrow = pct >= 0 ? '↑' : '↓';
-    comparison = ` ${arrow} ${Math.abs(pct)}% vs prev 30 days.`;
-  }
+  const isPremium = !!profile?.isPremium;
 
-  await sendSmsReply(
-    phoneNumber,
-    `Last 30 days: ${recent.length} trips, ${uniqueRoutes} routes, ${totalHours} hours.` +
-    `${comparison} ${thisMonth.length} trips month to date.`,
-  );
+  const getTrend = (current, previous) => {
+    if (!isPremium || previous === 0) return '';
+    const pct = Math.round(((current - previous) / previous) * 100);
+    const arrow = pct >= 0 ? '↑' : '↓';
+    return ` (${arrow}${Math.abs(pct)}%)`;
+  };
+
+  const totalMin30 = last30.reduce((sum, t) => sum + (t.duration || 0), 0);
+  const uniqueRoutes30 = new Set(last30.map((t) => t.route).filter(Boolean)).size;
+
+  const lines = [
+    `7d: ${thisWeek.length} trips${getTrend(thisWeek.length, lastWeek.length)}`,
+    `30d: ${last30.length} trips${getTrend(last30.length, prev30.length)}, ${uniqueRoutes30} routes, ${(totalMin30 / 60).toFixed(1)}h`,
+    `Month: ${thisMonth.length} trips${getTrend(thisMonth.length, lastMonthToDate.length)} MTD`,
+  ];
+
+  await sendSmsReply(phoneNumber, lines.join('\n'));
 }
 
 /**
