@@ -324,15 +324,19 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
   // No active trip - generate predictions before creating trip
   let prediction = null;
   let endStopPrediction = null;
+  let endStopPredictions = null;
   const startStopName = stopData ? stopData.stopName : parsedStop.stopName;
   const startStopCode = stopData ? stopData.stopCode : parsedStop.stopCode;
+  let isAdmin = false;
   try {
-    const [history, stopsLibrary, routesAtStop] = await Promise.all([
+    const [history, stopsLibrary, routesAtStop, profile] = await Promise.all([
       getRecentCompletedTrips(user.userId, 100),
       getStopsLibrary(),
       getRoutesAtStop(startStopCode, agency),
+      getUserProfile(user.userId),
     ]);
     PredictionEngine.stopsLibrary = stopsLibrary;
+    isAdmin = !!profile?.isAdmin;
     const now = new Date();
     prediction = PredictionEngine.guess(history, {
       stopName: startStopName,
@@ -345,6 +349,10 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       direction,
       time: now,
     });
+    if (isAdmin) {
+      const top = PredictionEngine.guessTopEndStops(history, { route, startStopName, direction, time: now }, 3);
+      if (top.length > 0) endStopPredictions = top;
+    }
   } catch (err) {
     console.error('Error generating prediction at trip start:', err);
   }
@@ -363,6 +371,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
     parsed_by: options.parsed_by || 'manual',
     prediction: prediction || null,
     endStopPrediction: endStopPrediction || null,
+    endStopPredictions: endStopPredictions || null,
     needs_review: !isValidRoute(route) || null,
   });
 
@@ -372,9 +381,14 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
     stopData ? stopData.stopName : parsedStop.stopName,
   );
 
-  await sendSmsReply(phoneNumber, `Started ${routeDisplay} from ${finalStopDisplay}.
-
-END [stop] to finish. FORGOT if you forgot to end. INFO for help.`);
+  let replyBody = `Started ${routeDisplay} from ${finalStopDisplay}.`;
+  if (isAdmin && endStopPredictions && endStopPredictions.length > 0) {
+    const predLines = endStopPredictions.map((p, i) => `${i + 1}. ${p.stop} (${p.confidence}%)`).join('\n');
+    replyBody += `\n\nHeading to:\n${predLines}\n\nEND [stop] or END 1/2/3 to finish. FORGOT if forgot to end. INFO for help.`;
+  } else {
+    replyBody += `\n\nEND [stop] to finish. FORGOT if you forgot to end. INFO for help.`;
+  }
+  await sendSmsReply(phoneNumber, replyBody);
 }
 
 /**
@@ -388,13 +402,17 @@ async function handleConfirmStart(phoneNumber, user, state) {
 
   let confirmPrediction = null;
   let confirmEndStopPrediction = null;
+  let confirmEndStopPredictions = null;
+  let confirmIsAdmin = false;
   try {
-    const [history, stopsLibrary, routesAtStop] = await Promise.all([
+    const [history, stopsLibrary, routesAtStop, confirmProfile] = await Promise.all([
       getRecentCompletedTrips(user.userId, 100),
       getStopsLibrary(),
       getRoutesAtStop(newTrip.stopCode, newTrip.agency),
+      getUserProfile(user.userId),
     ]);
     PredictionEngine.stopsLibrary = stopsLibrary;
+    confirmIsAdmin = !!confirmProfile?.isAdmin;
     const now = new Date();
     confirmPrediction = PredictionEngine.guess(history, {
       stopName: newTrip.stopName,
@@ -407,6 +425,15 @@ async function handleConfirmStart(phoneNumber, user, state) {
       direction: newTrip.direction,
       time: now,
     });
+    if (confirmIsAdmin) {
+      const top = PredictionEngine.guessTopEndStops(history, {
+        route: newTrip.route,
+        startStopName: newTrip.stopName,
+        direction: newTrip.direction,
+        time: now,
+      }, 3);
+      if (top.length > 0) confirmEndStopPredictions = top;
+    }
   } catch (err) {
     console.error('Error generating prediction at confirm start:', err);
   }
@@ -433,17 +460,21 @@ async function handleConfirmStart(phoneNumber, user, state) {
     parsed_by: newTrip.parsed_by || 'manual',
     prediction: confirmPrediction || null,
     endStopPrediction: confirmEndStopPrediction || null,
+    endStopPredictions: confirmEndStopPredictions || null,
   });
   await clearPendingState(phoneNumber);
 
   const newStopDisplay = getStopDisplay(newTrip.stopCode, newTrip.stopName);
   const newRouteDisplay = getRouteDisplay(newTrip.route, normalizeDirection(newTrip.direction));
 
-  await sendSmsReply(phoneNumber, `${oldTripRouteDisplay} marked as incomplete.
-
-Started ${newRouteDisplay} from ${newStopDisplay}.
-
-END [stop] to finish. FORGOT if you forgot to end. INFO for help.`);
+  let confirmReplyBody = `${oldTripRouteDisplay} marked as incomplete.\n\nStarted ${newRouteDisplay} from ${newStopDisplay}.`;
+  if (confirmIsAdmin && confirmEndStopPredictions && confirmEndStopPredictions.length > 0) {
+    const predLines = confirmEndStopPredictions.map((p, i) => `${i + 1}. ${p.stop} (${p.confidence}%)`).join('\n');
+    confirmReplyBody += `\n\nHeading to:\n${predLines}\n\nEND [stop] or END 1/2/3 to finish. FORGOT if forgot to end. INFO for help.`;
+  } else {
+    confirmReplyBody += `\n\nEND [stop] to finish. FORGOT if you forgot to end. INFO for help.`;
+  }
+  await sendSmsReply(phoneNumber, confirmReplyBody);
 }
 
 /**
@@ -467,6 +498,16 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
         `not Route ${routeVerification}.`,
       );
       return;
+    }
+  }
+
+  // Resolve numbered shortcut (admin only): END 1/2/3 → predicted stop name
+  if (/^[123]$/.test((endStopInput || '').trim())) {
+    const endProfile = await getUserProfile(user.userId);
+    if (endProfile?.isAdmin && activeTrip.endStopPredictions?.length) {
+      const idx = parseInt(endStopInput.trim(), 10) - 1;
+      const predicted = activeTrip.endStopPredictions[idx];
+      if (predicted) endStopInput = predicted.stop;
     }
   }
 

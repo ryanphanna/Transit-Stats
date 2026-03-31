@@ -177,6 +177,70 @@ const PredictionEngine = {
   },
 
   /**
+   * Return the top N predicted exit stops, ranked by weight.
+   * Same voting logic as guessEndStop but returns an array.
+   * @param {Array} history - Completed trips
+   * @param {Object} context - { route, startStopName, direction, time, duration? }
+   * @param {number} topN - Number of predictions to return (default 3)
+   * @returns {Array} Array of { stop, confidence, version }, highest confidence first
+   */
+  guessTopEndStops: function (history, context, topN = 3) {
+    if (!history || history.length === 0) return [];
+
+    const now = context.time instanceof Date ? context.time : new Date(context.time);
+    const routeFamily = this._baseRoute(context.route);
+    const normDir = context.direction ? this._normalizeDirection(context.direction) : null;
+
+    let candidates = history.filter(t => {
+      if (!this._isValidTrip(t)) return false;
+      if (!t.endStopName) return false;
+      return this._baseRoute(t.route) === routeFamily &&
+        this._stopMatch(t.startStopName, context.startStopName);
+    });
+
+    if (candidates.length === 0) return [];
+
+    if (normDir) {
+      const withDir = candidates.filter(t => {
+        const tDir = this._normalizeDirection(t.direction);
+        return !tDir || tDir === normDir;
+      });
+      if (withDir.length > 0) candidates = withDir;
+    }
+
+    const votes = {};
+    let totalWeight = 0;
+
+    for (const trip of candidates) {
+      const tripTime = trip.startTime && trip.startTime.toDate
+        ? trip.startTime.toDate()
+        : new Date(trip.startTime);
+
+      const weight =
+        this._recencyWeight(tripTime, now) *
+        this._timeSimilarity(now, tripTime) *
+        this._daySimilarity(now.getDay(), tripTime.getDay()) *
+        (context.duration && trip.duration ? this._durationSimilarity(context.duration, trip.duration) : 1.0);
+
+      const key = this._canonicalizeStop(trip.endStopName);
+      if (!votes[key]) votes[key] = { stop: trip.endStopName, weight: 0 };
+      votes[key].weight += weight;
+      totalWeight += weight;
+    }
+
+    if (totalWeight === 0) return [];
+
+    return Object.values(votes)
+      .sort((a, b) => b.weight - a.weight)
+      .slice(0, topN)
+      .map(v => ({
+        stop: v.stop,
+        confidence: Math.round((v.weight / totalWeight) * 100),
+        version: this.VERSION,
+      }));
+  },
+
+  /**
    * Extract the base route number from a numeric variant like "510a", "510b", "510 Shuttle".
    * Only strips suffixes when the route starts with a digit, so numeric routes pool correctly
    * ("510a" → "510", "52g" → "52") while word-based routes like "Line 1" are left as-is.

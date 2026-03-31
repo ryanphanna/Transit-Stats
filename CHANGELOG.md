@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- **Trip destination predictions in SMS (admin only)**: When a trip is started, admins now see up to 3 ranked destination predictions in the confirmation SMS (e.g. "1. Dundas W (72%)"). Reply `END 1`, `END 2`, or `END 3` to end at a predicted stop without typing the stop name.
+- **`PredictionEngine.guessTopEndStops()`**: New method returning an array of top-N ranked exit stop predictions. Used to power the numbered shortcuts above; `guessEndStop()` is unchanged for backwards compatibility.
+
 ## [1.14.0] - 2026-03-30
 
 ### Fixed
