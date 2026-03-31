@@ -52,13 +52,13 @@ For recent changes, see [CHANGELOG.md](./CHANGELOG.md).
 
 ## [1.9.5] - 2026-03-18
 
-### Fixed
-- **Deployment**: Resolved `npm ci` failures by syncing overrides in `package-lock.json`.
-- **Build**: Fixed Vite build failures related to missing entry points.
-
 ### Changed
 - **Node.js**: Standardized on Node 22 for both frontend and backend.
 - **SMS System**: Modularized `functions/sms.js` with a new `dispatcher.js` module.
+
+### Fixed
+- **Deployment**: Resolved `npm ci` failures by syncing overrides in `package-lock.json`.
+- **Build**: Fixed Vite build failures related to missing entry points.
 
 ## [1.9.4] - 2026-03-18
 
@@ -175,11 +175,11 @@ For recent changes, see [CHANGELOG.md](./CHANGELOG.md).
 
 ## [1.3.1] - 2026-03-09
 
+### Changed
+- **Vulnerability Reporting**: Migrated to GitHub Private Vulnerability Reporting (Documentation).
+
 ### Fixed
 - **Parsing Heuristics**: Resolved edge cases for spaces in stop codes and bare agency overrides.
-
-### Documentation
-- **Vulnerability Reporting**: Migrated to GitHub Private Vulnerability Reporting.
 
 ## [1.7.0] / [1.3.0] - 2026-03-08
 
@@ -245,12 +245,12 @@ For recent changes, see [CHANGELOG.md](./CHANGELOG.md).
 
 ## [1.4.8] - 2026-03-07
 
+### Changed
+- **Prediction Engine v2**: Shifted from point scoring to multiplicative weighted voting.
+
 ### Fixed
 - **SMS Outage (Critical)**: Fixed signature validation logic after Firebase URL path rewriting.
 - **Login Autofill**: Resolved issue where autofilled forms remained locked.
-
-### Changed
-- **Prediction Engine v2**: Shifted from point scoring to multiplicative weighted voting.
 
 ## [1.1.7] - 2026-03-07
 
@@ -279,11 +279,12 @@ For recent changes, see [CHANGELOG.md](./CHANGELOG.md).
 ## [1.4.3] - 2026-03-04
 
 ### Added
-- **Modular Architecture**: Extracted monolithic SMS code into clean libraries (parsing, handlers, gemini, etc).
+- **Modular Architecture**: Extracted monolithic SMS code into clean libraries.
 - **PII-Safe Logger**: Automated masking of phone numbers in system logs.
 
 ### Changed
 - **Parsing Robustness**: Significant improvements to whitespace and multi-line SMS parsing.
+- **Resource Capping**: Added trip window context with efficient token usage.
 
 ### Security
 - **AI Rate Limiting (High)**: Capped Gemini API usage to 10 calls/hour per user.
@@ -323,6 +324,9 @@ For recent changes, see [CHANGELOG.md](./CHANGELOG.md).
 
 ### Changed
 - **UI Refinement**: Slimmed-down dashboard and streamlined navigation bar.
+
+### Security
+- **Firestore Policies**: Hardened stops library writing rules.
 
 ## [1.1.3] - 2026-02-23
 

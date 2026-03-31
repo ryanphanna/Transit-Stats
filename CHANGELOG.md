@@ -113,9 +113,9 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - **Firestore listener cleanup**: Ensuring listeners are disposed of on signout.
-- **XSS Hardening**: Applied `escapeForJs` and `Utils.hide()` across all dynamic admin and template elements.
 
 ### Security
+- **XSS Hardening**: Applied `escapeForJs` and `Utils.hide()` across all dynamic admin and template elements.
 - **XSS remediation**: Hardened inline HTML handlers in `admin.js` and `templates.js`.
 
 ## [1.9.10] - 2026-03-22
