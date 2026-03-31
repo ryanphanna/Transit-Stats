@@ -9,6 +9,7 @@ import { MapEngine } from './map-engine.js';
 import { PredictionEngine } from './predict.js';
 import { RouteTracker } from './route-tracker.js';
 import { UI } from './ui-utils.js';
+import { Profile } from './profile.js';
 
 // Expose to window for legacy onclick handlers and inter-module access
 window.Auth = Auth;
@@ -18,6 +19,7 @@ window.Users = Users;
 window.Stats = Stats;
 window.MapEngine = MapEngine;
 window.Utils = Utils;
+window.Profile = Profile;
 window.refreshIcons = refreshIcons;
 
 /**
@@ -41,6 +43,7 @@ async function init() {
     setTheme(State.theme);
     setupEventListeners();
     setupAuthObserver();
+    Profile.init();
     refreshIcons();
 }
 
@@ -409,6 +412,9 @@ function setupAuthObserver() {
             DOM.header.navUsers?.classList.toggle('hidden', !State.isAdmin);
             if (DOM.header.profileName) DOM.header.profileName.textContent = user.displayName || user.email.split('@')[0];
             
+            // Core initialization - load profile first
+            await Profile.load(user);
+            
             switchView('dashboard');
 
             // Initialize Trips, then chain Stats/Map/RouteTracker once the first
@@ -438,6 +444,9 @@ function setupAuthObserver() {
 function openSettings() {
     DOM.modals.backdrop?.classList.remove('hidden');
     DOM.modals.settings?.classList.remove('hidden');
+    
+    // Sync current state to UI
+    Profile.syncUI(auth.currentUser?.email || '');
 
     if (State.isAdmin && State.user) {
         const section = document.getElementById('prediction-accuracy-section');

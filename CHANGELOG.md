@@ -2,404 +2,126 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.15.0] - 2026-03-31
+
+### Added
+- **STATS Command Refinement**: Upgraded the `STATS` SMS command to provide 7-day, 30-day, and month-to-date comparisons with trend indicators for premium users.
+
+### Changed
+- **Expanded Settings**: Added a new profile management section in the Settings modal with transit agency selection, beta feature toggles, and linked phone number visibility.
+- **Preference UI Polish**: Updated the Settings modal layout with a clean, high-contrast design for the new preference controls and custom toggle switches.
+- **Internal Optimization**: Decoupled user profile logic into a dedicated `Profile` module for better maintainability.
 
 ### Security
-- **Strict SMS Rate Limiting**: Implemented a sliding window request throttle in `db.js`. Limits users to **8 messages per 1-minute window** (previously 60/hr) to protect against accidental SMS loops and malicious flooding that could trigger excessive Twilio and Gemini API costs.
-- **URL Spam Blocking**: Added a regex-based rejection layer in `dispatcher.js` that silently drops incoming texts containing URLs (`http`, `www`, etc.). This blocks common text spam without wasting expensive AI tokens on processing.
-- **Vulnerability Remediation**: Performed a critical security audit on Cloud Functions dependencies (`npm audit fix`). Key fixes include:
-    - **`node-forge` (CVE-2022-24771/24772)**: Patched high-severity forgery and DoS vulnerabilities.
-    - **`path-to-regexp` (ReDoS)**: Resolved potential Regular Expression Denial of Service vulnerabilities during route parameter parsing.
-    - **`brace-expansion`**: Patched memory exhaustion vulnerabilities that could cause server hangs.
-- **Enhanced Idempotency Guards**: Hardened the SMS entry point to ensure duplicate Twilio `MessageSid` signals are ignored at the atomic database level, preventing double-processing of trips on unstable networks.
+- **Strict SMS Rate Limiting**: Implemented a sliding window request throttle in `db.js`. Limits users to **8 messages per 1-minute window** to protect against accidental SMS loops and malicious flooding.
+- **URL Spam Blocking**: Added a regex-based rejection layer in `dispatcher.js` that silently drops incoming texts containing URLs (`http`, `www`, etc.).
+- **Vulnerability Remediation**: Performed a critical security audit on Cloud Functions dependencies (`npm audit fix`), patching `node-forge`, `path-to-regexp`, and `brace-expansion`.
+- **Enhanced Idempotency Guards**: Hardened the SMS entry point to ensure duplicate Twilio signals are ignored at the atomic database level.
 
 ## [1.14.1] - 2026-03-31
 
 ### Added
-- **Trip destination predictions in SMS (admin only)**: When a trip is started, admins now see up to 3 ranked destination predictions in the confirmation SMS (e.g. "1. Dundas W (72%)"). Reply `END 1`, `END 2`, or `END 3` to end at a predicted stop without typing the stop name.
-- **`PredictionEngine.guessTopEndStops()`**: New method returning an array of top-N ranked exit stop predictions. Used to power the numbered shortcuts above; `guessEndStop()` is unchanged for backwards compatibility.
+- **Trip destination predictions in SMS (admin only)**: When a trip is started, admins now see up to 3 ranked destination predictions in the confirmation SMS. Reply `END 1`, `END 2`, or `END 3` to end at a predicted stop.
+- **`PredictionEngine.guessTopEndStops()`**: New method returning an array of top-N ranked exit stop predictions.
 
 ### Fixed
-- **Auth button stuck in "Sending..."**: Fixed a bug where the "Send Magic Link" button remained disabled and stuck in the "Sending..." state after successfully sending an email. Added `finally` blocks to ensure all authentication buttons (Magic Link, Sign In, Forgot Password) reset to their interactive state regardless of success or failure.
+- **Auth button stuck in "Sending..."**: Fixed a bug where the "Send Magic Link" button remained disabled after successfully sending an email. Added `finally` blocks to reset button states.
 - **Missing loading state on password reset**: Added "Sending..." loading state to the "Forgot Password?" button for better user feedback.
 
 ## [1.14.0] - 2026-03-30
 
-### Fixed
-- **Critical: Silent JS module crash on boot**: `setTheme()` was called at module-level (before `initDOM()`), causing `DOM.modals.themeLight` to throw a `TypeError` on `undefined`. This silently killed the entire module, meaning zero event listeners were ever attached — including for the Continue button, Sign In, and all nav. Root fix: moved `setTheme()` call inside `init()` after `initDOM()`.
-- **Auth step transition broken**: `.hidden` CSS utility class was referenced throughout `index.html` but never defined in `main.css`, so `classList.add('hidden')` had no visual effect. Added `.hidden { display: none !important; }`.
-- **Stats/Map/RouteTracker never initialized after login**: `Trips._readyPromise.then(...)` was guarded with `if (Trips._readyPromise)` in `init()`, but `_readyPromise` is always `null` at boot (it's only set when the user logs in and `Trips.init()` fires). Moved the `.then()` chain into `setupAuthObserver()`, directly after `Trips.init()`, so it always fires correctly on login.
+### Changed
+- **`setTheme()` crash-proofed**: Added optional chaining to `DOM.modals` guards.
+- **Removed redundant inline HTML handlers**: Cleaned up legacy `oninput`/`onclick` workarounds in favor of module-based listeners.
 
-### Refactor
-- **`setTheme()` crash-proofed**: Added optional chaining to `DOM.modals?.themeLight` and `DOM.modals?.themeDark` guards so calling `setTheme` before the DOM is initialized is a safe no-op rather than a crash.
-- **Removed redundant inline HTML handlers**: Temporary `oninput`/`onclick` workarounds on the email input and Continue/Sign-in-with-Password buttons removed now that the module loads correctly. All auth logic lives exclusively in `setupAuthListeners()`.
+### Fixed
+- **Critical: Silent JS module crash on boot**: Fixed a `TypeError` where `setTheme()` was called before DOM initialization, which previously killed all event listeners.
+- **Auth step transition broken**: Defined the `.hidden` CSS utility class which was previously missing.
+- **Stats/Map/RouteTracker initialization**: Fixed a race condition where analytics modules wouldn't initialize correctly after login.
 
 ## [1.13.0] - 2026-03-28
 
-### Security
-- **Dependency updates**: Fixed 3 vulnerabilities (brace-expansion moderate, node-forge high, picomatch high) via `npm audit fix`.
+### Added
+- **Trip review banner**: Internal flagging for trips with unrecognized routes, allowing inline triage in the feed.
 
 ### Fixed
-- **Login Flow and Boot Sequence**: 
-  - Implemented a robust `readyState` check for application initialization, ensuring the app boots correctly even if the script loads after the DOM is ready (common in built/production environments).
-  - Hardened the 'Continue' button logic to prevent it from being disabled if a cached email exists, addressing a race condition where Chrome clears autofilled values on focus shift.
-  - Added proactive email capture on `mousedown` and `pointerdown` as a secondary safety measure before the focus/blur events can clear the field.
-- **Route tracker broken**: `_getRiddenSet` was referencing `Trips.allCompletedTrips` (doesn't exist) instead of `Trips.allTrips` — route completion was always showing 0% ridden.
-- **Route tracker wrong agency**: `init` was reading `window.Profile.currentProfile.defaultAgency` instead of `window.currentUserProfile.defaultAgency` — always defaulted to TTC regardless of your profile.
-- **Profile view crash**: `UI.fadeInSection()` doesn't exist — replaced with direct opacity assignment so the Profile view no longer throws on open.
+- **Login Flow and Boot Sequence**: Implemented a robust `readyState` check for application initialization and hardened 'Continue' button logic.
+- **Route tracker broken**: Fixed incorrect reference to `allTrips` preventing route completion stats from rendering.
+- **Profile view crash**: Replaced non-existent `UI.fadeInSection()` with direct opacity assignment.
 
-### Added
-- **Trip review banner**: Trips created with an unrecognized route (e.g. from a mis-parsed SMS) are now flagged with `needs_review: true` in Firestore and shown with a warning banner in the feed. Inline "Looks good" and "Delete" actions let you triage without leaving the feed.
+### Security
+- **Dependency updates**: Fixed 3 vulnerabilities (brace-expansion, node-forge, picomatch) via `npm audit fix`.
 
 ## [1.12.0] - 2026-03-26
 
 ### Added
-- **`get_trips_for_date` tool**: Gemini can now answer questions about a specific date (e.g. "how many trips on March 1?") by querying Firestore directly.
-- **`get_trips_for_date_range` tool**: Gemini can now answer questions about a date range (e.g. "how many trips between March 1 and March 15?").
-- **`get_route_stats_for_period` tool**: Gemini can now return per-route trip counts for a given date range (e.g. "what routes did I take in February?").
-- **`get_riding_streak` tool**: Gemini can now report the longest and current streak of consecutive riding days.
-- **`get_stop_pair_stats` tool**: Gemini can now answer origin/destination questions (e.g. "what days do I travel to York University?" or "how many times have I gone from Spadina to York U?").
-- **`get_average_trip_duration` tool**: Gemini can now report average trip duration overall or per route (e.g. "how long is a typical 505 trip?").
-- **`get_weekday_vs_weekend_stats` tool**: Gemini can now compare weekday vs weekend riding.
-- **`get_busiest_weeks` tool**: Gemini can now identify the top 5 busiest weeks by trip count.
-- **`get_unique_stops` tool**: Gemini can now report how many unique stops have been visited.
-
-### Fixed
-- **Login button unresponsive with autofill**: Browser autofill often skips `input`/`change` events entirely. Now polls the input value for 2 seconds after load so the Continue button enables correctly regardless of how the field is filled.
+- **AI Analytics Tools**: Gemini can now answer detailed questions about specific dates, date ranges, route stats, riding streaks, and average trip durations via direct Firestore queries.
 
 ### Changed
-- **`INCOMPLETE` renamed to `FORGOT`**: The command for marking an active trip as incomplete is now `FORGOT` for clarity. All SMS messages updated accordingly.
-- **Removed `LINK` command**: Manual journey linking via SMS removed — auto-linking at trip end handles this.
-- **Route display**: Removed "Route" prefix from all SMS messages (e.g. "505 from Spadina Station" instead of "Route 505 from Spadina Station").
-- **SMS message consistency**: Standardised "No active trip." for all commands with no active trip. Conflict state messages now always include the origin stop. "marked as incomplete" used consistently.
+- **`INCOMPLETE` renamed to `FORGOT`**: Command renamed for clarity; all SMS messages updated.
+- **Removed `LINK` command**: Journey linking is now handled automatically.
+- **Route display**: Standardized SMS messages by removing redundant "Route" prefixes.
 
 ### Fixed
-- **Confirm-start DISCARD/FORGOT**: In the "active trip conflict" state, `DISCARD` now cancels the new trip attempt (old trip stays active) instead of deleting the old trip. `FORGOT` now marks the old trip as incomplete and cancels the new trip. Updated conflict message to show all three options.
-- **Day-of-week year filter**: `get_day_of_week_stats_for_year` now coerces the `year` parameter to a number before filtering, fixing cases where Gemini passed it as a string and the function returned empty results (causing hallucinated answers).
-- **Natural language misclassified as trip start**: Questions like "How many trips have I made between Queens Park and York University?" were being parsed as trip starts. Fixed by tightening `isValidRoute` to only accept numeric/alphanumeric route codes (e.g. `505`, `510A`, `GO1`, `Line 1`) and adding clearer QUERY examples to the Gemini classification prompt.
+- **Confirm-start DISCARD/FORGOT**: Improved state transitions when resolving active trip conflicts.
+- **Day-of-week year filter**: Fixed string-to-number coercion in AI query tools.
+- **Natural language misclassification**: Tightened `isValidRoute` logic to prevent long questions from being parsed as trip starts.
 
 ## [1.11.0] - 2026-03-25
 
 ### Added
-- **Query logging**: Every `handleQuery` call now writes a fire-and-forget entry to `queryLogs` (userId, question, answer, tripWindowSize, timestamp, source).
-- **Admin user tier**: Profiles with `isAdmin: true` bypass the Gemini rate limit entirely. Premium users get 50 queries/hr (up from 10). Default remains 10/hr.
-- **Day-of-week query support**: `aggregateTripStats` now includes a `dayOfWeek` breakdown. Added `get_day_of_week_stats` and `get_day_of_week_stats_for_year` all-time Firestore tools so Gemini can answer questions like "how many trips on Fridays?" or "what's my busiest day in 2026?".
+- **Query logging**: Every natural language query is now logged to `queryLogs` for administrative auditing.
+- **Admin user tier**: Profiles with `isAdmin: true` bypass Gemini rate limits; premium users increased to 50 queries/hr.
+- **Day-of-week query support**: Added all-time day-of-week breakdown tools for the AI.
+
+### Changed
+- **SMS query fallback**: Improved AI intent classification to catch multi-word questions that Gemini previously missed.
 
 ### Fixed
-- **SMS query classification**: Natural-language questions ("How many trips have I taken in 2026?", "LMK the number of trips last month") were misclassified as OTHER by Gemini and hit the fallback. Fixed by adding QUERY intent examples to the `parseWithGemini` prompt, plus a word-count fallback in `handleAIIntent`: if Gemini returns OTHER but the message is 4+ words (all trip formats already eliminated by this point), it routes to `handleQuery` directly.
-- **Query window context**: Gemini now knows the date range of the 200-trip window, so it can correctly decide when to call all-time tools vs answer from the window. Tool descriptions also clarified to guide tool selection.
-- **Firestore index**: Added composite index on `userId ASC + endTime ASC` required by the new all-time AI query tools.
-
-### Tests
-- Added coverage for `dayOfWeek` aggregation, window date boundaries, and query intent fallback path.
+- **Firestore index**: Added composite index on `userId ASC + endTime ASC` for AI query tools.
 
 ## [1.10.0] - 2026-03-24
 
 ### Added
-- **UI Heatmap**: Implemented a GitHub-style Activity Grid on the dashboard to visualize ridership patterns over the last 22 weeks. 
-- **AI Search Tools**: GEMINI now has direct database search capabilities for all-time stats (Total trips, stops, and routes) via function calling. Use `ASK [question]` for accurate queries.
-- **Testing**: Added `tests/gemini.test.js` with comprehensive unit tests for trip aggregation and AI data logic. Suite expanded to 144 passing tests.
+- **UI Heatmap**: Implemented a GitHub-style Activity Grid on the dashboard to visualize ridership patterns.
+- **AI Search Tools**: GEMINI now has direct database search capabilities for all-time stats.
+
+### Changed
+- **Journey Linking**: Removed redundant "Reply LINK" suggestions.
 
 ### Security
-- **ReDoS Protection**: Fixed polynomial backtracking vulnerabilities in `utils.js` (normalizeRoute, toTitleCase) and `predict.js` (_baseRoute) identified by CodeQL.
-- **Dynamic Method Safety**: Secured the command dispatcher in `dispatcher.js` with strict whitelisting to prevent unvalidated method calls.
-
-### Refactor
-- **Journey Linking**: Removed redundant "Reply LINK" suggestion from trip start SMS; journey linking is now handled automatically at trip end.
-
-### Fixed
-- **Lint**: Resolved 22 lint errors in Cloud Functions (`handlers.js`, `predict.js`, `db.js`, `gemini.js`) including line lengths and unnecessary escapes.
-- **AI Stats**: Enhanced natural-language queries by providing Gemini with a full index of recently visited stops.
-
-
+- **ReDoS Protection**: Fixed backtracking vulnerabilities in `utils.js` and `predict.js` identified by CodeQL.
+- **Dynamic Method Safety**: Secured the command dispatcher with strict whitelisting.
 
 ## [1.9.12] - 2026-03-22
 
 ### Changed
-- **STATS command formatting**: Reformatted reply to a cleaner sentence structure ("Last 30 days: X trips, Y routes, Z hours. N trips month to date."). The 30-day vs prior period comparison (↑/↓ %) is now premium-only, appended inline for users with `isPremium: true`.
-
-### Chore
-- **Security**: Bumped `vitest` and `@vitest/ui` to 4.0.18 to resolve high-severity prototype pollution vulnerability in `flatted` (dev dependency only). All 137 tests pass.
+- **STATS command formatting**: Reformatted reply to a cleaner sentence structure; period comparisons (↑/↓ %) are now premium-only.
+- **Security Dependency Correction**: Bumped `vitest` and `@vitest/ui` to 4.0.18 to resolve prototype pollution.
 
 ## [1.9.11] - 2026-03-22
 
 ### Added
-- **Premium AI Stats**: Natural-language trip queries are now a premium feature gated behind `isPremium: true` on the user's Firestore profile. Non-premium users who trigger a query receive a prompt to use `STATS` instead.
-- **`ASK` command**: Registered users can send `ASK [question]` as an explicit entry point for AI Stats (e.g. "ASK what's my most used stop?"). Premium-only; returns an upsell message otherwise.
-- **Richer AI context**: `aggregateTripStats` now includes most-boarded stops, most-exited stops, time-of-day breakdown, and a per-day trip count map, giving the AI enough to answer specific date queries (e.g. "how many trips on March 22?").
-- **Users admin page**: New "Users" view in the web app (admin-only) listing all profiles with their premium status and linked phone number. Admins can grant or revoke premium access with a single click, without touching Firestore directly.
-- **Prediction accuracy in Settings**: Settings modal now shows route and end-stop prediction accuracy (e.g. "Route: 73% (45/62) · End stop: 81% (50/62)") for admin users, pulled live from the `predictionAccuracy` collection.
+- **Premium AI Stats**: Gated natural-language queries behind `isPremium: true`.
+- **`ASK` command**: Added explicit entry point for AI Stats.
+- **Users admin page**: Web-based administration for managing premium status.
 
 ### Changed
-- **XSS hardening**: `admin.js` inline `onclick=` attributes for `openStopForm`, `acceptSuggestion`, `openLinkModal`, and `linkToStop` now use `UI.escapeForJs()` for JS-context escaping (previously `Utils.hide()` which is HTML-only and breaks on names containing single quotes). Stop library cards now escape `name`, `code`, `agency`, and alias pills via `Utils.hide()`.
-- **XSS hardening**: `templates.js` template cards and quick chips converted from inline `onclick=` with raw data to `data-route`/`data-stop` HTML attributes with `Utils.hide()` escaping and `addEventListener` delegation.
-- **Error notifications**: All remaining `alert()` calls replaced with `UI.showNotification()` — `map-engine.js` geolocation errors, `admin.js` `linkToStop` failure, GTFS import success/failure, and `deleteRoute` failure.
-- **Destructive confirmations**: `importGtfsRoutes` and `deleteRoute` converted from `confirm()` to the two-step button pattern. `templates.delete()` `confirm()` removed since the swipe gesture already serves as confirmation UX.
-- **Firestore listener cleanup**: `Trips.unsubscribe()` now called in the auth signout path before clearing user state, preventing stale snapshot listeners from firing post-signout.
-- **Data safety**: `trips.js` `renderTripCard` now guards against `null`/`undefined` `startTime`, rendering `—` instead of "Invalid Date".
+- **Error notifications**: Replaced remaining `alert()` calls with `UI.showNotification()`.
+- **Destructive confirmations**: Converted sensitive actions to the two-step button pattern.
+- **Initialization Polish**: Pinned dependency versions and updated GitHub Actions.
 
 ### Fixed
-- **`ASK` with no question**: Bare `ASK` now returns a helpful example prompt instead of sending an empty string to Gemini.
-- **AI Stats trip ordering**: `handleQuery` now fetches the 200 most recent trips ordered by `endTime desc` instead of an arbitrary 200.
-- **No date context in AI prompt**: Today's date (Toronto timezone) is now injected into the Gemini prompt so time-relative questions ("this month", "last Friday", specific dates) work correctly.
+- **Firestore listener cleanup**: Ensuring listeners are disposed of on signout.
+- **XSS Hardening**: Applied `escapeForJs` and `Utils.hide()` across all dynamic admin and template elements.
 
-### Removed
-- **Dead code in `ui-utils.js`**: Removed `loadSavedTheme`, `setTheme`, `updateThemeButtons`, `fadeInSection`, `openSettings`, `closeSettings` and their `window.*` global exports — all used stale element IDs or approaches superseded by `main.js`.
-
-### Chore
-- **Dependency Updates**: Bumped `vite` to 8.0.1, `vitest` to 4.1.0, `jsdom` to 29.0.0, and updated several functions dependencies (`firebase-functions`, `twilio`, `fast-xml-parser`) to their latest secure versions.
-- **Workflow Security**: Updated GitHub Actions to `actions/checkout@v4` and pinned dependencies for deployment transparency.
-
+### Security
+- **XSS remediation**: Hardened inline HTML handlers in `admin.js` and `templates.js`.
 
 ## [1.9.10] - 2026-03-22
 
 ### Added
-- **Test suite**: 137 passing tests across `tests/parsing.test.js` (40), `tests/utils.test.js` (37), and `tests/predict.test.js` (60). Covers all 5 parsing functions, all 9 utility exports, and the full prediction engine including all internal scoring methods (`_baseRoute`, `_normalizeDirection`, `_isValidTrip`, `_canonicalizeStop`, `_stopMatch`, `_daySimilarity`, `_timeSimilarity`, `_recencyWeight`, `_durationSimilarity`) and integration behaviour of `guess` and `guessEndStop`.
-
-## [1.9.9] - 2026-03-22
-
-### Changed
-- **SMS Message Polish**: Removed all emojis (✅, ❌, ⚠️, 📊) from SMS replies for a cleaner, more professional tone.
-- **SMS Stop Name Display**: Removed the redundant "Stop" prefix from stop names in confirmation messages (e.g. "from Spadina/King" instead of "from Stop Spadina/King").
-- **Journey Note Formatting**: Added a blank line before the auto-linked journey note in end-trip confirmations so it reads as a separate thought.
-- **Instruction Tail Shortened**: Condensed the per-trip instruction footer from four commands to "END [stop] to finish. INFO for help." to reduce noise for regular users.
-
-### Fixed
-- **Slash Intersection Casing**: `toTitleCase` now normalizes spaces around `/` and capitalizes each part, so "Spadina / Nassau" and "Spadina/king" both become "Spadina/Nassau" and "Spadina/King".
-- **Stop Display Normalization**: `getStopDisplay` now applies `toTitleCase` on all returned values, fixing existing stored stop names that were saved in lowercase or with inconsistent slash spacing.
-- **Route Letter Casing at Storage**: Added `normalizeRoute` helper that uppercases trailing route variant letters (e.g. "510a" → "510A") and applied it at parse time in `parseMultiLineTripFormat` and at the entry point of `handleTripLog`, so routes are stored correctly regardless of input source (manual or AI).
-- **Route Letter Casing in Display**: `getRouteDisplay` now delegates to `normalizeRoute` internally for consistency.
-- **Stop Separator Normalization**: `normalizeIntersectionStop` (client-side) now handles `-` and `and` as intersection separators alongside `/`, `&`, and `at`. Separator in output changed from ` / ` to `/` to match backend format. Added `canonicalizeForMatch` for comparison-only normalization.
-
-### Added
-- **Consolidation Panel**: New section in the admin view that scans trip history for stop name variants (e.g. "Spadina/Nassau", "Spadina & Nassau", "Spadina / Nassau") grouped by route and direction. Shows the canonical form (most frequent variant) alongside all others, with a Merge button that batch-updates affected trips in Firestore.
-
-## [1.9.8] - 2026-03-21
-
-### Added
-- **Auto-Journey Linking**: When a trip ends, the system automatically checks if the previous completed trip ended at the same boarding stop within 60 minutes. If so, both trips are silently linked with a shared `journeyId` and a note is appended to the END confirmation SMS (e.g. "Linked to your Route 510 trip (8 min transfer)").
-- **Journey Feed Connector**: Linked trip legs now display a visual connector in the Recent Trips feed showing the transfer gap and a break button to unlink them. The Firestore snapshot listener re-renders automatically on change.
-- **Direction on Trip Cards**: Trip cards in the feed now show abbreviated direction (NB, SB, EB, WB, etc.) when present, making it easy to distinguish same-route trips in opposite directions.
-- **Insights View Header**: Added a "Commute Highlights" card header with medal icon to the Insights view, which previously rendered as a blank unlabelled card.
-- **One-Click Suggestion Accept**: Inbox items with a fuzzy-match suggestion now show an "Accept" button that links the stop alias in one click without opening the link modal.
-- **Bulk Accept Suggestions**: When 2 or more inbox items have suggestions, an "Accept all X suggestions" button appears at the top of the inbox to batch-link them in a single Firestore write.
-
-### Changed
-- **Journey Linking UX**: Moved journey detection from trip start (SMS prompt) to trip end (auto-link). The LINK command remains as a manual fallback. This eliminates the need to reply to a suggestion mid-trip.
-- **DISCARD Cleanup**: Discarding an active trip that was already linked into a journey now removes the `journeyId` from the partner trip, preventing dangling references.
-
-### Fixed
-- **XSS in Trip Feed**: Route names, stop names, and corridor keys injected into `innerHTML` in `renderTripCard`, `renderList`, and `renderHighlights` are now escaped via `Utils.hide()`.
-- **Sparkline Average Line**: Fixed a coordinate space mismatch where `bottom: calc(20px + avgPct%)` resolved `%` against the full border-box height (64px) rather than the content area (40px), causing the avg line to float above the bars. Now scaled by `40/64`.
-- **Native Dialog Removal**: Replaced remaining `confirm()` call for trip deletion in `main.js` and `alert()`/`confirm()` calls in `admin.js` with the app's toast notification system and a two-step button confirmation.
-
-## [1.9.7] - 2026-03-20
-
-### Added
-- **Lucide SVG Icon System**: Replaced all platform-dependent emojis and character icons with a consistent, premium SVG icon set from Lucide across navigation, card headers, and the trip feed.
-- **Integrated Notification System**: Replaced native `alert()` browser dialogs with the application's internal toast notification system for a more integrated and non-blocking user experience.
-
-### Changed
-- **Formalized Trip Initialization**: Introduced `Trips._readyPromise` to ensure the dashboard, map, and analytics modules wait for the primary Firestore data snapshot before initializing, preventing race conditions.
-- **Synchronized Direction Normalization**: Updated the client-side prediction engine to match cloud functions, adding support for `Clockwise`, `Counterclockwise`, `Inbound`, and `Outbound` directions.
-
-### Fixed
-- **Lucide Rendering Robustness**: Implemented a `refreshIcons` utility with an automatic retry mechanism to handle race conditions during CDN script loading and ensure icons render correctly on all views.
-- **Stop Metric Interpretation**: Documented the "Stops" count logic in `stats.js` to clarify that it represents the union of unique boarding and exiting locations.
-- **UI Aesthetic Refinement**: Adjusted icon alignment, stroke weights, and brand-icon dimensions to ensure a polished look in both light and dark modes.
-
-## [1.9.6] - 2026-03-18
-
-### Security
-- **Patched `fast-xml-parser`**: Upgraded to `v5.5.6` to address a high-severity vulnerability where numeric entity expansion could bypass all entity expansion limits, causing excessive memory and CPU consumption (incomplete fix for GHSA-8gc5-j5rx-235r).
-- **CodeQL Remediation**: Fixed multiple security alerts identified by CodeQL:
-  - **Unvalidated Dynamic Method Call**: Secured the SMS command dispatcher in `functions/lib/dispatcher.js` by using `hasOwnProperty` to prevent unexpected method invocation.
-  - **Polynomial ReDoS**: Refined the "and" to "&" normalization regex in `functions/lib/utils.js` to eliminate backtracking risks.
-  - **Incomplete String Escaping**: Hardened `js/admin.js` by properly escaping backslashes and single quotes in the `escapeForJs` helper, preventing potential script injection.
-  - **Subresource Integrity (SRI)**: Added cryptographic `integrity` hashes and `crossorigin="anonymous"` attributes to all external Leaflet and MarkerCluster scripts/styles in `index.html` to ensure asset authenticity.
-- **Dependency Hardening**: Resolved critical vulnerabilities in `flatted` and `fast-xml-parser` transit dependencies via `npm audit fix` in both root and Cloud Functions.
-
-## [1.9.5] - 2026-03-18
-
-### Fixed
-- **Deployment**: Resolved `npm ci` failures in CI/CD by syncing `package-lock.json` with the `undici` and `@tootallnate/once` version overrides in `package.json`.
-- **Build**: Fixed Vite build failures related to missing entry points and module resolution.
-
-### Refactor
-- **Node.js**: Standardized Node.js engine to version 22 across the project for consistency.
-- **SMS System**: Modularized the monolithic `functions/sms.js` by extracting command dispatching into a dedicated `dispatcher.js` module.
-- **Frontend Architecture**: Refactored `js/main.js` to modularize DOM initialization and event listener setup, improving maintainability and reducing the size of the `initDOM()` function.
-- **Error Handling**: Improved error logging and reliability for SMS request dispatching.
-
-## [1.9.4] - 2026-03-18
-
-### Changed
-- **Build Optimization**: Simplified Vite configuration by removing missing entry points (`admin.html`, `public.html`) that are now integrated into the single-page application structure.
-- **Project Structure**: Restored the root `functions/` directory from `_legacy_v1` to enable proper Firebase deployments.
-
-### Fixed
-- **Deployment**: Resolved build failures where Vite could not find `admin.html`.
-- **Module Dependencies**: Restored missing utility scripts (`visuals.js`, `ui-utils.js`, `public.js`, etc.) to the `js/` directory to satisfy module imports in the V2 architecture.
-
-## [1.9.3] - 2026-03-17
-
-### Added
-- **AI Guidelines**: Established `Gemini.md` to standardize project workflows, including Notion synchronization patterns and Git commit strategies.
-- **Activity Sparkline**: Added a daily trip frequency trend visualization (last 28 days) to the dashboard sidebar for at-a-glance riding patterns.
-- **Enhanced UI**: Added `prediction-card` with premium glassmorphism/gradient styling.
-
-### Changed
-- **Emerald & Slate Design Theme**: Shifted the primary color palette from indigo/purple to a sophisticated emerald and slate theme for a more grounded, premium feel.
-- **Dedicated Insights View**: Extracted dashboard analytics (Commute Highlights, Peak Times, Top Lists) to a standalone view with specialized report containers.
-- **Enhanced Insights View**: Fully relocated analytics cards (Commute Highlights, Peak Riding Times, Popular Routes/Stops) from the primary dashboard to a dedicated "Insights" view for a cleaner homepage experience.
-- **Simplified Navigation**: Renamed "Data Manager" to "Data" and tightened header spacing (removed redundant gaps and backgrounds) for a more professional toolbar feel.
-- **Streamlined Dashboard**: Refined the dashboard to a focused two-column layout (Profile/Streak + Trip Feed), eliminating sidebar clutter while restoring the functional stats column.
-- **Refined Data Fetching**: Optimized stops library loading for intelligent fuzzy matches.
-- **Refined Data Labeling**: Softened UI tone by standardizing analytics labels to sentence-case.
-- **Repository Optimization**: Resolved "too many active changes" Git warnings by properly ignoring legacy system-generated directories.
-- **Mathematical Parity**: Standardized streak and time-of-day bucket logic to match legacy V1 nuances exactly.
-
-### Fixed
-- **REDoS Vulnerabilities**: Patched multiple regular expressions across the SMS parsing engine and utility libraries to prevent catastrophic backtracking.
-- **CSS Selector Protection**: Fixed an attribute injection vulnerability in the admin panel by properly escaping backslashes and quotes in dynamic selectors.
-- **Optimized Rendering**: Drastically improved scroll performance (restored 60fps) by identifying and removing expensive `backdrop-filter` and `animation` bottlenecks.
-- **Map Engine Stability**: Hardened `MapEngine` against re-initialization crashes, invalid coordinate data, and integrity hash failures in CDN scripts.
-- **Layout Parity Fix**: Resolved a critical layout bug where a stray `</div>` tag was breaking the 3-column dashboard grid.
-- **Improved Chart Scaling**: Refined the Peak Riding Times normalization and handled empty datasets more gracefully.
-- **Insights Loading Parity**: Resolved a bug where analytics data failed to render in the dedicated view due to mismatched DOM target IDs.
-- **Scroll Lag**: Removed `backdrop-filter` and heavy background animations that were causing frame drops during interaction.
-- **Missing Environment Variables**: Restored `.env` configuration file containing Firebase SDK keys to resolve a critical app startup block.
-- **Auth Initialization**: Refactored `js/main.js` to ensure DOM elements are strictly cached within the `init()` lifecycle, preventing null-reference crashes on varying network speeds.
-
-### Security
-- **Recursive Sanitization**: Implemented recursive HTML tag stripping in `gemini.js` to prevent sanitization bypasses.
-- **Dependency Overrides**: Enforced secure versions of `undici` and `@tootallnate/once` via `package.json` overrides to address critical vulnerabilities.
-- **Workflow Permissions**: Hardened GitHub Actions by implementing explicit least-privilege permissions for the `GITHUB_TOKEN`.
-
----
-
-## [1.9.2] - 2026-03-14
-
-### Added
-- **Route Tracker** (`js/route-tracker.js`): Per-agency completion tracker that shows ridden vs. missing routes as an animated progress bar, with a toggle between "Ridden" and "Missing" views. Integrated into the main dashboard right column.
-- **GTFS Route Library** (`js/admin.js`, `admin.html`): Import routes from a `routes.txt` file via the Data Manager. Supports batch deletion and per-agency filtering; routes are stored in a new `routes` Firestore collection.
-- **GTFS Stop→Route Mapping** (`js/admin.js`, `admin.html`): Two-step import in the Data Manager — upload `trips.txt` to build a trip→route lookup, then upload `stop_times.txt` (streamed in 100k-row batches to keep the browser responsive) to derive which routes serve each stop. Results are stored in the new `stopRoutes` Firestore collection.
-- **Prediction Route Filter** (`functions/lib/predict.js`, `js/predict.js`): `PredictionEngine.guess()` now accepts an optional `routesAtStop` array in its context. When present, candidates are hard-filtered to only routes known to serve the boarding stop, eliminating impossible predictions. Falls back to unfiltered if no candidates survive (guards against stale GTFS data).
-- **`getRoutesAtStop()`** (`functions/lib/db.js`): New Firestore helper that looks up the `stopRoutes` document for a given stop code and agency, returning the routes array or `null` if no mapping exists.
-
-### Changed
-- **SMS prediction at trip start** (`functions/lib/handlers.js`): Both `handleTripLog` and `handleConfirmStart` now fetch `stopRoutes` in parallel with trip history and the stops library, then pass the result as `routesAtStop` to the prediction engine. Adds one Firestore read per trip start; no latency impact because the read is parallel.
-- **Firestore security rules** (`firestore.rules`): Added `stopRoutes` collection — authenticated users can read; admin-only writes.
-
----
-
-## [1.5.3] - 2026-03-14 (Cloud Functions only)
-
-### Added
-- **Journey / Trip Linking** (`functions/lib/handlers.js`, `functions/sms.js`): Sequential trips can now be chained into a multi-leg journey via the new `LINK` SMS command.
-  - When a new trip starts at (or near) the stop where the previous trip ended within 45 minutes, the START confirmation includes a prompt: *"Continues your Route X trip — Reply LINK to join as a journey."*
-  - `LINK` command: links the last completed trip → current active trip (Case A), or the last two completed trips (Case B). A UUID `journeyId` is written to both trip documents; if either leg already belongs to a journey, that ID is reused so journeys can grow leg by leg.
-  - Validates the gap is ≤ 60 min before linking; reports the gap in the confirmation reply (e.g., *Route 510 → Route 504 linked as a journey (8 min transfer)*).
-  - `LINK` is now listed in the `INFO` / `HELP` command reference.
-
----
-
-## [1.9.1] - 2026-03-13
-
-### Added
-- **Dashboard Insights**: Integrated a new "Insights" section on the main dashboard that surfaces personal records (Average, Fastest, Slowest) for frequent trips, grouped by Route and Stop pair. Includes premium hover animations and refined grouping logic.
-- **Mastery Rows Visualization**: Overhauled the "Top Routes" section with a frequency-based visualization system using animated progress bars, replacing "Mastery Cards".
-- **Top Stops & Peak Riding Analytics**: Added new visualizations to the dashboard for most visited stops and usage distribution throughout the day.
-- **Intelligent Route Icons**: Implemented context-aware emoji assignment for transit routes (e.g., subway line colors, train styles) based on route names.
-- **Dynamic Bar Animations**: Introduced smooth CSS animations for all dashboard statistics bars, providing a more refined interface feel.
-- **Route Analytics Documentation**: Created [ANALYTICS_PREVIEW.md](file:///Users/ryan/Desktop/Production/Transit%20Stats/ANALYTICS_PREVIEW.md) to provide a guide for using the new performance and accuracy dashboards.
-- **Performance Indexing**: Implemented a high-performance Map-based index for verified stops, reducing resolution time across the entire application.
-- **Stop Normalization Cache**: Introduced a memoization layer for intersection stop names to prevent redundant parsing and title-casing.
-- **Text-Based Map Controls**: Redesigned map filter buttons to be minimalist, text-based tabs with accent gradient highlights.
-- **Header Alignment**: Aligned the app header with the main content container in both `index.html` and `admin.html`.
-- **`deleteTrip()` Function**: Implemented the missing `deleteTrip()` handler in `js/trips.js` to enable trip deletion from the edit modal.
-- **`saveSettings()` Alias**: Linked the settings "Save" button to the `Profile.save()` handler.
-
-### Changed
-- **Insights Terminology**: Standardized terminology for trip performance analytics under the "Insights" brand to ensure consistency with navigation elements.
-- **Minimalist Aesthetic Reversion**: Removed all glassmorphism (backdrop-filter) and all-caps text transformations (`text-transform: uppercase`) for a cleaner, more readable UI.
-- **Throttled Analytics**: Increased the profile stats update debounce from 300ms to 1000ms to significantly reduce main-thread blocking during initial synchronization.
-- **Enhanced Streak Robustness**: Improved riding streak calculations to handle invalid date formats and fall back to `endTime` when `startTime` is missing.
-- **Dynamic Agency Status**: The profile header now reflects the user's default agency or active status based on real-time trip frequency.
-- **Text-Based Header Navigation**: Stripped backgrounds and borders from header navigation links for a minimal appearance.
-- **Emoji-Only Map & Settings Buttons**: Compacted secondary header actions into emoji-only icons with accessibility titles.
-- **Map Engine Optimization**: Limited 'Spider Lines' to the most recent 150 trips to maintain 60fps performance with large histories.
-- **Initialization Batching**: Deferred heavy calculations until after login transitions complete to ensure a smooth authentication experience.
-- **Admin Panel Efficiency**: Optimized fuzzy-match logic in the Data Manager with an internal lookup cache.
-- **Unified Prediction Access**: Relocated "Prediction Logs" to the Data Manager header for improved dashboard clarity.
-- **Login Navigation Optimization**: Updated login flow to surface the dashboard directly, preventing UI overlap with the map.
-- **Layout Standardization**: Refined global spacing and padding in `styles/layout.css` for consistent module alignment.
-- **Firestore Read Reduction**: Consistently reuse `Trips.allCompletedTrips` for stats and map layers, reducing login reads from 4 to 1.
-- **Eliminated Redundant Snapshot Listener**: Removed duplicate `onSnapshot` attachment from the trip save/end flow.
-- **Staggered Module Initialization**: Deferred `Stats` and `MapEngine` initialization to allow the primary trip snapshot to settle first.
-- **Autocomplete Debounced**: Added 120ms delay to stop name suggestions to prevent linear scan overhead on every keystroke.
-- **Infinite Scroll Management**: Fixed `IntersectionObserver` accumulation by properly disconnecting previous observers before re-attaching.
-- **Templates Refactored**: Optimized trip template loading to use a single read-through cache for both modals and quick-actions.
-- **predict.js Double-Execution Removed**: Consolidated prediction logic into a single module import, removing redundant script tags.
-- **Map Layer Scoped to Active State**: Optimized GPU usage by restricting the fixed map container to its visible state.
-
-### Removed
-- **Presto/Importer Integration**: Completely removed the experimental Presto CSV importer and local data visualization logic to focus on the core authenticated experience.
-- **Standalone PRESTO Explorer**: Deleted `presto.html` and associated logic in `js/importer.js` and `js/main.js`.
-- **Local Data Heatmap Overlays**: Removed the ability to overlay amber markers from local CSV reports on the main map.
-- **Client-Side Prediction Script**: Removed `js/predict.js` script tag from `index.html` as logic is now consolidated in the module system.
-- **Web-Based Trip Logging**: Deprecated the "Start Trip" action card and associated log/end modals from the dashboard in favor of SMS-based logging.
-- **Active Trip Monitoring**: Removed real-time background listeners for active trips to optimize client-side battery and performance.
-- **Duplicate Method Definitions**: Cleaned up ~100 lines of dead code in `js/trips.js` caused by redundant function definitions.
-
-### Fixed
-- **Dashboard Buttons Unresponsive (Critical)**: All interactive elements on the dashboard (Data Manager, Insights, Map, Settings, theme toggles, emoji selectors, trip edit/delete, etc.) were completely non-functional after login. Root cause: the Content Security Policy `script-src` directive in `firebase.json` did not include `'unsafe-inline'`, causing the browser to silently block all 30+ inline `onclick` handlers across `index.html`. Added `'unsafe-inline'` to `script-src` to restore full interactivity.
-- **Indexing Storm Guard**: Introduced an `isIndexing` flag in `js/trips.js` to prevent multiple concurrent index builds, resolving a performance bottleneck when triggering rapid stop library lookups.
-- **Map Render Stability**: Refactored `js/map-engine.js` to reuse the existing Leaflet map instance instead of destroying and recreating it on every filter change, eliminating UI flickering and significantly improving responsiveness.
-- **Invalid Coordinate Protection**: Added defensive checks to prevent map crashes when processing trips with malformed or missing latitude/longitude data (`NaN` protection).
-- **UI Freezing & Performance Lag**: Resolved critical performance bottlenecks that caused the application to freeze during data loading and autocomplete interactions:
-  - **Progressive Indexing**: Rebuilt the stops library indexer to use non-blocking batch processing (`requestIdleCallback`), preventing UI lockup when loading thousands of transit stops.
-  - **Pre-Normalized Search**: Optimized the autocomplete engine to use pre-calculated normalized stop names, reducing per-keystroke overhead from thousands of regex operations to simple cached lookups.
-  - **Heuristic Optimization**: Refined the `normalizeStopName` helper with a faster title-casing algorithm and enhanced memoization.
-- **Dashboard Syntax Error / UI Freeze**: Resolved a critical syntax error in the stats module that caused the site to become unresponsive on load.
-- **Infinite Scroll Re-attachment**: Fixed a bug where "Load More" would stop functioning after the first batch of trips.
-- **Zombie Listener Cleanup**: Hardened logout flow to dispose of all global listeners, preventing memory leaks and background collisions.
-- **Active Trip Lifecycle**: Improved error resilience for the real-time trip observer when user contexts are missing.
-- **Navigation Button Intercept**: Resolved a layout issue where the hidden map container blocked clicks on interactive header elements.
-- **Delete/Save Modal Crashes**: Fixed `ReferenceError` crashes when attempting to delete trips or save user settings.
-- **Profile UI Sync Fix**: Resolved an issue where the profile card would show "Syncing transit activity..." indefinitely by ensuring the UI updates as soon as trip data is loaded.
-- **Streak Algorithm Accuracy**: Fixed the "Best Streak" initialization logic and added protection against invalid/NaN date formats in the riding streak calculation.
-
-### Security & Infrastructure
-- **Prediction Engine Tests**: Added 48 unit tests for `js/predict.js` covering `guess`, `evaluate`, `guessEndStop`, stop canonicalization, direction normalization, route family grouping, day/time/duration similarity scoring, and trip validation. All 58 project tests passing.
-- **PRESTO Importer Retired**: Formally retired the PRESTO CSV importer feature. Source files were previously removed; roadmap updated to reflect TTC-only legacy import scope going forward.
-- **Gemini API Key Rotated**: Replaced compromised key (exposed in v1.4.2 `.env` commit) with a new key stored in Cloud Secret Manager. Natural language SMS parsing restored.
-- **Phone Number Redaction**: SMS Cloud Functions now route all phone number logging through the masked logger (`lib/logger.js`), replacing plaintext `console.log` calls in `lib/db.js`.
-- **Firestore Read Amplification Fixed**: Denormalized `isPublic` from user profiles onto trip documents, eliminating a per-trip profile `get()` in the security rule. A one-time migration (`migrations/add-isPublic-to-trips.js`) backfilled all existing trips.
-- **Email Case Normalization**: Auth flows (`signInWithPassword`, `sendMagicLink`, `sendPasswordReset`) now lowercase the email before passing it to Firebase Auth, ensuring consistency with the whitelist check.
-- **Client-Side Auth Rate Limiting**: Sign-in form now locks for 15 minutes after 5 consecutive failed password attempts, tracked via localStorage. Server-side enforcement planned.
-- **Removed Exposed Service Account Key**: Deleted `serviceAccountKey.json` from the project directory; key has been revoked in Firebase Console.
-- **Duplicate Firestore Rule Removed**: Eliminated a duplicate `geminiRateLimits` rule block that had accumulated in `firestore.rules`.
-- **Firestore Index Field Name Corrected**: Fixed a `userID` (capital D) typo in `firestore.indexes.json` that was causing a trips index to be ineffective; the broken index has been deleted and replaced.
-- **Admin Write Rule Optimized**: Consolidated the redundant `exists()` + `get()` double-read in the stops write rule into a single `get()` call, reducing Firestore read costs.
-- **Promise-Based Module Initialization**: Replaced fragile `setTimeout` delays (500ms/800ms) for `Stats` and `MapEngine` startup with a proper Promise that resolves after the first Trips snapshot, ensuring these modules always initialize on real data.
-- **SMS Idempotency Guard**: Added a null check for `MessageSid` before the idempotency lookup in the SMS handler to prevent unexpected failures if the field is absent.
-
-## [1.9.0] - 2026-03-12
-
-### Changed
-- **UI Refinement**: Removed redundant branding footer and layout glitches (stray arrow/characters) for a cleaner, more focused landing page.
-- **Privacy Hardening**: Simplified the access request text to "Invite only." to reduce confusion.
-- **Dynamic Admin Tools**: The "Prediction Logs" monitoring link is now dynamically hidden and only revealed to verified administrators after login.
-
-### Fixed
-- **Authentication Glitch**: Resolved a malformed HTML body tag that caused rendering artifacts on the login screen.
-- **Cloud Security**: Hardened Firestore security rules for prediction data, ensuring users can only access their own accuracy metrics.
-
-## [1.8.3] - 2026-03-10
-
-### Added
-- **Trip Comparison Dashboard** (`trips_comparison.html`): Introduced a new specialized view for correlating trip durations and identifying transit corridor trends over time.
+- **Prediction Test Suite**: Added 137 unit tests covering parsing, utility exports, and the full prediction engine logic.
 
 ---
 

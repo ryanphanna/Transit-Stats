@@ -384,17 +384,71 @@
             <button class="btn-close" id="btn-close-settings"><i data-lucide="x"></i></button>
         </div>
         <div class="modal-body">
+            <!-- Account Info -->
+            <div class="settings-group mb-4">
+                <label class="section-label">Account</label>
+                <div id="settings-profile-info" class="profile-info-box mt-2">
+                    <div class="info-row">
+                        <span class="info-label">Email</span>
+                        <span id="settings-email" class="info-value">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Phone</span>
+                        <span id="settings-phone" class="info-value">Not linked</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preferences -->
+            <div class="settings-group mb-4">
+                <label class="section-label">Preferences</label>
+                <div class="form-group mt-2">
+                    <label>Default Transit Agency</label>
+                    <select id="settings-agency" class="modal-select">
+                        <option value="TTC">TTC (Toronto)</option>
+                        <option value="GO Transit">GO Transit</option>
+                        <option value="MiWay">MiWay (Mississauga)</option>
+                        <option value="YRT">YRT (York Region)</option>
+                        <option value="Brampton Transit">Brampton Transit</option>
+                        <option value="Durham Transit">Durham Transit</option>
+                        <option value="HSR">HSR (Hamilton)</option>
+                        <option value="GRT">GRT (Waterloo)</option>
+                        <option value="OC Transpo">OC Transpo (Ottawa)</option>
+                        <option value="STM">STM (Montreal)</option>
+                        <option value="TransLink">TransLink (Vancouver)</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Beta Features -->
+            <div class="settings-group mb-4">
+                <label class="section-label">Beta Features</label>
+                <div class="toggle-row mt-2">
+                    <div class="toggle-info">
+                        <span class="toggle-title">Destination Predictions</span>
+                        <span class="toggle-desc">Show predicted end stops when logging.</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="settings-beta-predictions">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+
             <div class="settings-group">
-                <label>Theme</label>
+                <label class="section-label">App Appearance</label>
                 <div class="toggle-group full-width mt-2 mb-4">
                     <button id="theme-light" class="toggle-btn w-50 active">Light</button>
                     <button id="theme-dark" class="toggle-btn w-50">Dark</button>
                 </div>
             </div>
+
             <div id="prediction-accuracy-section" class="settings-group hidden" style="border-top: 1px solid var(--border-color); padding-top: 1rem; margin-top: 1rem;">
-                <label>Prediction Accuracy</label>
+                <label>Admin Insights</label>
                 <p id="prediction-accuracy-stat" class="text-secondary" style="font-size: 0.85rem; margin-top: 0.4rem;">Loading...</p>
             </div>
+            
             <button id="btn-logout" class="btn btn-danger-outline full-width mt-4">Log Out</button>
         </div>
     </div>

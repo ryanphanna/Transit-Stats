@@ -1,6 +1,6 @@
 {
     "name": "transit-stats",
-    "version": "1.14.1",
+    "version": "1.15.0",
     "description": "Personal transit trip tracker for enthusiasts to analyze ridership patterns.",
     "engines": {
         "node": "22"

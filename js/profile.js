@@ -1,170 +1,97 @@
-
-import { db, Timestamp } from './firebase.js';
+import firebase, { db, auth } from './firebase.js';
 import { UI } from './ui-utils.js';
 
-// TransitStats Profile Module
+/**
+ * TransitStats - Preference Management
+ * Handles user profile settings, beta features, and agency preferences.
+ */
 export const Profile = {
-    /**
-     * Load the current user's profile from Firestore
-     */
-    load: function () {
-        if (!window.currentUser) return;
+    data: null,
+    phone: null,
 
-        db.collection('profiles').doc(window.currentUser.uid).get()
-            .then((doc) => {
-                if (doc.exists) {
-                    const profile = doc.data();
-                    this.updateUI(profile);
-                    window.currentUserProfile = profile;
-                }
-            })
-            .catch((error) => {
-                console.log('Profile load error (using defaults):', error.message);
+    async init() {
+        this.setupListeners();
+    },
+
+    setupListeners() {
+        const agencySelect = document.getElementById('settings-agency');
+        const betaPredictions = document.getElementById('settings-beta-predictions');
+
+        agencySelect?.addEventListener('change', (e) => {
+            this.updateSetting('defaultAgency', e.target.value);
+        });
+
+        betaPredictions?.addEventListener('change', (e) => {
+            this.updateSetting('betaFeatures', {
+                ...this.data?.betaFeatures,
+                predictions: e.target.checked
             });
+        });
     },
 
     /**
-     * Update the UI with profile data
+     * Load user data and phone number mappings.
      */
-    updateUI: function (profile) {
-        const emoji = profile.emoji || '🚌';
+    async load(user) {
+        if (!user) return;
+        
+        try {
+            const [profileDoc, phoneSnap] = await Promise.all([
+                db.collection('profiles').doc(user.uid).get(),
+                db.collection('phoneNumbers').where('userId', '==', user.uid).limit(1).get()
+            ]);
 
-        // Update Dashboard Display
-        const displayAvatar = document.getElementById('displayAvatar');
-        const displayName = document.getElementById('displayName');
+            this.data = profileDoc.exists ? profileDoc.data() : { isPremium: false };
+            this.phone = !phoneSnap.empty ? phoneSnap.docs[0].id : null;
 
-        if (displayAvatar) displayAvatar.textContent = emoji;
-        if (displayName) displayName.textContent = profile.name || 'Traveler';
-
-        const mapProfileAgency = document.getElementById('mapProfileAgency');
-        if (mapProfileAgency) mapProfileAgency.textContent = profile.defaultAgency || 'TTC';
-
-        // Update Settings Inputs
-        const settingsAvatar = document.getElementById('settingsAvatar');
-        const nameInput = document.getElementById('nameInput');
-        const agencySelect = document.getElementById('defaultAgencySelect');
-
-        if (settingsAvatar) settingsAvatar.textContent = emoji;
-        if (nameInput) nameInput.value = profile.name || '';
-        if (agencySelect) agencySelect.value = profile.defaultAgency || 'TTC';
-
-        const usernameInput = document.getElementById('usernameInput');
-        if (usernameInput) usernameInput.value = profile.username || '';
-
-        const publicToggle = document.getElementById('publicProfileToggle');
-        if (publicToggle) publicToggle.checked = profile.isPublic || false;
-
-        if (profile.emoji) {
-            const emojiSelector = document.getElementById('emojiSelector');
-            const shuffleBtn = document.getElementById('shuffleEmojiBtn');
-            if (emojiSelector) emojiSelector.style.display = 'none';
-            if (shuffleBtn) shuffleBtn.style.display = 'block';
-            window.currentEmoji = emoji;
+            this.syncUI(user.email);
+        } catch (err) {
+            console.error('Profile load error:', err);
         }
     },
-
 
     /**
-     * Save the user profile to Firestore
+     * Update UI elements with current profile state.
      */
-    save: function () {
-        if (!window.currentUser) return;
+    syncUI(email) {
+        const emailEl = document.getElementById('settings-email');
+        const phoneEl = document.getElementById('settings-phone');
+        const agencyEl = document.getElementById('settings-agency');
+        const betaEl = document.getElementById('settings-beta-predictions');
 
-        const nameInput = document.getElementById('nameInput');
-        const avatarEl = document.getElementById('settingsAvatar');
-        const agencySelect = document.getElementById('defaultAgencySelect');
-        const usernameInput = document.getElementById('usernameInput');
-        const publicToggle = document.getElementById('publicProfileToggle');
-
-        if (!nameInput) return;
-
-        const name = nameInput.value.trim();
-        const emoji = avatarEl ? avatarEl.textContent : '🚌';
-        const defaultAgency = agencySelect ? agencySelect.value : 'TTC';
-        const username = usernameInput ? usernameInput.value.trim().toLowerCase() : '';
-        const isPublic = publicToggle ? publicToggle.checked : false;
-
-        if (!name) {
-            UI.showNotification('Please enter your name', 'error');
-            return;
+        if (emailEl) emailEl.textContent = email;
+        if (phoneEl) phoneEl.textContent = this.phone || 'Not linked';
+        
+        if (agencyEl && this.data?.defaultAgency) {
+            agencyEl.value = this.data.defaultAgency;
         }
 
-        const profileData = {
-            name: name,
-            emoji: emoji,
-            defaultAgency: defaultAgency,
-            userId: window.currentUser.uid,
-            updatedAt: Timestamp.now(),
-            isPublic: isPublic,
-            username: username
-        };
-
-        db.collection('profiles').doc(window.currentUser.uid).set(profileData, { merge: true })
-            .then(async () => {
-                // Sync isPublic to all trips so Firestore rules don't need a profile lookup per trip
-                const tripsSnap = await db.collection('trips')
-                    .where('userId', '==', window.currentUser.uid)
-                    .get();
-                const batch = db.batch();
-                tripsSnap.docs.forEach(doc => batch.update(doc.ref, { isPublic: isPublic }));
-                await batch.commit();
-                UI.showNotification('Profile saved successfully!', 'success');
-                this.load();
-                if (window.closeSettings) window.closeSettings();
-            })
-            .catch((error) => {
-                console.error('Error saving profile:', error);
-                UI.showNotification('Error saving profile', 'error');
-            });
-    },
-
-    selectEmoji: function (emoji, event) {
-        window.currentEmoji = emoji;
-        const settingsAvatar = document.getElementById('settingsAvatar');
-        if (settingsAvatar) settingsAvatar.textContent = emoji;
-
-        // Update selection state in UI
-        document.querySelectorAll('.emoji-btn').forEach(btn => btn.classList.remove('selected'));
-        if (event && event.target) {
-            event.target.classList.add('selected');
+        if (betaEl && this.data?.betaFeatures) {
+            betaEl.checked = !!this.data.betaFeatures.predictions;
         }
     },
 
-    shuffleEmoji: function () {
-        const emojis = ['🚌', '🚇', '🚊', '🚋', '🚞', '🚝', '🚄', '✈️'];
-        const currentEmoji = document.getElementById('settingsAvatar')?.textContent || '🚌';
-        let newEmoji;
-        do {
-            newEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-        } while (newEmoji === currentEmoji);
+    /**
+     * Save a setting to Firestore and update local state.
+     */
+    async updateSetting(key, value) {
+        const user = auth.currentUser;
+        if (!user) return;
 
-        const settingsAvatar = document.getElementById('settingsAvatar');
-        if (settingsAvatar) settingsAvatar.textContent = newEmoji;
-        window.currentEmoji = newEmoji;
-    },
-
-    show: function () {
-        if (window.hideAllSections) window.hideAllSections();
-        const dashboardGrid = document.querySelector('.dashboard-grid') || document.getElementById('dashboardPanel');
-        const profileSection = document.getElementById('profileSection');
-        const startSection = document.getElementById('startSection');
-
-        if (dashboardGrid) dashboardGrid.style.display = dashboardGrid.id === 'dashboardPanel' ? 'block' : 'grid';
-        if (profileSection) profileSection.style.display = 'block';
-        if (startSection) startSection.style.display = 'none';
-
-        if (typeof window.updateTripIndicator === 'function') window.updateTripIndicator();
-        this.load();
-
-        if (profileSection) profileSection.style.opacity = '1';
+        try {
+            await db.collection('profiles').doc(user.uid).set({
+                [key]: value,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            
+            // Update local state
+            if (!this.data) this.data = {};
+            this.data[key] = value;
+            
+            UI.showNotification('Preference saved.');
+        } catch (err) {
+            console.error('Save failed:', err);
+            UI.showNotification('Failed to save: ' + err.message);
+        }
     }
 };
-
-
-// Expose to window
-window.Profile = Profile;
-window.saveProfile = Profile.save.bind(Profile);
-window.loadUserProfile = Profile.load.bind(Profile);
-window.selectEmoji = Profile.selectEmoji.bind(Profile);
-window.shuffleEmoji = Profile.shuffleEmoji.bind(Profile);
-window.showProfile = Profile.show.bind(Profile);
