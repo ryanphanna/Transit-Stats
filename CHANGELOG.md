@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Security
+- **Strict Rate Limiting**: Tightened the SMS request throttle from 60 requests per hour to a strict 8 requests per minute sliding window to prevent maliciously or accidentally massive Twilio/Gemini bills. 
+- **URL Spam Filter**: Implemented immediate rejection for incoming texts containing URLs (`http`, `www`, etc.) to block conventional text spam without invoking expensive AI or database reads.
 - **Dependency Hardening**: Resolved 8 high/moderate vulnerabilities in Cloud Functions dependencies (including `node-forge`, `path-to-regexp`, and `brace-expansion`) via `npm audit fix`.
 
 ## [1.14.1] - 2026-03-31

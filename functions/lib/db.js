@@ -20,13 +20,16 @@ async function isRateLimited(phoneNumber) {
   const rateLimitRef = db.collection('rateLimits').doc(phoneNumber);
   const doc = await rateLimitRef.get();
   const now = new Date();
+  
+  const windowMs = 60 * 1000; // 1 minute window
+  const maxRequests = 8;
 
   if (!doc.exists) {
     // First message - create rate limit record
     await rateLimitRef.set({
       count: 1,
       resetAt: admin.firestore.Timestamp.fromDate(
-        new Date(now.getTime() + 60 * 60 * 1000), // 1 hour from now
+        new Date(now.getTime() + windowMs) 
       ),
     });
     return false;
@@ -40,15 +43,15 @@ async function isRateLimited(phoneNumber) {
     await rateLimitRef.set({
       count: 1,
       resetAt: admin.firestore.Timestamp.fromDate(
-        new Date(now.getTime() + 60 * 60 * 1000),
+        new Date(now.getTime() + windowMs)
       ),
     });
     return false;
   }
 
-  if (data.count >= 60) {
-    // Rate limit exceeded (60 messages per hour)
-    console.log('Rate limit exceeded');
+  if (data.count >= maxRequests) {
+    // Rate limit exceeded
+    console.log(`Rate limit exceeded for ${phoneNumber}: ${data.count} requests within 1 minute.`);
     return true;
   }
 

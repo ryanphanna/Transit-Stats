@@ -30,6 +30,13 @@ async function dispatch(phoneNumber, body, messageSid) {
     throw new Error('Missing phone number or message body');
   }
 
+  // 1.5. Spam Filter: Drop texts containing URLs immediately
+  const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/i;
+  if (urlRegex.test(body)) {
+    logger.info('Spam URL dropped', { From: phoneNumber, Body: body });
+    return ''; // Return empty TwiML silently
+  }
+
   const upperBody = body.toUpperCase();
   logger.info('Dispatching SMS', { From: phoneNumber, Body: body });
 
