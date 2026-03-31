@@ -27,7 +27,9 @@ export const Trips = {
             const snap = await db.collection('stops').get();
             PredictionEngine.stopsLibrary = snap.docs.map(doc => doc.data());
             console.log(`PredictionEngine: Loaded ${PredictionEngine.stopsLibrary.length} stops.`);
-            this.renderPrediction(); // Refresh prediction once stops are ready
+            
+            this.renderPrediction();
+            MapEngine.renderMarkers(); // Refresh map with coordinates from the new library
         } catch (err) {
             console.error("Failed to load stops library for prediction:", err);
         }
