@@ -1,4 +1,5 @@
 import { UI } from './ui-utils.js';
+import { PredictionEngine } from './predict.js';
 
 /**
  * TransitStats V2 Map Engine
@@ -92,6 +93,22 @@ export const MapEngine = {
         if (this.map) this.renderMarkers();
     },
 
+    _getStopLocation(stopName) {
+        if (!stopName) return null;
+        // Search in PredictionEngine's library
+        const stop = PredictionEngine.stopsLibrary.find(s => 
+            PredictionEngine._stopMatch(s.name, stopName)
+        );
+        
+        if (stop && stop.lat && (stop.lng || stop.lon)) {
+            return {
+                lat: stop.lat,
+                lng: stop.lng || stop.lon
+            };
+        }
+        return null;
+    },
+
     renderMarkers() {
         if (!this.map || !this.layers.markers) return;
         this.layers.markers.clearLayers();
@@ -100,20 +117,30 @@ export const MapEngine = {
 
         this.trips.forEach(trip => {
             // Process Boarding
-            if ((this.filter === 'boarding' || this.filter === 'both') && trip.boardingLocation) {
+            let bLoc = trip.boardingLocation;
+            if (!bLoc || isNaN(bLoc.lat)) {
+                bLoc = this._getStopLocation(trip.startStopName || trip.startStop);
+            }
+
+            if ((this.filter === 'boarding' || this.filter === 'both') && bLoc) {
                 points.push({
-                    lat: trip.boardingLocation.lat,
-                    lng: trip.boardingLocation.lng || trip.boardingLocation.lon,
+                    lat: bLoc.lat,
+                    lng: bLoc.lng,
                     type: 'boarding',
                     label: `Boarded ${trip.route} at ${trip.startStopName || trip.startStop}`
                 });
             }
 
             // Process Exiting
-            if ((this.filter === 'exiting' || this.filter === 'both') && trip.exitLocation) {
+            let eLoc = trip.exitLocation;
+            if (!eLoc || isNaN(eLoc.lat)) {
+                eLoc = this._getStopLocation(trip.endStopName || trip.endStop);
+            }
+
+            if ((this.filter === 'exiting' || this.filter === 'both') && eLoc) {
                 points.push({
-                    lat: trip.exitLocation.lat,
-                    lng: trip.exitLocation.lng || trip.exitLocation.lon,
+                    lat: eLoc.lat,
+                    lng: eLoc.lng,
                     type: 'exiting',
                     label: `Exited ${trip.route} at ${trip.endStopName || trip.endStop}`
                 });
