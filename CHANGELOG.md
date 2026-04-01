@@ -10,9 +10,6 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - **Map Initialization Race Condition**: Patched a timing issue where map markers wouldn't render if the stops library finished loading after the initial trip data fetch.
 
-### Changed
-- **Project History Standardization**: Re-ordered and standardized all historical headings in `CHANGELOG.md` and `CHANGELOG_ARCHIVE.md` to follow the project-standard sequence (Added, Changed, Removed, Fixed, Security).
-
 ## [1.15.0] - 2026-03-31
 
 ### Added
