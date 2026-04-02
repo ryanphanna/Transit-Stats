@@ -384,7 +384,8 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
   let replyBody = `Started ${routeDisplay} from ${finalStopDisplay}.`;
   if (isAdmin && endStopPredictions && endStopPredictions.length > 0) {
     const predLines = endStopPredictions.map((p, i) => `${i + 1}. ${p.stop} (${p.confidence}%)`).join('\n');
-    replyBody += `\n\nHeading to:\n${predLines}\n\nEND [stop] or END 1/2/3 to finish. FORGOT if forgot to end. INFO for help.`;
+    const shortcutNums = endStopPredictions.map((_, i) => i + 1).join('/');
+    replyBody += `\n\nPredicted end:\n${predLines}\n\nEND [stop] or END ${shortcutNums} to finish. FORGOT if forgot to end. INFO for help.`;
   } else {
     replyBody += `\n\nEND [stop] to finish. FORGOT if you forgot to end. INFO for help.`;
   }
@@ -470,7 +471,8 @@ async function handleConfirmStart(phoneNumber, user, state) {
   let confirmReplyBody = `${oldTripRouteDisplay} marked as incomplete.\n\nStarted ${newRouteDisplay} from ${newStopDisplay}.`;
   if (confirmIsAdmin && confirmEndStopPredictions && confirmEndStopPredictions.length > 0) {
     const predLines = confirmEndStopPredictions.map((p, i) => `${i + 1}. ${p.stop} (${p.confidence}%)`).join('\n');
-    confirmReplyBody += `\n\nHeading to:\n${predLines}\n\nEND [stop] or END 1/2/3 to finish. FORGOT if forgot to end. INFO for help.`;
+    const shortcutNums = confirmEndStopPredictions.map((_, i) => i + 1).join('/');
+    confirmReplyBody += `\n\nPredicted end:\n${predLines}\n\nEND [stop] or END ${shortcutNums} to finish. FORGOT if forgot to end. INFO for help.`;
   } else {
     confirmReplyBody += `\n\nEND [stop] to finish. FORGOT if you forgot to end. INFO for help.`;
   }

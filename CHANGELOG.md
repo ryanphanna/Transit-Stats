@@ -2,13 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.16.0] - 2026-04-02
+
+### Changed
+- **SMS Trip Start Message**: "Heading to" replaced with "Predicted end:" for clarity. End shortcut numbers now reflect actual prediction count (e.g. `END 1` instead of `END 1/2/3` when only one prediction exists).
 
 ### Added
 - **Coordinate Fallback Policy**: Implemented a stop-library lookup in the Map Engine to ensure trips logged via SMS (often missing point coordinates) populate as dots by using their stop names.
+- **Content Deduplication**: Incoming messages with identical phone+body within 60 seconds are dropped — catches iPhone carrier retries that arrive with a new MessageSid.
+- **Outbound Loop Detection**: Outbound SMS bodies are hashed on send; if the same body arrives as an incoming message within 2 minutes, it is silently dropped — prevents the app from processing its own replies as commands.
+- **Self-Loop Guard**: Incoming messages where `From` equals the app's own Twilio number are dropped immediately before any processing.
 
 ### Fixed
 - **Map Initialization Race Condition**: Patched a timing issue where map markers wouldn't render if the stops library finished loading after the initial trip data fetch.
+- **Stop Alias Correction**: Removed incorrect `FINCH WEST` alias from Lawrence West Station; added Finch West Station and 27 other missing TTC subway stations with proper aliases derived from submitted trip history.
+- **Gemini Direction Validation**: AI-parsed trip starts now validate direction against canonical values (Northbound, Southbound, etc.) — prevents hallucinated direction strings like `Northq` from being stored.
 
 ## [1.15.0] - 2026-03-31
 

@@ -414,6 +414,48 @@ async function checkIdempotency(messageSid) {
 }
 
 /**
+ * Check for duplicate content: ignore if same phone+body was processed within 60 seconds.
+ * Catches iPhone carrier retries that arrive with a new MessageSid.
+ * @param {string} phoneNumber
+ * @param {string} body
+ * @returns {boolean} true if duplicate
+ */
+async function checkContentDuplicate(phoneNumber, body) {
+  if (!phoneNumber || !body) return false;
+
+  const crypto = require('crypto');
+  const key = crypto.createHash('sha256').update(phoneNumber + '|' + body).digest('hex');
+  const ref = db.collection('processedMessages').doc('content_' + key);
+  const WINDOW_MS = 60000;
+
+  try {
+    await ref.create({
+      processedAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + WINDOW_MS)),
+    });
+    return false; // first time seeing this content
+  } catch (e) {
+    if (e.code === 6) { // ALREADY_EXISTS
+      // Check if still within window
+      const doc = await ref.get();
+      if (doc.exists) {
+        const processedAt = doc.data().processedAt?.toDate?.();
+        if (processedAt && (Date.now() - processedAt.getTime()) < WINDOW_MS) {
+          return true; // duplicate within window
+        }
+        // Window expired — overwrite and allow through
+        await ref.set({
+          processedAt: admin.firestore.FieldValue.serverTimestamp(),
+          expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + WINDOW_MS)),
+        });
+      }
+      return false;
+    }
+    throw e;
+  }
+}
+
+/**
  * Create a new trip in the database
  * @param {object} tripData - The trip details to save
  * @returns {Promise<string>} Created trip ID
@@ -504,6 +546,9 @@ module.exports = {
   lookupStop,
   getRoutesAtStop,
   checkIdempotency,
+  checkContentDuplicate,
+  getFirestore: () => db,
+  getAdmin: () => admin,
   createTrip,
   getRecentCompletedTrips,
 };

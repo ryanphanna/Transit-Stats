@@ -7,6 +7,8 @@ const logger = require('./logger');
 const {
   isRateLimited,
   checkIdempotency,
+  checkContentDuplicate,
+  getFirestore,
   getPendingState,
   getUserByPhone,
   getUserProfile,
@@ -15,7 +17,7 @@ const {
   db,
   admin,
 } = require('./db');
-const { sendSmsReply } = require('./twilio');
+const { sendSmsReply, getTwilioPhoneNumber } = require('./twilio');
 const { parseWithGemini, constructStopInput } = require('./gemini');
 const { parseMultiLineTripFormat, parseEndTripFormat } = require('./parsing');
 const { isValidRoute, normalizeDirection, getRouteDisplay, getStopDisplay } = require('./utils');
@@ -28,6 +30,12 @@ async function dispatch(phoneNumber, body, messageSid) {
   // 1. Basic Validation
   if (!phoneNumber || !body) {
     throw new Error('Missing phone number or message body');
+  }
+
+  // Drop messages sent from our own number — self-loop guard
+  if (phoneNumber === getTwilioPhoneNumber()) {
+    logger.info('Self-loop detected — dropping', { From: phoneNumber });
+    return '';
   }
 
   // 1.5. Spam Filter: Drop texts containing URLs immediately
@@ -48,6 +56,16 @@ async function dispatch(phoneNumber, body, messageSid) {
 
   if (messageSid && await checkIdempotency(messageSid)) {
     logger.info('Duplicate Message', { MessageSid: messageSid });
+    return '';
+  }
+
+  if (await checkContentDuplicate(phoneNumber, body)) {
+    logger.info('Duplicate content within window', { From: phoneNumber });
+    return '';
+  }
+
+  if (await checkOutboundLoop(body)) {
+    logger.info('Outbound loop detected — dropping', { From: phoneNumber });
     return '';
   }
 
@@ -240,12 +258,18 @@ async function handleAIIntent(phoneNumber, user, body) {
   case 'START_TRIP': {
     const startStop = constructStopInput(geminiResult);
     if (geminiResult.route && startStop && isValidRoute(geminiResult.route)) {
+      const CANONICAL_DIRECTIONS = new Set([
+        'Northbound', 'Southbound', 'Eastbound', 'Westbound',
+        'Clockwise', 'Counterclockwise', 'Inbound', 'Outbound',
+      ]);
+      const normalizedDir = normalizeDirection(geminiResult.direction);
+      const safeDir = CANONICAL_DIRECTIONS.has(normalizedDir) ? normalizedDir : null;
       await handlers.handleTripLog(
         phoneNumber,
         user,
         startStop,
         geminiResult.route,
-        normalizeDirection(geminiResult.direction),
+        safeDir,
         defaultAgency,
         { parsed_by: 'ai' },
       );
@@ -287,6 +311,28 @@ async function handleFallback(phoneNumber, user, body) {
   });
 
   await sendSmsReply(phoneNumber, `Could not understand. Try:\n[Route]\n[Stop]`);
+}
+
+/**
+ * Check if an incoming message body matches a recently sent outbound message.
+ * Catches loops where the app's own reply comes back as an incoming SMS.
+ * @param {string} body
+ * @returns {boolean} true if this looks like a looped outbound message
+ */
+async function checkOutboundLoop(body) {
+  if (!body) return false;
+  try {
+    const crypto = require('crypto');
+    const db = getFirestore();
+    const key = crypto.createHash('sha256').update('outbound|' + body).digest('hex');
+    const doc = await db.collection('processedMessages').doc('outbound_' + key).get();
+    if (!doc.exists) return false;
+    const processedAt = doc.data().processedAt?.toDate?.();
+    return processedAt && (Date.now() - processedAt.getTime()) < 120000;
+  } catch (e) {
+    logger.error('checkOutboundLoop error', { error: e.message });
+    return false;
+  }
 }
 
 module.exports = {
