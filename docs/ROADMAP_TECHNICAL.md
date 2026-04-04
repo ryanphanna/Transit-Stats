@@ -5,9 +5,9 @@ by impact vs. effort. This is a living document — priorities shift, but themes
 
 ---
 
-## Theme 1 — SMS System
+## Theme 1 — Messaging System (RCS / SMS)
 
-The SMS layer is the primary trip logging interface. Core commands work; these are
+The messaging layer is the primary trip logging interface. Core commands work; these are
 quality and coverage improvements.
 
 - [ ] **`STATS` command improvements** — extend the structured stats reply with weekly

@@ -18,7 +18,7 @@ Transit riders lack a unified, personal way to track their journeys across multi
 - **AI**: Google Gemini (Flash & Pro)
 - **Frontend**: Vanilla JS, HTML5, CSS3, Leaflet (Mapping)
 - **Backend**: Firebase (Auth, Firestore, Hosting)
-- **Communications**: Twilio SMS API
+- **Communications**: Twilio Messaging API (RCS with SMS fallback)
 
 ---
 
