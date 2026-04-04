@@ -5,9 +5,9 @@ by impact vs. effort. This is a living document — priorities shift, but themes
 
 ---
 
-## Theme 1 — SMS System
+## Theme 1 — Messaging System (RCS / SMS)
 
-The SMS layer is the primary trip logging interface. Core commands work; these are
+The messaging layer is the primary trip logging interface. Core commands work; these are
 quality and coverage improvements.
 
 - [ ] **`STATS` command improvements** — extend the structured stats reply with weekly
@@ -19,6 +19,7 @@ quality and coverage improvements.
   and surface the link prompt earlier, without requiring the user to know the command.
 - [ ] **International number support** — phone number normalization currently assumes
   North American format. Standardize to E.164 throughout.
+- [ ] **RCS suggested reply buttons** — attach tappable quick-reply chips to key responses for Android RCS users. Priority targets: `STATUS` reply (END TRIP / DISCARD / STATS) and trip-start confirmation (predicted end stops as tappable buttons, replacing the `END 1/2/3` shortcut system). SMS users receive the plain-text version unchanged via Twilio's automatic fallback.
 
 ---
 

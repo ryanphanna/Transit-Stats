@@ -19,6 +19,7 @@ const geminiApiKey = defineSecret('GEMINI_API_KEY');
 const twilioAuthToken = defineSecret('TWILIO_AUTH_TOKEN');
 const twilioAccountSid = defineSecret('TWILIO_ACCOUNT_SID');
 const twilioPhoneNumber = defineSecret('TWILIO_PHONE_NUMBER');
+const twilioMessagingServiceSid = defineSecret('TWILIO_MESSAGING_SERVICE_SID');
 
 const app = express();
 app.use(express.urlencoded({ extended: true }));
@@ -60,7 +61,7 @@ app.post('/', (req, res, next) => {
 
 // Export 2nd Gen Function
 exports.sms = onRequest({
-  secrets: [geminiApiKey, twilioAuthToken, twilioAccountSid, twilioPhoneNumber],
+  secrets: [geminiApiKey, twilioAuthToken, twilioAccountSid, twilioPhoneNumber, twilioMessagingServiceSid],
   concurrency: 50, // Optimize costs by handling more requests on one instance
   maxInstances: 10,
 }, app);
