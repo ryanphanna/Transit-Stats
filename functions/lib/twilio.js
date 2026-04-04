@@ -5,6 +5,8 @@ const { escapeXml } = require('./utils');
 const twilioAuthToken = defineSecret('TWILIO_AUTH_TOKEN');
 const twilioAccountSid = defineSecret('TWILIO_ACCOUNT_SID');
 const twilioPhoneNumber = defineSecret('TWILIO_PHONE_NUMBER');
+// Optional: Messaging Service SID (starts with MG) — enables automatic RCS upgrade with SMS fallback
+const twilioMessagingServiceSid = defineSecret('TWILIO_MESSAGING_SERVICE_SID');
 
 /**
  * Get Twilio client. Returns null if credentials are not configured.
@@ -37,6 +39,20 @@ function getTwilioPhoneNumber() {
 }
 
 /**
+ * Get the Twilio Messaging Service SID if configured.
+ * When set, messages are sent via the service which enables automatic RCS upgrade
+ * with transparent fallback to SMS for unsupported devices.
+ * @returns {string|null}
+ */
+function getMessagingServiceSid() {
+  try {
+    return twilioMessagingServiceSid.value() || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Send an SMS reply via Twilio
  * @param {string} to - Recipient phone number
  * @param {string} message - Message body
@@ -44,24 +60,27 @@ function getTwilioPhoneNumber() {
  */
 async function sendSmsReply(to, message) {
   const client = getTwilioClient();
+  const messagingServiceSid = getMessagingServiceSid();
   const from = getTwilioPhoneNumber();
 
-  if (!client || !from) {
-    console.error('Cannot send SMS - Twilio not configured');
+  if (!client || (!messagingServiceSid && !from)) {
+    console.error('Cannot send message - Twilio not configured');
     return false;
   }
 
+  // Prefer Messaging Service SID: enables automatic RCS upgrade with SMS fallback.
+  // Fall back to direct phone number for accounts without a Messaging Service.
+  const msgParams = messagingServiceSid
+    ? { body: message, messagingServiceSid, to }
+    : { body: message, from, to };
+
   try {
-    await client.messages.create({
-      body: message,
-      from: from,
-      to: to,
-    });
-    console.log('SMS sent successfully');
+    await client.messages.create(msgParams);
+    console.log(`Message sent via ${messagingServiceSid ? 'Messaging Service (RCS/SMS)' : 'direct SMS'}`);
     await logOutboundMessage(message);
     return true;
   } catch (error) {
-    console.error('Error sending SMS:', error);
+    console.error('Error sending message:', error);
     return false;
   }
 }
@@ -174,6 +193,7 @@ function validateTwilioSignature(req) {
 module.exports = {
   getTwilioClient,
   getTwilioPhoneNumber,
+  getMessagingServiceSid,
   sendSmsReply,
   twimlResponse,
   validateTwilioSignature,
