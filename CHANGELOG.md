@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.17.1] - 2026-04-07
+
+### Fixed
+- **Deployment**: Made `TWILIO_MESSAGING_SERVICE_SID` an optional secret in `functions/sms.js`. This prevents "missing secret" errors from blocking Firebase deployments when RCS isn't fully configured.
+
 ## [1.17.0] - 2026-04-07
 
 ### Added

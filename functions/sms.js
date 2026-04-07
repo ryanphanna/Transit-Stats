@@ -61,7 +61,7 @@ app.post('/', (req, res, next) => {
 
 // Export 2nd Gen Function
 exports.sms = onRequest({
-  secrets: [geminiApiKey, twilioAuthToken, twilioAccountSid, twilioPhoneNumber, twilioMessagingServiceSid],
+  secrets: [geminiApiKey, twilioAuthToken, twilioAccountSid, twilioPhoneNumber],
   concurrency: 50, // Optimize costs by handling more requests on one instance
   maxInstances: 10,
 }, app);
