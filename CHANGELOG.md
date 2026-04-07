@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - **Rocket Restoration**: Fully restored the Rocket research instrument to `/Tools/Rocket/` after it was lost in a git rebase. Implemented the standalone high-precision state machine (Doors, Signal, Motion) with GPS anchoring.
+- **Rocket Architecture**: Implemented a dual-collection strategy for research integrity. Heavy event streams go to `rocket_trips`, while lightweight summary "badges" (linked via `rocketTripId`) are written to the main `trips` collection for dashboard visibility.
 - **Rocket Hosting**: Defined `/rocket` rewrite in `firebase.json` for direct access via `transitstats.fyi/rocket`.
 
 ### Fixed
