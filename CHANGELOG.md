@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.17.3] - 2026-04-07
 
 ### Security
 - **XSS — admin.js inline onclick handlers**: Replaced all inline `onclick="window.Admin.*"` handler patterns in `renderConsolidation`, `renderLibrary`, `renderInbox`, `openLinkModal`, and `loadRouteLibrary` with `data-action` / `data-*` attributes and event delegation set up in `setupListeners`. Eliminates injection risk from Firestore-sourced stop names and route IDs interpolated into HTML attribute strings.
