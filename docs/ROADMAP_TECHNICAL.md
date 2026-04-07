@@ -81,3 +81,27 @@ the binding is in the stops library and route metadata.
   Add structured alerting for handler failures and Gemini proxy errors.
 - [ ] **End-to-end test for SMS flow** — integration test covering the full
   START → END → STATS command sequence against a real (or emulated) Firestore instance.
+
+---
+
+## Theme 6 — Rocket Research Instrument
+
+Rocket is a standalone mobile-first web tool for high-precision transit research. It
+decomposes journeys into dwell time (doors open), signal delay (at red), and running
+time (in motion) with millisecond-accurate state changes and GPS-anchored events.
+
+- [x] **Core state machine** — three-state tracker (DOORS_OPEN, AT_RED, IN_MOTION) with
+  haptic feedback and live time breakdown.
+- [x] **Web form entry** — Route, Direction, Start Stop fields. End Stop captured at
+  finalize time. No SMS dependency.
+- [x] **Live Firebase sync** — every state change streams to `rocket_trips` in real time.
+- [x] **Auto-sync to Transit Stats** — finalizing a session writes a summary entry to
+  `trips` automatically. No manual step.
+- [x] **Transit Stats integration** — 🚀 badge on trip cards; `rocketTripId` link field.
+- [ ] **Stop autocomplete** — resolve start/end stop names against the stops library.
+- [ ] **Research map view** — visualize GPS-anchored events on a route map to identify
+  where dwell/signal delays cluster spatially.
+- [ ] **Aggregate analytics** — cross-trip summaries per route showing average dwell,
+  signal, and running time breakdowns.
+- [ ] **Session recovery** — if the page is refreshed mid-trip, reconstruct `startTime`
+  from the first event's timestamp and resume.

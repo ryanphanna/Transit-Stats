@@ -2,10 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.17.0] - 2026-04-07
 
 ### Added
-- **RCS Support**: Messages are now sent via a Twilio Messaging Service when `TWILIO_MESSAGING_SERVICE_SID` is configured. Twilio automatically upgrades delivery to RCS for supported devices and falls back to SMS transparently — no code changes required for handlers or dispatcher.
+- **Rocket** — a new high-precision research instrument (`/Tools/Rocket`) for decomposing transit journeys into dwell time, signal delay, and running time with millisecond accuracy.
+- **`rocket_trips` Firestore collection** — stores full event streams (GPS-anchored state changes) per research session, separate from the standard `trips` history.
+- **Rocket → Transit Stats sync** — finalizing a Rocket session automatically writes a summary entry to the `trips` collection (route, direction, start/end stop, duration, `rocketTripId`).
+- **🚀 badge on trip cards** — Transit Stats trip cards display a Rocket badge when the trip was recorded via the Rocket instrument.
+- **RCS Support**: Messages are now sent via a Twilio Messaging Service when `TWILIO_MESSAGING_SERVICE_SID` is configured. Twilio automatically upgrades delivery to RCS for supported devices and falls back to SMS transparently.
+
+### Security
+- **Firestore rules for `rocket_trips`** — public read for research transparency; authenticated owner-only write and delete.
 
 ## [1.16.0] - 2026-04-02
 

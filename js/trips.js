@@ -192,6 +192,7 @@ export const Trips = {
                     <div class="trip-date">${dateStr}</div>
                     ${direction ? `<div class="trip-direction">${direction}</div>` : ''}
                     <div class="trip-duration">${trip.duration || 0} min</div>
+                    ${trip.rocketTripId ? `<div class="trip-rocket-badge" title="Recorded with Rocket">🚀</div>` : ''}
                 </div>
             </div>
         `;
