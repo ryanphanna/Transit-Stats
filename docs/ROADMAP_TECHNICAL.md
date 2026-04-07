@@ -97,11 +97,11 @@ time (in motion) with millisecond-accurate state changes and GPS-anchored events
 - [x] **Live Firebase sync** — every state change streams to `rocket_trips` in real time.
 - [x] **Auto-sync to Transit Stats** — finalizing a session writes a summary entry to
   `trips` automatically. No manual step.
-- [x] **Transit Stats integration** — 🚀 badge on trip cards; `rocketTripId` link field.
+- [x] **Transit Stats integration** — Research badge on trip cards; `rocketTripId` link field.
 - [ ] **Stop autocomplete** — resolve start/end stop names against the stops library.
 - [ ] **Research map view** — visualize GPS-anchored events on a route map to identify
   where dwell/signal delays cluster spatially.
 - [ ] **Aggregate analytics** — cross-trip summaries per route showing average dwell,
   signal, and running time breakdowns.
-- [ ] **Session recovery** — if the page is refreshed mid-trip, reconstruct `startTime`
+- [x] **Session recovery** — if the page is refreshed mid-trip, reconstruct `startTime`
   from the first event's timestamp and resume.

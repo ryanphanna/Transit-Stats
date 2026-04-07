@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Transit Stats | Rocket Research</title>
-    <link rel="icon" type="image/svg+xml" href="../../assets/rocket.svg">
+    <title>TransitStats — Rocket</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../styles/main.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
             --rocket-red: #f43f5e;
@@ -18,44 +21,6 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            padding: 0;
-            margin: 0;
-        }
-
-        .header {
-            background: rgba(248, 250, 252, 0.8);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border);
-            padding: 16px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .rocket-logo {
-            font-weight: 900;
-            font-size: 1.2rem;
-            letter-spacing: -0.02em;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--accent-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .status-pill {
-            font-size: 0.7rem;
-            font-weight: 800;
-            padding: 4px 12px;
-            border-radius: 20px;
-            background: var(--bg-muted);
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
         }
 
         .research-container {
@@ -70,32 +35,12 @@
             box-sizing: border-box;
         }
 
-        .auth-banner {
-            background: var(--accent-glass);
-            padding: 12px 16px;
-            border-radius: var(--radius);
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: var(--text-secondary);
-        }
-
-        .setup-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 24px;
-            box-shadow: var(--shadow);
-        }
-
         .instrument-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
             gap: 16px;
             flex-grow: 1;
-            margin-bottom: 24px;
+            margin-bottom: 8px;
         }
 
         .control-btn {
@@ -132,11 +77,9 @@
             font-weight: 900;
         }
 
-        /* Power States */
         .btn-doors.open { background: var(--rocket-blue); color: white; border-color: transparent; box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3); }
         .btn-signal.green { background: var(--rocket-green); color: white; border-color: transparent; box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3); }
         .btn-motion.moving { background: var(--accent); color: white; border-color: transparent; box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3); }
-        
         .btn-signal.red { background: var(--rocket-red); color: white; border-color: transparent; box-shadow: 0 8px 16px rgba(244, 63, 94, 0.3); }
         .btn-doors.closed { background: var(--bg-muted); color: var(--text-muted); }
         .btn-motion.idle { background: var(--bg-muted); color: var(--text-muted); }
@@ -149,6 +92,9 @@
             max-width: 500px;
             margin: 0 auto;
             box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
         .main-btn {
@@ -163,42 +109,25 @@
             transition: all 0.3s;
         }
 
-        .btn-start {
-            background: var(--accent-gradient);
-            color: white;
-        }
+        .btn-start { background: var(--accent-gradient); color: white; }
+        .btn-finalize { background: var(--danger); color: white; }
 
-        .btn-finalize {
-            background: var(--danger);
-            color: white;
+        #end-stop-group {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 16px;
         }
 
         @media (max-width: 480px) {
-            .instrument-grid {
-                gap: 12px;
-            }
-            .btn-value {
-                font-size: 1.1rem;
-            }
+            .instrument-grid { gap: 12px; }
+            .btn-value { font-size: 1.1rem; }
         }
     </style>
 </head>
 <body>
-    <header class="header">
-        <div class="rocket-logo">🚀 ROCKET RESEARCH</div>
-        <div class="status-pill" id="status-badge">READY</div>
-    </header>
-
     <main class="research-container">
-        <div class="auth-banner">
-            <span style="font-size: 1.2rem;">👤</span>
-            <div style="display: flex; flex-direction: column;">
-                <span style="font-size: 0.7rem; font-weight: 800; opacity: 0.7; text-transform: uppercase;">Active Researcher</span>
-                <strong id="user-name">Authenticating...</strong>
-            </div>
-        </div>
-
-        <div class="setup-card" id="setup-view">
+        <div class="setup-card card" id="setup-view">
             <div class="form-group mb-4">
                 <label>Transit Route</label>
                 <input type="text" id="route-input" placeholder="e.g. 504 King" autocomplete="off">
@@ -215,7 +144,7 @@
             </div>
             <div class="form-group">
                 <label>Entry Station / Stop</label>
-                <input type="text" id="stop-input" placeholder="Stop point or code" autocomplete="off">
+                <input type="text" id="stop-input" placeholder="Stop name or code" autocomplete="off">
             </div>
         </div>
 
@@ -224,12 +153,10 @@
                 <span class="btn-label">DOORS</span>
                 <span class="btn-value" id="val-doors">CLOSED</span>
             </button>
-
             <button class="control-btn btn-signal red" id="btn-signal">
                 <span class="btn-label">SIGNAL</span>
                 <span class="btn-value" id="val-signal">RED</span>
             </button>
-
             <button class="control-btn btn-motion idle" id="btn-motion" style="grid-column: span 2;">
                 <span class="btn-label">TRACTION</span>
                 <span class="btn-value" id="val-motion">IDLE</span>
@@ -238,13 +165,15 @@
     </main>
 
     <div class="footer-action">
+        <div id="end-stop-group" style="display: none;">
+            <div class="form-group">
+                <label>Exit Station / Stop</label>
+                <input type="text" id="end-stop-input" placeholder="Stop name or code" autocomplete="off">
+            </div>
+        </div>
         <button class="main-btn btn-start" id="main-action">START RESEARCH</button>
     </div>
 
-    <!-- Firebase SDKs (Compat for simplicity) -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script type="module" src="./rocket.js"></script>
 </body>
 </html>

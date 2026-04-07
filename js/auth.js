@@ -64,7 +64,7 @@ export const Auth = {
 
     async sendMagicLink(email) {
         const settings = {
-            url: window.location.origin + window.location.pathname,
+            url: window.location.origin + '/',
             handleCodeInApp: true
         };
         await auth.sendSignInLinkToEmail(email.toLowerCase(), settings);

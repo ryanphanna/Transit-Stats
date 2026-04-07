@@ -34,13 +34,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const profile = profileDoc.data();
         if (!profile.isPublic) {
-            showError('This profile is private 🔒');
+            showError('This profile is private');
             return;
         }
 
         // 3. Render Profile Header
         document.getElementById('userName').textContent = profile.name || username;
-        document.getElementById('userEmoji').textContent = profile.emoji || '👤';
+        // User emoji/icon handling
+        const emojiEl = document.getElementById('userEmoji');
+        if (profile.emoji) {
+            emojiEl.textContent = profile.emoji;
+        } else {
+            emojiEl.innerHTML = '<i data-lucide="user"></i>';
+            if (window.lucide) window.lucide.createIcons();
+        }
         if (profile.defaultAgency) {
             document.getElementById('userAgency').textContent = profile.defaultAgency;
         }
@@ -70,11 +77,12 @@ function showError(msg) {
     const container = document.querySelector('.container');
     container.innerHTML = `
         <div style="text-align: center; margin-top: 100px;">
-            <div style="font-size: 3em; margin-bottom: 20px;">😕</div>
+            <div style="font-size: 3em; margin-bottom: 20px; color: var(--text-muted);"><i data-lucide="alert-circle" style="width: 48px; height: 48px;"></i></div>
             <h2></h2>
             <p><a href="/" style="color: var(--accent-primary);">Go Home</a></p>
         </div>
     `;
+    if (window.lucide) window.lucide.createIcons();
     container.querySelector('h2').textContent = msg;
 }
 

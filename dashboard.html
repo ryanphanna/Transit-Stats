@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransitStats</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/main.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <main id="app-root">
+        <section id="view-dashboard" class="view dashboard-view active">
+            <div class="container dashboard-grid">
+                <!-- Left Column -->
+                <aside class="col-profile">
+                    <div class="card profile-card">
+                        <div class="profile-header">
+                            <div id="profile-avatar" class="avatar"><i data-lucide="user"></i></div>
+                            <div class="profile-info">
+                                <h2 id="profile-name">Traveler</h2>
+                                <p id="profile-status">Ready to ride</p>
+                            </div>
+                        </div>
+                        <div class="streak-box">
+                            <div class="streak-title"><i data-lucide="flame" class="icon-inline"></i> Riding Streak</div>
+                            <div class="streak-data">
+                                <div class="streak-item">
+                                    <strong id="stat-current-streak" class="text-accent">0</strong>
+                                    <span>Current</span>
+                                </div>
+                                <div class="divider-v"></div>
+                                <div class="streak-item">
+                                    <strong id="stat-best-streak">0</strong>
+                                    <span>Best</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i data-lucide="trending-up" class="icon-inline"></i> Activity</h3>
+                        </div>
+                        <div id="activity-grid-container" class="activity-grid"></div>
+                        <div id="activity-grid-legend" class="grid-legend">
+                            <span>Less</span>
+                            <div class="legend-square heat-0"></div>
+                            <div class="legend-square heat-1"></div>
+                            <div class="legend-square heat-2"></div>
+                            <div class="legend-square heat-3"></div>
+                            <div class="legend-square heat-4"></div>
+                            <span>More</span>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Center Column -->
+                <div class="col-feed">
+                    <div id="prediction-card" class="card prediction-card" style="display: none;">
+                        <div class="prediction-header">
+                            <span class="prediction-icon"><i data-lucide="sparkles"></i></span>
+                            <span class="prediction-label">Next Predicted Trip</span>
+                        </div>
+                        <div id="prediction-content" class="prediction-content"></div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i data-lucide="history" class="icon-inline"></i> Recent Trips</h3>
+                        </div>
+                        <div id="recent-trips-list" class="feed-list">
+                            <div class="loading-state">Loading trips...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Stats -->
+                <aside class="col-stats">
+                    <div class="card stats-card">
+                        <div class="card-header">
+                            <h3><i data-lucide="bar-chart-3" class="icon-inline"></i> Travel Stats</h3>
+                            <div class="toggle-group">
+                                <button id="toggle-stats-30-insights" class="toggle-btn active">30d</button>
+                                <button id="toggle-stats-all-insights" class="toggle-btn">All</button>
+                            </div>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-box">
+                                <strong id="stat-trips-insights">0</strong>
+                                <span>Trips</span>
+                            </div>
+                            <div class="stat-box">
+                                <strong id="stat-routes-insights">0</strong>
+                                <span>Routes</span>
+                            </div>
+                            <div class="stat-box">
+                                <strong id="stat-hours-insights">0</strong>
+                                <span>Hours</span>
+                            </div>
+                            <div class="stat-box">
+                                <strong id="stat-stops-insights">0</strong>
+                                <span>Stops</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card peak-times-card">
+                        <div class="card-header">
+                            <h3><i data-lucide="clock" class="icon-inline"></i> Peak Riding Times</h3>
+                        </div>
+                        <div id="time-of-day-chart-insights" class="chart-compact">
+                            <div class="loading-state">Calculating peaks...</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i data-lucide="route" class="icon-inline"></i> Popular Routes</h3>
+                        </div>
+                        <div id="top-routes-list-insights" class="list-compact">
+                            <div class="loading-state">Loading...</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i data-lucide="map-pin" class="icon-inline"></i> Frequent Stops</h3>
+                        </div>
+                        <div id="top-stops-list-insights" class="list-compact">
+                            <div class="loading-state">Loading...</div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </section>
+    </main>
+
+    <!-- Edit Trip Modal -->
+    <div id="modal-edit-trip" class="modal hidden">
+        <div class="modal-header">
+            <h2>Edit Trip</h2>
+            <button class="btn-close" data-close-modal><i data-lucide="x"></i></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="edit-trip-id">
+            <div class="form-group mb-3">
+                <label>Route Number / Name</label>
+                <input type="text" id="edit-route">
+            </div>
+            <div class="form-group mb-3">
+                <label>Boarding Stop</label>
+                <input type="text" id="edit-start-stop">
+            </div>
+            <div class="form-group mb-3">
+                <label>Exiting Stop</label>
+                <input type="text" id="edit-end-stop">
+            </div>
+            <div class="form-group mb-3">
+                <label>Direction</label>
+                <input type="text" id="edit-direction">
+            </div>
+            <div class="form-group mb-4">
+                <label>Agency</label>
+                <select id="edit-agency" class="modal-select">
+                    <option value="TTC">TTC</option>
+                    <option value="GO Transit">GO Transit</option>
+                    <option value="OC Transpo">OC Transpo</option>
+                    <option value="MiWay">MiWay</option>
+                    <option value="YRT">YRT</option>
+                    <option value="Brampton Transit">Brampton Transit</option>
+                    <option value="Durham Transit">Durham Transit</option>
+                    <option value="HSR">HSR</option>
+                    <option value="GRT">GRT</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="modal-footer-actions">
+                <button id="btn-save-edit" class="btn btn-primary full-width mb-3">Save Changes</button>
+                <button id="btn-delete-trip" class="btn btn-danger-outline full-width">Delete Trip</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/pages/dashboard.js"></script>
+</body>
+</html>

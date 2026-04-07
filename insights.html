@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransitStats — Insights</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/main.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <main id="app-root">
+        <section id="view-insights" class="view insights-view active">
+            <div class="container">
+                <div class="card highlights-card">
+                    <div class="card-header">
+                        <h3><i data-lucide="medal" class="icon-inline"></i> Commute Highlights</h3>
+                    </div>
+                    <div id="commute-highlights-insights" class="list-compact">
+                        <div class="loading-state">Analyzing riding patterns...</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script type="module" src="js/pages/insights.js"></script>
+</body>
+</html>

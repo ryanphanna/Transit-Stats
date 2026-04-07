@@ -8,7 +8,12 @@ export default defineConfig({
         emptyOutDir: true,
         rollupOptions: {
             input: {
-                main: './index.html',
+                index: './index.html',
+                dashboard: './dashboard.html',
+                insights: './insights.html',
+                map: './map.html',
+                admin: './admin.html',
+                users: './users.html',
                 rocket: './Tools/Rocket/index.html',
             },
         },

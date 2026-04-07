@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.18.0] - 2026-04-07
+
+### Changed
+- **MPA Migration**: Converted the app from a single-page app to a multi-page architecture. Each view (`/dashboard`, `/insights`, `/map`, `/admin`, `/users`, `/rocket`) is now its own HTML page with clean URLs and proper browser history. `main.js` retired; replaced by `js/pages/` entry files and `js/shared/` infrastructure (`auth-guard.js`, `header.js`). Vite config updated to 7-entry build.
+- **Shared Header**: Nav bar and settings modal are now injected at runtime by `header.js` and shared across all pages. Logo links to `/dashboard`. Nav items are `<a>` links with active-page highlighting. Rocket link visible to admins only.
+- **Rocket Integration**: Rocket is now a full member of the app — shared header, shared auth guard (admin-only), consistent branding. Custom "ROCKET RESEARCH" header and "Active Researcher" auth banner removed.
+- **Rocket Fixes**: Replaced `prompt()` for end stop with an inline input form. Replaced all `alert()` calls with `UI.showNotification()`. Added session recovery on page load (detects in-progress Firestore session and restores instrument state). GPS permission requested upfront at page load rather than at finalize; GPS failures are always graceful and non-blocking.
+- **URL Cleanup**: Added `cleanUrls: true` to Firebase Hosting config and a catch-all SPA rewrite. Magic link continue URL fixed to always use `/` instead of `window.location.pathname`, preventing `/index.html` appearing in post-login URLs. `completeMagicLinkSignIn()` now called on boot so the Firebase query params are stripped from the URL immediately after sign-in.
+
 ## [1.17.5] - 2026-04-07
 
 ### Security
@@ -46,7 +55,7 @@ All notable changes to this project will be documented in this file.
 - **Rocket** — a new high-precision research instrument (`/Tools/Rocket`) for decomposing transit journeys into dwell time, signal delay, and running time with millisecond accuracy.
 - **`rocket_trips` Firestore collection** — stores full event streams (GPS-anchored state changes) per research session, separate from the standard `trips` history.
 - **Rocket → Transit Stats sync** — finalizing a Rocket session automatically writes a summary entry to the `trips` collection (route, direction, start/end stop, duration, `rocketTripId`).
-- **🚀 badge on trip cards** — Transit Stats trip cards display a Rocket badge when the trip was recorded via the Rocket instrument.
+- **Research badge on trip cards** — Transit Stats trip cards display a technical badge when the trip was recorded via the Rocket instrument.
 - **RCS Support**: Messages are now sent via a Twilio Messaging Service when `TWILIO_MESSAGING_SERVICE_SID` is configured. Twilio automatically upgrades delivery to RCS for supported devices and falls back to SMS transparently.
 
 ### Security

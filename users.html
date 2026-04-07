@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransitStats — Users</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/main.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <main id="app-root">
+        <section id="view-users" class="view active">
+            <div class="container" style="max-width: 640px; padding-top: 2rem;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i data-lucide="users" class="icon-inline"></i> Users</h3>
+                        <span id="users-count" class="badge"></span>
+                    </div>
+                    <p class="text-secondary mb-3" style="font-size:0.8rem;">Manage user profiles and premium access.</p>
+                    <div id="users-list" class="inbox-list">
+                        <div class="loading-state">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script type="module" src="js/pages/users.js"></script>
+</body>
+</html>

@@ -42,6 +42,7 @@ async function init() {
     initDOM();
     setTheme(State.theme);
     setupEventListeners();
+    await Auth.completeMagicLinkSignIn();
     setupAuthObserver();
     Profile.init();
     refreshIcons();
@@ -60,6 +61,7 @@ function initHeaderDOM() {
         container: document.querySelector('.header'),
         navAdmin: document.getElementById('nav-admin'),
         navUsers: document.getElementById('nav-users'),
+        navRocket: document.getElementById('nav-rocket'),
         navInsights: document.getElementById('nav-insights'),
         navSettings: document.getElementById('nav-settings'),
         navMap: document.getElementById('nav-map'),
@@ -410,6 +412,7 @@ function setupAuthObserver() {
             
             DOM.header.navAdmin?.classList.toggle('hidden', !State.isAdmin);
             DOM.header.navUsers?.classList.toggle('hidden', !State.isAdmin);
+            DOM.header.navRocket?.classList.toggle('hidden', !State.isAdmin);
             if (DOM.header.profileName) DOM.header.profileName.textContent = user.displayName || user.email.split('@')[0];
             
             // Core initialization - load profile first

@@ -19,6 +19,7 @@
   },
   "hosting": {
     "public": "dist",
+    "cleanUrls": true,
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -64,6 +65,10 @@
       {
         "source": "/rocket",
         "destination": "/Tools/Rocket/index.html"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
       }
     ]
   }

@@ -151,7 +151,7 @@ export const RouteTracker = {
 
     _renderList: function (routes, isRidden) {
         if (routes.length === 0) {
-            return `<div class="empty-state">${isRidden ? 'No ridden routes yet.' : '🎉 All routes ridden!'}</div>`;
+            return `<div class="empty-state">${isRidden ? 'No ridden routes yet.' : 'All routes ridden!'}</div>`;
         }
         return routes.map(r => `
             <div class="rt-route-item">
