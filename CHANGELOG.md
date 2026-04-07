@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.17.5] - 2026-04-07
+
+### Security
+- **Rocket Auth Shield**: Implemented a mandatory authentication gate for the Rocket Research Instrument (`/Tools/Rocket`). Rocket now requires a valid Transit Stats profile to start a session, redirecting unauthenticated users to the main login.
+- **Data Integrity**: Removed legacy `rocket_guest` fallback logic. All high-precision research data and summary badges are now strictly attributed to the authenticated user's `uid`.
+
+### Changed
+- **Rocket UI Overhaul**: Redesigned the Rocket instrument with a premium "Atlas" aesthetic. Replaced the standalone black-theme layout with the core Transit Stats design language, featuring glassmorphism, Inter typography, and improved mobile-first controls.
+- **Rocket Researcher Profile**: Added a persistent auth banner to the Rocket interface to confirm the active research identity.
+
+
 ## [1.17.4] - 2026-04-07
 
 ### Added

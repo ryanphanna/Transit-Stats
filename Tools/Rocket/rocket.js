@@ -32,12 +32,28 @@ const DOM = {
     mainAction: document.getElementById('main-action'),
     routeInput: document.getElementById('route-input'),
     dirInput: document.getElementById('dir-input'),
-    stopInput: document.getElementById('stop-input')
+    stopInput: document.getElementById('stop-input'),
+    userName: document.getElementById('user-name')
 };
 
 async function init() {
     console.log("Rocket booting...");
-    setupEventListeners();
+    
+    // Auth Guard: Rocket requires a valid profile to record research data
+    auth.onAuthStateChanged(user => {
+        if (!user) {
+            console.error("Rocket Access Denied: No authenticated session found.");
+            alert("Authentication Required: Please log in to Transit Stats to use Rocket Research tools.");
+            window.location.href = '../../index.html';
+            return;
+        }
+        
+        console.log("Rocket Authenticated:", user.email);
+        if (DOM.userName) {
+            DOM.userName.textContent = user.displayName || user.email.split('@')[0];
+        }
+        setupEventListeners();
+    });
 }
 
 function setupEventListeners() {
@@ -80,10 +96,12 @@ async function startSession() {
     DOM.setupView.style.display = 'none';
     DOM.instrumentView.style.display = 'grid';
     DOM.mainAction.textContent = 'FINALIZE RESEARCH';
-    DOM.mainAction.style.background = '#ff3b30';
+    DOM.mainAction.classList.add('btn-danger');
+    DOM.mainAction.style.background = 'var(--danger)'; 
     DOM.mainAction.style.color = 'white';
     DOM.statusBadge.textContent = 'RECORDING';
-    DOM.statusBadge.style.background = 'rgba(255, 59, 48, 0.2)';
+    DOM.statusBadge.style.background = 'var(--accent-glass)';
+    DOM.statusBadge.style.color = 'var(--accent)';
 }
 
 async function updateState(type) {
@@ -106,8 +124,7 @@ async function updateState(type) {
         await logEvent('MOTION_CHANGE', { value: State.motion });
     }
 
-    // Haptic feedback if available
-    if (window.navigator.vibrate) window.navigator.vibrate(10);
+    // Visual feedback is enough
 }
 
 async function logEvent(type, data = {}) {
@@ -136,7 +153,11 @@ async function logEvent(type, data = {}) {
 
     // Dynamic stream to Firestore
     if (State.active) {
+        const user = auth.currentUser;
+        if (!user) return;
+
         await db.collection('rocket_trips').doc(State.sessionId).set({
+            userId: user.uid,
             route: State.route,
             direction: State.direction,
             start_stop: State.startStop,
@@ -159,6 +180,13 @@ async function getCurrentPosition() {
 }
 
 async function finalizeSession() {
+    const user = auth.currentUser;
+    if (!user) {
+        alert("Session lost. Authentication required.");
+        window.location.reload();
+        return;
+    }
+
     const endStop = prompt("End Stop Name or Code:");
     if (endStop === null) return; // Cancelled
 
@@ -171,11 +199,10 @@ async function finalizeSession() {
     await logEvent('SESSION_END', { endStop, ...stats });
 
     // 3. Write to main TRIPS collection (The "Summary Badge")
-    const user = auth.currentUser;
     const finalTripId = `trip_${Date.now()}`;
     
     await db.collection('trips').doc(finalTripId).set({
-        userId: user ? user.uid : 'rocket_guest',
+        userId: user.uid,
         route: State.route,
         direction: State.direction,
         startStop: State.startStop,
