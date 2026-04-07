@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.17.4] - 2026-04-07
 
 ### Added
 - **Rocket Restoration**: Fully restored the Rocket research instrument to `/Tools/Rocket/` after it was lost in a git rebase. Implemented the standalone high-precision state machine (Doors, Signal, Motion) with GPS anchoring.
