@@ -19,7 +19,7 @@ const geminiApiKey = defineSecret('GEMINI_API_KEY');
 const twilioAuthToken = defineSecret('TWILIO_AUTH_TOKEN');
 const twilioAccountSid = defineSecret('TWILIO_ACCOUNT_SID');
 const twilioPhoneNumber = defineSecret('TWILIO_PHONE_NUMBER');
-const twilioMessagingServiceSid = defineSecret('TWILIO_MESSAGING_SERVICE_SID');
+// const twilioMessagingServiceSid = defineSecret('TWILIO_MESSAGING_SERVICE_SID');
 
 const app = express();
 app.use(express.urlencoded({ extended: true }));

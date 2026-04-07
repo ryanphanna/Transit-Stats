@@ -6,7 +6,7 @@ const twilioAuthToken = defineSecret('TWILIO_AUTH_TOKEN');
 const twilioAccountSid = defineSecret('TWILIO_ACCOUNT_SID');
 const twilioPhoneNumber = defineSecret('TWILIO_PHONE_NUMBER');
 // Optional: Messaging Service SID (starts with MG) — enables automatic RCS upgrade with SMS fallback
-const twilioMessagingServiceSid = defineSecret('TWILIO_MESSAGING_SERVICE_SID');
+// const twilioMessagingServiceSid = defineSecret('TWILIO_MESSAGING_SERVICE_SID');
 
 /**
  * Get Twilio client. Returns null if credentials are not configured.
@@ -42,14 +42,11 @@ function getTwilioPhoneNumber() {
  * Get the Twilio Messaging Service SID if configured.
  * When set, messages are sent via the service which enables automatic RCS upgrade
  * with transparent fallback to SMS for unsupported devices.
+ * To enable: uncomment defineSecret above, add to secrets[] in sms.js, and return the value here.
  * @returns {string|null}
  */
 function getMessagingServiceSid() {
-  try {
-    return twilioMessagingServiceSid.value() || null;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 /**
