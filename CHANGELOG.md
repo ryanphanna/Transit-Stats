@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Security
+- **XSS — admin.js inline onclick handlers**: Replaced all inline `onclick="window.Admin.*"` handler patterns in `renderConsolidation`, `renderLibrary`, `renderInbox`, `openLinkModal`, and `loadRouteLibrary` with `data-action` / `data-*` attributes and event delegation set up in `setupListeners`. Eliminates injection risk from Firestore-sourced stop names and route IDs interpolated into HTML attribute strings.
+- **XSS — users.js inline onclick handler**: Replaced `onclick="window.Users.togglePremium(...)"` on premium toggle buttons with `data-action` attributes and a delegated listener on `#users-list` initialized in `Users.init()`.
+- **XSS — Rocket `updateTripLabel`**: Replaced `label.innerHTML` with DOM element creation (`createElement` + `textContent`) to prevent injection from Firestore-sourced route/direction strings.
+
 ## [1.17.2] - 2026-04-07
 
 ### Fixed

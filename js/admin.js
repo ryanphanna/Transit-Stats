@@ -64,6 +64,31 @@ export const Admin = {
             btn.classList.remove('btn-danger');
             this.deleteStop();
         });
+
+        // Event delegation — replaces all inline onclick handlers in rendered lists
+        document.getElementById('consolidation-list')?.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-action="consolidate"]');
+            if (btn) this.consolidateGroup(Number(btn.dataset.index));
+        });
+
+        document.getElementById('lib-list')?.addEventListener('click', (e) => {
+            const card = e.target.closest('[data-action="open-stop"]');
+            if (card) this.openStopForm('edit', card.dataset.stopId);
+        });
+
+        document.getElementById('inbox-list')?.addEventListener('click', (e) => {
+            const acceptAll = e.target.closest('[data-action="accept-all"]');
+            if (acceptAll) { this.acceptAllSuggestions(); return; }
+            const accept = e.target.closest('[data-action="accept-suggestion"]');
+            if (accept) { this.acceptSuggestion(accept.dataset.name, accept.dataset.stopId); return; }
+            const link = e.target.closest('[data-action="open-link-modal"]');
+            if (link) this.openLinkModal(link.dataset.name);
+        });
+
+        document.getElementById('link-search-results')?.addEventListener('click', (e) => {
+            const row = e.target.closest('[data-action="link-to-stop"]');
+            if (row) this.linkToStop(row.dataset.stopId);
+        });
     },
 
     async loadAll() {
@@ -220,7 +245,7 @@ export const Admin = {
                     </div>
                 </div>
                 <div class="inbox-actions">
-                    <button class="btn btn-primary btn-sm" onclick="window.Admin.consolidateGroup(${i})">Merge</button>
+                    <button class="btn btn-primary btn-sm" data-action="consolidate" data-index="${i}">Merge</button>
                 </div>
             </div>
         `).join('');
@@ -328,7 +353,7 @@ export const Admin = {
         }
 
         list.innerHTML = filtered.map(s => `
-            <div class="stop-card" onclick="window.Admin.openStopForm('edit', '${UI.escapeForJs(s.id)}')">
+            <div class="stop-card" data-action="open-stop" data-stop-id="${UI.escapeHtml(s.id)}" style="cursor:pointer;">
                 <div class="stop-card-name">${Utils.hide(s.name)}</div>
                 <div class="stop-card-meta">
                     <span class="text-accent">#${Utils.hide(s.code) || '---'}</span>
@@ -356,7 +381,7 @@ export const Admin = {
 
         const withSuggestions = filtered.filter(i => i.suggestion);
         const bulkBtn = withSuggestions.length > 1
-            ? `<button class="btn btn-outline full-width btn-sm mb-3" onclick="window.Admin.acceptAllSuggestions()">Accept all ${withSuggestions.length} suggestions</button>`
+            ? `<button class="btn btn-outline full-width btn-sm mb-3" data-action="accept-all">Accept all ${withSuggestions.length} suggestions</button>`
             : '';
 
         list.innerHTML = bulkBtn + filtered.map(i => `
@@ -371,8 +396,8 @@ export const Admin = {
                     ` : ''}
                 </div>
                 <div class="inbox-actions">
-                    ${i.suggestion ? `<button class="btn btn-sm btn-outline" onclick="window.Admin.acceptSuggestion('${UI.escapeForJs(i.name)}', '${UI.escapeForJs(i.suggestion.stop.id)}')">Accept</button>` : ''}
-                    <button class="btn btn-primary btn-sm" onclick="window.Admin.openLinkModal('${UI.escapeForJs(i.name)}')">Link</button>
+                    ${i.suggestion ? `<button class="btn btn-sm btn-outline" data-action="accept-suggestion" data-name="${UI.escapeHtml(i.name)}" data-stop-id="${UI.escapeHtml(i.suggestion.stop.id)}">Accept</button>` : ''}
+                    <button class="btn btn-primary btn-sm" data-action="open-link-modal" data-name="${UI.escapeHtml(i.name)}">Link</button>
                 </div>
             </div>
         `).join('');
@@ -431,7 +456,7 @@ export const Admin = {
 
             if (matches.length > 0) {
                 results.innerHTML = matches.map(m => `
-                    <div class="compact-row" style="cursor:pointer;" onclick="window.Admin.linkToStop('${UI.escapeForJs(m.id)}')">
+                    <div class="compact-row" style="cursor:pointer;" data-action="link-to-stop" data-stop-id="${UI.escapeHtml(m.id)}">
                         <span class="row-label">${Utils.hide(m.name)}</span>
                         <span class="row-value">${Utils.hide(m.agency)}</span>
                     </div>
@@ -763,7 +788,7 @@ async function loadRouteLibrary() {
             <div class="stop-card" style="padding: 10px 14px;">
                 <div class="stop-card-header" style="margin-bottom: 4px;">
                     <h4 style="font-size: 1em;">${escapeHtml(r.routeShortName)}</h4>
-                    <button onclick="deleteRoute('${escapeForJs(r.id)}')"
+                    <button data-action="delete-route" data-route-id="${escapeHtml(r.id)}"
                         style="background: none; border: none; color: var(--text-muted); font-size: 1.1em; cursor: pointer; padding: 0; line-height: 1;"
                         title="Delete route">×</button>
                 </div>
@@ -796,6 +821,11 @@ window.deleteRoute = async function (routeId) {
         UI.showNotification('Failed to delete route: ' + err.message);
     }
 };
+
+document.getElementById('routeLibraryList')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action="delete-route"]');
+    if (btn) deleteRoute(btn.dataset.routeId);
+});
 
 // ─── GTFS Stop→Route Mapping Import ──────────────────────────────────────────
 

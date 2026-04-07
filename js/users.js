@@ -12,7 +12,13 @@ export const Users = {
 
     async init() {
         const list = document.getElementById('users-list');
-        if (list) list.innerHTML = '<div class="loading-state">Loading users...</div>';
+        if (list) {
+            list.innerHTML = '<div class="loading-state">Loading users...</div>';
+            list.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-action="toggle-premium"]');
+                if (btn) this.togglePremium(btn.dataset.userId, btn.dataset.isPremium === 'true');
+            });
+        }
         await this.load();
         this.render();
     },
@@ -73,7 +79,7 @@ export const Users = {
                         <span class="inbox-item-meta">${email} &middot; ${phone}</span>
                     </div>
                     <div class="inbox-actions">
-                        <button class="${btnClass}" onclick="window.Users.togglePremium('${u.id}', ${!!u.isPremium})">${btnLabel}</button>
+                        <button class="${btnClass}" data-action="toggle-premium" data-user-id="${u.id}" data-is-premium="${!!u.isPremium}">${btnLabel}</button>
                     </div>
                 </div>
             `;
