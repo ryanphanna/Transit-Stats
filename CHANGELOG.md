@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.17.2] - 2026-04-07
+
+### Fixed
+- **Security**: Patched five high-severity Vite vulnerabilities (#38-43) including Arbitrary File Read via WebSocket, Path Traversal in Optimized Deps .map handling, and `server.fs.deny` bypass. Enforced global upgrade to Vite 8.0.6.
+
 ## [1.17.1] - 2026-04-07
 
 ### Fixed
