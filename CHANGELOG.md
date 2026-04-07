@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- **Rocket Restoration**: Fully restored the Rocket research instrument to `/Tools/Rocket/` after it was lost in a git rebase. Implemented the standalone high-precision state machine (Doors, Signal, Motion) with GPS anchoring.
+- **Rocket Hosting**: Defined `/rocket` rewrite in `firebase.json` for direct access via `transitstats.fyi/rocket`.
+
+### Fixed
+- **Repository**: Terminated three stuck `git rebase --continue` processes that had been hung for >100 minutes, resolving index locks and performance issues.
+
 ## [1.17.3] - 2026-04-07
 
 ### Security

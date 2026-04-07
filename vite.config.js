@@ -9,6 +9,7 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 main: './index.html',
+                rocket: './Tools/Rocket/index.html',
             },
         },
     },

@@ -60,6 +60,11 @@
         ]
       }
     ],
-    "rewrites": []
+    "rewrites": [
+      {
+        "source": "/rocket",
+        "destination": "/Tools/Rocket/index.html"
+      }
+    ]
   }
 }

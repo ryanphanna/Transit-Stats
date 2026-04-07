@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rocket | Research Instrument</title>
+    <link rel="stylesheet" href="../../styles/main.css">
+    <style>
+        :root {
+            --rocket-red: #ff3b30;
+            --rocket-green: #34c759;
+            --rocket-blue: #007aff;
+            --rocket-black: #1c1c1e;
+        }
+
+        body {
+            background: var(--rocket-black);
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .badge {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .setup-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+
+        input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            padding: 10px 0;
+            color: white;
+            font-size: 1.2rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--rocket-blue);
+        }
+
+        .instrument-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            flex-grow: 1;
+        }
+
+        .control-btn {
+            border-radius: 16px;
+            border: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.1s active;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+            filter: brightness(1.2);
+        }
+
+        .btn-doors { background: var(--rocket-blue); color: white; }
+        .btn-signal { background: var(--rocket-red); color: white; }
+        .btn-motion { background: #333; color: rgba(255,255,255,0.5); }
+
+        .btn-active {
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-doors.open { background: var(--rocket-green); }
+        .btn-signal.green { background: var(--rocket-green); }
+        .btn-motion.moving { background: var(--rocket-blue); color: white; }
+
+        .btn-label { font-size: 0.7rem; margin-bottom: 5px; opacity: 0.7; }
+        .btn-value { font-size: 1.4rem; }
+
+        .footer-actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .finalize-btn {
+            flex-grow: 1;
+            background: white;
+            color: black;
+            border: none;
+            padding: 18px;
+            border-radius: 16px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 15px rgba(255,255,255,0.2);
+        }
+
+        @media (orientation: landscape) {
+            .instrument-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 style="font-size: 1.2rem; margin: 0;">🚀 ROCKET</h1>
+        <div class="badge" id="status-badge">READY</div>
+    </header>
+
+    <div class="setup-card" id="setup-view">
+        <div class="input-group">
+            <label>Route Number</label>
+            <input type="text" id="route-input" placeholder="e.g. 501" autocomplete="off">
+        </div>
+        <div class="input-group">
+            <label>Direction</label>
+            <input type="text" id="dir-input" placeholder="e.g. East" autocomplete="off">
+        </div>
+        <div class="input-group">
+            <label>Start From</label>
+            <input type="text" id="stop-input" placeholder="Stop Name or Code" autocomplete="off">
+        </div>
+    </div>
+
+    <div class="instrument-grid" id="instrument-view" style="display: none;">
+        <button class="control-btn btn-doors" id="btn-doors">
+            <span class="btn-label">DOORS</span>
+            <span class="btn-value" id="val-doors">CLOSED</span>
+        </button>
+
+        <button class="control-btn btn-signal" id="btn-signal">
+            <span class="btn-label">SIGNAL</span>
+            <span class="btn-value" id="val-signal">RED</span>
+        </button>
+
+        <button class="control-btn btn-motion" id="btn-motion" style="grid-column: span 2;">
+            <span class="btn-label">TRACTION</span>
+            <span class="btn-value" id="val-motion">IDLE</span>
+        </button>
+    </div>
+
+    <div class="footer-actions">
+        <button class="finalize-btn" id="main-action">START RESEARCH</button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script type="module" src="./rocket.js"></script>
+</body>
+</html>
