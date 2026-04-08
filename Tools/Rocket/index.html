@@ -3,175 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TransitStats — Rocket</title>
+    <title>Rocket — TransitStats Research</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/rocket.css">
     <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        :root {
-            --rocket-red: #f43f5e;
-            --rocket-green: #10b981;
-            --rocket-blue: #3b82f6;
-        }
-
-        body {
-            background: var(--bg-app);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .research-container {
-            flex-grow: 1;
-            padding: 24px 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            max-width: 500px;
-            margin: 0 auto;
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        .instrument-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            flex-grow: 1;
-            margin-bottom: 8px;
-        }
-
-        .control-btn {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .control-btn:active {
-            transform: scale(0.96);
-            filter: brightness(0.95);
-        }
-
-        .btn-label {
-            font-size: 0.65rem;
-            font-weight: 800;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            margin-bottom: 8px;
-        }
-
-        .btn-value {
-            font-size: 1.4rem;
-            font-weight: 900;
-        }
-
-        .btn-doors.open { background: var(--rocket-blue); color: white; border-color: transparent; box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3); }
-        .btn-signal.green { background: var(--rocket-green); color: white; border-color: transparent; box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3); }
-        .btn-motion.moving { background: var(--accent); color: white; border-color: transparent; box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3); }
-        .btn-signal.red { background: var(--rocket-red); color: white; border-color: transparent; box-shadow: 0 8px 16px rgba(244, 63, 94, 0.3); }
-        .btn-doors.closed { background: var(--bg-muted); color: var(--text-muted); }
-        .btn-motion.idle { background: var(--bg-muted); color: var(--text-muted); }
-
-        .footer-action {
-            position: sticky;
-            bottom: 20px;
-            padding: 0 20px;
-            width: 100%;
-            max-width: 500px;
-            margin: 0 auto;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .main-btn {
-            width: 100%;
-            padding: 18px;
-            border-radius: var(--radius-lg);
-            font-weight: 800;
-            font-size: 1.1rem;
-            border: none;
-            cursor: pointer;
-            box-shadow: var(--shadow-lg);
-            transition: all 0.3s;
-        }
-
-        .btn-start { background: var(--accent-gradient); color: white; }
-        .btn-finalize { background: var(--danger); color: white; }
-
-        #end-stop-group {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            padding: 16px;
-        }
-
-        @media (max-width: 480px) {
-            .instrument-grid { gap: 12px; }
-            .btn-value { font-size: 1.1rem; }
-        }
-    </style>
 </head>
 <body>
-    <main class="research-container">
-        <div class="setup-card card" id="setup-view">
-            <div class="form-group mb-4">
-                <label>Transit Route</label>
-                <input type="text" id="route-input" placeholder="e.g. 504 King" autocomplete="off">
-            </div>
-            <div class="form-group mb-4">
-                <label>Service Direction</label>
-                <select id="dir-input">
-                    <option value="">Select Direction</option>
-                    <option value="East">Eastbound</option>
-                    <option value="West">Westbound</option>
-                    <option value="North">Northbound</option>
-                    <option value="South">Southbound</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Entry Station / Stop</label>
-                <input type="text" id="stop-input" placeholder="Stop name or code" autocomplete="off">
-            </div>
-        </div>
+    <div id="app-root">
+        <!-- Header will be injected here -->
+        
+        <div class="rocket-header-spacer"></div>
 
-        <div class="instrument-grid" id="instrument-view" style="display: none;">
-            <button class="control-btn btn-doors closed" id="btn-doors">
-                <span class="btn-label">DOORS</span>
-                <span class="btn-value" id="val-doors">CLOSED</span>
-            </button>
-            <button class="control-btn btn-signal red" id="btn-signal">
-                <span class="btn-label">SIGNAL</span>
-                <span class="btn-value" id="val-signal">RED</span>
-            </button>
-            <button class="control-btn btn-motion idle" id="btn-motion" style="grid-column: span 2;">
-                <span class="btn-label">TRACTION</span>
-                <span class="btn-value" id="val-motion">IDLE</span>
-            </button>
-        </div>
-    </main>
-
-    <div class="footer-action">
-        <div id="end-stop-group" style="display: none;">
-            <div class="form-group">
-                <label>Exit Station / Stop</label>
-                <input type="text" id="end-stop-input" placeholder="Stop name or code" autocomplete="off">
+        <main class="research-container">
+            <!-- Setup View -->
+            <div class="setup-card" id="setup-view">
+                <h2><i data-lucide="rocket" class="icon-inline"></i> Mission Setup</h2>
+                <div class="form-group mb-4">
+                    <label>Transit Route</label>
+                    <input type="text" id="route-input" placeholder="e.g. 504 King" autocomplete="off">
+                </div>
+                <div class="form-group mb-4">
+                    <label>Service Direction</label>
+                    <div class="custom-select-wrapper">
+                        <select id="dir-input">
+                            <option value="">Select Direction</option>
+                            <option value="East">Eastbound</option>
+                            <option value="West">Westbound</option>
+                            <option value="North">Northbound</option>
+                            <option value="South">Southbound</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Entry Station / Stop</label>
+                    <input type="text" id="stop-input" placeholder="Stop name or code" autocomplete="off">
+                </div>
             </div>
+
+            <!-- Instrument View -->
+            <div class="instrument-view" id="instrument-view" style="display: none;">
+                <button class="control-btn btn-doors closed" id="btn-doors">
+                    <span class="btn-label">Interlock</span>
+                    <span class="btn-value" id="val-doors">CLOSED</span>
+                </button>
+                <button class="control-btn btn-signal red" id="btn-signal">
+                    <span class="btn-label">Aspect</span>
+                    <span class="btn-value" id="val-signal">RED</span>
+                </button>
+                <button class="control-btn btn-motion idle motion-full" id="btn-motion">
+                    <span class="btn-label">Traction State</span>
+                    <span class="btn-value" id="val-motion">IDLE</span>
+                </button>
+            </div>
+        </main>
+
+        <div class="rocket-footer">
+            <div id="end-stop-group" class="finalize-box" style="display: none;">
+                <div class="form-group">
+                    <label>Exit Station / Stop</label>
+                    <input type="text" id="end-stop-input" placeholder="Stop name or code" autocomplete="off">
+                </div>
+            </div>
+            <button class="main-btn btn-start" id="main-action">
+                <i data-lucide="play" class="icon-inline"></i>
+                <span>START RESEARCH</span>
+            </button>
         </div>
-        <button class="main-btn btn-start" id="main-action">START RESEARCH</button>
     </div>
 
     <script type="module" src="./rocket.js"></script>

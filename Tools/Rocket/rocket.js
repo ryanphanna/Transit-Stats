@@ -103,7 +103,7 @@ async function recoverActiveSession(user) {
 function _enterRecordingMode() {
     DOM.setupView.style.display = 'none';
     DOM.instrumentView.style.display = 'grid';
-    DOM.mainAction.textContent = 'FINALIZE RESEARCH';
+    DOM.mainAction.innerHTML = '<i data-lucide="check-circle" class="icon-inline"></i> <span>FINALIZE RESEARCH</span>';
     DOM.mainAction.className = 'main-btn btn-finalize';
 
     // Sync instrument UI to recovered state
@@ -112,7 +112,9 @@ function _enterRecordingMode() {
     DOM.valSignal.textContent = State.signal;
     DOM.btnSignal.className = `control-btn btn-signal ${State.signal.toLowerCase()}`;
     DOM.valMotion.textContent = State.motion;
-    DOM.btnMotion.className = `control-btn btn-motion ${State.motion.toLowerCase()}`;
+    DOM.btnMotion.className = `control-btn btn-motion motion-full ${State.motion.toLowerCase()}`;
+    
+    if (window.lucide) lucide.createIcons();
 }
 
 // --- Event Logging ---
@@ -169,8 +171,9 @@ async function startSession() {
 async function showFinalizeForm() {
     DOM.endStopGroup.style.display = '';
     DOM.endStopInput.focus();
-    DOM.mainAction.textContent = 'CONFIRM & FINALIZE';
+    DOM.mainAction.innerHTML = '<i data-lucide="check-circle" class="icon-inline"></i> <span>CONFIRM & FINALIZE</span>';
     DOM.mainAction.onclick = finalizeSession;
+    if (window.lucide) lucide.createIcons();
 }
 
 async function finalizeSession() {
@@ -182,7 +185,7 @@ async function finalizeSession() {
     }
 
     DOM.mainAction.disabled = true;
-    DOM.mainAction.textContent = 'FINALIZING...';
+    DOM.mainAction.innerHTML = '<i data-lucide="loader" class="icon-inline spin"></i> <span>FINALIZING...</span>';
 
     try {
         const stats = calculateStats(State.events);
@@ -214,7 +217,8 @@ async function finalizeSession() {
     } catch (err) {
         UI.showNotification('Finalize failed: ' + err.message);
         DOM.mainAction.disabled = false;
-        DOM.mainAction.textContent = 'CONFIRM & FINALIZE';
+        DOM.mainAction.innerHTML = '<i data-lucide="check-circle" class="icon-inline"></i> <span>CONFIRM & FINALIZE</span>';
+        if (window.lucide) lucide.createIcons();
     }
 }
 
@@ -244,7 +248,7 @@ function updateInstrument(type) {
     } else if (type === 'motion') {
         State.motion = State.motion === 'IDLE' ? 'MOVING' : 'IDLE';
         DOM.valMotion.textContent = State.motion;
-        DOM.btnMotion.className = `control-btn btn-motion ${State.motion.toLowerCase()}`;
+        DOM.btnMotion.className = `control-btn btn-motion motion-full ${State.motion.toLowerCase()}`;
         logEvent('MOTION_CHANGE', { value: State.motion });
     }
 }

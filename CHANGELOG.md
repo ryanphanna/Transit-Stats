@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Rocket UI Overhaul**: Redesigned the Rocket research instrument with a premium "Satin-Zinc" cockpit aesthetic, including high-contrast status buttons, glowing interlock states, and full Lucide icon integration.
+- **Settings & Profile Reliability**: Fixed a bug where the phone number link status appeared as "Not linked" on specialized pages (Rocket, Users, Map). Implemented self-loading logic in the `Profile` module and added an email-based fallback for phone number lookup to ensure consistent account visibility.
 - **Stop Normalization**: Restored spaces around slashes in intersection stop names (e.g. "Spadina / Nassau" instead of "Spadina/Nassau"). This ensures consistency with the `stopsLibrary` and fixes a regression where previously linked stops were appearing as unlinked variants in the Admin Inbox.
 - **Dashboard Logic**: Enforced a more realistic **6-hour window** for active trips to prevent stale "ghost" trips from cluttering the UI when users forget to log an exit. Aligned this logic between frontend and SMS backend.
 - **Admin Users Page**: Fixed "Failed to load users" bug by updating Firestore security rules to allow administrators to list profiles and phone mappings.

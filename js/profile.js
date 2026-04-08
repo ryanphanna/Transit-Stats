@@ -36,6 +36,9 @@ export const Profile = {
         if (!user) return;
         
         try {
+            // Check cache first to avoid redundant reads
+            if (this.data && this.phone) return;
+
             const [profileDoc, phoneSnap] = await Promise.all([
                 db.collection('profiles').doc(user.uid).get(),
                 db.collection('phoneNumbers').where('userId', '==', user.uid).limit(1).get()
@@ -43,6 +46,17 @@ export const Profile = {
 
             this.data = profileDoc.exists ? profileDoc.data() : { isPremium: false };
             this.phone = !phoneSnap.empty ? phoneSnap.docs[0].id : null;
+
+            // Fallback: search by email if userId lookup failed (legacy or email-primary accounts)
+            if (!this.phone && user.email) {
+                const emailPhoneSnap = await db.collection('phoneNumbers')
+                    .where('email', '==', user.email)
+                    .limit(1)
+                    .get();
+                if (!emailPhoneSnap.empty) {
+                    this.phone = emailPhoneSnap.docs[0].id;
+                }
+            }
 
             this.syncUI(user.email);
         } catch (err) {
@@ -53,13 +67,18 @@ export const Profile = {
     /**
      * Update UI elements with current profile state.
      */
-    syncUI(email) {
+    async syncUI(email) {
+        // If we don't have data, try to load it from the current auth state
+        if (!this.data && auth.currentUser) {
+            await this.load(auth.currentUser);
+        }
+
         const emailEl = document.getElementById('settings-email');
         const phoneEl = document.getElementById('settings-phone');
         const agencyEl = document.getElementById('settings-agency');
         const betaEl = document.getElementById('settings-beta-predictions');
 
-        if (emailEl) emailEl.textContent = email;
+        if (emailEl) emailEl.textContent = email || auth.currentUser?.email || '—';
         if (phoneEl) phoneEl.textContent = this.phone || 'Not linked';
         
         if (agencyEl && this.data?.defaultAgency) {
