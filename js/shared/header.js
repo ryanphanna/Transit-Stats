@@ -1,5 +1,5 @@
 import { auth } from '../firebase.js';
-import { Auth } from './auth-guard.js';
+import { Auth } from '../auth.js';
 import { ModalManager } from './modal-engine.js';
 import { SettingsView } from './settings-view.js';
 
