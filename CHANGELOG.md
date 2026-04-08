@@ -2,16 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.19.0] - 2026-04-08
+
+### Added
+- **Account Personalization**: Implemented a `Display Name` configuration in Account settings. Users can now set a custom handle, overriding the default email-prefix identity in the header and dashboard.
+- **Self-Service Security**: Integrated a `Reset Password` trigger within the Account settings grid, leveraging Firebase's secure recovery flow.
+- **Centralized Modal Management**: Deployed a project-wide `ModalManager` to orchestrate all backdrop, focus, and state transitions for system dialogs.
+
+### Changed
+- **Modular Administrative Architecture**: Deconstructed the monolithic `js/admin.js` into specialized, testable sub-engines: `GTFSEngine` (registry syncing), code-named `AdminTriage` (inbox management), and `AdminLibrary` (stop indexing).
+- **Decoupled Trip Ecosystem**: Refactored the core `js/trips.js` into an orchestrator that delegates to new high-performance engines: `TripController` (data/Firestore), `TripFeed` (visual rendering), `TripStatsView` (analytics), and `PredictionView` (intelligence).
+- **Tripartite Settings Interface**: Redesigned the primary configuration modal into a high-density `Account | Settings | Beta` architecture. Groups security, environment configuration, and "Laboratory" experimental features into distinct visual sectors.
+- **Satin-Zinc UI Refinement**: Hardened the platform's visual language with modern CSS grid utilities and premium card styles, ensuring the new modular components maintain a cohesive, technical aesthetic.
 
 ### Fixed
-- **Rocket UI Overhaul**: Redesigned the Rocket research instrument with a premium "Satin-Zinc" cockpit aesthetic, including high-contrast status buttons, glowing interlock states, and full Lucide icon integration.
-- **Settings & Profile Reliability**: Fixed a bug where the phone number link status appeared as "Not linked" on specialized pages (Rocket, Users, Map). Implemented self-loading logic in the `Profile` module and added an email-based fallback for phone number lookup to ensure consistent account visibility.
-- **Stop Normalization**: Restored spaces around slashes in intersection stop names (e.g. "Spadina / Nassau" instead of "Spadina/Nassau"). This ensures consistency with the `stopsLibrary` and fixes a regression where previously linked stops were appearing as unlinked variants in the Admin Inbox.
-- **Dashboard Logic**: Enforced a more realistic **6-hour window** for active trips to prevent stale "ghost" trips from cluttering the UI when users forget to log an exit. Aligned this logic between frontend and SMS backend.
-- **Admin Users Page**: Fixed "Failed to load users" bug by updating Firestore security rules to allow administrators to list profiles and phone mappings.
-- **Map Performance**: Optimized Map page to prevent freezes and crashes using O(1) stop indexing and Leaflet marker clustering.
-- **Trip Editing**: Fixed a bug in the "Edit Trip" modal where renaming a stop would not appear to "save" because the display fields (`startStopName`, `endStopName`) were not being kept in sync with the edited input. They are now properly updated alongside the raw stop fields.
+- **Identity Fallback**: Resolved a regression where users were stuck with an email-handle identity. The system now prioritizes Firestore-linked display names with a clean fallback to the local email part.
+- **Reference Integrity**: Standardized all modal calls to use unified IDs, eliminating race conditions during multi-step triage workflows.
+- **Technical Debt**: Significant reduction in technical debt by slashing monolithic file sizes and moving logic to specialized, reusable shared modules.
 
 ## [1.18.0] - 2026-04-07
 
