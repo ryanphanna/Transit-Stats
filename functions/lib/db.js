@@ -199,15 +199,15 @@ async function getUserProfile(userId) {
  */
 async function getActiveTrip(userId) {
   const now = new Date();
-  const twelveHoursAgo = admin.firestore.Timestamp.fromDate(
-    new Date(now.getTime() - 12 * 60 * 60 * 1000),
+  const sixHoursAgo = admin.firestore.Timestamp.fromDate(
+    new Date(now.getTime() - 6 * 60 * 60 * 1000),
   );
 
   const tripsRef = db.collection('trips');
   const snapshot = await tripsRef
     .where('userId', '==', userId)
     .where('endTime', '==', null)
-    .where('startTime', '>=', twelveHoursAgo)
+    .where('startTime', '>=', sixHoursAgo)
     .orderBy('startTime', 'desc')
     .limit(1)
     .get();

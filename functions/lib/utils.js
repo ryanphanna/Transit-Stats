@@ -14,11 +14,10 @@ function toTitleCase(str) {
   if (!str) return str;
 
   // Replace " and " with " & " (case insensitive)
-  // Normalize spaces around slashes so "Spadina / Nassau" and "Spadina/Nassau" both become "Spadina/Nassau"
-  // Using a more constrained regex to avoid polynomial ReDoS on long space sequences
+  // Normalize slashes to a single char first to ensure clean splitting
   const normalized = str.replace(/ (and) /gi, ' & ').replace(/ *\/ */g, '/');
 
-  return normalized
+  const titleCased = normalized
     .toLowerCase()
     .split(/\s+/)
     .map((word) => {
@@ -26,6 +25,9 @@ function toTitleCase(str) {
       return word.split('/').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('/');
     })
     .join(' ');
+
+  // Restore spaces around slashes for the final "canonical" display/storage format
+  return titleCased.replace(/\//g, ' / ');
 }
 
 /**

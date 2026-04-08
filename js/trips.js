@@ -73,13 +73,23 @@ export const Trips = {
                 const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
                 // Separate active vs completed
-                this.activeTrip = docs.find(t => !t.endTime && !t.discarded);
-                this.allTrips = docs.filter(t => t.endTime || t.discarded);
+                const now = Date.now();
+                const sixHoursMs = 6 * 60 * 60 * 1000;
+
+                // Separate active vs completed
+                this.activeTrip = docs.find(t => {
+                    if (t.endTime || t.discarded) return false;
+                    const startTime = t.startTime?.toDate ? t.startTime.toDate().getTime() : new Date(t.startTime).getTime();
+                    return (now - startTime) < sixHoursMs;
+                });
+
+                this.allTrips = docs.filter(t => t.endTime || t.discarded || (now - (t.startTime?.toDate ? t.startTime.toDate().getTime() : new Date(t.startTime).getTime())) >= sixHoursMs);
                 
                 this.renderFeed();
                 this.renderStats();
                 this.renderStreaks();
                 this.renderPrediction();
+                this.updateProfileStatus();
                 
                 // Update Map
                 MapEngine.updateTrips(this.allTrips);
@@ -96,8 +106,14 @@ export const Trips = {
 
     async update(id, data) {
         // Normalize stop names before saving
-        if (data.startStop) data.startStop = Utils.normalizeIntersectionStop(data.startStop);
-        if (data.endStop) data.endStop = Utils.normalizeIntersectionStop(data.endStop);
+        if (data.startStop) {
+            data.startStop = Utils.normalizeIntersectionStop(data.startStop);
+            data.startStopName = data.startStop; // Sync with display field
+        }
+        if (data.endStop) {
+            data.endStop = Utils.normalizeIntersectionStop(data.endStop);
+            data.endStopName = data.endStop; // Sync with display field
+        }
 
         return db.collection('trips').doc(id).update({
             ...data,
@@ -441,21 +457,31 @@ export const Trips = {
             card.querySelector('.prediction-label').textContent = "Next Predicted Trip";
             card.classList.remove('trip-active-card');
 
-            if (p && p.confidence > 20) { // Only show if we have some confidence
+            if (p && p.confidence > 25) { // Show if high confidence
                 card.style.display = 'block';
                 content.innerHTML = `
                     <div class="prediction-main">
                         <div class="prediction-route">${p.route} ${p.direction || ''}</div>
-                        <div class="prediction-stop">From ${p.stop}</div>
+                        <div class="prediction-stop">Ready to board at ${p.stop}</div>
                     </div>
                     <div class="prediction-stats">
                         <span class="prediction-confidence">${p.confidence}%</span>
-                        <span class="prediction-confidence-label">Match</span>
+                        <span class="prediction-confidence-label">Likelihood</span>
                     </div>
                 `;
             } else {
                 card.style.display = 'none';
             }
+        }
+    },
+
+    updateProfileStatus() {
+        const el = document.getElementById('profile-status');
+        if (!el) return;
+        if (this.activeTrip) {
+            el.innerHTML = `<span class="status-indicator active"></span>Riding ${this.activeTrip.route}`;
+        } else {
+            el.innerHTML = `<span class="status-indicator"></span>Ready to ride`;
         }
     }
 };

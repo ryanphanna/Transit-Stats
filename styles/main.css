@@ -70,7 +70,35 @@ body {
   justify-content: center;
 }
 .profile-info h2 { margin: 0; font-size: 1.25rem; font-weight: 800; line-height: 1.2; }
-.profile-info p { margin: 0; color: var(--text-muted); font-size: 0.85rem; line-height: 1; }
+.profile-info p { 
+  margin: 0; 
+  color: var(--text-muted); 
+  font-size: 0.85rem; 
+  line-height: 1; 
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  display: inline-block;
+}
+
+.status-indicator.active {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
 
 .profile-header {
   display: flex;

@@ -4,8 +4,11 @@ service cloud.firestore {
     // Profiles - users can read/write their own profile
     // ANYONE can read a profile if isPublic is true
     match /profiles/{userId} {
-      allow read: if (request.auth != null && request.auth.uid == userId) || resource.data.isPublic == true;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read: if (request.auth != null && request.auth.uid == userId) || 
+                  resource.data.isPublic == true ||
+                  get(/databases/$(database)/documents/allowedUsers/$(request.auth.token.email.lower())).data.isAdmin == true;
+      allow write: if (request.auth != null && request.auth.uid == userId) ||
+                   get(/databases/$(database)/documents/allowedUsers/$(request.auth.token.email.lower())).data.isAdmin == true;
     }
 
     // Trips - users can read/write their own trips
@@ -25,7 +28,9 @@ service cloud.firestore {
 
     // Phone numbers - only cloud functions can read/write (admin SDK)
     match /phoneNumbers/{phoneNumber} {
-      allow read, write: if false;
+      allow read: if request.auth != null && 
+                  get(/databases/$(database)/documents/allowedUsers/$(request.auth.token.email.lower())).data.isAdmin == true;
+      allow write: if false; // Only written/updated by Admin SDK/Functions
     }
 
     // SMS state - only cloud functions can read/write (admin SDK)

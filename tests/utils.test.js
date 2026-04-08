@@ -29,13 +29,13 @@ describe('toTitleCase', () => {
     expect(toTitleCase('QUEEN AND SPADINA')).toBe('Queen & Spadina');
   });
 
-  test('slashes are normalized (spaces around slash removed)', () => {
-    expect(toTitleCase('Spadina / Nassau')).toBe('Spadina/Nassau');
-    expect(toTitleCase('spadina/nassau')).toBe('Spadina/Nassau');
+  test('slashes are normalized (spaces around slash restored)', () => {
+    expect(toTitleCase('Spadina / Nassau')).toBe('Spadina / Nassau');
+    expect(toTitleCase('spadina/nassau')).toBe('Spadina / Nassau');
   });
 
   test('each part of a slash-separated name is capitalized', () => {
-    expect(toTitleCase('yonge/king')).toBe('Yonge/King');
+    expect(toTitleCase('yonge/king')).toBe('Yonge / King');
   });
 
   test('extra spaces between words are collapsed', () => {

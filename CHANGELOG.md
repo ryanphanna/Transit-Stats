@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- **Stop Normalization**: Restored spaces around slashes in intersection stop names (e.g. "Spadina / Nassau" instead of "Spadina/Nassau"). This ensures consistency with the `stopsLibrary` and fixes a regression where previously linked stops were appearing as unlinked variants in the Admin Inbox.
+- **Dashboard Logic**: Enforced a more realistic **6-hour window** for active trips to prevent stale "ghost" trips from cluttering the UI when users forget to log an exit. Aligned this logic between frontend and SMS backend.
+- **Admin Users Page**: Fixed "Failed to load users" bug by updating Firestore security rules to allow administrators to list profiles and phone mappings.
+- **Map Performance**: Optimized Map page to prevent freezes and crashes using O(1) stop indexing and Leaflet marker clustering.
+- **Trip Editing**: Fixed a bug in the "Edit Trip" modal where renaming a stop would not appear to "save" because the display fields (`startStopName`, `endStopName`) were not being kept in sync with the edited input. They are now properly updated alongside the raw stop fields.
+
 ## [1.18.0] - 2026-04-07
 
 ### Changed

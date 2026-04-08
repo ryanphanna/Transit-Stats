@@ -27,7 +27,7 @@ export const Utils = {
         if (intersectionMatch) {
             const a = titleCase(intersectionMatch[1].trim());
             const b = titleCase(intersectionMatch[2].trim());
-            const intersectionPart = `${a}/${b}`;
+            const intersectionPart = `${a} / ${b}`;
             return codePrefix ? `${codePrefix[1]} ${intersectionPart}` : intersectionPart;
         }
 

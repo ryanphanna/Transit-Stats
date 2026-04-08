@@ -14,6 +14,10 @@ export const MapEngine = {
         transit: null,
         markers: null
     },
+    _stopLookup: new Map(),
+    _hasIndexedStops: false,
+    _lastRenderedCount: 0,
+    _isFirstLoad: true,
 
     init(initialTrips = []) {
         this.trips = initialTrips;
@@ -68,7 +72,16 @@ export const MapEngine = {
             opacity: 0.6
         }).addTo(this.map);
 
-        this.layers.markers = L.layerGroup().addTo(this.map);
+        // Marker Cluster Group - much faster for large datasets
+        if (window.L.markerClusterGroup) {
+            this.layers.markers = L.markerClusterGroup({
+                showCoverageOnHover: false,
+                maxClusterRadius: 40,
+                spiderfyOnMaxZoom: true
+            }).addTo(this.map);
+        } else {
+            this.layers.markers = L.layerGroup().addTo(this.map);
+        }
     },
 
     setupControls() {
@@ -93,79 +106,130 @@ export const MapEngine = {
         if (this.map) this.renderMarkers();
     },
 
+    /**
+     * Build an O(1) lookup Map for stop locations from the stopsLibrary.
+     * Dramatically improves performance over linear searching.
+     */
+    _rebuildStopIndex() {
+        if (!PredictionEngine.stopsLibrary || PredictionEngine.stopsLibrary.length === 0) return;
+        
+        console.log(`MapEngine: Reindexing ${PredictionEngine.stopsLibrary.length} stops...`);
+        this._stopLookup.clear();
+        
+        PredictionEngine.stopsLibrary.forEach(stop => {
+            if (!stop.lat || (!stop.lng && !stop.lon)) return;
+            const loc = { lat: stop.lat, lng: stop.lng || stop.lon };
+            
+            // Index by canonical name
+            const canon = PredictionEngine._canonicalizeStop(stop.name);
+            if (canon) this._stopLookup.set(canon, loc);
+            
+            // Index by aliases
+            if (stop.aliases) {
+                stop.aliases.forEach(alias => {
+                    const cAlias = PredictionEngine._canonicalizeStop(alias);
+                    if (cAlias) this._stopLookup.set(cAlias, loc);
+                });
+            }
+
+            // Index by code
+            if (stop.code) {
+                const cCode = PredictionEngine._canonicalizeStop(stop.code);
+                if (cCode) this._stopLookup.set(cCode, loc);
+            }
+        });
+
+        this._hasIndexedStops = true;
+    },
+
     _getStopLocation(stopName) {
         if (!stopName) return null;
-        // Search in PredictionEngine's library
-        const stop = PredictionEngine.stopsLibrary.find(s => 
-            PredictionEngine._stopMatch(s.name, stopName)
-        );
         
-        if (stop && stop.lat && (stop.lng || stop.lon)) {
-            return {
-                lat: stop.lat,
-                lng: stop.lng || stop.lon
-            };
+        // Ensure index is ready
+        if (!this._hasIndexedStops || this._stopLookup.size === 0) {
+            this._rebuildStopIndex();
         }
-        return null;
+
+        const canon = PredictionEngine._canonicalizeStop(stopName);
+        return this._stopLookup.get(canon) || null;
     },
 
     renderMarkers() {
         if (!this.map || !this.layers.markers) return;
+
+        // Clear existing
         this.layers.markers.clearLayers();
 
+        // Always check if we need to rebuild the index (e.g. library finished loading)
+        const currentLibSize = PredictionEngine.stopsLibrary?.length || 0;
+        if (currentLibSize > 0 && !this._hasIndexedStops) {
+            this._rebuildStopIndex();
+        }
+
         const points = [];
+        const isBoth = this.filter === 'both';
+        const showBoarding = this.filter === 'boarding' || isBoth;
+        const showExiting = this.filter === 'exiting' || isBoth;
 
         this.trips.forEach(trip => {
             // Process Boarding
-            let bLoc = trip.boardingLocation;
-            if (!bLoc || isNaN(bLoc.lat)) {
-                bLoc = this._getStopLocation(trip.startStopName || trip.startStop);
-            }
-
-            if ((this.filter === 'boarding' || this.filter === 'both') && bLoc) {
-                points.push({
-                    lat: bLoc.lat,
-                    lng: bLoc.lng,
-                    type: 'boarding',
-                    label: `Boarded ${trip.route} at ${trip.startStopName || trip.startStop}`
-                });
+            if (showBoarding) {
+                let bLoc = trip.boardingLocation;
+                if (!bLoc || isNaN(bLoc.lat)) {
+                    bLoc = this._getStopLocation(trip.startStopName || trip.startStop);
+                }
+                if (bLoc && !isNaN(bLoc.lat)) {
+                    points.push({
+                        lat: bLoc.lat,
+                        lng: bLoc.lng,
+                        type: 'boarding',
+                        label: `Boarded ${trip.route} at ${trip.startStopName || trip.startStop}`
+                    });
+                }
             }
 
             // Process Exiting
-            let eLoc = trip.exitLocation;
-            if (!eLoc || isNaN(eLoc.lat)) {
-                eLoc = this._getStopLocation(trip.endStopName || trip.endStop);
-            }
-
-            if ((this.filter === 'exiting' || this.filter === 'both') && eLoc) {
-                points.push({
-                    lat: eLoc.lat,
-                    lng: eLoc.lng,
-                    type: 'exiting',
-                    label: `Exited ${trip.route} at ${trip.endStopName || trip.endStop}`
-                });
+            if (showExiting) {
+                let eLoc = trip.exitLocation;
+                if (!eLoc || isNaN(eLoc.lat)) {
+                    eLoc = this._getStopLocation(trip.endStopName || trip.endStop);
+                }
+                if (eLoc && !isNaN(eLoc.lat)) {
+                    points.push({
+                        lat: eLoc.lat,
+                        lng: eLoc.lng,
+                        type: 'exiting',
+                        label: `Exited ${trip.route} at ${trip.endStopName || trip.endStop}`
+                    });
+                }
             }
         });
 
+        // Batch add markers for performance
+        const markers = [];
         points.forEach(p => {
-            if (isNaN(p.lat) || isNaN(p.lng)) return;
             const color = p.type === 'boarding' ? '#4f46e5' : '#10b981';
-            L.circleMarker([p.lat, p.lng], {
+            const marker = L.circleMarker([p.lat, p.lng], {
                 radius: 6,
                 fillColor: color,
                 color: '#fff',
                 weight: 2,
                 opacity: 1,
                 fillOpacity: 0.8
-            }).addTo(this.layers.markers).bindPopup(p.label);
+            }).bindPopup(p.label);
+            markers.push(marker);
         });
 
-        // Fit bounds if markers exist
-        const validPoints = points.filter(p => !isNaN(p.lat) && !isNaN(p.lng));
-        if (validPoints.length > 0) {
+        if (markers.length > 0) {
+            this.layers.markers.addLayers(markers);
+        }
+
+        // Fit bounds only on first load or when filters change
+        if (points.length > 0 && this._isFirstLoad) {
             try {
-                const bounds = L.latLngBounds(validPoints.map(p => [p.lat, p.lng]));
-                this.map.fitBounds(bounds, { padding: [40, 40] });
+                const bounds = L.latLngBounds(points.map(p => [p.lat, p.lng]));
+                this.map.fitBounds(bounds, { padding: [60, 60], animate: false });
+                this._isFirstLoad = false;
             } catch (err) {
                 console.warn("MapEngine: Fit bounds failed", err);
             }
