@@ -18,28 +18,51 @@
         <div class="rocket-header-spacer"></div>
 
         <main class="research-container">
-            <!-- Setup View -->
-            <div class="setup-card" id="setup-view">
-                <h2><i data-lucide="rocket" class="icon-inline"></i> Mission Setup</h2>
-                <div class="form-group mb-4">
-                    <label>Transit Route</label>
-                    <input type="text" id="route-input" placeholder="e.g. 504 King" autocomplete="off">
-                </div>
-                <div class="form-group mb-4">
-                    <label>Service Direction</label>
-                    <div class="custom-select-wrapper">
-                        <select id="dir-input">
+            <div id="setup-view" class="view">
+                <div class="setup-card">
+                    <h2>
+                        <i data-lucide="rocket"></i>
+                        <span>Mission Setup</span>
+                    </h2>
+                    
+                    <div class="form-group mb-4">
+                        <label>
+                            <i data-lucide="map-pin"></i>
+                            <span>Transit Route</span>
+                        </label>
+                        <input type="text" id="route-id" placeholder="e.g. 504 King" autocomplete="off">
+                    </div>
+
+                    <div class="form-group mb-4">
+                        <label>
+                            <i data-lucide="compass"></i>
+                            <span>Service Direction</span>
+                        </label>
+                        <select id="route-dir">
                             <option value="">Select Direction</option>
-                            <option value="East">Eastbound</option>
-                            <option value="West">Westbound</option>
-                            <option value="North">Northbound</option>
-                            <option value="South">Southbound</option>
+                            <option value="Northbound">Northbound</option>
+                            <option value="Southbound">Southbound</option>
+                            <option value="Eastbound">Eastbound</option>
+                            <option value="Westbound">Westbound</option>
                         </select>
                     </div>
+
+                    <div class="form-group mb-4">
+                        <label>
+                            <i data-lucide="map"></i>
+                            <span>Boarding Intersection / Stop</span>
+                        </label>
+                        <input type="text" id="start-stop" placeholder="Stop name or code" autocomplete="off">
+                    </div>
+
+                    <button id="btn-start" class="btn btn-primary full-width mt-2">
+                        <i data-lucide="play"></i>
+                        <span>START INSTRUMENT</span>
+                    </button>
                 </div>
-                <div class="form-group">
-                    <label>Entry Station / Stop</label>
-                    <input type="text" id="stop-input" placeholder="Stop name or code" autocomplete="off">
+                
+                <div class="mt-4 text-center">
+                    <p class="text-xxs text-muted">GPS telemetry required for spatial anchoring.</p>
                 </div>
             </div>
 

@@ -1,16 +1,16 @@
-import { auth, db } from '../firebase.js';
+import { auth } from '../firebase.js';
 import { Auth } from './auth-guard.js';
-import { Profile } from '../profile.js';
+import { ModalManager } from './modal-engine.js';
+import { SettingsView } from './settings-view.js';
 
 /**
  * Shared Header Component
  * Injects navigation and standard modal structure into the page.
  */
 export function initHeader({ isAdmin = false, currentPage = '' } = {}) {
+    ModalManager.init();
     _render(isAdmin, currentPage);
-    _setupNav();
-    _setupSettings(isAdmin);
-    _setupLogout();
+    _setupListeners(isAdmin);
 }
 
 function _render(isAdmin, currentPage) {
@@ -50,136 +50,107 @@ function _render(isAdmin, currentPage) {
                     <button class="icon-btn" id="nav-settings" title="Settings">
                         <i data-lucide="settings"></i>
                     </button>
-                    <!-- Mobile Nav Toggle could go here -->
                 </div>
             </div>
         </header>
 
-        <!-- Modals -->
-        <div id="modal-backdrop" class="modal-backdrop hidden"></div>
-        
+        <!-- Shared Settings Modal Structure -->
         <div id="modal-settings" class="modal hidden">
             <div class="modal-header">
-                <h3>Settings</h3>
-                <button class="icon-btn" id="btn-close-settings"><i data-lucide="x"></i></button>
+                <div class="flex-column">
+                    <h3 class="m-0">System Configuration</h3>
+                    <span class="text-xxs text-muted">User Preferences & Laboratory</span>
+                </div>
+                <button class="icon-btn" data-close-modal><i data-lucide="x"></i></button>
             </div>
             
             <div class="modal-body">
-                <div class="settings-section">
-                    <label>Profile</label>
-                    <div class="profile-info">
-                        <div class="row-between">
-                            <span class="text-secondary">Email</span>
-                            <span id="settings-email" class="text-main">—</span>
+                <div class="settings-grid">
+                    <!-- Section: Account -->
+                    <div class="settings-group">
+                        <div class="settings-group-title"><i data-lucide="user"></i><span>Account</span></div>
+                        <div class="settings-card premium-card">
+                            <div class="settings-row">
+                                <div class="settings-label-group">
+                                    <span class="settings-sub-label">Email</span>
+                                    <span id="settings-email" class="settings-main-label text-xs">—</span>
+                                </div>
+                                <button id="btn-reset-password" class="btn btn-sm btn-ghost p-1"><i data-lucide="key" class="icon-inline m-0" style="width:14px;"></i></button>
+                            </div>
+                            <div class="settings-row">
+                                <div class="settings-label-group">
+                                    <span class="settings-main-label">RCS Signal</span>
+                                    <span id="settings-phone" class="text-accent font-bold text-xxs">Establishing...</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="row-between mt-2">
-                            <span class="text-secondary">Phone</span>
-                            <span id="settings-phone" class="text-accent">Not linked</span>
+                    </div>
+
+                    <!-- Section: Settings -->
+                    <div class="settings-group">
+                        <div class="settings-group-title"><i data-lucide="settings"></i><span>Settings</span></div>
+                        <div class="settings-card premium-card">
+                            <div class="settings-row">
+                                <span class="settings-main-label">Base Agency</span>
+                                <select id="settings-agency" class="minimal-select">
+                                    <option value="TTC">Toronto (TTC)</option>
+                                    <option value="GO">GO Transit</option>
+                                    <option value="UP">UP Express</option>
+                                    <option value="DRT">Durham Region</option>
+                                </select>
+                            </div>
+                            <div class="settings-row">
+                                <span class="settings-main-label text-xs">Theme</span>
+                                <div class="status-indicator active" title="System Match"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="settings-section">
-                    <label>Preferences</label>
-                    <div class="form-group">
-                        <span class="text-secondary mb-1 block">Default Agency</span>
-                        <select id="settings-agency">
-                            <option value="TTC">TTC (Toronto)</option>
-                            <option value="GO">GO Transit</option>
-                            <option value="UP">UP Express</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <label>Beta Lab</label>
-                    <div class="row-between">
-                        <div>
-                            <span class="block">Predicted Trips</span>
-                            <span class="text-secondary text-xs">Show next predicted boarding in dashboard</span>
+                <!-- Section: Beta -->
+                <div class="settings-group mt-2">
+                    <div class="settings-group-title"><i data-lucide="flask-conical"></i><span>Beta</span></div>
+                    <div class="settings-card premium-card">
+                        <div class="settings-row">
+                            <div class="settings-label-group">
+                                <span class="settings-main-label">Station Prediction Engine</span>
+                                <span class="settings-sub-label">Anticipate stops based on historical telemetry</span>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="settings-beta-predictions">
+                                <span class="slider"></span>
+                            </label>
                         </div>
-                        <label class="switch">
-                            <input type="checkbox" id="settings-beta-predictions">
-                            <span class="slider"></span>
-                        </label>
                     </div>
                 </div>
 
                 ${isAdmin ? `
-                <div class="settings-section admin-only">
-                    <label>Admin Insights</label>
-                    <div class="profile-info">
-                        <div class="text-xs text-secondary mb-1">Prediction Accuracy</div>
-                        <div id="prediction-accuracy-stat" class="text-main">Loading...</div>
+                <div class="settings-group mt-4">
+                    <div class="settings-group-title"><i data-lucide="activity"></i><span>Admin Intelligence</span></div>
+                    <div id="admin-insights-container" class="settings-card premium-card" style="padding: 16px;">
+                        <div class="loading-state">Syncing Probes...</div>
                     </div>
                 </div>
                 ` : ''}
 
-                <div class="mt-4 pt-4 border-t">
-                    <button id="btn-logout" class="btn btn-outline full-width text-danger">Sign Out</button>
+                <div class="mt-8">
+                    <button id="btn-logout" class="btn btn-danger-outline full-width">Sign Out Of Terminal</button>
                 </div>
             </div>
         </div>
     `;
 
-    // Inject before other content
     root.insertAdjacentHTML('afterbegin', headerHtml);
-
-    // Initial icon refresh
     if (window.lucide) lucide.createIcons();
 }
 
-function _setupNav() {
-    // Current page highlighting is handled in _render
-}
-
-function _setupSettings(isAdmin) {
-    document.getElementById('nav-settings')?.addEventListener('click', () => _openSettings(isAdmin));
-    document.getElementById('btn-close-settings')?.addEventListener('click', _closeSettings);
-    document.getElementById('modal-backdrop')?.addEventListener('click', _closeSettings);
-}
-
-async function _openSettings(isAdmin) {
-    document.getElementById('modal-backdrop')?.classList.remove('hidden');
-    const modal = document.getElementById('modal-settings');
-    if (modal) {
-        modal.classList.remove('hidden');
-        await Profile.syncUI(auth.currentUser?.email || '');
-        
-        // Add user specific insights if admin
-        if (isAdmin && auth.currentUser) {
-            const stat = document.getElementById('prediction-accuracy-stat');
-            if (stat) {
-                try {
-                    const doc = await db.collection('predictionAccuracy').doc(auth.currentUser.uid).get();
-                    if (!doc.exists) { 
-                        stat.textContent = 'No predictions graded yet.'; 
-                    } else {
-                        const d = doc.data();
-                        const routePct = d.total ? Math.round((d.hits / d.total) * 100) : null;
-                        const endPct = d.endStopTotal ? Math.round((d.endStopHits / d.endStopTotal) * 100) : null;
-                        
-                        const parts = [];
-                        if (routePct !== null) parts.push(`Route: ${routePct}% (${d.hits}/${d.total})`);
-                        if (endPct !== null) parts.push(`End stop: ${endPct}% (${d.endStopHits}/${d.endStopTotal})`);
-                        stat.textContent = parts.length ? parts.join(' · ') : 'No data yet.';
-                    }
-                } catch (err) {
-                    stat.textContent = 'Could not load.';
-                }
-            }
-        }
-    }
-}
-
-function _closeSettings() {
-    document.getElementById('modal-backdrop')?.classList.add('hidden');
-    document.getElementById('modal-settings')?.classList.add('hidden');
-}
-
-function _setupLogout() {
+function _setupListeners(isAdmin) {
+    document.getElementById('nav-settings')?.addEventListener('click', () => SettingsView.open(isAdmin));
+    
     document.getElementById('btn-logout')?.addEventListener('click', async () => {
-        await Auth.signOut();
-        window.location.href = '/';
+        if (confirm('Sign out of TransitStats?')) {
+            await Auth.signOut();
+            window.location.href = '/';
+        }
     });
 }

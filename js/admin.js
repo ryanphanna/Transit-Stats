@@ -1,14 +1,17 @@
 import { db } from './firebase.js';
 import { Utils } from './utils.js';
 import { UI } from './ui-utils.js';
+import { ModalManager } from './shared/modal-engine.js';
+
+// Modular Logic Engines
+import { GTFSEngine } from './admin/GTFSEngine.js';
+import { AdminTriage } from './admin/AdminTriage.js';
+import { AdminLibrary } from './admin/AdminLibrary.js';
 
 /**
- * TransitStats V2 - Admin Data Manager Module
+ * TransitStats V2 - Admin Data Manager (Refactored View Controller)
  */
 export const Admin = {
-    stopsLibrary: [],
-    inbox: [],
-    consolidation: [],
     filters: {
         libSearch: '',
         libAgency: 'All',
@@ -17,58 +20,44 @@ export const Admin = {
 
     async init() {
         console.log('Admin: Initializing...');
+        ModalManager.init();
         this.setupListeners();
         await this.loadAll();
     },
 
     setupListeners() {
-        // Search & Filters
-        const bind = (id, key, prop) => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            el.addEventListener('input', (e) => {
+        const bind = (id, prop) => {
+            document.getElementById(id)?.addEventListener('input', (e) => {
                 this.filters[prop] = e.target.value;
                 this.render();
             });
         };
 
-        bind('lib-search', 'input', 'libSearch');
-        bind('lib-agency', 'change', 'libAgency');
-        bind('inbox-search', 'input', 'inboxSearch');
+        bind('lib-search', 'libSearch');
+        bind('lib-agency', 'libAgency');
+        bind('inbox-search', 'inboxSearch');
 
-        // New Stop
-        const btnNew = document.getElementById('btn-new-stop');
-        if (btnNew) btnNew.addEventListener('click', () => this.openStopForm('create'));
+        // Stop Form
+        document.getElementById('btn-new-stop')?.addEventListener('click', () => this.openStopForm('create'));
+        document.getElementById('btn-save-stop')?.addEventListener('click', () => this.handleSaveStop());
+        document.getElementById('btn-delete-stop')?.addEventListener('click', () => this.handleDeleteStop());
 
-        // Form Actions
-        document.getElementById('btn-save-stop')?.addEventListener('click', () => this.saveStop());
+        // GTFS
+        document.getElementById('gtfsFileInput')?.addEventListener('change', () => this.handleGTFSPreview());
+        document.getElementById('gtfsImportBtn')?.addEventListener('click', () => this.handleGTFSImport());
+        document.getElementById('gtfsAgencySelect')?.addEventListener('change', () => this.loadRouteLibrary());
 
-        let _deleteStopArmed = false;
-        let _deleteStopTimer = null;
-        document.getElementById('btn-delete-stop')?.addEventListener('click', (e) => {
-            const btn = e.currentTarget;
-            if (!_deleteStopArmed) {
-                _deleteStopArmed = true;
-                btn.textContent = 'Tap again to confirm';
-                btn.classList.add('btn-danger');
-                _deleteStopTimer = setTimeout(() => {
-                    _deleteStopArmed = false;
-                    btn.textContent = 'Delete Stop';
-                    btn.classList.remove('btn-danger');
-                }, 3000);
-                return;
-            }
-            clearTimeout(_deleteStopTimer);
-            _deleteStopArmed = false;
-            btn.textContent = 'Delete Stop';
-            btn.classList.remove('btn-danger');
-            this.deleteStop();
-        });
+        // Event Delegation for dynamic lists
+        this._setupDelegation();
+    },
 
-        // Event delegation — replaces all inline onclick handlers in rendered lists
-        document.getElementById('consolidation-list')?.addEventListener('click', (e) => {
+    _setupDelegation() {
+        document.getElementById('consolidation-list')?.addEventListener('click', async (e) => {
             const btn = e.target.closest('[data-action="consolidate"]');
-            if (btn) this.consolidateGroup(Number(btn.dataset.index));
+            if (btn) {
+                await AdminTriage.mergeGroup(Number(btn.dataset.index));
+                this.render();
+            }
         });
 
         document.getElementById('lib-list')?.addEventListener('click', (e) => {
@@ -76,260 +65,58 @@ export const Admin = {
             if (card) this.openStopForm('edit', card.dataset.stopId);
         });
 
-        document.getElementById('inbox-list')?.addEventListener('click', (e) => {
-            const acceptAll = e.target.closest('[data-action="accept-all"]');
-            if (acceptAll) { this.acceptAllSuggestions(); return; }
-            const accept = e.target.closest('[data-action="accept-suggestion"]');
-            if (accept) { this.acceptSuggestion(accept.dataset.name, accept.dataset.stopId); return; }
-            const link = e.target.closest('[data-action="open-link-modal"]');
-            if (link) this.openLinkModal(link.dataset.name);
+        document.getElementById('inbox-list')?.addEventListener('click', async (e) => {
+            const el = e.target.closest('[data-action]');
+            if (!el) return;
+            
+            const action = el.dataset.action;
+            if (action === 'accept-all') {
+                await AdminTriage.bulkAcceptSuggestions();
+                await this.loadAll();
+            } else if (action === 'accept-suggestion') {
+                await AdminLibrary.linkAlias(el.dataset.stopId, el.dataset.name);
+                await this.loadAll();
+            } else if (action === 'open-link-modal') {
+                this.openLinkModal(el.dataset.name);
+            }
         });
 
-        document.getElementById('link-search-results')?.addEventListener('click', (e) => {
+        document.getElementById('link-search-results')?.addEventListener('click', async (e) => {
             const row = e.target.closest('[data-action="link-to-stop"]');
-            if (row) this.linkToStop(row.dataset.stopId);
+            if (row) {
+                const rawName = document.getElementById('link-target-string').textContent;
+                await AdminLibrary.linkAlias(row.dataset.stopId, rawName);
+                ModalManager.closeAll();
+                await this.loadAll();
+            }
+        });
+
+        document.getElementById('routeLibraryList')?.addEventListener('click', async (e) => {
+            const btn = e.target.closest('[data-action="delete-route"]');
+            if (btn && confirm('Remove this route from the library?')) {
+                await AdminLibrary.deleteRoute(btn.dataset.routeId);
+                this.loadRouteLibrary();
+            }
         });
     },
 
     async loadAll() {
         await Promise.all([
-            this.loadLibrary(),
-            this.loadInbox(),
-            this.loadConsolidation(),
+            AdminLibrary.loadStops(),
+            AdminTriage.loadInbox(AdminLibrary.stops),
+            AdminTriage.loadConsolidation(),
+            this.loadRouteLibrary()
         ]);
         this.render();
     },
 
-    async loadLibrary() {
-        try {
-            const snap = await db.collection('stops').orderBy('name').get();
-            this.stopsLibrary = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            console.log(`Admin: Loaded ${this.stopsLibrary.length} stops.`);
-        } catch (err) {
-            console.error('Library load error:', err);
-        }
+    async loadRouteLibrary() {
+        const agency = document.getElementById('gtfsAgencySelect')?.value || 'TTC';
+        await AdminLibrary.loadRoutes(agency);
+        this.renderRouteLibrary();
     },
 
-    async loadInbox() {
-        try {
-            // Scan trips for unlinked stop strings. Use the existing Trips cache if available to save reads.
-            const tripsToScan = window.Trips?.allTrips?.length ? 
-                                window.Trips.allTrips : 
-                                [];
-
-            if (!tripsToScan.length) {
-                 const snap = await db.collection('trips')
-                    .where('userId', '==', window.currentUser.uid)
-                    .orderBy('startTime', 'desc')
-                    .limit(500)
-                    .get();
-                 snap.docs.forEach(doc => tripsToScan.push(doc.data()));
-            }
-
-            const rawStops = {}; // string -> { count, routes: Set }
-
-            tripsToScan.forEach(trip => {
-                const process = (val, route) => {
-                    if (!val) return;
-                    const norm = Utils.normalizeIntersectionStop(val);
-                    // Skip if linked
-                    if (this.isLinked(norm)) return;
-
-                    if (!rawStops[norm]) rawStops[norm] = { count: 0, routes: new Set() };
-                    rawStops[norm].count++;
-                    if (route) rawStops[norm].routes.add(route);
-                };
-
-                process(trip.startStopName || trip.startStop || trip.startStopCode, trip.route);
-                process(trip.endStopName || trip.endStop || trip.endStopCode, trip.route);
-            });
-
-            this.inbox = Object.entries(rawStops).map(([name, data]) => ({
-                name,
-                count: data.count,
-                routes: Array.from(data.routes),
-                suggestion: this.suggestStop(name)
-            })).sort((a, b) => b.count - a.count);
-
-            const counter = document.getElementById('inbox-count');
-            if (counter) counter.textContent = this.inbox.length;
-
-        } catch (err) {
-            console.error('Inbox load error:', err);
-        }
-    },
-
-    async loadConsolidation() {
-        try {
-            const tripsToScan = window.Trips?.allTrips?.length ?
-                window.Trips.allTrips : [];
-
-            let trips = tripsToScan;
-            if (!trips.length) {
-                const snap = await db.collection('trips')
-                    .where('userId', '==', window.currentUser.uid)
-                    .orderBy('startTime', 'desc')
-                    .limit(500)
-                    .get();
-                trips = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            }
-
-            // Group by route + direction, count occurrences of each raw stop name
-            const groups = {};
-            for (const trip of trips) {
-                const route = (trip.route || '').toString().trim();
-                const dir = (trip.direction || '').toString().trim();
-                const key = `${route}||${dir}`;
-                if (!groups[key]) groups[key] = { route, direction: dir, starts: {}, ends: {} };
-
-                for (const [field, bucket] of [['startStopName', 'starts'], ['endStopName', 'ends']]) {
-                    const raw = trip[field];
-                    if (!raw) continue;
-                    const canon = Utils.canonicalizeForMatch(raw);
-                    if (!canon) continue;
-                    if (!groups[key][bucket][canon]) groups[key][bucket][canon] = {};
-                    groups[key][bucket][canon][raw] = (groups[key][bucket][canon][raw] || 0) + 1;
-                }
-            }
-
-            // Find canonical keys that have 2+ distinct raw variants
-            const results = [];
-            for (const group of Object.values(groups)) {
-                for (const [field, bucket] of [['startStopName', 'starts'], ['endStopName', 'ends']]) {
-                    for (const variantCounts of Object.values(group[bucket])) {
-                        const variants = Object.entries(variantCounts).sort((a, b) => b[1] - a[1]);
-                        if (variants.length < 2) continue;
-                        // Most frequent variant is the canonical
-                        const canonical = Utils.normalizeIntersectionStop(variants[0][0]);
-                        const others = variants.slice(1).map(([name]) => name);
-                        results.push({
-                            route: group.route,
-                            direction: group.direction,
-                            field,
-                            canonical,
-                            others,
-                            allVariants: variants.map(([name, count]) => ({ name, count })),
-                        });
-                    }
-                }
-            }
-
-            this.consolidation = results;
-            const counter = document.getElementById('consolidation-count');
-            if (counter) counter.textContent = results.length || '';
-        } catch (err) {
-            console.error('Consolidation load error:', err);
-        }
-    },
-
-    renderConsolidation() {
-        const list = document.getElementById('consolidation-list');
-        if (!list) return;
-
-        if (this.consolidation.length === 0) {
-            list.innerHTML = '<div class="loading-state">No variants found.</div>';
-            return;
-        }
-
-        list.innerHTML = this.consolidation.map((item, i) => `
-            <div class="inbox-item">
-                <div class="inbox-item-content">
-                    <span class="inbox-item-name">
-                        <span class="badge-count">${item.allVariants.length}</span>${Utils.hide(item.canonical)}
-                    </span>
-                    <span class="inbox-item-meta">
-                        Route ${Utils.hide(item.route)}${item.direction ? ' ' + Utils.hide(item.direction) : ''} &middot; ${item.field === 'startStopName' ? 'boarding' : 'exit'}
-                    </span>
-                    <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">
-                        ${item.others.map(v => Utils.hide(v)).join(' &middot; ')}
-                    </div>
-                </div>
-                <div class="inbox-actions">
-                    <button class="btn btn-primary btn-sm" data-action="consolidate" data-index="${i}">Merge</button>
-                </div>
-            </div>
-        `).join('');
-    },
-
-    async consolidateGroup(index) {
-        const item = this.consolidation[index];
-        if (!item) return;
-
-        const variantSet = new Set(item.others);
-
-        try {
-            const snap = await db.collection('trips')
-                .where('userId', '==', window.currentUser.uid)
-                .where('route', '==', item.route)
-                .get();
-
-            const toUpdate = snap.docs.filter(doc => {
-                const data = doc.data();
-                const tripDir = (data.direction || '').toString().trim();
-                if (tripDir !== item.direction) return false;
-                const val = data[item.field];
-                return val && variantSet.has(val);
-            });
-
-            if (toUpdate.length === 0) {
-                UI.showNotification('Nothing to update.');
-                return;
-            }
-
-            const batch = db.batch();
-            toUpdate.forEach(doc => batch.update(doc.ref, { [item.field]: item.canonical }));
-            await batch.commit();
-
-            UI.showNotification(`Merged ${toUpdate.length} trip${toUpdate.length !== 1 ? 's' : ''} into "${item.canonical}".`);
-            await this.loadConsolidation();
-            this.renderConsolidation();
-        } catch (err) {
-            UI.showNotification('Merge failed: ' + err.message);
-        }
-    },
-
-    isLinked(name) {
-        const norm = name.toLowerCase();
-        return this.stopsLibrary.some(s => 
-            s.name.toLowerCase() === norm || 
-            (s.aliases && s.aliases.some(a => a.toLowerCase() === norm)) ||
-            (s.code && s.code.toLowerCase() === norm)
-        );
-    },
-
-    suggestStop(rawName) {
-        // Simplified fuzzy match: 
-        // 1. Exact match (case insensitive)
-        // 2. Starts with / Contains
-        // 3. Normalized string match
-        const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-        const target = norm(rawName);
-        if (!target) return null;
-
-        let best = null;
-        let bestScore = 0;
-
-        for (const stop of this.stopsLibrary) {
-            const candidates = [stop.name, ...(stop.aliases || [])];
-            for (const cand of candidates) {
-                const cNorm = norm(cand);
-                let score = 0;
-                if (target === cNorm) score = 100;
-                else if (cNorm.includes(target) || target.includes(cNorm)) {
-                    score = Math.floor((Math.min(target.length, cNorm.length) / Math.max(target.length, cNorm.length)) * 80);
-                }
-
-                if (score > bestScore) {
-                    bestScore = score;
-                    best = stop;
-                }
-            }
-            if (bestScore === 100) break;
-        }
-
-        return bestScore >= 60 ? { stop: best, score: bestScore } : null;
-    },
-
+    // --- Core Rendering ---
     render() {
         this.renderLibrary();
         this.renderInbox();
@@ -340,60 +127,50 @@ export const Admin = {
         const list = document.getElementById('lib-list');
         if (!list) return;
 
-        let filtered = this.stopsLibrary.filter(s => {
-            const matchesSearch = s.name.toLowerCase().includes(this.filters.libSearch.toLowerCase()) ||
-                                 (s.code && s.code.includes(this.filters.libSearch));
+        const filtered = AdminLibrary.stops.filter(s => {
+            const matchesSearch = s.name.toLowerCase().includes(this.filters.libSearch.toLowerCase()) || (s.code && s.code.includes(this.filters.libSearch));
             const matchesAgency = this.filters.libAgency === 'All' || s.agency === this.filters.libAgency;
             return matchesSearch && matchesAgency;
         });
 
-        if (filtered.length === 0) {
-            list.innerHTML = '<div class="loading-state">No stops found.</div>';
-            return;
-        }
+        list.innerHTML = filtered.length ? filtered.map(s => this._stopCardHtml(s)).join('') : '<div class="loading-state">No stops found.</div>';
+    },
 
-        list.innerHTML = filtered.map(s => `
+    _stopCardHtml(s) {
+        return `
             <div class="stop-card" data-action="open-stop" data-stop-id="${UI.escapeHtml(s.id)}" style="cursor:pointer;">
                 <div class="stop-card-name">${Utils.hide(s.name)}</div>
                 <div class="stop-card-meta">
                     <span class="text-accent">#${Utils.hide(s.code) || '---'}</span>
                     <span>${Utils.hide(s.agency) || 'Other'}</span>
                 </div>
-                ${s.aliases?.length ? `
-                    <div class="alias-list">
-                        ${s.aliases.map(a => `<span class="alias-pill">${Utils.hide(a)}</span>`).join('')}
-                    </div>
-                ` : ''}
+                ${s.aliases?.length ? `<div class="alias-list">${s.aliases.map(a => `<span class="alias-pill">${Utils.hide(a)}</span>`).join('')}</div>` : ''}
             </div>
-        `).join('');
+        `;
     },
 
     renderInbox() {
         const list = document.getElementById('inbox-list');
+        const countEl = document.getElementById('inbox-count');
         if (!list) return;
 
-        let filtered = this.inbox.filter(i => i.name.toLowerCase().includes(this.filters.inboxSearch.toLowerCase()));
+        const filtered = AdminTriage.inbox.filter(i => i.name.toLowerCase().includes(this.filters.inboxSearch.toLowerCase()));
+        if (countEl) countEl.textContent = filtered.length;
 
-        if (filtered.length === 0) {
+        if (!filtered.length) {
             list.innerHTML = '<div class="loading-state">Inbox is empty.</div>';
             return;
         }
 
-        const withSuggestions = filtered.filter(i => i.suggestion);
-        const bulkBtn = withSuggestions.length > 1
-            ? `<button class="btn btn-outline full-width btn-sm mb-3" data-action="accept-all">Accept all ${withSuggestions.length} suggestions</button>`
-            : '';
+        const suggs = filtered.filter(i => i.suggestion);
+        const bulkBtn = suggs.length > 1 ? `<button class="btn btn-outline full-width btn-sm mb-3" data-action="accept-all">Accept all ${suggs.length} suggestions</button>` : '';
 
         list.innerHTML = bulkBtn + filtered.map(i => `
             <div class="inbox-item">
                 <div class="inbox-item-content">
                     <span class="inbox-item-name"><span class="badge-count">${i.count}</span>${Utils.hide(i.name)}</span>
                     <span class="inbox-item-meta">${i.routes.slice(0, 3).map(r => Utils.hide(r)).join(', ')}${i.routes.length > 3 ? '...' : ''}</span>
-                    ${i.suggestion ? `
-                        <div class="mt-2" style="font-size: 0.7rem; color: var(--success);">
-                            → ${Utils.hide(i.suggestion.stop.name)} (${i.suggestion.score}%)
-                        </div>
-                    ` : ''}
+                    ${i.suggestion ? `<div class="mt-2 text-success" style="font-size: 0.7rem;">→ ${Utils.hide(i.suggestion.stop.name)} (${i.suggestion.score}%)</div>` : ''}
                 </div>
                 <div class="inbox-actions">
                     ${i.suggestion ? `<button class="btn btn-sm btn-outline" data-action="accept-suggestion" data-name="${UI.escapeHtml(i.name)}" data-stop-id="${UI.escapeHtml(i.suggestion.stop.id)}">Accept</button>` : ''}
@@ -403,403 +180,146 @@ export const Admin = {
         `).join('');
     },
 
-    // --- Modals --- (Handlers continue in next part)
-    openStopForm(mode, id = null) {
-        const modal = document.getElementById('modal-stop-form');
-        const title = document.getElementById('stop-form-title');
-        const deleteBtn = document.getElementById('btn-delete-stop');
-        
-        // Reset form
-        document.getElementById('stop-form-id').value = id || '';
-        document.getElementById('stop-form-name').value = '';
-        document.getElementById('stop-form-code').value = '';
-        document.getElementById('stop-form-agency').value = 'TTC';
+    renderConsolidation() {
+        const list = document.getElementById('consolidation-list');
+        const countEl = document.getElementById('consolidation-count');
+        if (!list) return;
 
-        if (mode === 'edit') {
-            const stop = this.stopsLibrary.find(s => s.id === id);
-            if (stop) {
-                title.textContent = 'Edit Stop';
-                document.getElementById('stop-form-name').value = stop.name;
-                document.getElementById('stop-form-code').value = stop.code || '';
-                document.getElementById('stop-form-agency').value = stop.agency || 'TTC';
-                deleteBtn.classList.remove('hidden');
-            }
-        } else {
-            title.textContent = 'Create New Stop';
-            deleteBtn.classList.add('hidden');
+        if (countEl) countEl.textContent = AdminTriage.consolidation.length || '';
+
+        if (!AdminTriage.consolidation.length) {
+            list.innerHTML = '<div class="loading-state">No variants found.</div>';
+            return;
         }
 
-        document.getElementById('modal-backdrop').classList.remove('hidden');
-        modal.classList.remove('hidden');
+        list.innerHTML = AdminTriage.consolidation.map((item, i) => `
+            <div class="inbox-item">
+                <div class="inbox-item-content">
+                    <span class="inbox-item-name"><span class="badge-count">${item.allVariants.length}</span>${Utils.hide(item.canonical)}</span>
+                    <span class="inbox-item-meta">Route ${Utils.hide(item.route)} ${Utils.hide(item.direction)} &middot; ${item.field === 'startStopName' ? 'boarding' : 'exit'}</span>
+                    <div class="mt-1 text-muted" style="font-size: 0.7rem;">${item.others.map(v => Utils.hide(v)).join(' &middot; ')}</div>
+                </div>
+                <div class="inbox-actions">
+                    <button class="btn btn-primary btn-sm" data-action="consolidate" data-index="${i}">Merge</button>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    renderRouteLibrary() {
+        const container = document.getElementById('routeLibraryList');
+        const countEl = document.getElementById('routeLibraryCount');
+        if (!container) return;
+
+        if (countEl) countEl.textContent = `${AdminLibrary.routes.length} routes`;
+        
+        container.innerHTML = AdminLibrary.routes.length ? AdminLibrary.routes.map(r => `
+            <div class="stop-card" style="padding: 10px 14px;">
+                <div class="stop-card-header flex-between">
+                    <h4 class="m-0">${UI.escapeHtml(r.routeShortName)}</h4>
+                    <button class="btn-icon-muted" data-action="delete-route" data-route-id="${UI.escapeHtml(r.id)}"><i data-lucide="x"></i></button>
+                </div>
+                ${r.routeLongName ? `<div class="stop-meta">${UI.escapeHtml(r.routeLongName)}</div>` : ''}
+            </div>
+        `).join('') : '<div class="empty-state">No routes for this agency.</div>';
+
+        if (window.lucide) lucide.createIcons();
+    },
+
+    // --- Handlers ---
+    openStopForm(mode, id = null) {
+        document.getElementById('stop-form-id').value = id || '';
+        const stop = id ? AdminLibrary.stops.find(s => s.id === id) : null;
+
+        document.getElementById('stop-form-title').textContent = stop ? 'Edit Stop' : 'Create New Stop';
+        document.getElementById('stop-form-name').value = stop?.name || '';
+        document.getElementById('stop-form-code').value = stop?.code || '';
+        document.getElementById('stop-form-agency').value = stop?.agency || 'TTC';
+        
+        const deleteBtn = document.getElementById('btn-delete-stop');
+        if (deleteBtn) stop ? deleteBtn.classList.remove('hidden') : deleteBtn.classList.add('hidden');
+
+        ModalManager.open('modal-stop-form');
+    },
+
+    async handleSaveStop() {
+        const data = {
+            id: document.getElementById('stop-form-id').value,
+            name: document.getElementById('stop-form-name').value.trim(),
+            code: document.getElementById('stop-form-code').value.trim(),
+            agency: document.getElementById('stop-form-agency').value
+        };
+        if (!data.name) return UI.showNotification('Name required.');
+
+        await AdminLibrary.saveStop(data);
+        ModalManager.closeAll();
+        this.loadAll();
+    },
+
+    async handleDeleteStop() {
+        const id = document.getElementById('stop-form-id').value;
+        if (id && confirm('Are you sure you want to delete this stop?')) {
+            await AdminLibrary.deleteStop(id);
+            ModalManager.closeAll();
+            this.loadAll();
+        }
+    },
+
+    handleGTFSPreview() {
+        const file = document.getElementById('gtfsFileInput').files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const routes = GTFSEngine.parseRoutes(e.target.result);
+            const preview = document.getElementById('gtfsPreviewText');
+            const agency = document.getElementById('gtfsAgencySelect').value;
+            preview.innerHTML = `Found <strong>${routes.length}</strong> routes for <strong>${agency}</strong>.`;
+            document.getElementById('gtfsPreview').style.display = 'block';
+            document.getElementById('gtfsImportBtn').disabled = false;
+        };
+        reader.readAsText(file);
+    },
+
+    async handleGTFSImport() {
+        const agency = document.getElementById('gtfsAgencySelect').value;
+        UI.showLoading(document.getElementById('gtfsImportBtn'), 'Importing...');
+        
+        await GTFSEngine.runImport(agency, () => {
+            this.loadRouteLibrary();
+            document.getElementById('gtfsPreview').style.display = 'none';
+            document.getElementById('gtfsFileInput').value = '';
+        });
+
+        UI.hideLoading(document.getElementById('gtfsImportBtn'));
     },
 
     openLinkModal(name) {
         document.getElementById('link-target-string').textContent = name;
-        
         const results = document.getElementById('link-search-results');
         const input = document.getElementById('link-search-stop');
         input.value = '';
         results.classList.add('hidden');
 
-        // Setup live search for linking
         input.oninput = (e) => {
-            const query = e.target.value.toLowerCase();
-            if (query.length < 2) {
-                results.classList.add('hidden');
-                return;
-            }
+            const q = e.target.value.toLowerCase();
+            if (q.length < 2) return results.classList.add('hidden');
 
-            const matches = this.stopsLibrary.filter(s => 
-                s.name.toLowerCase().includes(query) || 
-                (s.code && s.code.includes(query))
-            ).slice(0, 5);
-
-            if (matches.length > 0) {
-                results.innerHTML = matches.map(m => `
-                    <div class="compact-row" style="cursor:pointer;" data-action="link-to-stop" data-stop-id="${UI.escapeHtml(m.id)}">
-                        <span class="row-label">${Utils.hide(m.name)}</span>
-                        <span class="row-value">${Utils.hide(m.agency)}</span>
-                    </div>
-                `).join('');
-                results.classList.remove('hidden');
-            } else {
-                results.innerHTML = '<div class="loading-state">No matching stops</div>';
-                results.classList.remove('hidden');
-            }
-        };
-
-        // Show "show create stop" button action
-        document.getElementById('btn-show-create-stop').onclick = () => {
-            this.closeModals();
-            this.openStopForm('create');
-            document.getElementById('stop-form-name').value = name;
-        };
-
-        document.getElementById('modal-backdrop').classList.remove('hidden');
-        document.getElementById('modal-link-stop').classList.remove('hidden');
-    },
-
-    async saveStop() {
-        const id = document.getElementById('stop-form-id').value;
-        const name = document.getElementById('stop-form-name').value.trim();
-        const code = document.getElementById('stop-form-code').value.trim();
-        const agency = document.getElementById('stop-form-agency').value;
-
-        if (!name) return UI.showNotification('Name is required.');
-
-        const data = { name, code, agency, updatedAt: new Date() };
-
-        try {
-            if (id) {
-                await db.collection('stops').doc(id).update(data);
-            } else {
-                await db.collection('stops').add({ ...data, aliases: [], createdAt: new Date() });
-            }
-            this.closeModals();
-            await this.loadAll();
-        } catch (err) {
-            UI.showNotification('Save failed: ' + err.message);
-        }
-    },
-
-    async deleteStop() {
-        const id = document.getElementById('stop-form-id').value;
-        if (!id) return;
-
-        try {
-            await db.collection('stops').doc(id).delete();
-            this.closeModals();
-            await this.loadAll();
-        } catch (err) {
-            UI.showNotification('Delete failed: ' + err.message);
-        }
-    },
-
-    async linkToStop(stopId) {
-        const rawName = document.getElementById('link-target-string').textContent;
-        const stop = this.stopsLibrary.find(s => s.id === stopId);
-        if (!stop) return;
-
-        const aliases = stop.aliases || [];
-        if (!aliases.includes(rawName)) {
-            aliases.push(rawName);
-            try {
-                await db.collection('stops').doc(stopId).update({ aliases, updatedAt: new Date() });
-                this.closeModals();
-                await this.loadAll();
-            } catch (err) {
-                UI.showNotification('Linking failed: ' + err.message);
-            }
-        } else {
-            this.closeModals();
-        }
-    },
-
-    async acceptSuggestion(rawName, stopId) {
-        const stop = this.stopsLibrary.find(s => s.id === stopId);
-        if (!stop) return;
-        const aliases = stop.aliases || [];
-        if (!aliases.includes(rawName)) {
-            aliases.push(rawName);
-            try {
-                await db.collection('stops').doc(stopId).update({ aliases, updatedAt: new Date() });
-                await this.loadAll();
-            } catch (err) {
-                UI.showNotification('Failed to accept suggestion: ' + err.message);
-            }
-        }
-    },
-
-    async acceptAllSuggestions() {
-        const toUpdate = {};
-        this.inbox.filter(i => i.suggestion).forEach(i => {
-            const stop = i.suggestion.stop;
-            if (!toUpdate[stop.id]) toUpdate[stop.id] = { aliases: [...(stop.aliases || [])] };
-            if (!toUpdate[stop.id].aliases.includes(i.name)) {
-                toUpdate[stop.id].aliases.push(i.name);
-            }
-        });
-
-        const batch = db.batch();
-        Object.entries(toUpdate).forEach(([id, { aliases }]) => {
-            batch.update(db.collection('stops').doc(id), { aliases, updatedAt: new Date() });
-        });
-
-        try {
-            await batch.commit();
-            await this.loadAll();
-        } catch (err) {
-            UI.showNotification('Bulk accept failed: ' + err.message);
-        }
-    },
-
-    closeModals() {
-        document.getElementById('modal-backdrop').classList.add('hidden');
-        document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
-    }
-};
-
-// Global Exposure for inline onclick handlers
-window.Admin = Admin;
-
-// --- Helpers for legacy code compatibility ---
-const escapeHtml = (str) => Utils.escapeHtml ? Utils.escapeHtml(str) : str;
-const escapeForJs = (str) => str.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
-
-// ─── GTFS Route Import ────────────────────────────────────────────────────────
-
-let gtfsParsedRoutes = [];
-
-/**
- * Parse a GTFS routes.txt CSV file content into route objects.
- * Returns an array of { routeShortName, routeLongName, routeType, gtfsRouteId }.
- */
-function parseGtfsRoutesTxt(csvText) {
-    const lines = csvText.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-    if (lines.length < 2) return [];
-
-    // Parse header (handles quoted fields)
-    const header = parseGtfsCsvLine(lines[0]);
-    const idx = {
-        routeId: header.indexOf('route_id'),
-        shortName: header.indexOf('route_short_name'),
-        longName: header.indexOf('route_long_name'),
-        routeType: header.indexOf('route_type'),
-    };
-
-    if (idx.shortName === -1 && idx.routeId === -1) {
-        throw new Error('File does not look like a GTFS routes.txt (missing route_id or route_short_name column)');
-    }
-
-    const routes = [];
-    for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-
-        const fields = parseGtfsCsvLine(line);
-        const shortName = idx.shortName !== -1 ? (fields[idx.shortName] || '').trim() : '';
-        const longName = idx.longName !== -1 ? (fields[idx.longName] || '').trim() : '';
-        const routeId = idx.routeId !== -1 ? (fields[idx.routeId] || '').trim() : '';
-        const routeType = idx.routeType !== -1 ? parseInt(fields[idx.routeType] || '3', 10) : 3;
-
-        const name = shortName || routeId;
-        if (!name) continue;
-
-        routes.push({ routeShortName: name, routeLongName: longName, routeType, gtfsRouteId: routeId });
-    }
-    return routes;
-}
-
-/** Minimal RFC-4180 CSV line parser */
-function parseGtfsCsvLine(line) {
-    const fields = [];
-    let cur = '';
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (inQuotes) {
-            if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
-            else if (ch === '"') { inQuotes = false; }
-            else { cur += ch; }
-        } else {
-            if (ch === '"') { inQuotes = true; }
-            else if (ch === ',') { fields.push(cur.trim()); cur = ''; }
-            else { cur += ch; }
-        }
-    }
-    fields.push(cur.trim());
-    return fields;
-}
-
-/** Called when a file is selected — parses and shows a preview */
-window.previewGtfsRoutes = function () {
-    const fileInput = document.getElementById('gtfsFileInput');
-    const preview = document.getElementById('gtfsPreview');
-    const previewText = document.getElementById('gtfsPreviewText');
-    const importBtn = document.getElementById('gtfsImportBtn');
-
-    gtfsParsedRoutes = [];
-    importBtn.disabled = true;
-    preview.style.display = 'none';
-
-    const file = fileInput.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            gtfsParsedRoutes = parseGtfsRoutesTxt(e.target.result);
-            if (gtfsParsedRoutes.length === 0) {
-                previewText.textContent = 'No routes found in file.';
-                preview.style.display = 'block';
-                return;
-            }
-            const agency = document.getElementById('gtfsAgencySelect').value;
-            previewText.innerHTML = `Found <strong>${gtfsParsedRoutes.length}</strong> routes — ready to import for <strong>${escapeHtml(agency)}</strong>. Existing routes for this agency will be replaced.`;
-            preview.style.display = 'block';
-            importBtn.disabled = false;
-        } catch (err) {
-            previewText.textContent = 'Parse error: ' + err.message;
-            preview.style.display = 'block';
-        }
-    };
-    reader.readAsText(file);
-};
-
-let _gtfsImportArmed = false;
-let _gtfsImportTimer = null;
-
-/** Batch-write parsed routes into Firestore, replacing all routes for the agency */
-window.importGtfsRoutes = async function () {
-    const agency = document.getElementById('gtfsAgencySelect').value;
-    const importBtn = document.getElementById('gtfsImportBtn');
-
-    if (!gtfsParsedRoutes.length) return;
-
-    if (!_gtfsImportArmed) {
-        _gtfsImportArmed = true;
-        importBtn.textContent = `Replace ${agency} routes — tap again to confirm`;
-        importBtn.classList.add('btn-danger');
-        _gtfsImportTimer = setTimeout(() => {
-            _gtfsImportArmed = false;
-            importBtn.textContent = 'Import Routes';
-            importBtn.classList.remove('btn-danger');
-        }, 3000);
-        return;
-    }
-
-    clearTimeout(_gtfsImportTimer);
-    _gtfsImportArmed = false;
-    importBtn.classList.remove('btn-danger');
-    importBtn.disabled = true;
-    importBtn.textContent = 'Importing...';
-
-    try {
-        // Delete existing routes for this agency
-        const existing = await db.collection('routes').where('agency', '==', agency).get();
-        const BATCH_SIZE = 400;
-        for (let i = 0; i < existing.docs.length; i += BATCH_SIZE) {
-            const batch = db.batch();
-            existing.docs.slice(i, i + BATCH_SIZE).forEach(doc => batch.delete(doc.ref));
-            await batch.commit();
-        }
-
-        // Write new routes in batches of 400
-        for (let i = 0; i < gtfsParsedRoutes.length; i += BATCH_SIZE) {
-            const batch = db.batch();
-            gtfsParsedRoutes.slice(i, i + BATCH_SIZE).forEach(route => {
-                // Use agency + routeShortName as a stable doc ID
-                const safeId = `${agency}_${route.routeShortName}`.replace(/[^a-zA-Z0-9_\-]/g, '_');
-                const ref = db.collection('routes').doc(safeId);
-                batch.set(ref, {
-                    agency,
-                    routeShortName: route.routeShortName,
-                    routeLongName: route.routeLongName,
-                    routeType: route.routeType,
-                    gtfsRouteId: route.gtfsRouteId,
-                });
-            });
-            await batch.commit();
-        }
-
-        const importedCount = gtfsParsedRoutes.length;
-        importBtn.textContent = 'Import Routes';
-        document.getElementById('gtfsFileInput').value = '';
-        document.getElementById('gtfsPreview').style.display = 'none';
-        gtfsParsedRoutes = [];
-
-        await loadRouteLibrary();
-        UI.showNotification(`Successfully imported ${importedCount} routes for ${agency}.`, 'success');
-    } catch (err) {
-        console.error('GTFS import error:', err);
-        importBtn.textContent = 'Import Routes';
-        importBtn.disabled = false;
-        UI.showNotification('Import failed: ' + err.message);
-    }
-};
-
-/** Load and display the route library for the selected agency */
-async function loadRouteLibrary() {
-    const container = document.getElementById('routeLibraryList');
-    const countEl = document.getElementById('routeLibraryCount');
-    if (!container) return;
-
-    const agency = document.getElementById('gtfsAgencySelect').value;
-    container.innerHTML = '<div class="loading">Loading routes...</div>';
-
-    try {
-        const snapshot = await db.collection('routes').where('agency', '==', agency).get();
-        const routes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        routes.sort((a, b) => {
-            const aNum = parseInt(a.routeShortName, 10);
-            const bNum = parseInt(b.routeShortName, 10);
-            if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
-            return String(a.routeShortName).localeCompare(String(b.routeShortName));
-        });
-
-        if (countEl) countEl.textContent = routes.length ? `${routes.length} routes` : '';
-
-        if (routes.length === 0) {
-            container.innerHTML = '<div class="empty-state" style="grid-column: 1/-1;">No routes imported for this agency yet.</div>';
-            return;
-        }
-
-        container.innerHTML = routes.map(r => `
-            <div class="stop-card" style="padding: 10px 14px;">
-                <div class="stop-card-header" style="margin-bottom: 4px;">
-                    <h4 style="font-size: 1em;">${escapeHtml(r.routeShortName)}</h4>
-                    <button data-action="delete-route" data-route-id="${escapeHtml(r.id)}"
-                        style="background: none; border: none; color: var(--text-muted); font-size: 1.1em; cursor: pointer; padding: 0; line-height: 1;"
-                        title="Delete route">×</button>
+            const matches = AdminLibrary.stops.filter(s => s.name.toLowerCase().includes(q) || (s.code && s.code.includes(q))).slice(0, 5);
+            results.innerHTML = matches.length ? matches.map(m => `
+                <div class="compact-row" style="cursor:pointer;" data-action="link-to-stop" data-stop-id="${UI.escapeHtml(m.id)}">
+                    <span class="row-label">${Utils.hide(m.name)}</span>
+                    <span class="row-value">${Utils.hide(m.agency)}</span>
                 </div>
-                ${r.routeLongName ? `<div class="stop-meta" style="margin: 0;">${escapeHtml(r.routeLongName)}</div>` : ''}
-            </div>
-        `).join('');
-    } catch (err) {
-        console.error('Error loading route library:', err);
-        container.innerHTML = '<div class="empty-state" style="grid-column: 1/-1;">Error loading routes.</div>';
+            `).join('') : '<div class="loading-state">No matching stops</div>';
+            results.classList.remove('hidden');
+        };
+
+        ModalManager.open('modal-link-stop');
     }
-}
+};
+
+window.Admin = Admin;
 
 let _deleteRouteArmed = null;
 let _deleteRouteTimer = null;

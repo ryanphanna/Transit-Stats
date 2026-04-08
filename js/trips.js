@@ -1,24 +1,34 @@
-import firebase, { db } from './firebase.js';
-import { Stats } from './stats.js';
+import { db } from './firebase.js';
+import { TripController } from './trips/TripController.js';
+import { TripFeed } from './trips/TripFeed.js';
+import { TripStatsView } from './trips/TripStatsView.js';
+import { PredictionView } from './trips/PredictionView.js';
 import { MapEngine } from './map-engine.js';
-import { Utils } from './utils.js';
 import { PredictionEngine } from './predict.js';
+import { ModalManager } from './shared/modal-engine.js';
+import { UI } from './ui-utils.js';
 
 /**
- * TransitStats V2 Trips Module
+ * TransitStats Trips Orchestrator
  */
 export const Trips = {
-    allTrips: [],
-    activeTrip: null,
-    statsRange: 30,
-    unsubscribe: null,
-    _resolveReady: null,
     _readyPromise: null,
+    _resolveReady: null,
 
     async init() {
         this._readyPromise = new Promise(resolve => { this._resolveReady = resolve; });
-        this.setupToggles();
-        this.listen();
+        
+        // Connect to Firestore
+        if (window.currentUser) {
+            TripController.listen(window.currentUser.uid, (trips, active) => {
+                this.sync(trips, active);
+                if (this._resolveReady) { 
+                    this._resolveReady();
+                    this._resolveReady = null;
+                }
+            });
+        }
+
         await this.loadStopsLibrary();
     },
 
@@ -26,462 +36,65 @@ export const Trips = {
         try {
             const snap = await db.collection('stops').get();
             PredictionEngine.stopsLibrary = snap.docs.map(doc => doc.data());
-            console.log(`PredictionEngine: Loaded ${PredictionEngine.stopsLibrary.length} stops.`);
-            
-            this.renderPrediction();
-            MapEngine.renderMarkers(); // Refresh map with coordinates from the new library
+            this.sync(TripController.allTrips, TripController.activeTrip);
+            MapEngine.renderMarkers(); 
         } catch (err) {
-            console.error("Failed to load stops library for prediction:", err);
+            console.error("Library sync failed:", err);
         }
     },
 
-    setupToggles() {
-        const bind = (id30, idAll, range) => {
-            const t30 = document.getElementById(id30);
-            const tAll = document.getElementById(idAll);
-            if (!t30 || !tAll) return;
+    /**
+     * Primary Sync Loop - Re-renders all dependent views when data changes
+     */
+    sync(trips, active) {
+        // Render Feed
+        const feedContainer = document.getElementById('recent-trips-list');
+        TripFeed.render(feedContainer, trips, (trip) => this.openEditModal(trip));
 
-            t30.addEventListener('click', () => {
-                this.statsRange = 30;
-                document.querySelectorAll('.toggle-btn[id*="30"]').forEach(el => el.classList.add('active'));
-                document.querySelectorAll('.toggle-btn[id*="all"]').forEach(el => el.classList.remove('active'));
-                this.renderStats();
-            });
+        // Render Analytics
+        TripStatsView.render(trips);
 
-            tAll.addEventListener('click', () => {
-                this.statsRange = null;
-                document.querySelectorAll('.toggle-btn[id*="all"]').forEach(el => el.classList.add('active'));
-                document.querySelectorAll('.toggle-btn[id*="30"]').forEach(el => el.classList.remove('active'));
-                this.renderStats();
-            });
-        };
+        // Render Intelligence
+        PredictionView.render(active, trips);
 
-        bind('toggle-stats-30', 'toggle-stats-all');
-        bind('toggle-stats-30-insights', 'toggle-stats-all-insights');
+        // Update Global Map
+        MapEngine.updateTrips(trips);
+
+        // Update Profile Status
+        this.updateProfileStatus(active);
     },
 
-    listen() {
-        if (!window.currentUser) return;
-        if (this.unsubscribe) this.unsubscribe();
-
-        console.log("Trips: Listening for updates...");
-        
-        this.unsubscribe = db.collection('trips')
-            .where('userId', '==', window.currentUser.uid)
-            .orderBy('startTime', 'desc')
-            .onSnapshot(snap => {
-                const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                // Separate active vs completed
-                const now = Date.now();
-                const sixHoursMs = 6 * 60 * 60 * 1000;
-
-                // Separate active vs completed
-                this.activeTrip = docs.find(t => {
-                    if (t.endTime || t.discarded) return false;
-                    const startTime = t.startTime?.toDate ? t.startTime.toDate().getTime() : new Date(t.startTime).getTime();
-                    return (now - startTime) < sixHoursMs;
-                });
-
-                this.allTrips = docs.filter(t => t.endTime || t.discarded || (now - (t.startTime?.toDate ? t.startTime.toDate().getTime() : new Date(t.startTime).getTime())) >= sixHoursMs);
-                
-                this.renderFeed();
-                this.renderStats();
-                this.renderStreaks();
-                this.renderPrediction();
-                this.updateProfileStatus();
-                
-                // Update Map
-                MapEngine.updateTrips(this.allTrips);
-
-                // Resolve ready promise on first load
-                if (this._resolveReady) {
-                    this._resolveReady();
-                    this._resolveReady = null;
-                }
-            }, err => {
-                console.error("Trips error:", err);
-            });
-    },
-
-    async update(id, data) {
-        // Normalize stop names before saving
-        if (data.startStop) {
-            data.startStop = Utils.normalizeIntersectionStop(data.startStop);
-            data.startStopName = data.startStop; // Sync with display field
-        }
-        if (data.endStop) {
-            data.endStop = Utils.normalizeIntersectionStop(data.endStop);
-            data.endStopName = data.endStop; // Sync with display field
-        }
-
-        return db.collection('trips').doc(id).update({
-            ...data,
-            updatedAt: new Date()
-        });
-    },
-
-    async delete(id) {
-        return db.collection('trips').doc(id).delete();
-    },
-
-    openEditModal(tripId) {
-        const trip = this.allTrips.find(t => t.id === tripId);
+    openEditModal(trip) {
         if (!trip) return;
-
-        document.getElementById('edit-trip-id').value = trip.id;
-        document.getElementById('edit-route').value = trip.route || '';
-        document.getElementById('edit-start-stop').value = trip.startStopName || trip.startStop || '';
-        document.getElementById('edit-end-stop').value = trip.endStopName || trip.endStop || '';
-        document.getElementById('edit-direction').value = trip.direction || '';
-        document.getElementById('edit-agency').value = trip.agency || 'TTC';
-
-        document.getElementById('modal-backdrop').classList.remove('hidden');
-        document.getElementById('modal-edit-trip').classList.remove('hidden');
-    },
-
-    renderFeed() {
-        const list = document.getElementById('recent-trips-list');
-        if (!list) return;
-
-        if (this.allTrips.length === 0) {
-            list.innerHTML = '<div class="loading-state">No trips found.</div>';
-            return;
-        }
-
-        list.innerHTML = '';
-        const visible = this.allTrips.slice(0, 20);
-        visible.forEach((trip, i) => {
-            list.appendChild(this.renderTripCard(trip));
-            const next = visible[i + 1];
-            if (trip.journeyId && next?.journeyId === trip.journeyId) {
-                list.appendChild(this.renderJourneyConnector(trip, next));
-            }
-        });
-        if (window.refreshIcons) window.refreshIcons();
-    },
-
-    renderTripCard(trip) {
-        const card = document.createElement('div');
-        card.className = 'trip-card';
-        if (trip.needs_review) card.classList.add('trip-needs-review');
-
-        const rawStart = trip.startTime;
-        const startTime = rawStart?.toDate ? rawStart.toDate() : new Date(rawStart || Date.now());
-        const dateStr = isNaN(startTime.getTime())
-            ? '—'
-            : startTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-        const startStop = Utils.normalizeIntersectionStop(trip.startStopName || trip.startStop || trip.startStopCode) || 'Unknown';
-        const endStop = Utils.normalizeIntersectionStop(trip.endStopName || trip.endStop || trip.endStopCode) || '...';
-
-        const dirAbbr = { Northbound: 'NB', Southbound: 'SB', Eastbound: 'EB', Westbound: 'WB',
-            Clockwise: 'CW', Counterclockwise: 'CCW', Inbound: 'IB', Outbound: 'OB' };
-        const direction = trip.direction ? (dirAbbr[trip.direction] || Utils.hide(trip.direction)) : '';
-
-        const reviewBanner = trip.needs_review ? `
-            <div class="trip-review-banner">
-                <i data-lucide="alert-triangle"></i>
-                <span>Unrecognized route — is this a valid trip?</span>
-                <div class="trip-review-actions">
-                    <button class="btn btn-sm btn-outline btn-confirm-trip">Looks good</button>
-                    <button class="btn btn-sm btn-danger-outline btn-delete-trip">Delete</button>
-                </div>
-            </div>
-        ` : '';
-
-        card.innerHTML = `
-            ${reviewBanner}
-            <div class="trip-card-body">
-                <div class="trip-info">
-                    <div class="trip-main">
-                        <div class="trip-route-pill">${Utils.hide(trip.route)}</div>
-                        <div class="trip-path">
-                            <span class="stop-name">${Utils.hide(startStop)}</span>
-                            <span class="path-arrow">→</span>
-                            <span class="stop-name">${Utils.hide(endStop)}</span>
-                        </div>
-                    </div>
-                    <button class="btn-edit-trip" title="Edit Trip"><i data-lucide="edit-2"></i></button>
-                </div>
-                <div class="trip-meta">
-                    <div class="trip-date">${dateStr}</div>
-                    ${direction ? `<div class="trip-direction">${direction}</div>` : ''}
-                    <div class="trip-duration">${trip.duration || 0} min</div>
-                    ${trip.rocketTripId ? `<div class="trip-rocket-badge" title="Recorded with Rocket"><i data-lucide="microscope" class="icon-inline"></i></div>` : ''}
-                </div>
-            </div>
-        `;
-
-        card.querySelector('.btn-edit-trip').addEventListener('click', () => {
-            this.openEditModal(trip.id);
-        });
-
-        if (trip.needs_review) {
-            card.querySelector('.btn-confirm-trip').addEventListener('click', () => {
-                db.collection('trips').doc(trip.id).update({ needs_review: firebase.firestore.FieldValue.delete() });
-            });
-            card.querySelector('.btn-delete-trip').addEventListener('click', () => {
-                this.delete(trip.id);
-            });
-        }
-
-        return card;
-    },
-
-    renderJourneyConnector(laterTrip, earlierTrip) {
-        const el = document.createElement('div');
-        el.className = 'journey-connector';
-
-        let gapStr = '';
-        try {
-            const laterStart = laterTrip.startTime?.toDate ? laterTrip.startTime.toDate() : new Date(laterTrip.startTime);
-            const earlierEnd = earlierTrip.endTime?.toDate ? earlierTrip.endTime.toDate() : new Date(earlierTrip.endTime);
-            const gapMin = Math.round((laterStart - earlierEnd) / 60000);
-            gapStr = gapMin < 1 ? '<1 min transfer' : `${gapMin} min transfer`;
-        } catch (_) {}
-
-        el.innerHTML = `
-            <div class="journey-line"></div>
-            <div class="journey-badge">
-                <i data-lucide="link-2" class="icon-inline"></i>
-                <span>${gapStr}</span>
-                <button class="btn-break-journey" title="Break link"><i data-lucide="x"></i></button>
-            </div>
-            <div class="journey-line"></div>
-        `;
-
-        el.querySelector('.btn-break-journey').addEventListener('click', () => {
-            this.breakJourneyLink(laterTrip.id, earlierTrip.id);
-        });
-
-        return el;
-    },
-
-    async breakJourneyLink(tripAId, tripBId) {
-        const del = firebase.firestore.FieldValue.delete();
-        const batch = db.batch();
-        batch.update(db.collection('trips').doc(tripAId), { journeyId: del });
-        batch.update(db.collection('trips').doc(tripBId), { journeyId: del });
-        await batch.commit();
-    },
-
-    renderStats() {
-        // Basic Metrics
-        const metrics = Stats.computeMetrics(this.allTrips, this.statsRange);
         
-        const update = (id, val) => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = val;
+        const form = {
+            id: document.getElementById('edit-trip-id'),
+            route: document.getElementById('edit-route'),
+            start: document.getElementById('edit-start-stop'),
+            end: document.getElementById('edit-end-stop'),
+            dir: document.getElementById('edit-direction'),
+            agency: document.getElementById('edit-agency')
         };
 
-        update('stat-trips', metrics.trips);
-        update('stat-routes', metrics.routes);
-        update('stat-hours', metrics.hours);
-        update('stat-stops', metrics.stops);
+        if (form.id) form.id.value = trip.id;
+        if (form.route) form.route.value = trip.route || '';
+        if (form.start) form.start.value = trip.startStopName || trip.startStop || '';
+        if (form.end) form.end.value = trip.endStopName || trip.endStop || '';
+        if (form.dir) form.dir.value = trip.direction || '';
+        if (form.agency) form.agency.value = trip.agency || 'TTC';
 
-        update('stat-trips-insights', metrics.trips);
-        update('stat-routes-insights', metrics.routes);
-        update('stat-hours-insights', metrics.hours);
-        update('stat-stops-insights', metrics.stops);
-
-        // Top Lists
-        this.renderList('top-routes-list', metrics.topRoutes);
-        this.renderList('top-stops-list', metrics.topStops);
-        this.renderList('top-routes-list-insights', metrics.topRoutes);
-        this.renderList('top-stops-list-insights', metrics.topStops);
-
-        // Advanced Analytics
-        const highlights = Stats.computeHighlights(this.allTrips);
-        this.renderHighlights(highlights);
-
-        const peakTimes = Stats.computePeakTimes(this.allTrips);
-        this.renderPeakTimes(peakTimes);
-
-        const sparkPoints = Stats.computeActivityHeatmap(this.allTrips);
-        this.renderActivityGrid(sparkPoints);
+        ModalManager.open('modal-edit-trip');
     },
 
-    renderList(containerId, items) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-
-        if (!items.length) {
-            container.innerHTML = '<div class="loading-state">No data</div>';
-            return;
-        }
-
-        container.innerHTML = items.map(item => `
-            <div class="compact-row">
-                <span class="row-label">${Utils.hide(item.name)}</span>
-                <span class="row-value">${item.count}</span>
-            </div>
-        `).join('');
-    },
-
-    renderHighlights(highlights) {
-        const containers = [
-            document.getElementById('commute-highlights'),
-            document.getElementById('commute-highlights-insights')
-        ].filter(el => el != null);
-
-        if (containers.length === 0) return;
-
-        if (!highlights.length) {
-            containers.forEach(c => c.innerHTML = '<div class="loading-state">Not enough data for insights.</div>');
-            return;
-        }
-
-        const html = highlights.map(c => {
-            const w = 200, h = 32;
-            const min = Math.min(...c.durations);
-            const max = Math.max(...c.durations);
-            const range = max - min || 1;
-            const pts = c.durations.map((d, i) => {
-                const x = (i / (c.durations.length - 1 || 1)) * w;
-                const y = h - ((d - min) / range) * (h - 4) - 2;
-                return `${x},${y}`;
-            });
-            const polyline = `<polyline points="${pts.join(' ')}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`;
-            return `
-            <div class="insight-row mb-3">
-                <div class="insight-title">${Utils.hide(c.name)} <span class="badge">${c.count}x</span></div>
-                <svg class="insight-sparkline" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${polyline}</svg>
-            </div>`;
-        }).join('');
-
-        containers.forEach(c => c.innerHTML = html);
-    },
-
-    renderPeakTimes(buckets) {
-        const containers = [
-            document.getElementById('time-of-day-chart'),
-            document.getElementById('time-of-day-chart-insights')
-        ].filter(el => el != null);
-
-        if (containers.length === 0) return;
-
-        const max = Math.max(...Object.values(buckets), 1);
-        
-        const html = Object.entries(buckets).map(([key, count]) => {
-            const width = (count / max) * 100;
-            return `
-                <div class="chart-row">
-                    <span class="chart-label">${key}</span>
-                    <div class="chart-bar-bg">
-                        <div class="chart-bar-fill" style="width: ${width}%"></div>
-                    </div>
-                    <span class="chart-value">${count}</span>
-                </div>
-            `;
-        }).join('');
-
-        containers.forEach(c => c.innerHTML = html);
-    },
-
-    renderActivityGrid(points) {
-        const container = document.getElementById('activity-grid-container');
-        if (!container) return;
-
-        // Group into week columns (7 days each)
-        container.innerHTML = '';
-        for (let i = 0; i < points.length; i += 7) {
-            const week = points.slice(i, i + 7);
-            const col = document.createElement('div');
-            col.className = 'grid-day-column';
-
-            week.forEach(d => {
-                const square = document.createElement('div');
-                const heat = Math.min(d.count, 4); // Cap at level 4
-                square.className = `grid-square heat-${heat}`;
-                square.title = `${d.date}: ${d.count} trips`;
-                col.appendChild(square);
-            });
-            container.appendChild(col);
-        }
-    },
-
-    renderStreaks() {
-        const streaks = Stats.calculateStreaks(this.allTrips);
-        const cur = document.getElementById('stat-current-streak');
-        const best = document.getElementById('stat-best-streak');
-        if (cur) cur.textContent = streaks.current;
-        if (best) best.textContent = streaks.best;
-    },
-
-    renderPrediction() {
-        const card = document.getElementById('prediction-card');
-        const content = document.getElementById('prediction-content');
-        if (!card || !content) return;
-        if (!window.isAdmin) { card.style.display = 'none'; return; }
-
-        if (this.activeTrip) {
-            // Predict Arrival for Active Trip
-            const p = PredictionEngine.guessEndStop(this.allTrips, {
-                route: this.activeTrip.route,
-                startStopName: this.activeTrip.startStop,
-                direction: this.activeTrip.direction,
-                time: this.activeTrip.startTime?.toDate ? this.activeTrip.startTime.toDate() : new Date(this.activeTrip.startTime)
-            });
-
-            card.querySelector('.prediction-label').textContent = "Active Trip Prediction";
-            card.classList.add('trip-active-card');
-            card.style.display = 'block';
-
-            if (p) {
-                const arrivalTime = p.avgDuration ? `~${p.avgDuration} min trip` : 'Time unknown';
-                content.innerHTML = `
-                    <div class="prediction-main">
-                        <div class="prediction-route">Heading to ${p.stop}</div>
-                        <div class="prediction-stop">${arrivalTime} • Based on history</div>
-                    </div>
-                    <div class="prediction-stats">
-                        <span class="prediction-confidence">${p.confidence}%</span>
-                        <span class="prediction-confidence-label">Confidence</span>
-                    </div>
-                `;
-            } else {
-                content.innerHTML = `
-                    <div class="prediction-main">
-                        <div class="prediction-route">Trip in Progress</div>
-                        <div class="prediction-stop">No historical matches for this destination.</div>
-                    </div>
-                `;
-            }
-        } else {
-            // Predict Next Trip
-            const p = PredictionEngine.guess(this.allTrips, {
-                time: new Date()
-            });
-
-            card.querySelector('.prediction-label').textContent = "Next Predicted Trip";
-            card.classList.remove('trip-active-card');
-
-            if (p && p.confidence > 25) { // Show if high confidence
-                card.style.display = 'block';
-                content.innerHTML = `
-                    <div class="prediction-main">
-                        <div class="prediction-route">${p.route} ${p.direction || ''}</div>
-                        <div class="prediction-stop">Ready to board at ${p.stop}</div>
-                    </div>
-                    <div class="prediction-stats">
-                        <span class="prediction-confidence">${p.confidence}%</span>
-                        <span class="prediction-confidence-label">Likelihood</span>
-                    </div>
-                `;
-            } else {
-                card.style.display = 'none';
-            }
-        }
-    },
-
-    updateProfileStatus() {
+    updateProfileStatus(active) {
         const el = document.getElementById('profile-status');
         if (!el) return;
-        if (this.activeTrip) {
-            el.innerHTML = `<span class="status-indicator active"></span>Riding ${this.activeTrip.route}`;
-        } else {
-            el.innerHTML = `<span class="status-indicator"></span>Ready to ride`;
-        }
-    }
+        el.innerHTML = active 
+            ? `<span class="status-indicator active"></span>Riding ${active.route}`
+            : `<span class="status-indicator"></span>Ready to ride`;
+    },
+
+    // Bridge methods for dashboard.js (legacy-ish support)
+    async update(id, data) { return TripController.update(id, data); },
+    async delete(id) { return TripController.delete(id); }
 };
