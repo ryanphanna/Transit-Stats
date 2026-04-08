@@ -126,6 +126,13 @@ function _enterRecordingMode() {
     if (DOM.finalizeBox) DOM.finalizeBox.style.display = 'block';
     
     updateInstrumentUI();
+
+    const mainBtn = document.getElementById('main-action');
+    if (mainBtn) {
+        mainBtn.innerHTML = '<i data-lucide="check-circle" class="icon-inline"></i> <span>FINALIZE RESEARCH</span>';
+        if (window.lucide) lucide.createIcons();
+    }
+
     if (window.lucide) lucide.createIcons();
 }
 
@@ -177,7 +184,7 @@ async function finalizeSession() {
         return;
     }
 
-    const btn = document.getElementById('btn-finalize');
+    const btn = document.getElementById('main-action');
     if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<i data-lucide="loader" class="icon-inline spin"></i> <span>DOCKING...</span>';
@@ -241,6 +248,24 @@ function handleInstrumentUpdate(type) {
         logEvent('MOTION_CHANGE', { value: State.motion });
     }
     updateInstrumentUI();
+}
+
+function setupEventListeners() {
+    DOM.btnStart?.addEventListener('click', startSession);
+    
+    // Instrument Controls
+    DOM.btnDoors?.addEventListener('click', () => handleInstrumentUpdate('doors'));
+    DOM.btnSignal?.addEventListener('click', () => handleInstrumentUpdate('signal'));
+    DOM.btnMotion?.addEventListener('click', () => handleInstrumentUpdate('motion'));
+
+    // Finalize
+    document.getElementById('btn-finalize')?.addEventListener('click', finalizeSession);
+    
+    // Main action button (if different from btnStart)
+    document.getElementById('main-action')?.addEventListener('click', () => {
+        if (!State.active) startSession();
+        else finalizeSession();
+    });
 }
 
 async function init() {

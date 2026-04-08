@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.19.2] - 2026-04-08
+
+### Fixed
+- **Map Rendering**: Resolved a critical layout issue where the map container had zero height due to missing CSS classes.
+- **Admin Synchronization**: Patched a data mismatch in the Admin Triage engines by correctly exposing `Trips` to the global scope and ensuring the initialization sequence waits for Firestore synchronization.
+- **Rocket Instrumentation**: Fixed a breakage in the Rocket research instrument where control buttons were non-functional due to a missing event listener registration block.
+- **Shared UI Support**: Restored missing header and navigation layout styles for the new MPA architecture.
+
 ## [1.19.1] - 2026-04-08
 
 ### Security

@@ -8,6 +8,7 @@ import { UI } from '../ui-utils.js';
 
 window.Admin = Admin;
 window.Utils = Utils;
+window.Trips = Trips;
 
 function refreshIcons() {
     if (window.lucide) {
@@ -42,14 +43,15 @@ async function init() {
     setupModalListeners();
     setupRouteTracker();
 
-    Admin.init();
-    Admin.loadAll();
+    await Admin.init();
 
-    Trips.init();
-    Trips._readyPromise.then(() => {
-        RouteTracker.init();
-        refreshIcons();
-    });
+    await Trips.init();
+    await Trips._readyPromise;
+    
+    // Now that trips are loaded, reload admin data
+    await Admin.loadAll();
+
+    RouteTracker.init();
 
     refreshIcons();
 }
