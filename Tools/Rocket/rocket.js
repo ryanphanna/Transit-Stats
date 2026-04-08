@@ -110,7 +110,10 @@ async function startSession() {
     State.direction = direction;
     State.startStop = startStop;
     State.startTime = Date.now();
-    State.sessionId = `rocket_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    const randomBytes = new Uint8Array(4);
+    window.crypto.getRandomValues(randomBytes);
+    const randomHex = Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    State.sessionId = `rocket_${Date.now()}_${randomHex}`;
     State.events = [];
     
     await logEvent('SESSION_START', { route, direction, startStop });

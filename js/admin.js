@@ -274,7 +274,19 @@ export const Admin = {
             const routes = GTFSEngine.parseRoutes(e.target.result);
             const preview = document.getElementById('gtfsPreviewText');
             const agency = document.getElementById('gtfsAgencySelect').value;
-            preview.innerHTML = `Found <strong>${routes.length}</strong> routes for <strong>${agency}</strong>.`;
+            
+            if (preview) {
+                preview.textContent = 'Found ';
+                const rBold = document.createElement('strong');
+                rBold.textContent = routes.length;
+                preview.appendChild(rBold);
+                preview.appendChild(document.createTextNode(' routes for '));
+                const aBold = document.createElement('strong');
+                aBold.textContent = agency;
+                preview.appendChild(aBold);
+                preview.appendChild(document.createTextNode('.'));
+            }
+            
             document.getElementById('gtfsPreview').style.display = 'block';
             document.getElementById('gtfsImportBtn').disabled = false;
         };

@@ -20,6 +20,10 @@ All notable changes to this project will be documented in this file.
 - **Reference Integrity**: Standardized all modal calls to use unified IDs, eliminating race conditions during multi-step triage workflows.
 - **Technical Debt**: Significant reduction in technical debt by slashing monolithic file sizes and moving logic to specialized, reusable shared modules.
 
+### Security
+- **Insecure Randomness (CodeQL #33)**: Replaced `Math.random()` with `crypto.getRandomValues` in the Rocket instrument for cryptographically strong session identifiers.
+- **DOM XSS Remediation (CodeQL #35)**: Neutralized an XSS vector in the GTFS administration panel by replacing unsafe `innerHTML` interpolation with secure textContent and DOM element creation.
+
 ## [1.18.0] - 2026-04-07
 
 ### Changed
