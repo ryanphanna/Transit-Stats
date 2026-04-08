@@ -27,6 +27,11 @@ export const Profile = {
                 predictions: e.target.checked
             });
         });
+
+        document.getElementById('btn-save-name')?.addEventListener('click', () => {
+            const name = document.getElementById('settings-name')?.value.trim();
+            if (name) this.updateSetting('displayName', name);
+        });
     },
 
     /**
@@ -80,6 +85,15 @@ export const Profile = {
 
         if (emailEl) emailEl.textContent = email || auth.currentUser?.email || '—';
         if (phoneEl) phoneEl.textContent = this.phone || 'Not linked';
+        
+        const nameEl = document.getElementById('settings-name');
+        if (nameEl) nameEl.value = this.data?.displayName || auth.currentUser?.displayName || '';
+
+        // Update Global Header/Dashboard Name
+        const profileName = document.getElementById('profile-name');
+        if (profileName) {
+            profileName.textContent = this.data?.displayName || auth.currentUser?.displayName || email?.split('@')[0] || 'Traveler';
+        }
         
         if (agencyEl && this.data?.defaultAgency) {
             agencyEl.value = this.data.defaultAgency;

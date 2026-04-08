@@ -72,10 +72,17 @@ function _render(isAdmin, currentPage) {
                         <div class="settings-card premium-card">
                             <div class="settings-row">
                                 <div class="settings-label-group">
+                                    <span class="settings-sub-label">Display Name</span>
+                                    <input type="text" id="settings-name" class="minimal-input" placeholder="Enter name...">
+                                </div>
+                                <button id="btn-save-name" class="btn btn-sm btn-ghost p-1" title="Save Identity"><i data-lucide="save" class="icon-inline m-0" style="width:14px;"></i></button>
+                            </div>
+                            <div class="settings-row">
+                                <div class="settings-label-group">
                                     <span class="settings-sub-label">Email</span>
                                     <span id="settings-email" class="settings-main-label text-xs">—</span>
                                 </div>
-                                <button id="btn-reset-password" class="btn btn-sm btn-ghost p-1"><i data-lucide="key" class="icon-inline m-0" style="width:14px;"></i></button>
+                                <button id="btn-reset-password" class="btn btn-sm btn-ghost p-1" title="Password Reset"><i data-lucide="key" class="icon-inline m-0" style="width:14px;"></i></button>
                             </div>
                             <div class="settings-row">
                                 <div class="settings-label-group">
