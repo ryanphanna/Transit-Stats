@@ -130,7 +130,6 @@ async function init() {
     if (isAdmin) {
         const predictionCard = document.getElementById('prediction-card');
         if (predictionCard) predictionCard.style.display = '';
-        Admin.loadAll();
     }
 
     Trips.init();

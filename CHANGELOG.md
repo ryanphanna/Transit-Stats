@@ -8,7 +8,11 @@ All notable changes to this project will be documented in this file.
 - **Map Rendering**: Resolved a critical layout issue where the map container had zero height due to missing CSS classes.
 - **Admin Synchronization**: Patched a data mismatch in the Admin Triage engines by correctly exposing `Trips` to the global scope and ensuring the initialization sequence waits for Firestore synchronization.
 - **Rocket Instrumentation**: Fixed a breakage in the Rocket research instrument where control buttons were non-functional due to a missing event listener registration block.
+- **Rocket Recovery**: Corrected a state restoration bug in `recoverActiveSession` that caused instrument states to reset on page refresh.
 - **Shared UI Support**: Restored missing header and navigation layout styles for the new MPA architecture.
+
+### Security
+- **Global XSS Hardening**: Neutralized high-severity DOM XSS vulnerabilities in `TripFeed`, `TripStatsView`, and `PredictionView` by replacing unsafe `innerHTML` interpolation with `textContent` and `Utils.hide()` sanitization. This extends the security standards established for the GTFS Admin panel to the entire core application.
 
 ## [1.19.1] - 2026-04-08
 

@@ -89,9 +89,19 @@ export const Trips = {
     updateProfileStatus(active) {
         const el = document.getElementById('profile-status');
         if (!el) return;
-        el.innerHTML = active 
-            ? `<span class="status-indicator active"></span>Riding ${active.route}`
-            : `<span class="status-indicator"></span>Ready to ride`;
+        
+        // Use textContent for user data, innerHTML only for the fixed indicator span
+        el.innerHTML = '<span class="status-indicator"></span><span class="status-text"></span>';
+        const indicator = el.querySelector('.status-indicator');
+        const text = el.querySelector('.status-text');
+        
+        if (active) {
+            indicator.classList.add('active');
+            text.textContent = `Riding ${active.route}`;
+        } else {
+            indicator.classList.remove('active');
+            text.textContent = 'Ready to ride';
+        }
     },
 
     // Bridge methods for dashboard.js (legacy-ish support)

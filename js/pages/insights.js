@@ -11,6 +11,8 @@ function refreshIcons() {
     }
 }
 
+window.Trips = Trips;
+
 async function init() {
     const { user, isAdmin } = await requireAuth();
     initHeader({ isAdmin, currentPage: 'insights' });

@@ -38,8 +38,8 @@ export const PredictionView = {
             const arrival = p.avgDuration ? `ETA: ~${p.avgDuration} min` : 'Intercept Time Unknown';
             content.innerHTML = `
                 <div class="prediction-main">
-                    <div class="prediction-route">Terminating: ${p.stop}</div>
-                    <div class="prediction-stop text-secondary">${arrival} • Confidence Interval: ${p.confidence}%</div>
+                    <div class="prediction-route">Terminating: ${Utils.hide(p.stop)}</div>
+                    <div class="prediction-stop text-secondary">${Utils.hide(arrival)} • Confidence Interval: ${p.confidence}%</div>
                 </div>
                 <div class="prediction-stats">
                      <div class="stat-indicator active"></div>
@@ -67,8 +67,8 @@ export const PredictionView = {
             card.style.display = 'block';
             content.innerHTML = `
                 <div class="prediction-main">
-                    <div class="prediction-route">${p.route} ${p.direction || ''}</div>
-                    <div class="prediction-stop">Expected deployment from ${p.stop}</div>
+                    <div class="prediction-route">${Utils.hide(p.route)} ${Utils.hide(p.direction || '')}</div>
+                    <div class="prediction-stop">Expected deployment from ${Utils.hide(p.stop)}</div>
                 </div>
                 <div class="prediction-stats">
                     <span class="prediction-confidence font-mono">${p.confidence}%</span>

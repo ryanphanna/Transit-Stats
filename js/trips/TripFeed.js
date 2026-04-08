@@ -55,19 +55,19 @@ export const TripFeed = {
             <div class="trip-card-body">
                 <div class="trip-info">
                     <div class="trip-main">
-                        <div class="trip-route-pill">${trip.route}</div>
+                        <div class="trip-route-pill">${Utils.hide(trip.route)}</div>
                         <div class="trip-path">
-                            <span class="stop-name">${startStop}</span>
+                            <span class="stop-name">${Utils.hide(startStop)}</span>
                             <span class="path-arrow">→</span>
-                            <span class="stop-name">${endStop}</span>
+                            <span class="stop-name">${Utils.hide(endStop)}</span>
                         </div>
                     </div>
                     <button class="btn-edit-trip" title="Edit Parameters"><i data-lucide="edit-3"></i></button>
                 </div>
                 <div class="trip-meta text-right">
-                    <div class="trip-date">${dateStr}</div>
-                    ${direction ? `<div class="trip-direction font-bold text-xxs">${direction}</div>` : ''}
-                    <div class="trip-duration text-secondary text-xs">${trip.duration || 0} min</div>
+                    <div class="trip-date">${Utils.hide(dateStr)}</div>
+                    ${direction ? `<div class="trip-direction font-bold text-xxs">${Utils.hide(direction)}</div>` : ''}
+                    <div class="trip-duration text-secondary text-xs">${parseInt(trip.duration) || 0} min</div>
                     ${trip.rocketTripId ? `<div class="trip-rocket-badge text-accent" title="Rocket Instrument Sampling"><i data-lucide="microscope" class="icon-inline"></i></div>` : ''}
                 </div>
             </div>

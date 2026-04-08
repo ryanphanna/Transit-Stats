@@ -159,11 +159,14 @@ async function recoverActiveSession(user) {
         State.events = data.events || [];
 
         // Restore last known instrument state
-        for (const e of [...State.events].reverse()) {
-            if (e.type === 'DOOR_CHANGE' && !State.doors) State.doors = e.value;
-            if (e.type === 'SIGNAL_CHANGE' && !State.signal) State.signal = e.value;
-            if (e.type === 'MOTION_CHANGE' && !State.motion) State.motion = e.value;
-        }
+        const lastDoor = State.events.filter(e => e.type === 'DOOR_CHANGE').pop();
+        if (lastDoor) State.doors = lastDoor.value;
+        
+        const lastSignal = State.events.filter(e => e.type === 'SIGNAL_CHANGE').pop();
+        if (lastSignal) State.signal = lastSignal.value;
+        
+        const lastMotion = State.events.filter(e => e.type === 'MOTION_CHANGE').pop();
+        if (lastMotion) State.motion = lastMotion.value;
 
         _enterRecordingMode();
         UI.showNotification('Telecommunications re-established. Session recovered.');
