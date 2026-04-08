@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
 - **Shared UI Support**: Restored missing header and navigation layout styles for the new MPA architecture.
 
 ### Security
-- **Global XSS Hardening**: Neutralized high-severity DOM XSS vulnerabilities in `TripFeed`, `TripStatsView`, and `PredictionView` by replacing unsafe `innerHTML` interpolation with `textContent` and `Utils.hide()` sanitization. This extends the security standards established for the GTFS Admin panel to the entire core application.
+- **Global XSS Hardening**: Neutralized high-severity DOM XSS vulnerabilities in `TripFeed`, `TripStatsView`, and `PredictionView` by replacing unsafe `innerHTML` interpolation with `textContent` and `Utils.hide()` sanitization.
 
 ## [1.19.1] - 2026-04-08
 
