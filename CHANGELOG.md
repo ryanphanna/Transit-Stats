@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- **Rocket Control Labels**: Updated Rocket instrument control language to plain, user-facing terms in `Tools/Rocket/index.html` (`Interlock` → `Doors Closed`, `Aspect` → `Red Light`, `Traction State` → `In Motion`).
+
 ## [1.19.2] - 2026-04-08
 
 ### Fixed
