@@ -4,10 +4,12 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Prediction Engine history](docs/ENGINE.md) · [NextGen Roadmap](docs/ROADMAP_NEXTGEN.md) · [Technical Roadmap](docs/ROADMAP_TECHNICAL.md)
 
-## [Unreleased]
+## [1.20.3] - 2026-04-13
 
 ### Added
-- **Prediction Engine V4 (Shadow Mode)**: Integrated newly-trained Logistic Regression V4 model alongside V3. V4 runs in parallel in the Cloud Functions to make predictions continuously into the database for side-by-side A/B evaluation against V3.
+- **Prediction Engine V4 (Shadow Mode)**: Logistic regression classifier trained on 385 trips (Jan–Apr 2026). Runs silently alongside V3 on every SMS prediction — logs its guess and grades it when the trip ends. 52% top-1 / 74% top-3 accuracy on held-out test set. Does not affect user-facing output.
+- **TTC Topology** (`ml/topology.json`): Ordered stop sequences for Lines 1, 2, 4, 5 — foundation for direction-aware filtering in future inference.
+- **ML training pipeline** (`ml/`): Export script, training notebook, and model weights. See `docs/ENGINE.md` for full V4 history.
 
 ## [1.20.2] - 2026-04-13
 

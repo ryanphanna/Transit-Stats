@@ -26,6 +26,7 @@ const {
   saveConversationTurn,
 } = require('./db');
 const { PredictionEngine } = require('./predict.js');
+const { PredictionEngineV4 } = require('./predict_v4.js');
 const {
   getStopDisplay,
   getRouteDisplay,
@@ -325,6 +326,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
 
   // No active trip - generate predictions before creating trip
   let prediction = null;
+  let predictionV4 = null;
   let endStopPrediction = null;
   let endStopPredictions = null;
   const startStopName = stopData ? stopData.stopName : parsedStop.stopName;
@@ -344,6 +346,10 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       stopName: startStopName,
       time: now,
       routesAtStop: routesAtStop || undefined,
+    });
+    predictionV4 = PredictionEngineV4.guess({
+      stopName: startStopName,
+      time: now,
     });
     endStopPrediction = PredictionEngine.guessEndStop(history, {
       route,
@@ -372,6 +378,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
     tags: options.tags || [],
     parsed_by: options.parsed_by || 'manual',
     prediction: prediction || null,
+    predictionV4: predictionV4 || null,
     endStopPrediction: endStopPrediction || null,
     endStopPredictions: endStopPredictions || null,
     needs_review: !isValidRoute(route) || null,
@@ -404,6 +411,7 @@ async function handleConfirmStart(phoneNumber, user, state) {
   const oldTripRouteDisplay = getRouteDisplay(activeTrip.route, activeTrip.direction);
 
   let confirmPrediction = null;
+  let confirmPredictionV4 = null;
   let confirmEndStopPrediction = null;
   let confirmEndStopPredictions = null;
   let confirmIsAdmin = false;
@@ -421,6 +429,10 @@ async function handleConfirmStart(phoneNumber, user, state) {
       stopName: newTrip.stopName,
       time: now,
       routesAtStop: routesAtStop || undefined,
+    });
+    confirmPredictionV4 = PredictionEngineV4.guess({
+      stopName: newTrip.stopName,
+      time: now,
     });
     confirmEndStopPrediction = PredictionEngine.guessEndStop(history, {
       route: newTrip.route,
@@ -462,6 +474,7 @@ async function handleConfirmStart(phoneNumber, user, state) {
     tags: newTrip.tags || [],
     parsed_by: newTrip.parsed_by || 'manual',
     prediction: confirmPrediction || null,
+    predictionV4: confirmPredictionV4 || null,
     endStopPrediction: confirmEndStopPrediction || null,
     endStopPredictions: confirmEndStopPredictions || null,
   });
@@ -632,6 +645,43 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
 
       console.log(`Prediction graded for ${user.userId}: ${isHit ? 'HIT' : (isPartialHit ? 'PARTIAL' : 'MISS')} | ` +
         `${predictedLabel} → ${actualLabel}`);
+    }
+
+    // Grade V4 Prediction silently in the background
+    const storedV4 = activeTrip.predictionV4;
+    if (storedV4) {
+      const actualRoute = activeTrip.route.toString();
+      const predRouteV4 = storedV4.route.toString();
+      const routeMatchV4 = predRouteV4 === actualRoute;
+      const isHitV4 = routeMatchV4; // V4 doesn't have direction
+
+      const baseRoute = r => /^\\d/.test(r) ? r.replace(/[a-zA-Z]+(\\s.*)?$/, '').trim() : r;
+      const isPartialHitV4 = !isHitV4 &&
+        baseRoute(predRouteV4) === baseRoute(actualRoute) &&
+        baseRoute(predRouteV4) !== '';
+        
+      const predictedLabelV4 = storedV4.route + ' from ' + (activeTrip.startStopName || '?');
+      const actualLabelV4 = activeTrip.route + (activeTrip.direction ? ' ' + activeTrip.direction : '') +
+        ' from ' + (activeTrip.startStopName || '?');
+
+      await db.collection('predictionStats').add({
+        userId: user.userId,
+        isHit: !!isHitV4,
+        isPartialHit: !isHitV4 && !!isPartialHitV4,
+        predicted: predictedLabelV4,
+        actual: actualLabelV4,
+        confidence: storedV4.confidence,
+        version: storedV4.version,
+        route: activeTrip.route,
+        endStopPredicted: null,
+        endStopActual: null,
+        endStopHit: null,
+        endStopConfidence: null,
+        source: 'sms',
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      console.log(`Prediction V4 graded for ${user.userId}: ${isHitV4 ? 'HIT' : (isPartialHitV4 ? 'PARTIAL' : 'MISS')} | ` +
+        `${predictedLabelV4} → ${actualLabelV4}`);
     }
   } catch (predictionErr) {
     console.error('Error grading prediction:', predictionErr);
