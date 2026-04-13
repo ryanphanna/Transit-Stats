@@ -58,7 +58,9 @@ Replacing hand-coded scoring weights with a model trained on actual trip history
 
 ### 4. Model Evolution — V5 (Gradient Boosted Tree)
 - [ ] **XGBoost classifier**: Drop-in replacement for logistic regression. Discovers feature interactions automatically (e.g. stop + time-of-day combinations) without manual specification.
-- [ ] **Richer signals**: Weather, TTC service alerts, time since last trip, calendar patterns — add as features and let the model determine relevance.
+- [ ] **Richer signals**: Previous route, time since last trip, week of term, holiday flag, weather, TTC service alerts — add as features and let the model determine relevance.
+- [ ] **GTFS service frequencies**: Route headways by time window (e.g. Line 1 runs every 2 min, Route 26 every 30 min). Enables the model to interpret trip gaps correctly — a 22-minute gap between a 2-min line and a 30-min line is a normal wait; the same gap between two 2-min lines is probably a stopover. Unlocks accurate transfer detection, journey linking, and anomaly detection in one addition.
+- [ ] **Transfer vs. stopover classifier**: Use gap duration + transfer stop identity + route frequency + time of day to learn whether a gap between trips was a connection or a deliberate stop. Replaces the current fixed-threshold journey linking logic.
 - [ ] **Replace V4** once V5 hit rate consistently exceeds V4 in shadow scoring.
 
 ---
