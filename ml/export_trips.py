@@ -19,7 +19,7 @@ from firebase_admin import credentials, firestore
 
 # --- Config ---
 KEY_PATH = os.path.expanduser(
-    "~/Desktop/Development/Credentials/Firebase for Transit Stats.json"
+    "~/Desktop/Dev/Credentials/Firebase for Transit Stats.json"
 )
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "trips.csv")
 
