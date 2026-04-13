@@ -212,9 +212,10 @@ function sanitizeGeminiOutput(parsed) {
  * @param {string} question - User question
  * @param {Array} recentTrips - Most recent 200 trips (raw)
  * @param {object} stats - Aggregated stats for the recent 200 trips
+ * @param {Array} conversationHistory - Recent Q&A turns [{ role, text }]
  * @returns {Promise<string>} AI answer
  */
-async function answerQueryWithGemini(userId, question, recentTrips, stats) {
+async function answerQueryWithGemini(userId, question, recentTrips, stats, conversationHistory = []) {
   const apiKey = geminiApiKey.value();
   if (!apiKey) return 'AI unavailable right now.';
 
@@ -341,10 +342,12 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats) {
         },
         {
           name: 'get_stop_pair_stats',
-          description: 'Get trip counts for a specific origin and/or destination stop, optionally ' +
-            'filtered by day of week. Call this for questions like "how many times have I gone from ' +
-            'Spadina to York University?", "what days do I travel to York U?", or ' +
-            '"how often do I board at Bloor?".',
+          description: 'Get trip counts AND individual run times for a specific origin and/or ' +
+            'destination stop, optionally filtered by day of week. Call this for questions like ' +
+            '"how many times have I gone from Spadina to York University?", ' +
+            '"what days do I travel to York U?", "how often do I board at Bloor?", ' +
+            '"what are all the run times between Queens Park and York U?", or ' +
+            '"what is the fastest/slowest/average trip between two stops?".',
           parameters: {
             type: 'object',
             properties: {
@@ -515,12 +518,13 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats) {
     get_stop_pair_stats: async ({ start_stop, end_stop }) => {
       const snap = await db.collection('trips')
         .where('userId', '==', userId)
-        .select('startStopName', 'endStopName', 'startTime')
+        .where('endTime', '!=', null)
+        .select('startStopName', 'endStopName', 'startTime', 'duration')
         .get();
 
       const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const matches = [];
       const byDay = {};
+      const durations = [];
 
       snap.docs.forEach((d) => {
         const t = d.data();
@@ -535,10 +539,23 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats) {
         const date = ts.toDate ? ts.toDate() : new Date(ts);
         const day = dayNames[date.getDay()];
         byDay[day] = (byDay[day] || 0) + 1;
-        matches.push({ from: t.startStopName, to: t.endStopName });
+
+        if (t.duration > 0) durations.push(t.duration);
       });
 
-      return { total: matches.length, by_day_of_week: byDay };
+      const total = Object.values(byDay).reduce((a, b) => a + b, 0);
+      const avg = durations.length ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
+      const min = durations.length ? Math.min(...durations) : null;
+      const max = durations.length ? Math.max(...durations) : null;
+
+      return {
+        total,
+        by_day_of_week: byDay,
+        run_times_minutes: durations,
+        avg_duration_minutes: avg,
+        min_duration_minutes: min,
+        max_duration_minutes: max,
+      };
     },
     get_riding_streak: async () => {
       const snap = await db.collection('trips')
@@ -642,8 +659,13 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats) {
       tools: tools,
     });
 
+    const chatHistory = conversationHistory.map((turn) => ({
+      role: turn.role,
+      parts: [{ text: turn.text }],
+    }));
+
     const chat = model.startChat({
-      history: [],
+      history: chatHistory,
     });
 
     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });

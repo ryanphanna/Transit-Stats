@@ -22,6 +22,8 @@ const {
   createTrip,
   getRecentCompletedTrips,
   getStopsLibrary,
+  getConversationHistory,
+  saveConversationTurn,
 } = require('./db');
 const { PredictionEngine } = require('./predict.js');
 const {
@@ -686,11 +688,14 @@ async function handleQuery(phoneNumber, user, question) {
     return;
   }
 
-  const snapshot = await db.collection('trips')
-    .where('userId', '==', user.userId)
-    .where('endTime', '!=', null)
-    .orderBy('endTime', 'desc')
-    .limit(200).get();
+  const [snapshot, conversationHistory] = await Promise.all([
+    db.collection('trips')
+      .where('userId', '==', user.userId)
+      .where('endTime', '!=', null)
+      .orderBy('endTime', 'desc')
+      .limit(200).get(),
+    getConversationHistory(user.userId),
+  ]);
 
   const trips = snapshot.docs.map((d) => d.data());
 
@@ -704,10 +709,12 @@ async function handleQuery(phoneNumber, user, question) {
     await sendSmsReply(phoneNumber, 'AI limit reached. Try again later.');
     return;
   }
-  const answer = await answerQueryWithGemini(user.userId, question, trips, stats);
+  const answer = await answerQueryWithGemini(user.userId, question, trips, stats, conversationHistory);
   await sendSmsReply(phoneNumber, answer);
 
   // Fire-and-forget — never block or fail the reply
+  saveConversationTurn(user.userId, question, answer)
+    .catch((err) => console.error('saveConversationTurn failed:', err));
   db.collection('queryLogs').add({
     userId: user.userId,
     question,

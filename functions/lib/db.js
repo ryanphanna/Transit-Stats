@@ -527,6 +527,43 @@ async function getStopsLibrary() {
   });
 }
 
+/**
+ * Get recent conversation history for a user (last 30 minutes only)
+ * @param {string} userId - User ID
+ * @returns {Promise<Array>} Array of { role, text, timestamp } turns
+ */
+async function getConversationHistory(userId) {
+  const doc = await db.collection('conversations').doc(userId).get();
+  if (!doc.exists) return [];
+  const thirtyMinutesAgo = Date.now() - 30 * 60 * 1000;
+  return (doc.data().history || []).filter((t) => t.timestamp > thirtyMinutesAgo);
+}
+
+/**
+ * Append a Q&A turn to a user's conversation history (keeps last 5 pairs)
+ * @param {string} userId - User ID
+ * @param {string} userMsg - The question asked
+ * @param {string} botMsg - The answer given
+ */
+async function saveConversationTurn(userId, userMsg, botMsg) {
+  const now = Date.now();
+  const thirtyMinutesAgo = now - 30 * 60 * 1000;
+  const ref = db.collection('conversations').doc(userId);
+
+  const doc = await ref.get();
+  const existing = doc.exists
+    ? (doc.data().history || []).filter((t) => t.timestamp > thirtyMinutesAgo)
+    : [];
+
+  const updated = [
+    ...existing,
+    { role: 'user', text: userMsg, timestamp: now },
+    { role: 'model', text: botMsg, timestamp: now },
+  ].slice(-10); // keep last 5 pairs
+
+  await ref.set({ history: updated, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+}
+
 module.exports = {
   admin,
   db,
@@ -551,4 +588,6 @@ module.exports = {
   getAdmin: () => admin,
   createTrip,
   getRecentCompletedTrips,
+  getConversationHistory,
+  saveConversationTurn,
 };

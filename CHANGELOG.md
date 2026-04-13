@@ -2,7 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.20.0] - 2026-04-13
+
+### Fixed
+- **Auth persistence**: Explicitly set Firebase auth persistence to `LOCAL` so sessions survive tab closes and home screen re-opens.
+
+### Added
+- **Mobile nav**: Header no longer requires horizontal scrolling on small screens — nav items collapse to icons-only on ≤768px, logo text hides, and padding tightens.
+- **SMS: Conversation history**: The AI now remembers the last 5 Q&A turns (within a 30-minute window) so short follow-ups like "Why not?" and "What about weekdays?" have context from the previous exchange. History is stored per-user in a `conversations` Firestore collection and loaded alongside the trip snapshot on every query.
+
+### Fixed
+- **SMS: Stop pair run times**: `get_stop_pair_stats` now fetches and returns individual run times alongside avg/min/max durations, so the AI can answer "what are all the run times between X and Y?" queries.
+- **SMS: Short conversational replies**: Lowered the fallback query heuristic threshold from 4 words to 2, so short follow-ups like "Why not?" are passed to the AI instead of triggering the "Could not understand" fallback.
 
 ### Changed
 - **Rocket Control Labels**: Updated Rocket instrument control language to plain, user-facing terms in `Tools/Rocket/index.html` (`Interlock` → `Doors Closed`, `Aspect` → `Red Light`, `Traction State` → `In Motion`).

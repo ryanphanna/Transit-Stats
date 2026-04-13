@@ -21,6 +21,7 @@ if (!firebase.apps.length) {
 }
 
 export const auth = firebase.auth();
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 export const db = firebase.firestore();
 export const Timestamp = firebase.firestore.Timestamp;
 export default firebase;

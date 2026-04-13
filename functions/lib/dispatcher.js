@@ -244,7 +244,7 @@ async function handleAIIntent(phoneNumber, user, body) {
   // have already been ruled out, so a multi-word sentence is almost certainly
   // a natural-language question that Gemini mis-classified.
   if (!geminiResult || geminiResult.intent === 'OTHER') {
-    if (body.trim().split(/\s+/).length >= 4) {
+    if (body.trim().split(/\s+/).length >= 2) {
       await handlers.handleQuery(phoneNumber, user, body.trim());
       return true;
     }

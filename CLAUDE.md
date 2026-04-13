@@ -34,6 +34,12 @@ Key frontend modules:
 - `STATUS`, `STATS`, `ASK [question]`, `REGISTER [email]`, `INFO`
 - `LINK` command was removed — journey linking is automatic at trip end
 
+## Bug Fix Format
+When fixing a bug, always provide:
+1. **What was causing it** — plain language explanation of the broken assumption or missing piece
+2. **Why the fix works** — the mechanism, not just what changed
+3. **What to watch for next time** — forward-looking tip to catch the same class of bug
+
 ## Rules
 
 - **Insights view** contains ONLY the Commute Highlights section. No stats, toggles, peak times, or route/stop lists.
