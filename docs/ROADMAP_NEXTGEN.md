@@ -10,10 +10,13 @@ The engine's primary goal is to eliminate the "Friction" of transit tracking. Th
 
 ## What Exists
 
-- **`PredictionEngine`**: Core heuristic logic for route and end-stop estimation.
+- **`PredictionEngine` (V3)**: Weighted voting with recency decay, time-of-day similarity (Gaussian), and day-of-week similarity. Hand-coded scoring weights.
 - **Silent Evaluation**: Real-time accuracy tracking for "Shadow Predictions" via the `predictionStats` collection.
 - **`AccuracyDashboard`**: Internal tooling to monitor hit rates against the 90% production-readiness goal.
 - **Stop Name Resolution**: Basic library-based fuzzy matching for text-to-coordinate conversion.
+- **Trip Export Pipeline** (`ml/export_trips.py`): Pulls completed trip history from Firestore into a CSV for ML training.
+- **TTC Topology** (`ml/topology.json`): Ordered stop sequences for Lines 1, 2, 4, 5 — used to filter directionally impossible predictions.
+- **V4 Training Notebook** (`ml/predict_v4.ipynb`): Logistic regression classifier. 52% top-1 accuracy, 74% top-3 accuracy on held-out test set (385 trips, Jan–Apr 2026).
 
 ---
 
@@ -38,17 +41,25 @@ Building the foundation of the user's transit model.
 Replacing hand-coded scoring weights with a model trained on actual trip history.
 
 ### 1. Feature Engineering
-- [ ] **Trip feature matrix**: Encode each historical trip as a vector — hour (sin/cos), day-of-week (one-hot), start stop (encoded), previous route within 3h window.
-- [ ] **Data export pipeline**: Script to pull trip history from Firestore into a format suitable for training (CSV or JSON).
+- [x] **Trip feature matrix**: Hour (sin/cos), day-of-week (sin/cos), start stop (one-hot encoded).
+- [x] **Data export pipeline**: `ml/export_trips.py` — pulls Firestore trips to CSV.
+- [x] **Topology constraint file**: `ml/topology.json` — ordered stop sequences for Lines 1, 2, 4, 5 for direction filtering.
 
-### 2. Model Training
-- [ ] **Baseline logistic regression**: Train a route classifier in a Python notebook using scikit-learn. Establish a benchmark accuracy against the current `PredictionEngine` on a held-out test set.
-- [ ] **Feature importance analysis**: Understand which signals (time of day, day of week, stop, sequence) matter most in practice vs. what the hand-coded weights assumed.
+### 2. Model Training — V4 (Logistic Regression)
+- [x] **Baseline logistic regression**: 52% top-1, 74% top-3 on held-out test set. Strong on dominant routes (1, 2, 510).
+- [x] **Feature importance analysis**: Model correctly learned route geography from trip history alone (e.g. Spadina Station → 510, York University → 1).
+- [ ] **Autonomous retraining**: Cloud Function that retrains weekly from Firestore directly — no local steps required.
+- [ ] **Retrain audit log**: Log each retrain (date, trip count, accuracy) to Firestore so model improvement is trackable.
 
-### 3. Inference Integration
-- [ ] **Model serialization**: Export trained weights to a format callable from JS or a Cloud Function.
-- [ ] **A/B evaluation**: Run the learned model in parallel with `PredictionEngine` via shadow scoring — compare confidence and hit rate before replacing.
-- [ ] **Feedback loop**: Log prediction outcomes (correct/incorrect) back to Firestore to enable continuous retraining as trip history grows.
+### 3. Inference Integration — V4 Shadow Mode
+- [ ] **Cloud Function inference**: Load V4 weights from Firestore, apply topology constraint filter, return top-3 predictions.
+- [ ] **A/B shadow scoring**: Run V4 alongside V3 on every SMS prediction — log both results without changing user-facing output.
+- [ ] **Feedback loop**: Log prediction outcomes (correct/incorrect) back to Firestore for continuous retraining signal.
+
+### 4. Model Evolution — V5 (Gradient Boosted Tree)
+- [ ] **XGBoost classifier**: Drop-in replacement for logistic regression. Discovers feature interactions automatically (e.g. stop + time-of-day combinations) without manual specification.
+- [ ] **Richer signals**: Weather, TTC service alerts, time since last trip, calendar patterns — add as features and let the model determine relevance.
+- [ ] **Replace V4** once V5 hit rate consistently exceeds V4 in shadow scoring.
 
 ---
 
