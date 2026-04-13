@@ -33,6 +33,25 @@ Building the foundation of the user's transit model.
 
 ---
 
+## Learned Prediction (ML)
+
+Replacing hand-coded scoring weights with a model trained on actual trip history.
+
+### 1. Feature Engineering
+- [ ] **Trip feature matrix**: Encode each historical trip as a vector — hour (sin/cos), day-of-week (one-hot), start stop (encoded), previous route within 3h window.
+- [ ] **Data export pipeline**: Script to pull trip history from Firestore into a format suitable for training (CSV or JSON).
+
+### 2. Model Training
+- [ ] **Baseline logistic regression**: Train a route classifier in a Python notebook using scikit-learn. Establish a benchmark accuracy against the current `PredictionEngine` on a held-out test set.
+- [ ] **Feature importance analysis**: Understand which signals (time of day, day of week, stop, sequence) matter most in practice vs. what the hand-coded weights assumed.
+
+### 3. Inference Integration
+- [ ] **Model serialization**: Export trained weights to a format callable from JS or a Cloud Function.
+- [ ] **A/B evaluation**: Run the learned model in parallel with `PredictionEngine` via shadow scoring — compare confidence and hit rate before replacing.
+- [ ] **Feedback loop**: Log prediction outcomes (correct/incorrect) back to Firestore to enable continuous retraining as trip history grows.
+
+---
+
 ## Autonomous Logging (NextGen)
 
 Moving from "Pull" (SMS triggers) to "Push" (Background detection).
