@@ -73,6 +73,44 @@ SEQUENCE_BOOST: 1.5         // Multiplier applied at transfer points
 
 ---
 
+---
+
+### v4 — *in shadow mode (not yet live)*
+**Problem it solved:** V3's scoring weights are hand-coded constants (`TIME_SIGMA_HOURS: 1.5`, `DECAY_HALFLIFE_DAYS: 20`, etc.) chosen by intuition, not learned from actual trip data. The model cannot discover signals it wasn't explicitly told to look for.
+
+**Approach:** Logistic regression classifier trained on historical trip data. Features: hour-of-day (sin/cos encoded), day-of-week (sin/cos encoded), start stop (one-hot encoded). Trained on 385 trips (Jan–Apr 2026) using scikit-learn. Weights exported to JSON and loaded by a Cloud Function at inference time.
+
+**Results on held-out test set:**
+- Top-1 accuracy: 52% (correct first guess)
+- Top-3 accuracy: 74% (correct answer in top 3)
+- Strong on dominant routes (1, 2, 510). Weak on rare routes with < 5 trips in history.
+
+**What the model figured out on its own:** Correct geographic stop-to-route associations (Spadina Station → 510, York University → Line 1, Bay/St George → Line 2) purely from trip history — no GTFS, no topology given during training.
+
+**Known ceiling:** Logistic regression only weights the features given to it. Cannot discover new signals or feature interactions on its own. V5 will address this with a gradient boosted tree (XGBoost).
+
+**Topology constraint layer:** `ml/topology.json` stores ordered stop sequences for TTC Lines 1, 2, 4, 5. Applied at inference time to zero out directionally impossible candidates (e.g. boarding eastbound → can't exit at a western stop).
+
+**Retraining:** Fully autonomous — Cloud Function retrains weekly from Firestore directly. Retrain history (date, trip count, accuracy) logged to Firestore.
+
+**Files:**
+| File | Purpose |
+|---|---|
+| `ml/export_trips.py` | Pulls Firestore trips to CSV for training |
+| `ml/predict_v4.ipynb` | Training notebook (exploration + evaluation) |
+| `ml/topology.json` | TTC line stop sequences for direction filtering |
+
+---
+
+### v5 — *planned*
+**Problem it will solve:** Logistic regression can't find feature interactions or discover signals we haven't thought of. Accuracy ceiling is ~60-65% top-1 on this dataset.
+
+**Approach:** XGBoost gradient boosted tree. Drop-in replacement — same features, same data pipeline. Discovers combinations like "York University + Monday morning = almost certainly Line 1 southbound" without being told. Richer signals to add: weather, TTC alerts, time since last trip, day of term/semester.
+
+**Target:** Beat V4's 52% top-1 before replacing it in shadow mode.
+
+---
+
 ## Files
 
 | File | Module format | Use |

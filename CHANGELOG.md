@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+**See also:** [Prediction Engine history](docs/ENGINE.md) · [NextGen Roadmap](docs/ROADMAP_NEXTGEN.md) · [Technical Roadmap](docs/ROADMAP_TECHNICAL.md)
+
+## [Unreleased]
+
+### Added
+- **Prediction Engine V4 (Shadow Mode)**: Integrated newly-trained Logistic Regression V4 model alongside V3. V4 runs in parallel in the Cloud Functions to make predictions continuously into the database for side-by-side A/B evaluation against V3.
+
 ## [1.20.2] - 2026-04-13
 
 ### Fixed
