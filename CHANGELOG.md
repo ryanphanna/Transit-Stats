@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.20.2] - 2026-04-13
+
+### Fixed
+- **Map freeze**: Moved `leaflet.markercluster` CSS and JS from `unpkg.com` to `cdnjs.cloudflare.com` — unpkg's unreliability was blocking page rendering on every load.
+- **Map controls**: Removed broken `setupMapControls()` from `map.js` that called `MapEngine.setFilter()` (which doesn't exist) and duplicated event listeners already set up by `MapEngine.setupControls()`.
+
+### Changed
+- **Logo is now a link**: Clicking the TransitStats logo navigates to `/dashboard` from any page.
+- **Nav simplified**: Removed the redundant Dashboard nav item — the logo now serves as home.
+
 ## [1.20.1] - 2026-04-13
 
 ### Security

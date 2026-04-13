@@ -18,7 +18,6 @@ function _render(isAdmin, currentPage) {
     if (!root) return;
 
     const navItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard', href: '/dashboard' },
         { id: 'insights', label: 'Insights', icon: 'line-chart', href: '/insights' },
         { id: 'map', label: 'Map', icon: 'map', href: '/map' }
     ];
@@ -32,10 +31,10 @@ function _render(isAdmin, currentPage) {
     const headerHtml = `
         <header class="header">
             <div class="header-container">
-                <div class="logo">
+                <a href="/dashboard" class="logo">
                      <div class="logo-icon"><i data-lucide="zap"></i></div>
                      <span class="logo-text">TransitStats</span>
-                </div>
+                </a>
                 
                 <nav class="nav-desktop">
                     ${navItems.map(item => `

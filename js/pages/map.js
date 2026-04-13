@@ -11,30 +11,9 @@ function refreshIcons() {
     }
 }
 
-function setupMapControls() {
-    // Filter pills
-    document.querySelectorAll('.filter-pills .pill').forEach(pill => {
-        pill.addEventListener('click', () => {
-            document.querySelectorAll('.filter-pills .pill').forEach(p => p.classList.remove('active'));
-            pill.classList.add('active');
-            MapEngine.setFilter(pill.dataset.filter);
-        });
-    });
-
-    // Locate button
-    document.getElementById('btn-locate')?.addEventListener('click', () => {
-        navigator.geolocation.getCurrentPosition(
-            (pos) => MapEngine.map?.setView([pos.coords.latitude, pos.coords.longitude], 15),
-            () => {}
-        );
-    });
-}
-
 async function init() {
     const { user, isAdmin } = await requireAuth();
     initHeader({ isAdmin, currentPage: 'map' });
-
-    setupMapControls();
 
     Trips.init();
     Trips._readyPromise.then(() => {
