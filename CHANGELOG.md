@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.20.1] - 2026-04-13
+
+### Security
+- **Dependency update**: Upgraded `firebase-functions` to latest and patched critical axios vulnerabilities (SSRF and metadata exfiltration via header injection).
+
 ## [1.20.0] - 2026-04-13
 
 ### Fixed
