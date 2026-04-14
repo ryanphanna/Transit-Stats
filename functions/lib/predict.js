@@ -24,7 +24,7 @@ let _topology = null;
 try { _topology = require('./topology.json'); } catch (e) { /* topology filter disabled */ }
 
 const PredictionEngine = {
-  VERSION: 3,
+  VERSION: 3.1,
 
   CONFIG: {
     TIME_SIGMA_HOURS: 1.5,

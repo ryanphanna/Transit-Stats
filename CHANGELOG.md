@@ -6,6 +6,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.20.7] - 2026-04-13
+
+### Added
+- **Topology constraint filter**: Post-inference directional filter on end stop predictions. Lines 1, 2, 4, 5 (TTC), LA Metro B/D/A/E, BART, Muni N/T. Boarding eastbound on Line 2 at Spadina can't exit at Kipling — impossible candidates are zeroed out before the top-3 is returned. Falls back silently if route or stop not in topology.
+- **Route alias resolution**: Route strings like "Line 1", "Red Line", "N Judah" now resolve to the correct topology entry — no exact key match required.
+- **Cross-city topology**: LA Metro (B/D/A/E lines) and SF (BART trunk, Muni N Judah, Muni T Third) added to `topology.json`. Filter activates automatically when trips are logged on those networks.
+
+### Changed
+- **Stop canonicalization in topology filter**: Stop names are resolved through the stops library before topology index lookup — no need to maintain duplicate alias lists in both places.
+
 ## [1.20.6] - 2026-04-13
 
 ### Added

@@ -6,7 +6,7 @@ Not a roadmap (see [ROADMAP_NEXTGEN.md](./ROADMAP_NEXTGEN.md)). Not a feature ch
 
 ---
 
-## Current Version: v3
+## Current Version: v3.1
 
 ### Active Signals
 
@@ -54,7 +54,10 @@ SEQUENCE_BOOST: 1.5         // Multiplier applied at transfer points
 
 ---
 
-### v3 — *current*
+### v3.1 — *current*
+**What changed from v3:** Topology constraint filter added to end stop prediction. Stop names canonicalized via stops library before topology index lookup. Networks expanded to TTC Lines 1–5, LA Metro B/D/A/E, BART, Muni N/T. Route alias resolution added — "Line 1", "Red Line", "N Judah" etc. resolve to correct topology entry without exact key match. `VERSION` bumped to 3.1 so predictionStats logs distinguish pre/post-filter predictions.
+
+### v3
 **Problems it solved:**
 1. The same physical stop logged under slightly different names ("King St W / Bathurst" vs "King / Bathurst") was being treated as two separate stops, splitting the vote signal.
 2. Day similarity used a flat 0.5 for any non-matching weekday pair, which didn't distinguish between "Tuesday vs Wednesday" and "Monday vs Friday."

@@ -61,6 +61,7 @@ Replacing hand-coded scoring weights with a model trained on actual trip history
 ### 4. Model Evolution — V5 (Gradient Boosted Tree)
 - [x] **XGBoost classifier**: Benchmarked on same 385-trip dataset — 60.6% top-1 / 80.3% top-3 (+8.5pp / +5.6pp over V4). Same features, better algorithm.
 - [ ] **Richer signals**: Previous route, time since last trip, week of term, holiday flag, weather, TTC service alerts — add as features and let the model determine relevance.
+- [ ] **End stop prediction**: Train a separate classifier for end stop (not just route). V3 uses weighted voting for end stop; V4 and V5 currently only predict route. A dedicated end stop model would let V4/V5 shadow V3's end stop predictions and eventually replace them.
 - [ ] **Replace V4** once V5 consistently outperforms in shadow scoring.
 
 ### 5. Model Evolution — V6 (Advanced ML)
