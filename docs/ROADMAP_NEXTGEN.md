@@ -1,4 +1,4 @@
-# Transit Modeling Engine (NextGen)
+# NextGen
 
 R&D initiatives to transition TransitStats from a manual logging utility into a high-fidelity autonomous transit intelligence layer.
 
