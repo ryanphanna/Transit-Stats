@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.20.6] - 2026-04-13
+
 ### Added
 - **Settings full page** (`/settings`): Settings is now a dedicated page instead of a modal. Account, Preferences, and admin Prediction Accuracy sections. Gear icon in header links there.
 - **Stop route + direction inheritance**: When a trip is linked to a stop, the stop automatically inherits the trip's route and direction — so future trips on the same route auto-match without manual work.
