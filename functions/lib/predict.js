@@ -13,7 +13,15 @@
  *        name). Day similarity is now distance-based within weekdays rather than flat 0.5.
  *        Trip validity filter excludes malformed SMS-parse trips from the candidate pool.
  *        Direction normalization on votes (nb/sb/eb/wb handled).
+ *   topology filter - Post-inference filter for subway/LRT end stop predictions (Lines 1, 2,
+ *        4, 5). Uses topology.json stop sequences to zero out directionally impossible
+ *        candidates (e.g. boarding eastbound at Spadina → can't exit at Kipling). Line 1
+ *        handled specially: U-shape means direction logic depends on which branch (Yonge vs
+ *        University) the boarding stop is on, using Union as the turning point.
  */
+
+let _topology = null;
+try { _topology = require('./topology.json'); } catch (e) { /* topology filter disabled */ }
 
 const PredictionEngine = {
   VERSION: 3,
@@ -168,7 +176,9 @@ const PredictionEngine = {
 
     if (totalWeight === 0) return null;
 
-    const top = Object.values(votes).sort((a, b) => b.weight - a.weight)[0];
+    const sorted = Object.values(votes).sort((a, b) => b.weight - a.weight);
+    const filtered = this._applyTopologyFilter(sorted, context.route, context.startStopName, context.direction);
+    const top = filtered[0];
     return {
       stop: top.stop,
       confidence: Math.round((top.weight / totalWeight) * 100),
@@ -230,14 +240,13 @@ const PredictionEngine = {
 
     if (totalWeight === 0) return [];
 
-    return Object.values(votes)
-      .sort((a, b) => b.weight - a.weight)
-      .slice(0, topN)
-      .map(v => ({
-        stop: v.stop,
-        confidence: Math.round((v.weight / totalWeight) * 100),
-        version: this.VERSION,
-      }));
+    const sorted = Object.values(votes).sort((a, b) => b.weight - a.weight);
+    const filtered = this._applyTopologyFilter(sorted, context.route, context.startStopName, context.direction);
+    return filtered.slice(0, topN).map(v => ({
+      stop: v.stop,
+      confidence: Math.round((v.weight / totalWeight) * 100),
+      version: this.VERSION,
+    }));
   },
 
   /**
@@ -346,6 +355,93 @@ const PredictionEngine = {
       const hoursSince = (now - end) / (1000 * 60 * 60);
       return hoursSince > 0 && hoursSince < this.CONFIG.SEQUENCE_WINDOW_HOURS;
     });
+  },
+
+  /**
+   * Filter predicted end stops to only those that are directionally valid per subway topology.
+   * Only applies to linear lines (2, 4, 5). Line 1 excluded — U-shape.
+   * Falls back to unfiltered array if topology doesn't cover this route/stop.
+   * @param {Array} candidates - Array of { stop, weight, ... }
+   * @param {string} route
+   * @param {string} boardingStop
+   * @param {string} direction
+   * @returns {Array}
+   */
+  _applyTopologyFilter: function (candidates, route, boardingStop, direction) {
+    if (!_topology || !boardingStop || !direction) return candidates;
+
+    const routeStr = this._baseRoute(route.toString());
+
+    const line = this._topologyLine(routeStr);
+    if (!line) return candidates;
+
+    const normDir = this._normalizeDirection(direction);
+    if (!normDir) return candidates;
+
+    const boardingIdx = this._topologyStopIndex(line, this._canonicalizeStop(boardingStop) || boardingStop);
+    if (boardingIdx === -1) return candidates;
+
+    // Line 1 is U-shaped: Finch(0)→Union(16)→VMC(35).
+    // Direction meaning depends on which branch you're on.
+    // Yonge branch (0–16): southbound = toward Union = higher index.
+    // University branch (16–35): northbound = toward VMC = higher index.
+    let goingHigher;
+    if (line.name === 'Yonge-University') {
+      const unionIdx = this._topologyStopIndex(line, this._canonicalizeStop('Union') || 'Union');
+      if (unionIdx === -1) return candidates;
+      if (boardingIdx <= unionIdx) {
+        // Yonge branch: southbound → higher (toward Union), northbound → lower (toward Finch)
+        goingHigher = normDir === 'Southbound';
+      } else {
+        // University branch: northbound → higher (toward VMC), southbound → lower (toward Union)
+        goingHigher = normDir === 'Northbound';
+      }
+    } else {
+      goingHigher = normDir === 'Eastbound' || normDir === 'Northbound';
+    }
+
+    const filtered = candidates.filter(c => {
+      const endIdx = this._topologyStopIndex(line, this._canonicalizeStop(c.stop) || c.stop);
+      if (endIdx === -1) return true; // Unknown stop — keep (don't over-filter)
+      return goingHigher ? endIdx > boardingIdx : endIdx < boardingIdx;
+    });
+
+    return filtered.length > 0 ? filtered : candidates;
+  },
+
+  /**
+   * Resolve a route string to a topology line entry.
+   * Checks the exact key first, then route_aliases on each line (case-insensitive).
+   * Returns null if no match — filter silently skips, predictions still returned unfiltered.
+   */
+  _topologyLine: function (routeStr) {
+    if (!_topology) return null;
+    const lines = _topology.lines;
+    // Exact key match
+    if (lines[routeStr]) return lines[routeStr];
+    // Alias match
+    const lower = routeStr.toLowerCase();
+    for (const line of Object.values(lines)) {
+      const aliases = line.route_aliases || [];
+      if (aliases.some(a => a.toLowerCase() === lower)) return line;
+    }
+    return null;
+  },
+
+  /**
+   * Find the index of a stop name (or alias) within a topology line's stop sequence.
+   * Returns -1 if not found.
+   */
+  _topologyStopIndex: function (line, stopName) {
+    if (!stopName) return -1;
+    const lower = stopName.trim().toLowerCase();
+    for (let i = 0; i < line.stops.length; i++) {
+      const canon = line.stops[i];
+      if (canon.toLowerCase() === lower) return i;
+      const aliases = (line.aliases && line.aliases[canon]) || [];
+      if (aliases.some(a => a.toLowerCase() === lower)) return i;
+    }
+    return -1;
   },
 };
 

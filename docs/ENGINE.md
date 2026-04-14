@@ -75,7 +75,7 @@ SEQUENCE_BOOST: 1.5         // Multiplier applied at transfer points
 
 ---
 
-### v4 — *in shadow mode (not yet live)*
+### v4 — *shadow mode*
 **Problem it solved:** V3's scoring weights are hand-coded constants (`TIME_SIGMA_HOURS: 1.5`, `DECAY_HALFLIFE_DAYS: 20`, etc.) chosen by intuition, not learned from actual trip data. The model cannot discover signals it wasn't explicitly told to look for.
 
 **Approach:** Logistic regression classifier trained on historical trip data. Features: hour-of-day (sin/cos encoded), day-of-week (sin/cos encoded), start stop (one-hot encoded). Trained on 385 trips (Jan–Apr 2026) using scikit-learn. Weights exported to JSON and loaded by a Cloud Function at inference time.
@@ -89,30 +89,45 @@ SEQUENCE_BOOST: 1.5         // Multiplier applied at transfer points
 
 **Known ceiling:** Logistic regression only weights the features given to it. Cannot discover new signals or feature interactions on its own. V5 will address this with a gradient boosted tree (XGBoost).
 
-**Topology constraint layer:** `ml/topology.json` stores ordered stop sequences for TTC Lines 1, 2, 4, 5. Applied at inference time to zero out directionally impossible candidates (e.g. boarding eastbound → can't exit at a western stop).
+**What's built:**
+- Training notebook + weights (`ml/predict_v4.ipynb`, `ml/model_v4.json`)
+- Trip export pipeline (`ml/export_trips.py`)
+- Topology file (`ml/topology.json`) — ordered stop sequences for Lines 1, 2, 4, 5
 
-**Retraining:** Fully autonomous — Cloud Function retrains weekly from Firestore directly. Retrain history (date, trip count, accuracy) logged to Firestore.
+**Still to build:**
+- Cloud Function inference (load weights, run prediction, return top-3)
+- Autonomous weekly retraining from Firestore (no manual steps)
+- Retrain audit log (date, trip count, accuracy) to Firestore
 
 **Files:**
 | File | Purpose |
 |---|---|
 | `ml/export_trips.py` | Pulls Firestore trips to CSV for training |
 | `ml/predict_v4.ipynb` | Training notebook (exploration + evaluation) |
+| `ml/model_v4.json` | Trained logistic regression weights |
 | `ml/topology.json` | TTC line stop sequences for direction filtering |
 
 ---
 
-### v5 — *benchmarked, wiring in progress*
-**Problem it will solve:** Logistic regression can't find feature interactions or discover signals we haven't thought of.
+### v5 — *shadow mode*
+**Problem it solved:** Logistic regression can't find feature interactions or discover signals we haven't thought of.
 
-**Approach:** XGBoost gradient boosted tree. Drop-in replacement — same features, same data pipeline. Discovers combinations like "York University + Monday morning = almost certainly Line 1 southbound" without being told. Richer signals to add: weather, TTC alerts, time since last trip, day of term/semester.
+**Approach:** XGBoost gradient boosted tree. Drop-in replacement — same features, same data pipeline. Discovers combinations like "York University + Monday morning = almost certainly Line 1 southbound" without being told.
 
-**Initial benchmark results (same 385-trip dataset, same train/test split as V4):**
+**Results (same 385-trip dataset, same train/test split as V4):**
 - Top-1 accuracy: 60.6% (+8.5pp over V4)
 - Top-3 accuracy: 80.3% (+5.6pp over V4)
 - Config: n_estimators=200, max_depth=4, learning_rate=0.1
 
-V5 already beats V4 on the baseline feature set. Running in shadow mode alongside V3 and V4. Next: add richer signals (GTFS frequencies, time since last trip, etc.).
+**What's built:**
+- ONNX model (`ml/model_v5.onnx`) running in shadow mode alongside V3 and V4
+- Graded and logged to `predictionStats` at trip end
+
+**Still to build:**
+- Richer signals: time since last trip, week of term, holiday flag, weather, TTC service alerts
+- Autonomous weekly retraining from Firestore
+- Retrain audit log to Firestore
+- Replace V4 once V5 consistently outperforms in shadow scoring
 
 ---
 

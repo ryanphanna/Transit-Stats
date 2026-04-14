@@ -19,6 +19,7 @@ quality and coverage improvements.
   and surface the link prompt earlier, without requiring the user to know the command.
 - [ ] **International number support** — phone number normalization currently assumes
   North American format. Standardize to E.164 throughout.
+- [ ] **Stop photo via MMS** — user snaps a photo of a stop sign or TTC stop number pole and sends it via MMS. Cloud Function receives the media URL, runs OCR (Google Cloud Vision or equivalent), extracts the stop number, and resolves it against the stops library. Removes the need to manually type stop codes.
 - [ ] **RCS suggested reply buttons** — attach tappable quick-reply chips to key responses for Android RCS users. Priority targets: `STATUS` reply (END TRIP / DISCARD / STATS) and trip-start confirmation (predicted end stops as tappable buttons, replacing the `END 1/2/3` shortcut system). SMS users receive the plain-text version unchanged via Twilio's automatic fallback.
 
 ---

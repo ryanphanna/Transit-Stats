@@ -48,20 +48,25 @@ Replacing hand-coded scoring weights with a model trained on actual trip history
 ### 2. Model Training — V4 (Logistic Regression)
 - [x] **Baseline logistic regression**: 52% top-1, 74% top-3 on held-out test set. Strong on dominant routes (1, 2, 510).
 - [x] **Feature importance analysis**: Model correctly learned route geography from trip history alone (e.g. Spadina Station → 510, York University → 1).
-- [ ] **Autonomous retraining**: Cloud Function that retrains weekly from Firestore directly — no local steps required.
-- [ ] **Retrain audit log**: Log each retrain (date, trip count, accuracy) to Firestore so model improvement is trackable.
+- [x] **Topology file**: `ml/topology.json` — ordered stop sequences for Lines 1, 2, 4, 5.
 
-### 3. Inference Integration — V4 Shadow Mode
-- [ ] **Cloud Function inference**: Load V4 weights from Firestore, apply topology constraint filter, return top-3 predictions.
-- [ ] **A/B shadow scoring**: Run V4 alongside V3 on every SMS prediction — log both results without changing user-facing output.
+### 3. Inference Integration — V4 & V5
+- [ ] **Cloud Function inference**: Load model weights, run prediction, return top-3 — for both V4 and V5.
+- [x] **Topology constraint filter**: Applied at inference time in V3 engine — zero out directionally impossible end stop candidates using `topology.json` stop sequences. Lines 1, 2, 4, 5 covered. Line 1 handled with branch-aware logic (Yonge vs University branch, Union as turning point).
+- [ ] **A/B shadow scoring**: Run V4 and V5 alongside V3 on every SMS prediction — log all results without changing user-facing output.
 - [ ] **Feedback loop**: Log prediction outcomes (correct/incorrect) back to Firestore for continuous retraining signal.
+- [ ] **Autonomous retraining**: Cloud Function that retrains V4 and V5 weekly from Firestore directly — no local steps, no notebook.
+- [ ] **Retrain audit log**: Log each retrain (date, trip count, accuracy) to Firestore so model improvement is trackable.
 
 ### 4. Model Evolution — V5 (Gradient Boosted Tree)
 - [x] **XGBoost classifier**: Benchmarked on same 385-trip dataset — 60.6% top-1 / 80.3% top-3 (+8.5pp / +5.6pp over V4). Same features, better algorithm.
 - [ ] **Richer signals**: Previous route, time since last trip, week of term, holiday flag, weather, TTC service alerts — add as features and let the model determine relevance.
+- [ ] **Replace V4** once V5 consistently outperforms in shadow scoring.
+
+### 5. Model Evolution — V6 (Advanced ML)
 - [ ] **GTFS service frequencies**: Route headways by time window (e.g. Line 1 runs every 2 min, Route 26 every 30 min). Enables the model to interpret trip gaps correctly — a 22-minute gap between a 2-min line and a 30-min line is a normal wait; the same gap between two 2-min lines is probably a stopover. Unlocks accurate transfer detection, journey linking, and anomaly detection in one addition.
 - [ ] **Transfer vs. stopover classifier**: Use gap duration + transfer stop identity + route frequency + time of day to learn whether a gap between trips was a connection or a deliberate stop. Replaces the current fixed-threshold journey linking logic.
-- [ ] **Replace V4** once V5 hit rate consistently exceeds V4 in shadow scoring.
+- [ ] **Autonomous retraining**: Same goal as V4/V5 — fully hands-off weekly retraining for V6.
 
 ---
 
