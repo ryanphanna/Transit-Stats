@@ -5,6 +5,38 @@ One entry per trained version. See `docs/ENGINE.md` for full engineering notes.
 
 ---
 
+## V5.1 — XGBoost End Stop
+
+| Field | Value |
+|---|---|
+| **Date trained** | 2026-04-14 |
+| **Algorithm** | XGBoost (`n_estimators=200`, `max_depth=4`, `learning_rate=0.1`) |
+| **Trip count** | 114 (after cleaning — routes+stops with ≥5 trips, end stops with ≥3 occurrences) |
+| **Top-1 accuracy** | 47.8% |
+| **Top-3 accuracy** | 95.7% |
+| **Classes** | 11 end stops |
+| **Features** | hour_sin/cos, day_sin/cos, start_stop (one-hot), route (one-hot) |
+| **Topology filter** | Pre-filter before probability read — impossible stops zeroed, renormalized |
+| **Status** | Shadow mode |
+
+---
+
+## V4.1 — Logistic Regression End Stop
+
+| Field | Value |
+|---|---|
+| **Date trained** | 2026-04-14 |
+| **Algorithm** | Logistic Regression (scikit-learn, `class_weight='balanced'`, `max_iter=1000`) |
+| **Trip count** | 114 (same dataset as V5.1) |
+| **Top-1 accuracy** | 39.1% |
+| **Top-3 accuracy** | 87.0% |
+| **Classes** | 11 end stops |
+| **Features** | hour_sin/cos, day_sin/cos, start_stop (one-hot), route (one-hot) |
+| **Topology filter** | Pre-filter before softmax — impossible stops set to -Infinity |
+| **Status** | Shadow mode |
+
+---
+
 ## V4 — Logistic Regression
 
 | Field | Value |

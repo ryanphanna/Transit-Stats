@@ -24,7 +24,7 @@ let _topology = null;
 try { _topology = require('./topology.json'); } catch (e) { /* topology filter disabled */ }
 
 const PredictionEngine = {
-  VERSION: 3.1,
+  VERSION: '3.1.1',
 
   CONFIG: {
     TIME_SIGMA_HOURS: 1.5,
@@ -154,6 +154,10 @@ const PredictionEngine = {
       if (withDir.length > 0) candidates = withDir;
     }
 
+    // Pre-filter: remove trips that ended at a topologically impossible stop.
+    // Only applies when topology covers this route + boarding stop + direction.
+    candidates = this._preFilterCandidatesByTopology(candidates, context.route, context.startStopName, context.direction);
+
     const votes = {};
     let totalWeight = 0;
 
@@ -176,9 +180,7 @@ const PredictionEngine = {
 
     if (totalWeight === 0) return null;
 
-    const sorted = Object.values(votes).sort((a, b) => b.weight - a.weight);
-    const filtered = this._applyTopologyFilter(sorted, context.route, context.startStopName, context.direction);
-    const top = filtered[0];
+    const top = Object.values(votes).sort((a, b) => b.weight - a.weight)[0];
     return {
       stop: top.stop,
       confidence: Math.round((top.weight / totalWeight) * 100),
@@ -218,6 +220,9 @@ const PredictionEngine = {
       if (withDir.length > 0) candidates = withDir;
     }
 
+    // Pre-filter: remove trips that ended at a topologically impossible stop.
+    candidates = this._preFilterCandidatesByTopology(candidates, context.route, context.startStopName, context.direction);
+
     const votes = {};
     let totalWeight = 0;
 
@@ -241,8 +246,7 @@ const PredictionEngine = {
     if (totalWeight === 0) return [];
 
     const sorted = Object.values(votes).sort((a, b) => b.weight - a.weight);
-    const filtered = this._applyTopologyFilter(sorted, context.route, context.startStopName, context.direction);
-    return filtered.slice(0, topN).map(v => ({
+    return sorted.slice(0, topN).map(v => ({
       stop: v.stop,
       confidence: Math.round((v.weight / totalWeight) * 100),
       version: this.VERSION,
@@ -355,6 +359,47 @@ const PredictionEngine = {
       const hoursSince = (now - end) / (1000 * 60 * 60);
       return hoursSince > 0 && hoursSince < this.CONFIG.SEQUENCE_WINDOW_HOURS;
     });
+  },
+
+  /**
+   * Pre-filter historical trip candidates to only those that ended at a topologically valid stop.
+   * Called before voting so the model never scores impossible destinations.
+   * Falls back to the unfiltered array if topology doesn't cover this route/stop/direction.
+   * @param {Array} candidates - Trip objects with endStopName
+   * @param {string} route
+   * @param {string} boardingStop
+   * @param {string} direction
+   * @returns {Array}
+   */
+  _preFilterCandidatesByTopology: function (candidates, route, boardingStop, direction) {
+    if (!_topology || !boardingStop || !direction) return candidates;
+
+    const routeStr = this._baseRoute(route.toString());
+    const line = this._topologyLine(routeStr);
+    if (!line) return candidates;
+
+    const normDir = this._normalizeDirection(direction);
+    if (!normDir) return candidates;
+
+    const boardingIdx = this._topologyStopIndex(line, this._canonicalizeStop(boardingStop) || boardingStop);
+    if (boardingIdx === -1) return candidates;
+
+    let goingHigher;
+    if (line.name === 'Yonge-University') {
+      const unionIdx = this._topologyStopIndex(line, this._canonicalizeStop('Union') || 'Union');
+      if (unionIdx === -1) return candidates;
+      goingHigher = boardingIdx <= unionIdx ? normDir === 'Southbound' : normDir === 'Northbound';
+    } else {
+      goingHigher = normDir === 'Eastbound' || normDir === 'Northbound';
+    }
+
+    const filtered = candidates.filter(t => {
+      const endIdx = this._topologyStopIndex(line, this._canonicalizeStop(t.endStopName) || t.endStopName);
+      if (endIdx === -1) return true; // Unknown stop — keep
+      return goingHigher ? endIdx > boardingIdx : endIdx < boardingIdx;
+    });
+
+    return filtered.length > 0 ? filtered : candidates;
   },
 
   /**

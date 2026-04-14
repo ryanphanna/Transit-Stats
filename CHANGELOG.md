@@ -6,6 +6,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.20.8] - 2026-04-14
+
+### Added
+- **V4.1 / V5.1 end stop prediction**: Both shadow models now predict end stops (`guessTopEndStops`), not just route. Trained separate classifiers on 114 trips (11 end stop classes). V4.1: 39% top-1 / 87% top-3. V5.1: 48% top-1 / 96% top-3.
+- **Topology pre-filter for V4.1 / V5.1**: Impossible end stops zeroed out before softmax/probability read — model never scores stops that can't be reached from the boarding stop in the given direction.
+
+### Changed
+- **V3 topology filter moved upstream (v3.1.1)**: Candidate trips pre-filtered by topology before voting — impossible destinations eliminated before scoring, not after. Cleaner and more correct.
+- **Engine versions**: V3 → 3.1.1, V4 → 4.1, V5 → 5.1.
+
 ## [1.20.7] - 2026-04-13
 
 ### Added

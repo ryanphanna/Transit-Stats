@@ -1,0 +1,37 @@
+{
+  "type": "xgboost_endstop",
+  "version": "5",
+  "classes": [
+    "Lawrence West",
+    "Queen's Park Station",
+    "SPADINA & NASSAU",
+    "Spadina & Nassau",
+    "Spadina / Nassau",
+    "Spadina Station",
+    "Spadina/Nassau",
+    "Spadina/nassau",
+    "St George",
+    "St George Station",
+    "York University"
+  ],
+  "feature_names": [
+    "hour_sin",
+    "hour_cos",
+    "day_sin",
+    "day_cos",
+    "route_1",
+    "route_2",
+    "route_510",
+    "stop_bay station",
+    "stop_queen's park station",
+    "stop_spadina",
+    "stop_spadina / nassau",
+    "stop_spadina station",
+    "stop_st patrick station",
+    "stop_union station",
+    "stop_york university"
+  ],
+  "top1_accuracy": 0.4783,
+  "top3_accuracy": 0.9565,
+  "n_trips": 114
+}

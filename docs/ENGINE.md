@@ -6,7 +6,7 @@ Not a roadmap (see [ROADMAP_NEXTGEN.md](./ROADMAP_NEXTGEN.md)). Not a feature ch
 
 ---
 
-## Current Version: v3.1
+## Current Version: v3.1.1
 
 ### Active Signals
 
@@ -54,7 +54,10 @@ SEQUENCE_BOOST: 1.5         // Multiplier applied at transfer points
 
 ---
 
-### v3.1 — *current*
+### v3.1.1 — *current*
+**What changed from v3.1:** Topology filter moved upstream — candidate trips are now pre-filtered by topology before voting, not post-filtered after. Impossible destinations are eliminated before the model scores anything. Same fallback behaviour (unfiltered if no candidates survive).
+
+### v3.1
 **What changed from v3:** Topology constraint filter added to end stop prediction. Stop names canonicalized via stops library before topology index lookup. Networks expanded to TTC Lines 1–5, LA Metro B/D/A/E, BART, Muni N/T. Route alias resolution added — "Line 1", "Red Line", "N Judah" etc. resolve to correct topology entry without exact key match. `VERSION` bumped to 3.1 so predictionStats logs distinguish pre/post-filter predictions.
 
 ### v3
@@ -77,6 +80,9 @@ SEQUENCE_BOOST: 1.5         // Multiplier applied at transfer points
 ---
 
 ---
+
+### v4.1 — *shadow mode*
+**What changed from v4:** End stop prediction added (`guessTopEndStops`). Trained a separate logistic regression classifier on 114 trips (11 end stop classes). Features: route (one-hot), start stop (one-hot), hour (sin/cos), day (sin/cos). Topology pre-filter applied before softmax — impossible stops zeroed out before probabilities are computed. Top-1: 39%, Top-3: 87%.
 
 ### v4 — *shadow mode*
 **Problem it solved:** V3's scoring weights are hand-coded constants (`TIME_SIGMA_HOURS: 1.5`, `DECAY_HALFLIFE_DAYS: 20`, etc.) chosen by intuition, not learned from actual trip data. The model cannot discover signals it wasn't explicitly told to look for.
@@ -111,6 +117,9 @@ SEQUENCE_BOOST: 1.5         // Multiplier applied at transfer points
 | `ml/topology.json` | TTC line stop sequences for direction filtering |
 
 ---
+
+### v5.1 — *shadow mode*
+**What changed from v5:** End stop prediction added (`guessTopEndStops`). Trained a separate XGBoost classifier on same 114-trip dataset (11 end stop classes). Same features as V4.1. Topology pre-filter applied before reading ONNX probabilities — zeroed out, renormalized, then ranked. Top-1: 48%, Top-3: 96%.
 
 ### v5 — *shadow mode*
 **Problem it solved:** Logistic regression can't find feature interactions or discover signals we haven't thought of.
