@@ -68,26 +68,54 @@ export const Admin = {
         document.getElementById('inbox-list')?.addEventListener('click', async (e) => {
             const el = e.target.closest('[data-action]');
             if (!el) return;
-            
+
             const action = el.dataset.action;
-            if (action === 'accept-all') {
-                await AdminTriage.bulkAcceptSuggestions();
-                await this.loadAll();
-            } else if (action === 'accept-suggestion') {
-                await AdminLibrary.linkAlias(el.dataset.stopId, el.dataset.name);
-                await this.loadAll();
+            const row = el.closest('[data-trip-id]');
+            const tripId = row?.dataset.tripId;
+            const role = row?.dataset.role;
+
+            if (action === 'accept-trip') {
+                const item = AdminTriage.inbox.find(i => i.tripId === tripId && i.role === role);
+                if (item) {
+                    await AdminTriage.linkTrip(item, el.dataset.stopId, AdminLibrary.stops);
+                    await this.loadAll();
+                }
             } else if (action === 'open-link-modal') {
-                this.openLinkModal(el.dataset.name);
+                const item = AdminTriage.inbox.find(i => i.tripId === tripId && i.role === role);
+                if (item) this.openLinkModal(item);
             }
         });
 
         document.getElementById('link-search-results')?.addEventListener('click', async (e) => {
             const row = e.target.closest('[data-action="link-to-stop"]');
-            if (row) {
-                const rawName = document.getElementById('link-target-string').textContent;
-                await AdminLibrary.linkAlias(row.dataset.stopId, rawName);
+            if (row && this._pendingLinkItem) {
+                await AdminTriage.linkTrip(this._pendingLinkItem, row.dataset.stopId, AdminLibrary.stops);
+                this._pendingLinkItem = null;
                 ModalManager.closeAll();
                 await this.loadAll();
+            }
+        });
+
+        document.getElementById('btn-show-create-stop')?.addEventListener('click', () => {
+            const rawName = document.getElementById('link-target-string').textContent.trim();
+            ModalManager.closeAll();
+            this.openStopForm('create', null, rawName);
+        });
+
+        document.getElementById('btn-add-alias')?.addEventListener('click', () => {
+            const input = document.getElementById('stop-form-alias-input');
+            const val = input.value.trim();
+            if (val && !this._currentAliases.includes(val)) {
+                this._currentAliases.push(val);
+                this._renderAliasEditor();
+            }
+            input.value = '';
+        });
+
+        document.getElementById('stop-form-alias-input')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('btn-add-alias').click();
             }
         });
 
@@ -103,10 +131,10 @@ export const Admin = {
     async loadAll() {
         await Promise.all([
             AdminLibrary.loadStops(),
-            AdminTriage.loadInbox(AdminLibrary.stops),
             AdminTriage.loadConsolidation(),
             this.loadRouteLibrary()
         ]);
+        await AdminTriage.loadInbox(AdminLibrary.stops);
         this.render();
     },
 
@@ -154,30 +182,37 @@ export const Admin = {
         const countEl = document.getElementById('inbox-count');
         if (!list) return;
 
-        const filtered = AdminTriage.inbox.filter(i => i.name.toLowerCase().includes(this.filters.inboxSearch.toLowerCase()));
+        const q = this.filters.inboxSearch.toLowerCase();
+        const filtered = AdminTriage.inbox.filter(i =>
+            i.rawName.toLowerCase().includes(q) ||
+            (i.route || '').toLowerCase().includes(q)
+        );
         if (countEl) countEl.textContent = filtered.length;
 
         if (!filtered.length) {
-            list.innerHTML = '<div class="loading-state">Inbox is empty.</div>';
+            list.innerHTML = '<div class="loading-state">All stops recognized.</div>';
             return;
         }
 
-        const suggs = filtered.filter(i => i.suggestion);
-        const bulkBtn = suggs.length > 1 ? `<button class="btn btn-outline full-width btn-sm mb-3" data-action="accept-all">Accept all ${suggs.length} suggestions</button>` : '';
+        const fmt = (item) => {
+            const date = item.date?.toDate ? item.date.toDate() : new Date(item.date || 0);
+            const dateStr = date.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+            const suggestion = AdminTriage._suggestStop(item.rawName, item.rawCode, AdminLibrary.stops);
+            return `
+                <div class="inbox-item" data-trip-id="${UI.escapeHtml(item.tripId)}" data-role="${UI.escapeHtml(item.role)}">
+                    <div class="inbox-item-content">
+                        <span class="inbox-item-name">${Utils.hide(item.rawName)}${item.rawCode ? ` <span style="opacity:0.4;font-size:0.75em;">#${Utils.hide(item.rawCode)}</span>` : ''}</span>
+                        <span class="inbox-item-meta">${Utils.hide(item.route || '?')}${item.direction ? ' · ' + Utils.hide(item.direction) : ''} · ${item.role === 'start' ? 'boarding' : 'exit'} · ${dateStr}${suggestion ? ' · → ' + Utils.hide(suggestion.stop.name) : ''}</span>
+                    </div>
+                    <div class="inbox-actions">
+                        ${suggestion ? `<button class="btn btn-sm btn-outline" data-action="accept-trip" data-stop-id="${UI.escapeHtml(suggestion.stop.id)}">Accept</button>` : ''}
+                        <button class="btn btn-primary btn-sm" data-action="open-link-modal" data-name="${UI.escapeHtml(item.rawName)}">Link</button>
+                    </div>
+                </div>
+            `;
+        };
 
-        list.innerHTML = bulkBtn + filtered.map(i => `
-            <div class="inbox-item">
-                <div class="inbox-item-content">
-                    <span class="inbox-item-name"><span class="badge-count">${i.count}</span>${Utils.hide(i.name)}</span>
-                    <span class="inbox-item-meta">${i.routes.slice(0, 3).map(r => Utils.hide(r)).join(', ')}${i.routes.length > 3 ? '...' : ''}</span>
-                    ${i.suggestion ? `<div class="mt-2 text-success" style="font-size: 0.7rem;">→ ${Utils.hide(i.suggestion.stop.name)} (${i.suggestion.score}%)</div>` : ''}
-                </div>
-                <div class="inbox-actions">
-                    ${i.suggestion ? `<button class="btn btn-sm btn-outline" data-action="accept-suggestion" data-name="${UI.escapeHtml(i.name)}" data-stop-id="${UI.escapeHtml(i.suggestion.stop.id)}">Accept</button>` : ''}
-                    <button class="btn btn-primary btn-sm" data-action="open-link-modal" data-name="${UI.escapeHtml(i.name)}">Link</button>
-                </div>
-            </div>
-        `).join('');
+        list.innerHTML = filtered.map(fmt).join('');
     },
 
     renderConsolidation() {
@@ -188,7 +223,7 @@ export const Admin = {
         if (countEl) countEl.textContent = AdminTriage.consolidation.length || '';
 
         if (!AdminTriage.consolidation.length) {
-            list.innerHTML = '<div class="loading-state">No variants found.</div>';
+            list.innerHTML = '<div class="loading-state">No duplicates found.</div>';
             return;
         }
 
@@ -227,19 +262,44 @@ export const Admin = {
     },
 
     // --- Handlers ---
-    openStopForm(mode, id = null) {
+    _currentAliases: [],
+    _pendingLinkItem: null,
+
+    openStopForm(mode, id = null, prefillName = '') {
         document.getElementById('stop-form-id').value = id || '';
         const stop = id ? AdminLibrary.stops.find(s => s.id === id) : null;
 
         document.getElementById('stop-form-title').textContent = stop ? 'Edit Stop' : 'Create New Stop';
-        document.getElementById('stop-form-name').value = stop?.name || '';
+        document.getElementById('stop-form-name').value = stop?.name || prefillName;
         document.getElementById('stop-form-code').value = stop?.code || '';
         document.getElementById('stop-form-agency').value = stop?.agency || 'TTC';
-        
+
+        this._currentAliases = [...(stop?.aliases || [])];
+        this._renderAliasEditor();
+
         const deleteBtn = document.getElementById('btn-delete-stop');
         if (deleteBtn) stop ? deleteBtn.classList.remove('hidden') : deleteBtn.classList.add('hidden');
 
         ModalManager.open('modal-stop-form');
+    },
+
+    _renderAliasEditor() {
+        const container = document.getElementById('stop-form-aliases');
+        if (!container) return;
+        container.innerHTML = this._currentAliases.length
+            ? this._currentAliases.map((a, i) => `
+                <span class="alias-pill">
+                    ${Utils.hide(a)}
+                    <button type="button" class="alias-remove" data-index="${i}" style="background:none;border:none;cursor:pointer;margin-left:4px;font-size:0.8em;">✕</button>
+                </span>`).join('')
+            : '<span class="text-secondary" style="font-size:0.85rem;">No aliases</span>';
+
+        container.querySelectorAll('.alias-remove').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this._currentAliases.splice(Number(btn.dataset.index), 1);
+                this._renderAliasEditor();
+            });
+        });
     },
 
     async handleSaveStop() {
@@ -247,7 +307,8 @@ export const Admin = {
             id: document.getElementById('stop-form-id').value,
             name: document.getElementById('stop-form-name').value.trim(),
             code: document.getElementById('stop-form-code').value.trim(),
-            agency: document.getElementById('stop-form-agency').value
+            agency: document.getElementById('stop-form-agency').value,
+            aliases: [...this._currentAliases],
         };
         if (!data.name) return UI.showNotification('Name required.');
 
@@ -306,8 +367,11 @@ export const Admin = {
         UI.hideLoading(document.getElementById('gtfsImportBtn'));
     },
 
-    openLinkModal(name) {
-        document.getElementById('link-target-string').textContent = name;
+    openLinkModal(item) {
+        this._pendingLinkItem = item;
+        document.getElementById('link-target-string').textContent =
+            item.rawName + (item.direction ? ` · ${item.direction}` : '') + ` (${item.role === 'start' ? 'boarding' : 'exit'}, ${item.route || '?'})`;
+
         const results = document.getElementById('link-search-results');
         const input = document.getElementById('link-search-stop');
         input.value = '';
@@ -316,12 +380,13 @@ export const Admin = {
         input.oninput = (e) => {
             const q = e.target.value.toLowerCase();
             if (q.length < 2) return results.classList.add('hidden');
-
-            const matches = AdminLibrary.stops.filter(s => s.name.toLowerCase().includes(q) || (s.code && s.code.includes(q))).slice(0, 5);
+            const matches = AdminLibrary.stops.filter(s =>
+                s.name.toLowerCase().includes(q) || (s.code && s.code.includes(q))
+            ).slice(0, 6);
             results.innerHTML = matches.length ? matches.map(m => `
                 <div class="compact-row" style="cursor:pointer;" data-action="link-to-stop" data-stop-id="${UI.escapeHtml(m.id)}">
                     <span class="row-label">${Utils.hide(m.name)}</span>
-                    <span class="row-value">${Utils.hide(m.agency)}</span>
+                    <span class="row-value text-muted">${Utils.hide(m.agency)}${m.code ? ' #' + Utils.hide(m.code) : ''}</span>
                 </div>
             `).join('') : '<div class="loading-state">No matching stops</div>';
             results.classList.remove('hidden');

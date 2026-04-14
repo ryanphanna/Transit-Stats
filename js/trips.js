@@ -2,7 +2,6 @@ import { db } from './firebase.js';
 import { TripController } from './trips/TripController.js';
 import { TripFeed } from './trips/TripFeed.js';
 import { TripStatsView } from './trips/TripStatsView.js';
-import { PredictionView } from './trips/PredictionView.js';
 import { MapEngine } from './map-engine.js';
 import { PredictionEngine } from './predict.js';
 import { ModalManager } from './shared/modal-engine.js';
@@ -53,9 +52,6 @@ export const Trips = {
 
         // Render Analytics
         TripStatsView.render(trips);
-
-        // Render Intelligence
-        PredictionView.render(active, trips);
 
         // Update Global Map
         MapEngine.updateTrips(trips);

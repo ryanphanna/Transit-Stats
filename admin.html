@@ -15,41 +15,14 @@
         <section id="view-admin" class="view admin-view active">
             <div class="container admin-container">
                 <div class="admin-grid">
-                    <aside class="col-inbox">
-                        <div class="card">
-                            <div class="card-header">
-                                <h3><i data-lucide="inbox" class="icon-inline"></i> Inbox</h3>
-                                <span id="inbox-count" class="badge">0</span>
-                            </div>
-                            <p class="text-secondary mb-3" style="font-size: 0.8rem;">Unlinked stop names from trips. Link them to your library.</p>
-                            <input type="text" id="inbox-search" placeholder="Search inbox..." class="mb-3">
-                            <div id="inbox-list" class="inbox-list">
-                                <div class="loading-state">Checking inbox...</div>
-                            </div>
-                        </div>
-                    </aside>
-
-                    <aside class="col-inbox" style="margin-top: 1rem;">
-                        <div class="card">
-                            <div class="card-header">
-                                <h3><i data-lucide="layers" class="icon-inline"></i> Consolidation</h3>
-                                <span id="consolidation-count" class="badge"></span>
-                            </div>
-                            <p class="text-secondary mb-3" style="font-size: 0.8rem;">Stop name variants found across your trips. Merge them into one canonical form.</p>
-                            <div id="consolidation-list" class="inbox-list">
-                                <div class="loading-state">Scanning...</div>
-                            </div>
-                        </div>
-                    </aside>
-
                     <div class="col-library">
                         <div class="card">
                             <div class="card-header">
-                                <h3><i data-lucide="library" class="icon-inline"></i> Stop Library</h3>
+                                <h3><i data-lucide="library" class="icon-inline"></i> Stops</h3>
                                 <button id="btn-new-stop" class="btn btn-primary btn-sm">+ New Stop</button>
                             </div>
                             <div class="admin-filters mb-4">
-                                <input type="text" id="lib-search" placeholder="Search library...">
+                                <input type="text" id="lib-search" placeholder="Search stops...">
                                 <select id="lib-agency">
                                     <option value="All">All Agencies</option>
                                     <option value="TTC">TTC</option>
@@ -60,7 +33,7 @@
                                 </select>
                             </div>
                             <div id="lib-list" class="lib-list">
-                                <div class="loading-state">Loading library...</div>
+                                <div class="loading-state">Loading stops...</div>
                             </div>
 
                             <div class="section minimal-card dashboard-stats-card">
@@ -86,6 +59,31 @@
                             </div>
                         </div>
                     </div>
+
+                    <aside class="col-triage">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h3><i data-lucide="inbox" class="icon-inline"></i> Unrecognized Stops</h3>
+                                <span id="inbox-count" class="badge">0</span>
+                            </div>
+                            <p class="text-secondary mb-3" style="font-size: 0.8rem;">Stop names from your trips that aren't in your stops list yet.</p>
+                            <input type="text" id="inbox-search" placeholder="Search..." class="mb-3">
+                            <div id="inbox-list" class="inbox-list">
+                                <div class="loading-state">Loading...</div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3><i data-lucide="layers" class="icon-inline"></i> Duplicates</h3>
+                                <span id="consolidation-count" class="badge"></span>
+                            </div>
+                            <p class="text-secondary mb-3" style="font-size: 0.8rem;">The same stop logged under slightly different names. Merge them into one.</p>
+                            <div id="consolidation-list" class="inbox-list">
+                                <div class="loading-state">Loading...</div>
+                            </div>
+                        </div>
+                    </aside>
                 </div>
             </div>
         </section>
@@ -104,7 +102,7 @@
             </div>
             <div class="form-group mb-3">
                 <label>Link to Existing Stop</label>
-                <input type="text" id="link-search-stop" placeholder="Search stop library...">
+                <input type="text" id="link-search-stop" placeholder="Search stops...">
                 <div id="link-search-results" class="list-compact mt-2 hidden"></div>
             </div>
             <div class="divider mb-3">OR</div>
@@ -137,6 +135,14 @@
                     <option value="YRT">YRT</option>
                     <option value="Other">Other</option>
                 </select>
+            </div>
+            <div class="form-group mb-3">
+                <label>Aliases</label>
+                <div id="stop-form-aliases" class="alias-editor mb-2"></div>
+                <div style="display:flex;gap:8px;">
+                    <input type="text" id="stop-form-alias-input" placeholder="Add alias..." style="flex:1;">
+                    <button type="button" id="btn-add-alias" class="btn btn-outline btn-sm">Add</button>
+                </div>
             </div>
             <div class="modal-footer-actions">
                 <button id="btn-save-stop" class="btn btn-primary full-width mb-3">Save Stop</button>

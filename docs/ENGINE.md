@@ -102,12 +102,17 @@ SEQUENCE_BOOST: 1.5         // Multiplier applied at transfer points
 
 ---
 
-### v5 — *planned*
-**Problem it will solve:** Logistic regression can't find feature interactions or discover signals we haven't thought of. Accuracy ceiling is ~60-65% top-1 on this dataset.
+### v5 — *benchmarked, wiring in progress*
+**Problem it will solve:** Logistic regression can't find feature interactions or discover signals we haven't thought of.
 
 **Approach:** XGBoost gradient boosted tree. Drop-in replacement — same features, same data pipeline. Discovers combinations like "York University + Monday morning = almost certainly Line 1 southbound" without being told. Richer signals to add: weather, TTC alerts, time since last trip, day of term/semester.
 
-**Target:** Beat V4's 52% top-1 before replacing it in shadow mode.
+**Initial benchmark results (same 385-trip dataset, same train/test split as V4):**
+- Top-1 accuracy: 60.6% (+8.5pp over V4)
+- Top-3 accuracy: 80.3% (+5.6pp over V4)
+- Config: n_estimators=200, max_depth=4, learning_rate=0.1
+
+V5 already beats V4 on the baseline feature set. Running in shadow mode alongside V3 and V4. Next: add richer signals (GTFS frequencies, time since last trip, etc.).
 
 ---
 

@@ -1,22 +1,9 @@
 import { auth, db } from '../firebase.js';
-import { Profile } from '../profile.js';
-import { UI } from '../ui-utils.js';
-import { ModalManager } from './modal-engine.js';
 
 /**
- * SettingsView - Manages the Settings modal, Profile syncing, and Admin Telemetry.
+ * SettingsView - Admin Telemetry rendering for the Settings page.
  */
 export const SettingsView = {
-    async open(isAdmin) {
-        ModalManager.open('modal-settings');
-        
-        const email = auth.currentUser?.email || '';
-        if (email) await Profile.syncUI(email);
-        
-        if (isAdmin) {
-            this.renderTelemetry();
-        }
-    },
 
     async renderTelemetry() {
         const container = document.getElementById('admin-insights-container');
@@ -25,7 +12,7 @@ export const SettingsView = {
         try {
             const doc = await db.collection('predictionAccuracy').doc(auth.currentUser.uid).get();
             if (!doc.exists) {
-                container.innerHTML = '<div class="text-xs text-muted text-center p-2">No telemetry recorded yet.</div>';
+                container.innerHTML = '<div class="text-xs text-muted text-center p-2">No predictions recorded yet.</div>';
                 return;
             }
 
@@ -36,7 +23,7 @@ export const SettingsView = {
             container.innerHTML = `
                 <div class="mb-3">
                     <div class="row-between">
-                        <span class="settings-sub-label">Route Signal Accuracy</span>
+                        <span class="settings-sub-label">Route prediction accuracy</span>
                         <span class="settings-main-label">${routePct}%</span>
                     </div>
                     <div class="stat-bar-container">
@@ -46,7 +33,7 @@ export const SettingsView = {
                 </div>
                 <div>
                     <div class="row-between">
-                        <span class="settings-sub-label">End-Stop Precision</span>
+                        <span class="settings-sub-label">Exit stop accuracy</span>
                         <span class="settings-main-label">${endPct}%</span>
                     </div>
                     <div class="stat-bar-container">
@@ -65,7 +52,7 @@ export const SettingsView = {
             }, 100);
 
         } catch (err) {
-            container.innerHTML = '<div class="text-xs text-danger text-center p-2">Probe failed.</div>';
+            container.innerHTML = '<div class="text-xs text-danger text-center p-2">Could not load accuracy data.</div>';
         }
     }
 };

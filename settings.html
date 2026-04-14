@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransitStats — Settings</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/main.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <main id="app-root">
+        <section id="view-settings" class="view settings-view active">
+            <div class="container settings-page-container">
+
+                <div class="settings-page-header">
+                    <h2 class="settings-page-title">Settings</h2>
+                </div>
+
+                <div class="settings-page-grid">
+
+                    <!-- Column 1 -->
+                    <div class="settings-page-col">
+
+                        <!-- Account -->
+                        <div class="settings-group">
+                            <div class="settings-group-title"><i data-lucide="user"></i><span>Account</span></div>
+                            <div class="settings-card premium-card">
+                                <div class="settings-row">
+                                    <div class="settings-label-group">
+                                        <span class="settings-sub-label">Display Name</span>
+                                        <input type="text" id="settings-name" class="minimal-input" placeholder="Enter name...">
+                                    </div>
+                                    <button id="btn-save-name" class="btn btn-sm btn-ghost p-1" title="Save name"><i data-lucide="save" class="icon-inline m-0" style="width:14px;"></i></button>
+                                </div>
+                                <div class="settings-row">
+                                    <div class="settings-label-group">
+                                        <span class="settings-sub-label">Email</span>
+                                        <span id="settings-email" class="settings-main-label text-xs">—</span>
+                                    </div>
+                                    <button id="btn-reset-password" class="btn btn-sm btn-ghost p-1" title="Password Reset"><i data-lucide="key" class="icon-inline m-0" style="width:14px;"></i></button>
+                                </div>
+                                <div class="settings-row">
+                                    <div class="settings-label-group">
+                                        <span class="settings-main-label">Phone</span>
+                                        <span id="settings-phone" class="text-accent font-bold text-xxs">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preferences -->
+                        <div class="settings-group">
+                            <div class="settings-group-title"><i data-lucide="settings"></i><span>Preferences</span></div>
+                            <div class="settings-card premium-card">
+                                <div class="settings-row">
+                                    <span class="settings-main-label">Default Agency</span>
+                                    <select id="settings-agency" class="minimal-select">
+                                        <option value="TTC">Toronto (TTC)</option>
+                                        <option value="GO">GO Transit</option>
+                                        <option value="UP">UP Express</option>
+                                        <option value="DRT">Durham Region</option>
+                                    </select>
+                                </div>
+                                <div class="settings-row">
+                                    <span class="settings-main-label text-xs">Theme</span>
+                                    <div class="status-indicator active" title="System Match"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sign Out -->
+                        <div class="mt-4">
+                            <button id="btn-logout" class="btn btn-danger-outline full-width">Sign Out</button>
+                        </div>
+
+                    </div>
+
+                    <!-- Column 2 -->
+                    <div class="settings-page-col">
+
+                        <!-- Prediction Accuracy (admin only) -->
+                        <div id="section-prediction-accuracy" class="settings-group hidden">
+                            <div class="settings-group-title"><i data-lucide="activity"></i><span>Prediction Accuracy</span></div>
+                            <div id="admin-insights-container" class="settings-card premium-card" style="padding: 16px;">
+                                <div class="loading-state">Loading...</div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script type="module" src="js/pages/settings.js"></script>
+</body>
+</html>

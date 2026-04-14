@@ -14,6 +14,7 @@ export default defineConfig({
                 map: './map.html',
                 admin: './admin.html',
                 users: './users.html',
+                settings: './settings.html',
                 rocket: './Tools/Rocket/index.html',
             },
         },

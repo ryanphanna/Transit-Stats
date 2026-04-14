@@ -4,6 +4,45 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Prediction Engine history](docs/ENGINE.md) · [NextGen Roadmap](docs/ROADMAP_NEXTGEN.md) · [Technical Roadmap](docs/ROADMAP_TECHNICAL.md)
 
+## [Unreleased]
+
+### Added
+- **Settings full page** (`/settings`): Settings is now a dedicated page instead of a modal. Account, Preferences, and admin Prediction Accuracy sections. Gear icon in header links there.
+- **Stop route + direction inheritance**: When a trip is linked to a stop, the stop automatically inherits the trip's route and direction — so future trips on the same route auto-match without manual work.
+
+### Fixed
+- **Admin Inbox always empty (real fix)**: Was reading `window.Trips.allTrips` which doesn't exist — trips live on `TripController.allTrips`. Now reads the correct source.
+- **Stop aliases not editable**: Stop edit modal now shows existing aliases as removable pills, with an add field. Aliases are saved/updated on every stop save.
+- **Map page crash/freeze**: `map.js` was passing `Trips.allTrips` (undefined) to `MapEngine.init()` — Leaflet crashed when trying to iterate undefined, hanging the tab. Now passes `TripController.allTrips`.
+- **Insights stuck at "Analyzing riding patterns..."**: `Stats.computeHighlights()` existed but was never called. Now renders commute highlights into the Insights page.
+- **"Create New Stop" button did nothing**: Button existed in the Link Stop modal but had no listener. Now opens the stop form pre-filled with the raw stop string.
+- **Users page "Failed to load users"**: Profile and phone queries were bundled in `Promise.all` — a phone number permission error killed the whole page. Now loads profiles independently; phone numbers are a best-effort bonus.
+- **Beta toggle did nothing**: `settings-beta-predictions` saved to Firestore but `PredictionView` never checked it. Moot now that the prediction card is removed.
+
+### Changed
+- **Prediction card removed**: Dashboard prediction card removed. Predictions still run via SMS (3 predicted end stops). The card was redundant.
+- **Admin Inbox rebuilt**: Now shows individual trips with unrecognized stops instead of grouped raw strings. Each trip shows route, direction, boarding/exit role, and date. Linking a trip updates that trip directly, adds the raw string as an alias, and adds route + direction to the stop — so the same variant never appears again.
+- **Inbox density**: Tighter padding and spacing — usable with 150+ items.
+- **Header**: Settings gear icon is now a link, not a button. No modal injected into DOM.
+- **Map overlay removed**: Memomaps transit overlay removed (CSP was blocking every tile request, freezing the page).
+
+## [1.20.5] - 2026-04-13
+
+### Fixed
+- **Trip feed limited to 20**: Feed now loads 20 trips with a "Show more" button that loads the next 20. Count persists across live updates.
+- **Prediction card jargon**: Replaced "Anticipated Deployment", "Active Telemetry Prediction", "Unmapped Vector", "Intercept Time Unknown", "Terminating:" with plain language.
+
+## [1.20.4] - 2026-04-13
+
+### Added
+- **Prediction Engine V5 (Shadow Mode)**: XGBoost classifier — 60.6% top-1 / 80.3% top-3 (+8.5pp / +5.6pp over V4). Runs silently alongside V3 and V4 on every SMS prediction via ONNX runtime. Graded and logged to `predictionStats` at trip end.
+
+### Fixed
+- **Admin Inbox always empty**: `loadInbox` was running in parallel with `loadStops` and before trips were ready — scanning zero trips against an empty library and finding nothing. Now runs sequentially after both are loaded.
+
+### Changed
+- **Admin layout**: Stop Library is now the primary content area. Inbox and Consolidation moved to a narrower sidebar on the right.
+
 ## [1.20.3] - 2026-04-13
 
 ### Added

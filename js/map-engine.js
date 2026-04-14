@@ -66,11 +66,7 @@ export const MapEngine = {
             maxZoom: 19
         }).addTo(this.map);
 
-        // Transit Overlay (Memomaps)
-        this.layers.transit = L.tileLayer('https://tile.memomaps.de/tilegen/{z}/{x}/{y}.png', {
-            maxZoom: 18,
-            opacity: 0.6
-        }).addTo(this.map);
+        this.layers.transit = null;
 
         // Marker Cluster Group - much faster for large datasets
         if (window.L.markerClusterGroup) {

@@ -5,25 +5,39 @@ import { TripController } from './TripController.js';
  * TripFeed - Manages the UI rendering for the trip cards and feed.
  */
 export const TripFeed = {
-    render(container, trips, onEdit) {
+    _visibleCount: 20,
+    _PAGE_SIZE: 20,
+
+    render(container, trips, onEdit, reset = false) {
         if (!container) return;
         if (!trips || trips.length === 0) {
-            container.innerHTML = '<div class="loading-state">No trips recorded in this sector.</div>';
+            container.innerHTML = '<div class="loading-state">No trips yet.</div>';
             return;
         }
 
+        if (reset) this._visibleCount = this._PAGE_SIZE;
+
         container.innerHTML = '';
-        const visible = trips.slice(0, 20); // Virtualized to top 20 for performance
+        const visible = trips.slice(0, this._visibleCount);
 
         visible.forEach((trip, i) => {
             container.appendChild(this._createCard(trip, onEdit));
-            
-            // Check for journey links
             const next = visible[i + 1];
             if (trip.journeyId && next?.journeyId === trip.journeyId) {
                 container.appendChild(this._createConnector(trip, next));
             }
         });
+
+        if (this._visibleCount < trips.length) {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-outline full-width mt-3';
+            btn.textContent = `Show more (${trips.length - this._visibleCount} remaining)`;
+            btn.addEventListener('click', () => {
+                this._visibleCount += this._PAGE_SIZE;
+                this.render(container, trips, onEdit);
+            });
+            container.appendChild(btn);
+        }
 
         if (window.lucide) lucide.createIcons();
     },

@@ -1,5 +1,6 @@
 import { requireAuth } from '../shared/auth-guard.js';
 import { initHeader } from '../shared/header.js';
+import { ModalManager } from '../shared/modal-engine.js';
 import { Trips } from '../trips.js';
 import { Stats } from '../stats.js';
 import { Admin } from '../admin.js';
@@ -111,6 +112,7 @@ function setupStatsToggle() {
 async function init() {
     const { user, isAdmin } = await requireAuth();
     initHeader({ isAdmin, currentPage: 'dashboard' });
+    ModalManager.init();
 
     await Profile.load(user);
 
@@ -125,12 +127,6 @@ async function init() {
     document.querySelectorAll('[data-close-modal]').forEach(btn => {
         btn.addEventListener('click', closeAllModals);
     });
-
-    // Prediction card (admin only)
-    if (isAdmin) {
-        const predictionCard = document.getElementById('prediction-card');
-        if (predictionCard) predictionCard.style.display = '';
-    }
 
     Trips.init();
     Trips._readyPromise.then(() => {

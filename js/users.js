@@ -25,27 +25,33 @@ export const Users = {
 
     async load() {
         try {
-            const [profilesSnap, phonesSnap] = await Promise.all([
-                db.collection('profiles').get(),
-                db.collection('phoneNumbers').get(),
-            ]);
+            const profilesSnap = await db.collection('profiles').get();
+            this.profiles = profilesSnap.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                phone: null,
+            }));
+            this.profiles.sort((a, b) => (a.email || a.name || '').localeCompare(b.email || b.name || ''));
+        } catch (err) {
+            console.error('Users load error:', err);
+            UI.showNotification('Failed to load users.');
+            return;
+        }
 
+        // Phone numbers are a bonus — don't let failure block the page
+        try {
+            const phonesSnap = await db.collection('phoneNumbers').get();
             this.phoneMap = {};
             phonesSnap.docs.forEach(doc => {
                 const data = doc.data();
                 if (data.userId) this.phoneMap[data.userId] = doc.id;
             });
-
-            this.profiles = profilesSnap.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                phone: this.phoneMap[doc.id] || null,
+            this.profiles = this.profiles.map(p => ({
+                ...p,
+                phone: this.phoneMap[p.id] || null,
             }));
-
-            this.profiles.sort((a, b) => (a.email || '').localeCompare(b.email || ''));
         } catch (err) {
-            console.error('Users load error:', err);
-            UI.showNotification('Failed to load users.');
+            console.warn('Phone numbers unavailable:', err.message);
         }
     },
 
@@ -63,7 +69,7 @@ export const Users = {
         if (counter) counter.textContent = `${premiumCount} premium / ${this.profiles.length} total`;
 
         list.innerHTML = this.profiles.map(u => {
-            const name = Utils.hide(u.displayName || u.email?.split('@')[0] || 'Unknown');
+            const name = Utils.hide(u.displayName || u.name || u.email?.split('@')[0] || 'Unknown');
             const email = Utils.hide(u.email || '—');
             const phone = u.phone ? Utils.hide(u.phone) : '<span style="color:var(--text-muted)">No phone</span>';
             const badge = u.isPremium

@@ -1,4 +1,5 @@
 import { Stats } from '../stats.js';
+import { Utils } from '../utils.js';
 
 /**
  * TripStatsView - Manages the visualization of transit metrics and analytics.
@@ -6,7 +7,7 @@ import { Stats } from '../stats.js';
 export const TripStatsView = {
     render(trips, range = 30) {
         const metrics = Stats.computeMetrics(trips, range);
-        
+
         // Update primary metric boxes
         this._updateBox('stat-trips', metrics.trips);
         this._updateBox('stat-routes', metrics.routes);
@@ -28,6 +29,10 @@ export const TripStatsView = {
         const streaks = Stats.calculateStreaks(trips);
         this._updateBox('stat-current-streak', streaks.current);
         this._updateBox('stat-best-streak', streaks.best);
+
+        // Commute Highlights (Insights page)
+        const highlights = Stats.computeHighlights(trips);
+        this._renderHighlights('commute-highlights-insights', highlights);
     },
 
     _updateBox(id, val) {
@@ -48,6 +53,29 @@ export const TripStatsView = {
             <div class="compact-row">
                 <span class="row-label">${Utils.hide(item.name)}</span>
                 <span class="row-value font-mono">${item.count}</span>
+            </div>
+        `).join('');
+    },
+
+    _renderHighlights(containerId, highlights) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        if (!highlights || highlights.length === 0) {
+            container.innerHTML = '<div class="loading-state">Not enough data yet — need at least 2 trips on the same corridor.</div>';
+            return;
+        }
+
+        container.innerHTML = highlights.map(h => `
+            <div class="highlight-row">
+                <div class="highlight-name">${Utils.hide(h.name)}</div>
+                <div class="highlight-meta">
+                    <span>${h.count} trips</span>
+                    <span class="text-muted">·</span>
+                    <span>avg ${h.avg} min</span>
+                    <span class="text-muted">·</span>
+                    <span>best ${h.min} min</span>
+                </div>
             </div>
         `).join('');
     },

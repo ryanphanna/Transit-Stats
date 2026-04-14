@@ -1,6 +1,7 @@
 import { requireAuth } from '../shared/auth-guard.js';
 import { initHeader } from '../shared/header.js';
 import { Trips } from '../trips.js';
+import { TripController } from '../trips/TripController.js';
 import { MapEngine } from '../map-engine.js';
 
 function refreshIcons() {
@@ -17,7 +18,7 @@ async function init() {
 
     Trips.init();
     Trips._readyPromise.then(() => {
-        MapEngine.init(Trips.allTrips);
+        MapEngine.init(TripController.allTrips || []);
         setTimeout(() => { if (MapEngine.map) MapEngine.map.invalidateSize(); }, 100);
         refreshIcons();
     });

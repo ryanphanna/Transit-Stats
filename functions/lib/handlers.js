@@ -27,6 +27,7 @@ const {
 } = require('./db');
 const { PredictionEngine } = require('./predict.js');
 const { PredictionEngineV4 } = require('./predict_v4.js');
+const { PredictionEngineV5 } = require('./predict_v5.js');
 const {
   getStopDisplay,
   getRouteDisplay,
@@ -327,6 +328,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
   // No active trip - generate predictions before creating trip
   let prediction = null;
   let predictionV4 = null;
+  let predictionV5 = null;
   let endStopPrediction = null;
   let endStopPredictions = null;
   const startStopName = stopData ? stopData.stopName : parsedStop.stopName;
@@ -348,6 +350,10 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       routesAtStop: routesAtStop || undefined,
     });
     predictionV4 = PredictionEngineV4.guess({
+      stopName: startStopName,
+      time: now,
+    });
+    predictionV5 = await PredictionEngineV5.guess({
       stopName: startStopName,
       time: now,
     });
@@ -379,6 +385,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
     parsed_by: options.parsed_by || 'manual',
     prediction: prediction || null,
     predictionV4: predictionV4 || null,
+    predictionV5: predictionV5 || null,
     endStopPrediction: endStopPrediction || null,
     endStopPredictions: endStopPredictions || null,
     needs_review: !isValidRoute(route) || null,
@@ -412,6 +419,7 @@ async function handleConfirmStart(phoneNumber, user, state) {
 
   let confirmPrediction = null;
   let confirmPredictionV4 = null;
+  let confirmPredictionV5 = null;
   let confirmEndStopPrediction = null;
   let confirmEndStopPredictions = null;
   let confirmIsAdmin = false;
@@ -431,6 +439,10 @@ async function handleConfirmStart(phoneNumber, user, state) {
       routesAtStop: routesAtStop || undefined,
     });
     confirmPredictionV4 = PredictionEngineV4.guess({
+      stopName: newTrip.stopName,
+      time: now,
+    });
+    confirmPredictionV5 = await PredictionEngineV5.guess({
       stopName: newTrip.stopName,
       time: now,
     });
@@ -475,6 +487,7 @@ async function handleConfirmStart(phoneNumber, user, state) {
     parsed_by: newTrip.parsed_by || 'manual',
     prediction: confirmPrediction || null,
     predictionV4: confirmPredictionV4 || null,
+    predictionV5: confirmPredictionV5 || null,
     endStopPrediction: confirmEndStopPrediction || null,
     endStopPredictions: confirmEndStopPredictions || null,
   });
@@ -682,6 +695,42 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
       });
       console.log(`Prediction V4 graded for ${user.userId}: ${isHitV4 ? 'HIT' : (isPartialHitV4 ? 'PARTIAL' : 'MISS')} | ` +
         `${predictedLabelV4} → ${actualLabelV4}`);
+    }
+
+    // Grade V5 Prediction silently in the background
+    const storedV5 = activeTrip.predictionV5;
+    if (storedV5) {
+      const actualRoute = activeTrip.route.toString();
+      const predRouteV5 = storedV5.route.toString();
+      const isHitV5 = predRouteV5 === actualRoute;
+
+      const baseRoute = r => /^\d/.test(r) ? r.replace(/[a-zA-Z]+(\s.*)?$/, '').trim() : r;
+      const isPartialHitV5 = !isHitV5 &&
+        baseRoute(predRouteV5) === baseRoute(actualRoute) &&
+        baseRoute(predRouteV5) !== '';
+
+      const predictedLabelV5 = storedV5.route + ' from ' + (activeTrip.startStopName || '?');
+      const actualLabelV5 = activeTrip.route + (activeTrip.direction ? ' ' + activeTrip.direction : '') +
+        ' from ' + (activeTrip.startStopName || '?');
+
+      await db.collection('predictionStats').add({
+        userId: user.userId,
+        isHit: !!isHitV5,
+        isPartialHit: !isHitV5 && !!isPartialHitV5,
+        predicted: predictedLabelV5,
+        actual: actualLabelV5,
+        confidence: storedV5.confidence,
+        version: storedV5.version,
+        route: activeTrip.route,
+        endStopPredicted: null,
+        endStopActual: null,
+        endStopHit: null,
+        endStopConfidence: null,
+        source: 'sms',
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      console.log(`Prediction V5 graded for ${user.userId}: ${isHitV5 ? 'HIT' : (isPartialHitV5 ? 'PARTIAL' : 'MISS')} | ` +
+        `${predictedLabelV5} → ${actualLabelV5}`);
     }
   } catch (predictionErr) {
     console.error('Error grading prediction:', predictionErr);

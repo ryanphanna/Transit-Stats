@@ -1,4 +1,5 @@
 import { PredictionEngine } from '../predict.js';
+import { Profile } from '../profile.js';
 
 /**
  * PredictionView - Manages the 'Intelligence' UI for anticipating next trips.
@@ -9,8 +10,13 @@ export const PredictionView = {
         const content = document.getElementById('prediction-content');
         if (!card || !content) return;
 
-        // Hide prediction deck if not an administrator
+        // Prediction card is admin-only; admins can toggle it off in Settings
         if (!window.isAdmin) {
+            card.style.display = 'none';
+            return;
+        }
+        const betaEnabled = Profile.data?.betaFeatures?.predictions;
+        if (betaEnabled === false) {
             card.style.display = 'none';
             return;
         }
@@ -30,16 +36,16 @@ export const PredictionView = {
             time: activeTrip.startTime?.toDate ? activeTrip.startTime.toDate() : new Date(activeTrip.startTime)
         });
 
-        card.querySelector('.prediction-label').textContent = "Active Telemetry Prediction";
+        card.querySelector('.prediction-label').textContent = "Trip in Progress";
         card.classList.add('trip-active-card');
         card.style.display = 'block';
 
         if (p) {
-            const arrival = p.avgDuration ? `ETA: ~${p.avgDuration} min` : 'Intercept Time Unknown';
+            const arrival = p.avgDuration ? `~${p.avgDuration} min` : 'Arrival time unknown';
             content.innerHTML = `
                 <div class="prediction-main">
-                    <div class="prediction-route">Terminating: ${Utils.hide(p.stop)}</div>
-                    <div class="prediction-stop text-secondary">${Utils.hide(arrival)} • Confidence Interval: ${p.confidence}%</div>
+                    <div class="prediction-route">Ending at ${Utils.hide(p.stop)}</div>
+                    <div class="prediction-stop text-secondary">${Utils.hide(arrival)} • ${p.confidence}% confidence</div>
                 </div>
                 <div class="prediction-stats">
                      <div class="stat-indicator active"></div>
@@ -48,8 +54,8 @@ export const PredictionView = {
         } else {
             content.innerHTML = `
                 <div class="prediction-main">
-                    <div class="prediction-route">Unmapped Vector</div>
-                    <div class="prediction-stop text-muted">No historical matches found for this route segment.</div>
+                    <div class="prediction-route">No prediction available</div>
+                    <div class="prediction-stop text-muted">No historical matches for this route.</div>
                 </div>
             `;
         }
@@ -60,7 +66,7 @@ export const PredictionView = {
             time: new Date()
         });
 
-        card.querySelector('.prediction-label').textContent = "Anticipated Deployment";
+        card.querySelector('.prediction-label').textContent = "Next Trip Prediction";
         card.classList.remove('trip-active-card');
 
         if (p && p.confidence > 25) {
@@ -68,7 +74,7 @@ export const PredictionView = {
             content.innerHTML = `
                 <div class="prediction-main">
                     <div class="prediction-route">${Utils.hide(p.route)} ${Utils.hide(p.direction || '')}</div>
-                    <div class="prediction-stop">Expected deployment from ${Utils.hide(p.stop)}</div>
+                    <div class="prediction-stop">From ${Utils.hide(p.stop)}</div>
                 </div>
                 <div class="prediction-stats">
                     <span class="prediction-confidence font-mono">${p.confidence}%</span>
