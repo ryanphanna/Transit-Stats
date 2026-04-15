@@ -2,7 +2,7 @@
  * Message parsing logic for transit trip tracking
  */
 const { KNOWN_AGENCIES } = require('./constants');
-const { toTitleCase, normalizeDirection, normalizeRoute } = require('./utils');
+const { toTitleCase, normalizeDirection, normalizeRoute, normalizeAgency } = require('./utils');
 
 /**
  * Parse stop input to determine if it's a stop code (all digits) or stop name (contains letters)
@@ -62,7 +62,7 @@ function parseMultiLineTripFormat(body, defaultAgency) {
     const lowerAgency = potentialAgency.toLowerCase();
     const knownAgency = KNOWN_AGENCIES.find((a) => a.toLowerCase() === lowerAgency);
     if (knownAgency) {
-      agency = knownAgency;
+      agency = normalizeAgency(knownAgency);
       direction = null; // Shift if it was an agency
     }
   } else if (lines.length > 3) {
@@ -71,7 +71,7 @@ function parseMultiLineTripFormat(body, defaultAgency) {
     const lowerAgency = potentialAgency.toLowerCase();
     const knownAgency = KNOWN_AGENCIES.find((a) => a.toLowerCase() === lowerAgency);
     if (knownAgency) {
-      agency = knownAgency;
+      agency = normalizeAgency(knownAgency);
     }
   }
 
@@ -154,8 +154,8 @@ function parseAgencyOverride(message) {
         return { agency: null, remainingMessage: trimmed };
       }
 
-      // Return the canonical agency name (properly cased)
-      return { agency, remainingMessage };
+      // Return the canonical agency name
+      return { agency: normalizeAgency(agency), remainingMessage };
     }
   }
 

@@ -20,7 +20,7 @@ const {
 const { sendSmsReply, getTwilioPhoneNumber } = require('./twilio');
 const { parseWithGemini, constructStopInput } = require('./gemini');
 const { parseMultiLineTripFormat, parseEndTripFormat } = require('./parsing');
-const { isValidRoute, normalizeDirection, getRouteDisplay, getStopDisplay } = require('./utils');
+const { isValidRoute, normalizeDirection, getRouteDisplay, getStopDisplay, normalizeAgency } = require('./utils');
 const handlers = require('./handlers');
 
 /**
@@ -94,11 +94,15 @@ async function dispatch(phoneNumber, body, messageSid) {
   if (privateHandled) return '';
 
   // 7. Core Trip Logic (Parsing & Heuristics)
-  const tripHandled = await handleTripFlow(phoneNumber, user, body);
+  // Strip optional "START " prefix so "Start 2 Spadina West" works the same as "2 Spadina West"
+  const startPrefixMatch = body.match(/^START\s+(.+)$/i);
+  const tripBody = startPrefixMatch ? startPrefixMatch[1] : body;
+
+  const tripHandled = await handleTripFlow(phoneNumber, user, tripBody);
   if (tripHandled) return '';
 
   // 8. AI Intent Recognition (Gemini)
-  const aiHandled = await handleAIIntent(phoneNumber, user, body);
+  const aiHandled = await handleAIIntent(phoneNumber, user, tripBody);
   if (aiHandled) return '';
 
   // 9. Final Fallback
@@ -264,13 +268,14 @@ async function handleAIIntent(phoneNumber, user, body) {
       ]);
       const normalizedDir = normalizeDirection(geminiResult.direction);
       const safeDir = CANONICAL_DIRECTIONS.has(normalizedDir) ? normalizedDir : null;
+      const aiAgency = geminiResult.agency ? normalizeAgency(geminiResult.agency) : null;
       await handlers.handleTripLog(
         phoneNumber,
         user,
         startStop,
         geminiResult.route,
         safeDir,
-        defaultAgency,
+        aiAgency || defaultAgency,
         { parsed_by: 'ai' },
       );
       return true;

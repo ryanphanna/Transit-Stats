@@ -67,6 +67,12 @@ the binding is in the stops library and route metadata.
   ride multiple systems.
 - [ ] **Agency auto-detection** — infer the agency from the stop name at trip start
   rather than requiring the user to specify.
+- [ ] **Per-trip timezone storage** — store the IANA timezone on each trip document at
+  log time (derived from the agency via `lookupAgencyTimezone`). Currently, ASK queries
+  that span multiple cities (e.g. "how many trips this month" after returning from LA)
+  use the most recent trip's timezone for the entire date window, which misattributes
+  trips taken near midnight in the other city. Storing timezone per-trip allows correct
+  date bucketing across any query window regardless of city-switching history.
 
 ---
 

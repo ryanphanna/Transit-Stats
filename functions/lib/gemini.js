@@ -47,7 +47,7 @@ async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
  * @param {Array} trips - List of trip objects
  * @returns {object} Aggregated stats
  */
-function aggregateTripStats(trips) {
+function aggregateTripStats(trips, timezone = 'America/Toronto') {
   const routeMap = {};
   const pairMap = {};
   const boardingStopMap = {};
@@ -135,7 +135,7 @@ function aggregateTripStats(trips) {
   trips.forEach((trip) => {
     if (!trip.startTime) return;
     const date = trip.startTime.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
-    const key = date.toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });
+    const key = date.toLocaleDateString('en-CA', { timeZone: timezone });
     dailyCounts[key] = (dailyCounts[key] || 0) + 1;
   });
 
@@ -148,8 +148,8 @@ function aggregateTripStats(trips) {
     total: trips.length,
     routeStats, pairStats, boardingStops, exitStops, timeOfDay, dailyCounts, allStops,
     dayOfWeek: dayOfWeekMap,
-    windowStart: windowStart ? windowStart.toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }) : null,
-    windowEnd: windowEnd ? windowEnd.toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }) : null,
+    windowStart: windowStart ? windowStart.toLocaleDateString('en-CA', { timeZone: timezone }) : null,
+    windowEnd: windowEnd ? windowEnd.toLocaleDateString('en-CA', { timeZone: timezone }) : null,
   };
 }
 
@@ -198,6 +198,7 @@ function sanitizeGeminiOutput(parsed) {
     stop_name: sanitizeField(parsed.stop_name),
     stop_id: sanitizeField(parsed.stop_id, 20),
     direction: sanitizeField(parsed.direction, 30),
+    agency: sanitizeField(parsed.agency, 50),
     sentiment,
     tags,
     question: sanitizeField(parsed.question, 300),
@@ -215,7 +216,31 @@ function sanitizeGeminiOutput(parsed) {
  * @param {Array} conversationHistory - Recent Q&A turns [{ role, text }]
  * @returns {Promise<string>} AI answer
  */
-async function answerQueryWithGemini(userId, question, recentTrips, stats, conversationHistory = []) {
+/**
+ * Returns UTC Date objects for the start and end of a calendar day in the given timezone.
+ * Uses noon as a DST-safe reference point to calculate the UTC offset.
+ * @param {string} dateStr - YYYY-MM-DD
+ * @param {string} timezone - IANA timezone string
+ * @returns {{ start: Date, end: Date }}
+ */
+function dayBoundsInTimezone(dateStr, timezone) {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const refUTC = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  }).formatToParts(refUTC).reduce((o, p) => { o[p.type] = p.value; return o; }, {});
+  const localNoonMs = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
+  const offsetMs = refUTC.getTime() - localNoonMs;
+  return {
+    start: new Date(Date.UTC(year, month - 1, day, 0, 0, 0) + offsetMs),
+    end: new Date(Date.UTC(year, month - 1, day, 23, 59, 59) + offsetMs),
+  };
+}
+
+async function answerQueryWithGemini(userId, question, recentTrips, stats, conversationHistory = [], timezone = 'America/Toronto') {
   const apiKey = geminiApiKey.value();
   if (!apiKey) return 'AI unavailable right now.';
 
@@ -268,9 +293,22 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats, conve
         },
         {
           name: 'get_trips_for_date',
-          description: 'Get the number of trips taken on a specific calendar date. ' +
-            'Call this for questions like "how many trips on March 1?", "did I ride on Jan 1?", ' +
-            'or any question about a specific day\'s trip count.',
+          description: 'Get the COUNT of trips taken on a specific calendar date. ' +
+            'Call this ONLY for questions like "how many trips on March 1?", "did I ride on Jan 1?". ' +
+            'Do NOT call this when the user asks which trips, what routes, or trip details — use get_trip_details_for_date instead.',
+          parameters: {
+            type: 'object',
+            properties: {
+              date: { type: 'string', description: 'The date in YYYY-MM-DD format (e.g. "2026-03-01")' },
+            },
+            required: ['date'],
+          },
+        },
+        {
+          name: 'get_trip_details_for_date',
+          description: 'Get the full details of each trip taken on a specific date — route, direction, boarding stop, exit stop, and time. ' +
+            'Call this when the user asks "which trips", "what routes", "where did I go", "what did I ride", ' +
+            'or any question about the specific trips taken on a day (not just the count).',
           parameters: {
             type: 'object',
             properties: {
@@ -611,8 +649,8 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats, conve
       return routes;
     },
     get_trips_for_date_range: async ({ start_date, end_date }) => {
-      const start = new Date(`${start_date}T00:00:00`);
-      const end = new Date(`${end_date}T23:59:59`);
+      const { start } = dayBoundsInTimezone(start_date, timezone);
+      const { end } = dayBoundsInTimezone(end_date, timezone);
       const snap = await db.collection('trips')
         .where('userId', '==', userId)
         .where('startTime', '>=', start)
@@ -621,14 +659,36 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats, conve
       return { start_date, end_date, count: snap.size };
     },
     get_trips_for_date: async ({ date }) => {
-      const start = new Date(`${date}T00:00:00`);
-      const end = new Date(`${date}T23:59:59`);
+      const { start, end } = dayBoundsInTimezone(date, timezone);
       const snap = await db.collection('trips')
         .where('userId', '==', userId)
         .where('startTime', '>=', start)
         .where('startTime', '<=', end)
         .get();
       return { date, count: snap.size };
+    },
+    get_trip_details_for_date: async ({ date }) => {
+      const { start, end } = dayBoundsInTimezone(date, timezone);
+      const snap = await db.collection('trips')
+        .where('userId', '==', userId)
+        .where('startTime', '>=', start)
+        .where('startTime', '<=', end)
+        .orderBy('startTime', 'asc')
+        .get();
+      const trips = snap.docs.map((d) => {
+        const t = d.data();
+        const startTime = t.startTime?.toDate ? t.startTime.toDate() : new Date(t.startTime);
+        const timeStr = startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: timezone });
+        return {
+          time: timeStr,
+          route: t.route || 'Unknown',
+          direction: t.direction || null,
+          from: t.startStopName || t.startStop || t.startStopCode || 'Unknown',
+          to: t.endStopName || t.endStop || t.endStopCode || null,
+          duration_min: t.duration || null,
+        };
+      });
+      return { date, trips };
     },
     get_day_of_week_stats_for_year: async ({ year: rawYear }) => {
       const year = parseInt(rawYear, 10);
@@ -668,7 +728,7 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats, conve
       history: chatHistory,
     });
 
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: timezone });
     const introPrompt = `You are a transit stats assistant for TransitStats.
 Answer the user's question using their personal transit data below.
 Be concise and friendly. Keep the response under 300 characters for SMS.
@@ -764,11 +824,14 @@ async function parseWithGemini(text) {
       If ambiguous, prefer stop_name over stop_id. Never put a route number in stop_id.
     - Stop Name: Extract the full location name.
     - Ignore conversational text: "Just boarded", "I'm on", "taking", etc.
+    - Agency: Extract the transit agency name if explicitly mentioned (e.g., "LA Metro", "BART", "TTC").
+      If not mentioned, return null — do not guess.
     - Sentiment: Determine if POSITIVE, NEGATIVE, or NEUTRAL.
     - Tags: Extract 1-3 keyword tags (e.g., "crowded", "delayed", "clean").
 
     Examples:
     - "Just boarded Route 1 NB" -> intent: "START_TRIP", route: "1", direction: "Northbound"
+    - "B Line Wilshire/Vermont LA Metro" -> intent: "START_TRIP", route: "B", stop_name: "Wilshire/Vermont", agency: "LA Metro"
     - "Packed 504 from King" -> intent: "START_TRIP", route: "504", tags: ["crowded"]
     - "How many trips have I taken in total ever?" -> intent: "QUERY", question: "How many trips have I taken in total ever?"
     - "How many trips have I taken in 2026 so far?" -> intent: "QUERY", question: "How many trips have I taken in 2026 so far?"
@@ -786,6 +849,7 @@ async function parseWithGemini(text) {
       "stop_name": "string" | null,
       "stop_id": "string" | null,
       "direction": "string" | null,
+      "agency": "string" | null,
       "sentiment": "POSITIVE" | "NEGATIVE" | "NEUTRAL",
       "tags": ["string"],
       "question": "string" | null
@@ -817,10 +881,109 @@ async function parseWithGemini(text) {
   });
 }
 
+// Ambiguous agency names that should never be cached — Gemini looks them up fresh each time
+const AMBIGUOUS_AGENCIES = new Set(['MTA', 'Metro', 'Transit']);
+
+// Known agency → IANA timezone mappings (checked before Firestore/Gemini)
+// Canonical agency names only — aliases are handled by normalizeAgency() before lookup
+const KNOWN_AGENCY_TIMEZONES = {
+  // Ontario
+  'TTC': 'America/Toronto',
+  'MiWay': 'America/Toronto',
+  'GO Transit': 'America/Toronto',
+  'YRT': 'America/Toronto',
+  'Brampton Transit': 'America/Toronto',
+  'Durham Transit': 'America/Toronto',
+  'HSR': 'America/Toronto',
+  'GRT': 'America/Toronto',
+  'OC Transpo': 'America/Toronto',
+  // Quebec
+  'STM': 'America/Toronto',
+  // BC
+  'TransLink': 'America/Vancouver',
+  // NYC
+  'NYC MTA': 'America/New_York',
+  // LA
+  'LA Metro': 'America/Los_Angeles',
+  'LADOT': 'America/Los_Angeles',
+  'Big Blue Bus': 'America/Los_Angeles',
+  // SF Bay Area
+  'BART': 'America/Los_Angeles',
+  'Muni': 'America/Los_Angeles',
+  'Caltrain': 'America/Los_Angeles',
+  'VTA': 'America/Los_Angeles',
+  'AC Transit': 'America/Los_Angeles',
+  'SamTrans': 'America/Los_Angeles',
+};
+
+/**
+ * Look up the IANA timezone for a transit agency.
+ * Checks hardcoded map first, then Firestore cache, then asks Gemini.
+ * Caches Gemini results to Firestore so each agency is only looked up once.
+ * @param {string} agency
+ * @returns {Promise<string>} IANA timezone string (e.g. 'America/Los_Angeles')
+ */
+async function lookupAgencyTimezone(agency) {
+  if (!agency) return 'America/Toronto';
+
+  // Normalize first so aliases always resolve to canonical names
+  const { normalizeAgency } = require('./utils');
+  const canonical = normalizeAgency(agency);
+
+  // 1. Hardcoded map
+  if (KNOWN_AGENCY_TIMEZONES[canonical]) return KNOWN_AGENCY_TIMEZONES[canonical];
+
+  // 2. Firestore cache (skip for ambiguous names — they can't be cached safely)
+  const admin = require('firebase-admin');
+  const db = admin.firestore();
+  const isAmbiguous = AMBIGUOUS_AGENCIES.has(canonical);
+  if (!isAmbiguous) {
+    try {
+      const doc = await db.collection('agencyTimezones').doc(canonical).get();
+      if (doc.exists && doc.data().timezone) return doc.data().timezone;
+    } catch (e) {
+      console.error('agencyTimezones cache read error:', e.message);
+    }
+  }
+
+  // 3. Ask Gemini
+  const apiKey = geminiApiKey.value();
+  if (!apiKey) return 'America/Toronto';
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const result = await model.generateContent(
+      `What is the IANA timezone for the public transit agency "${canonical}"? ` +
+      `Reply with only the IANA timezone string (e.g. America/Los_Angeles), nothing else.`
+    );
+    const tz = result.response.text().trim().replace(/['"]/g, '');
+
+    // Basic sanity check — IANA timezones contain a /
+    if (tz && tz.includes('/')) {
+      if (!isAmbiguous) {
+        await db.collection('agencyTimezones').doc(canonical).set({
+          timezone: tz,
+          discoveredAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        console.log(`Agency timezone discovered and cached: ${canonical} → ${tz}`);
+      } else {
+        console.log(`Agency timezone resolved (not cached, ambiguous): ${canonical} → ${tz}`);
+      }
+      return tz;
+    }
+  } catch (e) {
+    console.error('Agency timezone Gemini lookup error:', e.message);
+  }
+
+  return 'America/Toronto';
+}
+
 module.exports = {
   retryWithBackoff,
   aggregateTripStats,
   answerQueryWithGemini,
   constructStopInput,
   parseWithGemini,
+  lookupAgencyTimezone,
 };

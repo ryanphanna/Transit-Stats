@@ -6,6 +6,26 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.21.0] - 2026-04-15
+
+### Fixed
+- **"Start [Route] [Stop]" not recognized**: Messages beginning with "START " (e.g. "Start 2 Spadina West") were passed to Gemini with the prefix intact, which confused intent parsing. The prefix is now stripped before trip flow and AI handling so it works identically to sending the trip without it.
+- **Stop names with leading parentheses lose capitalization**: `toTitleCase` called `.charAt(0).toUpperCase()` on each word-part, but a leading `(` is not a letter so the actual first letter stayed lowercase (e.g. `(laird` instead of `(Laird`). Fixed by using a regex that skips leading non-letter characters before capitalizing.
+- **ASK "which trips today?" only returned a count**: `get_trips_for_date` returned `{ date, count }` with no trip details. Added `get_trip_details_for_date` tool that returns route, direction, from/to stops, and time for each trip. Updated `get_trips_for_date` description to steer Gemini toward the right tool based on intent.
+
+### Changed
+- **STATS format**: Replaced terse labels (`7d`, `30d`, `MTD`) with plain English (`Past 7 days`, `Past 30 days`, `This month`).
+- **INFO personalised by tier**: Non-premium users no longer see the ASK command in the INFO response. Premium users see it without the "(premium)" qualifier since it's already known to them. REGISTER removed from INFO entirely.
+- **Agency shown in trip confirmations for non-default agencies**: Start and end confirmation messages now append " via [Agency]" when the trip's agency differs from the user's profile default (e.g. "Started 5 Westbound from 3174 (Laird / Ridgeway) via Oakville Transit.").
+- **Timezone-correct date bounds for ASK queries**: `get_trips_for_date`, `get_trips_for_date_range`, and `get_trip_details_for_date` now compute day start/end as UTC timestamps anchored to the user's local timezone using a DST-safe noon reference point, instead of treating date strings as UTC. Fixes off-by-one-day issues for trips near midnight in non-UTC timezones.
+- **Gemini intent parser now extracts agency**: Added `agency` field to the Gemini SMS parsing prompt, schema, and sanitizer. AI-parsed trips (the fallback path) now use the extracted and normalized agency instead of always defaulting to the user's profile default. Fixes trips logged via natural language in non-default cities being stored with the wrong agency.
+- **Agency timezone auto-discovery**: New `lookupAgencyTimezone(agency)` function checks a hardcoded map of known agencies first, then a Firestore `agencyTimezones` cache, then asks Gemini for unknown agencies and caches the result permanently. ASK queries now derive timezone from the most recent trip's agency automatically — no manual profile updates needed when travelling. LA/SF agencies (LA Metro, BART, Muni, AC Transit, Caltrain, etc.) pre-seeded.
+- **Agency name canonicalization**: Added `AGENCY_CANONICAL` map and `normalizeAgency()` util. All agency names are normalized to a canonical form at parse time — "Toronto Transit Commission", "toronto transit commission", and "TTC" all store as "TTC". Applies to multi-line SMS parser, agency override parser, and AI-parsed trips. Prevents stat fragmentation from alias variations.
+- **LA/SF agencies added to `KNOWN_AGENCIES`**: LA Metro, LAMETRO, BART, Muni, SFMUNI, SFMTA, AC Transit, ACTRANSIT, Caltrain, VTA, SamTrans, LADOT, Big Blue Bus now recognized by the deterministic SMS parser.
+- **Timezone-aware ASK queries**: `aggregateTripStats` and `answerQueryWithGemini` now accept a `timezone` parameter. Timezone is derived automatically from the most recent trip's agency via `lookupAgencyTimezone` — no manual configuration needed when travelling.
+- **`activeTrip.agency` no longer falls back to `'TTC'`**: Changed to `null` to avoid silently misattributing trips from other agencies.
+- **V4/V5 end stop predictions now collected and graded**: Both ML engines previously had `guessTopEndStops` implemented but never called. Top-1 end stop predictions from V4 (logistic regression) and V5 (XGBoost) are now stored on each trip doc at start time and graded against the actual exit stop at trip end, feeding `predictionStats` with version-tagged end stop accuracy data.
+
 ## [1.20.11] - 2026-04-15
 
 ### Fixed

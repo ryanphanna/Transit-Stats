@@ -2,7 +2,7 @@
  * Utility functions for SMS processing
  */
 const crypto = require('crypto');
-const { BAD_ROUTE_SUFFIXES } = require('./constants');
+const { BAD_ROUTE_SUFFIXES, AGENCY_CANONICAL } = require('./constants');
 
 /**
  * Convert string to Title Case
@@ -22,7 +22,8 @@ function toTitleCase(str) {
     .split(/\s+/)
     .map((word) => {
       // Capitalize across slash-separated parts (e.g. "spadina/king" → "Spadina/King")
-      return word.split('/').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('/');
+      // Use regex to skip leading non-letter chars (e.g. "(laird" → "(Laird")
+      return word.split('/').map((part) => part.replace(/^([^a-zA-Z]*)([a-zA-Z])/, (_, pre, letter) => pre + letter.toUpperCase())).join('/');
     })
     .join(' ');
 
@@ -174,11 +175,23 @@ function getRouteDisplay(route, direction = null) {
   return direction ? `${r} ${direction}` : `${r}`;
 }
 
+/**
+ * Normalize an agency name to its canonical stored form.
+ * e.g. "Toronto Transit Commission", "toronto transit commission", "TTC" → "TTC"
+ * @param {string} agency
+ * @returns {string} Canonical agency name
+ */
+function normalizeAgency(agency) {
+  if (!agency) return agency;
+  return AGENCY_CANONICAL[agency.trim().toLowerCase()] || agency.trim();
+}
+
 module.exports = {
   toTitleCase,
   escapeXml,
   normalizeDirection,
   normalizeRoute,
+  normalizeAgency,
   generateVerificationCode,
   isValidRoute,
   getStopDisplay,

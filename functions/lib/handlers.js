@@ -40,13 +40,37 @@ const {
 const {
   aggregateTripStats,
   answerQueryWithGemini,
+  lookupAgencyTimezone,
 } = require('./gemini');
 const { parseStopInput } = require('./parsing');
+
+/**
+ * Returns " via [Agency]" if the trip agency differs from the user's default, otherwise "".
+ * @param {string} tripAgency
+ * @param {string} defaultAgency
+ * @returns {string}
+ */
+function agencySuffix(tripAgency, defaultAgency) {
+  if (!tripAgency || tripAgency === defaultAgency) return '';
+  return ` via ${tripAgency}`;
+}
 
 /**
  * Handle HELP command
  */
 async function handleHelp(phoneNumber) {
+  const user = await getUserByPhone(phoneNumber);
+  const profile = user ? await getUserProfile(user.userId) : null;
+  const isPremium = !!profile?.isPremium;
+
+  const commands = [
+    'STATUS - view active trip',
+    'STATS - your last 30 days',
+    'FORGOT - forgot to end a trip',
+    'DISCARD - didn\'t board, delete the trip',
+  ];
+  if (isPremium) commands.push('ASK [question] - AI stats');
+
   await sendSmsReply(phoneNumber,
     `TransitStats
 
@@ -63,12 +87,7 @@ STOP
 NOTES (optional)
 
 Commands:
-STATUS - view active trip
-STATS - your last 30 days
-FORGOT - forgot to end a trip
-DISCARD - didn't board, delete the trip
-REGISTER [email] - link account
-ASK [question] - AI stats (premium)`,
+${commands.join('\n')}`,
   );
 }
 
@@ -331,9 +350,12 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
   let predictionV5 = null;
   let endStopPrediction = null;
   let endStopPredictions = null;
+  let endStopPredictionV4 = null;
+  let endStopPredictionV5 = null;
   const startStopName = stopData ? stopData.stopName : parsedStop.stopName;
   const startStopCode = stopData ? stopData.stopCode : parsedStop.stopCode;
   let isAdmin = false;
+  let defaultAgency = 'TTC';
   try {
     const [history, stopsLibrary, routesAtStop, profile] = await Promise.all([
       getRecentCompletedTrips(user.userId, 100),
@@ -343,7 +365,9 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
     ]);
     PredictionEngine.stopsLibrary = stopsLibrary;
     isAdmin = !!profile?.isAdmin;
+    defaultAgency = profile?.defaultAgency || 'TTC';
     const now = new Date();
+    const endStopContext = { route, startStopName, direction, time: now };
     prediction = PredictionEngine.guess(history, {
       stopName: startStopName,
       time: now,
@@ -357,14 +381,15 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       stopName: startStopName,
       time: now,
     });
-    endStopPrediction = PredictionEngine.guessEndStop(history, {
-      route,
-      startStopName,
-      direction,
-      time: now,
-    });
+    endStopPrediction = PredictionEngine.guessEndStop(history, endStopContext);
+    const [topV4, topV5] = await Promise.all([
+      PredictionEngineV4.guessTopEndStops(endStopContext, 1),
+      PredictionEngineV5.guessTopEndStops(endStopContext, 1),
+    ]);
+    if (topV4.length > 0) endStopPredictionV4 = topV4[0];
+    if (topV5.length > 0) endStopPredictionV5 = topV5[0];
     if (isAdmin) {
-      const top = PredictionEngine.guessTopEndStops(history, { route, startStopName, direction, time: now }, 3);
+      const top = PredictionEngine.guessTopEndStops(history, endStopContext, 3);
       if (top.length > 0) endStopPredictions = top;
     }
   } catch (err) {
@@ -388,6 +413,8 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
     predictionV5: predictionV5 || null,
     endStopPrediction: endStopPrediction || null,
     endStopPredictions: endStopPredictions || null,
+    endStopPredictionV4: endStopPredictionV4 || null,
+    endStopPredictionV5: endStopPredictionV5 || null,
     needs_review: !isValidRoute(route) || null,
   });
 
@@ -397,7 +424,10 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
     stopData ? stopData.stopName : parsedStop.stopName,
   );
 
-  let replyBody = `Started ${routeDisplay} from ${finalStopDisplay}.`;
+  // Warm agency timezone cache in background — never blocks trip confirmation
+  if (agency) lookupAgencyTimezone(agency).catch(() => {});
+
+  let replyBody = `Started ${routeDisplay} from ${finalStopDisplay}${agencySuffix(agency, defaultAgency)}.`;
   if (isAdmin && endStopPredictions && endStopPredictions.length > 0) {
     const predLines = endStopPredictions.map((p, i) => `${i + 1}. ${p.stop} (${p.confidence}%)`).join('\n');
     const shortcutNums = endStopPredictions.map((_, i) => i + 1).join('/');
@@ -417,11 +447,14 @@ async function handleConfirmStart(phoneNumber, user, state) {
 
   const oldTripRouteDisplay = getRouteDisplay(activeTrip.route, activeTrip.direction);
 
+  let confirmDefaultAgency = 'TTC';
   let confirmPrediction = null;
   let confirmPredictionV4 = null;
   let confirmPredictionV5 = null;
   let confirmEndStopPrediction = null;
   let confirmEndStopPredictions = null;
+  let confirmEndStopPredictionV4 = null;
+  let confirmEndStopPredictionV5 = null;
   let confirmIsAdmin = false;
   try {
     const [history, stopsLibrary, routesAtStop, confirmProfile] = await Promise.all([
@@ -432,7 +465,9 @@ async function handleConfirmStart(phoneNumber, user, state) {
     ]);
     PredictionEngine.stopsLibrary = stopsLibrary;
     confirmIsAdmin = !!confirmProfile?.isAdmin;
+    confirmDefaultAgency = confirmProfile?.defaultAgency || 'TTC';
     const now = new Date();
+    const confirmEndStopContext = { route: newTrip.route, startStopName: newTrip.stopName, direction: newTrip.direction, time: now };
     confirmPrediction = PredictionEngine.guess(history, {
       stopName: newTrip.stopName,
       time: now,
@@ -446,19 +481,15 @@ async function handleConfirmStart(phoneNumber, user, state) {
       stopName: newTrip.stopName,
       time: now,
     });
-    confirmEndStopPrediction = PredictionEngine.guessEndStop(history, {
-      route: newTrip.route,
-      startStopName: newTrip.stopName,
-      direction: newTrip.direction,
-      time: now,
-    });
+    confirmEndStopPrediction = PredictionEngine.guessEndStop(history, confirmEndStopContext);
+    const [confirmTopV4, confirmTopV5] = await Promise.all([
+      PredictionEngineV4.guessTopEndStops(confirmEndStopContext, 1),
+      PredictionEngineV5.guessTopEndStops(confirmEndStopContext, 1),
+    ]);
+    if (confirmTopV4.length > 0) confirmEndStopPredictionV4 = confirmTopV4[0];
+    if (confirmTopV5.length > 0) confirmEndStopPredictionV5 = confirmTopV5[0];
     if (confirmIsAdmin) {
-      const top = PredictionEngine.guessTopEndStops(history, {
-        route: newTrip.route,
-        startStopName: newTrip.stopName,
-        direction: newTrip.direction,
-        time: now,
-      }, 3);
+      const top = PredictionEngine.guessTopEndStops(history, confirmEndStopContext, 3);
       if (top.length > 0) confirmEndStopPredictions = top;
     }
   } catch (err) {
@@ -490,13 +521,15 @@ async function handleConfirmStart(phoneNumber, user, state) {
     predictionV5: confirmPredictionV5 || null,
     endStopPrediction: confirmEndStopPrediction || null,
     endStopPredictions: confirmEndStopPredictions || null,
+    endStopPredictionV4: confirmEndStopPredictionV4 || null,
+    endStopPredictionV5: confirmEndStopPredictionV5 || null,
   });
   await clearPendingState(phoneNumber);
 
   const newStopDisplay = getStopDisplay(newTrip.stopCode, newTrip.stopName);
   const newRouteDisplay = getRouteDisplay(newTrip.route, normalizeDirection(newTrip.direction));
 
-  let confirmReplyBody = `${oldTripRouteDisplay} marked as incomplete.\n\nStarted ${newRouteDisplay} from ${newStopDisplay}.`;
+  let confirmReplyBody = `${oldTripRouteDisplay} marked as incomplete.\n\nStarted ${newRouteDisplay} from ${newStopDisplay}${agencySuffix(newTrip.agency, confirmDefaultAgency)}.`;
   if (confirmIsAdmin && confirmEndStopPredictions && confirmEndStopPredictions.length > 0) {
     const predLines = confirmEndStopPredictions.map((p, i) => `${i + 1}. ${p.stop} (${p.confidence}%)`).join('\n');
     const shortcutNums = confirmEndStopPredictions.map((_, i) => i + 1).join('/');
@@ -531,9 +564,11 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     }
   }
 
+  const endProfile = await getUserProfile(user.userId);
+  const endDefaultAgency = endProfile?.defaultAgency || 'TTC';
+
   // Resolve numbered shortcut (admin only): END 1/2/3 → predicted stop name
   if (/^[123]$/.test((endStopInput || '').trim())) {
-    const endProfile = await getUserProfile(user.userId);
     if (endProfile?.isAdmin && activeTrip.endStopPredictions?.length) {
       const idx = parseInt(endStopInput.trim(), 10) - 1;
       const predicted = activeTrip.endStopPredictions[idx];
@@ -546,7 +581,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
   const startTime = activeTrip.startTime.toDate();
   const duration = Math.round((endTime.toDate().getTime() - startTime.getTime()) / 60000);
 
-  const agency = activeTrip.agency || 'TTC';
+  const agency = activeTrip.agency || null;
   const endStopData = await lookupStop(parsedEndStop.stopCode, parsedEndStop.stopName, agency);
   const exitLocation = endStopData ? { lat: endStopData.lat, lng: endStopData.lng } : null;
 
@@ -732,6 +767,53 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
       console.log(`Prediction V5 graded for ${user.userId}: ${isHitV5 ? 'HIT' : (isPartialHitV5 ? 'PARTIAL' : 'MISS')} | ` +
         `${predictedLabelV5} → ${actualLabelV5}`);
     }
+
+    // Grade V4 end stop prediction
+    const actualEndStopForGrading = endStopData ? endStopData.stopName : parsedEndStop.stopName;
+    const storedEndStopV4 = activeTrip.endStopPredictionV4;
+    if (storedEndStopV4) {
+      const endStopHitV4 = PredictionEngine._stopMatch(storedEndStopV4.stop, actualEndStopForGrading);
+      await db.collection('predictionStats').add({
+        userId: user.userId,
+        isHit: null,
+        isPartialHit: null,
+        predicted: null,
+        actual: null,
+        confidence: null,
+        version: storedEndStopV4.version,
+        route: activeTrip.route,
+        endStopPredicted: storedEndStopV4.stop,
+        endStopActual: actualEndStopForGrading,
+        endStopHit: endStopHitV4,
+        endStopConfidence: storedEndStopV4.confidence,
+        source: 'sms',
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      console.log(`End stop V4 graded for ${user.userId}: ${endStopHitV4 ? 'HIT' : 'MISS'} | predicted ${storedEndStopV4.stop} → actual ${actualEndStopForGrading}`);
+    }
+
+    // Grade V5 end stop prediction
+    const storedEndStopV5 = activeTrip.endStopPredictionV5;
+    if (storedEndStopV5) {
+      const endStopHitV5 = PredictionEngine._stopMatch(storedEndStopV5.stop, actualEndStopForGrading);
+      await db.collection('predictionStats').add({
+        userId: user.userId,
+        isHit: null,
+        isPartialHit: null,
+        predicted: null,
+        actual: null,
+        confidence: null,
+        version: storedEndStopV5.version,
+        route: activeTrip.route,
+        endStopPredicted: storedEndStopV5.stop,
+        endStopActual: actualEndStopForGrading,
+        endStopHit: endStopHitV5,
+        endStopConfidence: storedEndStopV5.confidence,
+        source: 'sms',
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      console.log(`End stop V5 graded for ${user.userId}: ${endStopHitV5 ? 'HIT' : 'MISS'} | predicted ${storedEndStopV5.stop} → actual ${actualEndStopForGrading}`);
+    }
   } catch (predictionErr) {
     console.error('Error grading prediction:', predictionErr);
   }
@@ -766,7 +848,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     console.error('Error auto-linking journey:', journeyErr);
   }
 
-  await sendSmsReply(phoneNumber, `Ended ${routeDisplay} at ${endStopDisplay} (${duration} min trip)${journeyNote}`);
+  await sendSmsReply(phoneNumber, `Ended ${routeDisplay} at ${endStopDisplay}${agencySuffix(agency, endDefaultAgency)} (${duration} min trip)${journeyNote}`);
 }
 
 /**
@@ -803,12 +885,14 @@ async function handleQuery(phoneNumber, user, question) {
     return;
   }
 
-  const stats = aggregateTripStats(trips);
+  const recentAgency = trips[0]?.agency || null;
+  const timezone = await lookupAgencyTimezone(recentAgency);
+  const stats = aggregateTripStats(trips, timezone);
   if (await isGeminiRateLimited(phoneNumber, !!profile?.isPremium, !!profile?.isAdmin)) {
     await sendSmsReply(phoneNumber, 'AI limit reached. Try again later.');
     return;
   }
-  const answer = await answerQueryWithGemini(user.userId, question, trips, stats, conversationHistory);
+  const answer = await answerQueryWithGemini(user.userId, question, trips, stats, conversationHistory, timezone);
   await sendSmsReply(phoneNumber, answer);
 
   // Fire-and-forget — never block or fail the reply
@@ -885,9 +969,9 @@ async function handleStatsCommand(phoneNumber, user) {
   const uniqueRoutes30 = new Set(last30.map((t) => t.route).filter(Boolean)).size;
 
   const lines = [
-    `7d: ${thisWeek.length} trips${getTrend(thisWeek.length, lastWeek.length)}`,
-    `30d: ${last30.length} trips${getTrend(last30.length, prev30.length)}, ${uniqueRoutes30} routes, ${(totalMin30 / 60).toFixed(1)}h`,
-    `Month: ${thisMonth.length} trips${getTrend(thisMonth.length, lastMonthToDate.length)} MTD`,
+    `Past 7 days: ${thisWeek.length} trips${getTrend(thisWeek.length, lastWeek.length)}`,
+    `Past 30 days: ${last30.length} trips${getTrend(last30.length, prev30.length)}, ${uniqueRoutes30} routes, ${(totalMin30 / 60).toFixed(1)}h`,
+    `This month: ${thisMonth.length} trips${getTrend(thisMonth.length, lastMonthToDate.length)}`,
   ];
 
   await sendSmsReply(phoneNumber, lines.join('\n'));
