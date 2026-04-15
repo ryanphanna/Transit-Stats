@@ -1,0 +1,47 @@
+/* --- Auth View --- */
+.auth-view {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  background: var(--bg-muted);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 40px;
+  text-align: center;
+  background: var(--bg-card);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  z-index: var(--z-ui);
+}
+
+.brand-icon {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 48px;
+}
+.brand-icon i, .brand-icon svg {
+  width: 48px;
+  height: 48px;
+  stroke-width: 2px;
+  color: var(--accent);
+}
+
+.auth-title { margin: 0; font-size: 2rem; font-weight: 900; }
+.auth-subtitle { color: var(--text-muted); margin-bottom: 32px; }
+
+.auth-map-bg {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: var(--z-bg);
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+
+
+

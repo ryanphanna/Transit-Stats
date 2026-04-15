@@ -1,0 +1,56 @@
+:root {
+  /* Core Palette - Sophisticated Slate & Emerald */
+  --bg-app: #f8fafc;
+  --bg-card: rgba(255, 255, 255, 0.72);
+  --bg-card-hover: rgba(255, 255, 255, 0.88);
+  --bg-muted: rgba(241, 245, 249, 0.6);
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  
+  --accent: #10b981;
+  --accent-light: #34d399;
+  --accent-soft: #ecfdf5;
+  --accent-gradient: linear-gradient(135deg, #059669 0%, #3b82f6 100%);
+  --accent-glass: rgba(16, 185, 129, 0.08);
+  
+  --success: #10b981;
+  --danger: #f43f5e;
+  --warning: #f59e0b;
+  
+  --border: rgba(255, 255, 255, 1);
+  --border-outer: rgba(226, 232, 240, 0.5);
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 10px 15px -10px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+  --shadow-glow: 0 0 30px rgba(16, 185, 129, 0.15);
+  
+  --radius: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 32px;
+
+  /* Strict Layering Control */
+  --z-bg: 0;
+  --z-map: 1;
+  --z-ui: 10;
+  --z-header: 100;
+  --z-overlay: 1000;
+  --z-modal: 1001;
+  --z-toast: 2000;
+}
+
+body.dark {
+  --bg-app: #020617;
+  --bg-card: rgba(15, 23, 42, 0.70);
+  --bg-card-hover: rgba(30, 41, 59, 0.85);
+  --bg-muted: rgba(30, 41, 59, 0.5);
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-outer: rgba(0, 0, 0, 0.2);
+  --shadow: 0 10px 15px -10px rgba(0, 0, 0, 0.3);
+}
+
+
+

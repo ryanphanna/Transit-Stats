@@ -11,14 +11,14 @@ function _render(isAdmin, currentPage) {
     if (!root) return;
 
     const navItems = [
-        { id: 'insights', label: 'Insights', icon: 'line-chart', href: '/insights' },
         { id: 'map', label: 'Map', icon: 'map', href: '/map' },
+        { id: 'admin', label: 'Stops', icon: 'database', href: '/admin' },
+        { id: 'users', label: 'Users', icon: 'users', href: '/users' },
+        { id: 'insights', label: 'Insights', icon: 'line-chart', href: '/insights' },
     ];
 
     if (isAdmin) {
         navItems.push({ id: 'rocket', label: 'Rocket', icon: 'rocket', href: '/rocket' });
-        navItems.push({ id: 'admin', label: 'Stops', icon: 'database', href: '/admin' });
-        navItems.push({ id: 'users', label: 'Users', icon: 'users', href: '/users' });
     }
 
     const headerHtml = `

@@ -70,17 +70,33 @@ export const Admin = {
             if (!el) return;
 
             const action = el.dataset.action;
-            const row = el.closest('[data-trip-id]');
-            const tripId = row?.dataset.tripId;
-            const role = row?.dataset.role;
 
             if (action === 'accept-trip') {
+                const row = el.closest('[data-trip-id]');
+                const tripId = row?.dataset.tripId;
+                const role = row?.dataset.role;
                 const item = AdminTriage.inbox.find(i => i.tripId === tripId && i.role === role);
                 if (item) {
                     await AdminTriage.linkTrip(item, el.dataset.stopId, AdminLibrary.stops);
                     await this.loadAll();
                 }
+            } else if (action === 'accept-all-group') {
+                const groupKey = el.dataset.groupKey;
+                const stopId = el.dataset.stopId;
+                const items = AdminTriage.inbox.filter(i => {
+                    const iKey = `${i.rawName.toLowerCase()}||${(i.route||'').toLowerCase()}||${(i.direction||'').toLowerCase()}`;
+                    return iKey === groupKey;
+                });
+                if (items.length && confirm(`Link all ${items.length} trips to this stop?`)) {
+                    for (const item of items) {
+                        await AdminTriage.linkTrip(item, stopId, AdminLibrary.stops);
+                    }
+                    await this.loadAll();
+                }
             } else if (action === 'open-link-modal') {
+                // Can come from group header (has data-trip-id/role on the button itself) or from a trip row
+                const tripId = el.dataset.tripId || el.closest('[data-trip-id]')?.dataset.tripId;
+                const role = el.dataset.role || el.closest('[data-trip-id]')?.dataset.role;
                 const item = AdminTriage.inbox.find(i => i.tripId === tripId && i.role === role);
                 if (item) this.openLinkModal(item);
             }
@@ -194,25 +210,66 @@ export const Admin = {
             return;
         }
 
-        const fmt = (item) => {
-            const date = item.date?.toDate ? item.date.toDate() : new Date(item.date || 0);
-            const dateStr = date.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
-            const suggestion = AdminTriage._suggestStop(item.rawName, item.rawCode, AdminLibrary.stops);
-            return `
-                <div class="inbox-item" data-trip-id="${UI.escapeHtml(item.tripId)}" data-role="${UI.escapeHtml(item.role)}">
-                    <div class="inbox-item-content">
-                        <span class="inbox-item-name">${Utils.hide(item.rawName)}${item.rawCode ? ` <span style="opacity:0.4;font-size:0.75em;">#${Utils.hide(item.rawCode)}</span>` : ''}</span>
-                        <span class="inbox-item-meta">${Utils.hide(item.route || '?')}${item.direction ? ' · ' + Utils.hide(item.direction) : ''} · ${item.role === 'start' ? 'boarding' : 'exit'} · ${dateStr}${suggestion ? ' · → ' + Utils.hide(suggestion.stop.name) : ''}</span>
-                    </div>
-                    <div class="inbox-actions">
-                        ${suggestion ? `<button class="btn btn-sm btn-outline" data-action="accept-trip" data-stop-id="${UI.escapeHtml(suggestion.stop.id)}">Accept</button>` : ''}
-                        <button class="btn btn-primary btn-sm" data-action="open-link-modal" data-name="${UI.escapeHtml(item.rawName)}">Link</button>
-                    </div>
-                </div>
-            `;
-        };
+        // Group items by normalized stop name + route + direction
+        const groups = new Map();
+        for (const item of filtered) {
+            const key = `${item.rawName.toLowerCase()}||${(item.route||'').toLowerCase()}||${(item.direction||'').toLowerCase()}`;
+            if (!groups.has(key)) groups.set(key, { name: item.rawName, route: item.route, direction: item.direction, items: [] });
+            groups.get(key).items.push(item);
+        }
 
-        list.innerHTML = filtered.map(fmt).join('');
+        const chevronSvg = '<svg class="inbox-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>';
+
+        const groupHtml = Array.from(groups.entries()).map(([groupKey, group]) => {
+            // Get the best suggestion for the group header
+            const firstItem = group.items[0];
+            const suggestion = AdminTriage._suggestStop(firstItem.rawName, firstItem.rawCode, AdminLibrary.stops);
+
+            const tripRows = group.items.map(item => {
+                const date = item.date?.toDate ? item.date.toDate() : new Date(item.date || 0);
+                const dateStr = date.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+                return `
+                    <div class="inbox-item" data-trip-id="${UI.escapeHtml(item.tripId)}" data-role="${UI.escapeHtml(item.role)}">
+                        <div class="inbox-item-content">
+                            <span class="inbox-item-meta">${Utils.hide(item.route || '?')}${item.direction ? ' · ' + Utils.hide(item.direction) : ''} · ${item.role === 'start' ? 'boarding' : 'exit'} · ${dateStr}</span>
+                        </div>
+                        <div class="inbox-actions">
+                            ${suggestion ? `<button class="btn btn-sm btn-outline" data-action="accept-trip" data-stop-id="${UI.escapeHtml(suggestion.stop.id)}">Accept</button>` : ''}
+                            <button class="btn btn-primary btn-sm" data-action="open-link-modal" data-name="${UI.escapeHtml(item.rawName)}">Link</button>
+                        </div>
+                    </div>`;
+            }).join('');
+
+            const suggestionHint = suggestion ? ` <span style="opacity:0.45;font-size:0.7rem;font-weight:500;">→ ${Utils.hide(suggestion.stop.name)}</span>` : '';
+            const routeHint = ` <span class="text-muted" style="margin-left: 6px; font-size: 0.75rem; font-weight: 500;">(${Utils.hide(group.route || '?')}${group.direction ? ' ' + Utils.hide(group.direction) : ''})</span>`;
+
+            return `
+                <div class="inbox-group" data-group-key="${UI.escapeHtml(groupKey)}">
+                    <div class="inbox-group-header">
+                        <div class="inbox-group-label">
+                            ${chevronSvg}
+                            <span class="inbox-group-name">${Utils.hide(group.name)}${routeHint}${suggestionHint}</span>
+                            <span class="inbox-group-count">${group.items.length}</span>
+                        </div>
+                        <div class="inbox-actions">
+                            ${suggestion ? `<button class="btn btn-sm btn-outline" data-action="accept-all-group" data-stop-id="${UI.escapeHtml(suggestion.stop.id)}" data-group-key="${UI.escapeHtml(groupKey)}">Accept All</button>` : ''}
+                            <button class="btn btn-primary btn-sm" data-action="open-link-modal" data-name="${UI.escapeHtml(firstItem.rawName)}" data-trip-id="${UI.escapeHtml(firstItem.tripId)}" data-role="${UI.escapeHtml(firstItem.role)}">Link</button>
+                        </div>
+                    </div>
+                    <div class="inbox-group-body">${tripRows}</div>
+                </div>`;
+        }).join('');
+
+        list.innerHTML = groupHtml;
+
+        // Expand/collapse toggle
+        list.querySelectorAll('.inbox-group-header').forEach(header => {
+            header.addEventListener('click', (e) => {
+                // Don't toggle when clicking buttons
+                if (e.target.closest('.inbox-actions')) return;
+                header.closest('.inbox-group').classList.toggle('expanded');
+            });
+        });
     },
 
     renderConsolidation() {
@@ -398,204 +455,4 @@ export const Admin = {
 
 window.Admin = Admin;
 
-let _deleteRouteArmed = null;
-let _deleteRouteTimer = null;
 
-window.deleteRoute = async function (routeId) {
-    if (_deleteRouteArmed !== routeId) {
-        if (_deleteRouteTimer) clearTimeout(_deleteRouteTimer);
-        _deleteRouteArmed = routeId;
-        _deleteRouteTimer = setTimeout(() => { _deleteRouteArmed = null; }, 3000);
-        UI.showNotification('Tap again to confirm delete.');
-        return;
-    }
-    clearTimeout(_deleteRouteTimer);
-    _deleteRouteArmed = null;
-    try {
-        await db.collection('routes').doc(routeId).delete();
-        await loadRouteLibrary();
-    } catch (err) {
-        UI.showNotification('Failed to delete route: ' + err.message);
-    }
-};
-
-document.getElementById('routeLibraryList')?.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-action="delete-route"]');
-    if (btn) deleteRoute(btn.dataset.routeId);
-});
-
-// ─── GTFS Stop→Route Mapping Import ──────────────────────────────────────────
-
-let _gtfsTripsMap = null; // Map<trip_id, routeShortName>
-
-/**
- * Parse trips.txt CSV, building a Map from trip_id → routeShortName.
- * Needs the routes already in Firestore to resolve route_id → routeShortName.
- */
-window.loadGtfsTrips = async function () {
-    const fileInput = document.getElementById('gtfsTripsFileInput');
-    const statusEl = document.getElementById('gtfsStopRouteStatus');
-    const step2 = document.getElementById('gtfsStopTimesSection');
-
-    _gtfsTripsMap = null;
-    if (step2) step2.style.display = 'none';
-    if (!fileInput.files[0]) return;
-
-    statusEl.textContent = 'Parsing trips.txt...';
-
-    const agency = document.getElementById('gtfsStopRouteAgencySelect').value;
-
-    // Load routes from Firestore to build route_id → routeShortName map
-    const routesSnap = await db.collection('routes').where('agency', '==', agency).get();
-    if (routesSnap.empty) {
-        statusEl.textContent = 'No routes found for this agency — import routes.txt first.';
-        return;
-    }
-    const routeIdToShortName = new Map();
-    routesSnap.docs.forEach(doc => {
-        const d = doc.data();
-        if (d.gtfsRouteId && d.routeShortName) routeIdToShortName.set(d.gtfsRouteId, d.routeShortName);
-    });
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const lines = e.target.result.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-            if (lines.length < 2) { statusEl.textContent = 'trips.txt appears empty.'; return; }
-
-            const header = parseGtfsCsvLine(lines[0]);
-            const tripIdIdx = header.indexOf('trip_id');
-            const routeIdIdx = header.indexOf('route_id');
-            if (tripIdIdx === -1 || routeIdIdx === -1) {
-                statusEl.textContent = 'trips.txt missing trip_id or route_id column.';
-                return;
-            }
-
-            const map = new Map();
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (!line) continue;
-                // Fast split — trip_id and route_id are never quoted
-                const parts = line.split(',');
-                const tripId = (parts[tripIdIdx] || '').trim();
-                const routeId = (parts[routeIdIdx] || '').trim();
-                const shortName = routeIdToShortName.get(routeId);
-                if (tripId && shortName) map.set(tripId, shortName);
-            }
-
-            _gtfsTripsMap = map;
-            statusEl.textContent = `Loaded ${map.size.toLocaleString()} trips. Now upload stop_times.txt.`;
-            if (step2) step2.style.display = 'grid';
-        } catch (err) {
-            statusEl.textContent = 'Parse error: ' + err.message;
-        }
-    };
-    reader.readAsText(fileInput.files[0]);
-};
-
-/**
- * Stream stop_times.txt to build stop_id → Set<routeShortName>, then write to Firestore stopRoutes.
- */
-window.importGtfsStopTimes = async function () {
-    const fileInput = document.getElementById('gtfsStopTimesFileInput');
-    const btn = document.getElementById('gtfsStopTimesImportBtn');
-    const statusEl = document.getElementById('gtfsStopRouteStatus');
-
-    if (!_gtfsTripsMap) { statusEl.textContent = 'Load trips.txt first.'; return; }
-    if (!fileInput.files[0]) { statusEl.textContent = 'Select a stop_times.txt file.'; return; }
-
-    btn.disabled = true;
-    btn.textContent = 'Processing...';
-    statusEl.textContent = 'Reading stop_times.txt...';
-
-    const agency = document.getElementById('gtfsStopRouteAgencySelect').value;
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        try {
-            const text = e.target.result;
-            const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-
-            const header = parseGtfsCsvLine(lines[0]);
-            const tripIdIdx = header.indexOf('trip_id');
-            const stopIdIdx = header.indexOf('stop_id');
-            if (tripIdIdx === -1 || stopIdIdx === -1) {
-                throw new Error('stop_times.txt missing trip_id or stop_id column');
-            }
-
-            const stopRoutes = new Map(); // stopId → Set<routeShortName>
-            const total = lines.length - 1;
-
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i];
-                if (!line || line.charCodeAt(0) === 13) continue; // skip empty/CR-only
-                // Fast split — trip_id and stop_id are never quoted in GTFS
-                const parts = line.split(',');
-                const tripId = (parts[tripIdIdx] || '').trim();
-                const stopId = (parts[stopIdIdx] || '').trim();
-                const routeShortName = _gtfsTripsMap.get(tripId);
-                if (routeShortName && stopId) {
-                    if (!stopRoutes.has(stopId)) stopRoutes.set(stopId, new Set());
-                    stopRoutes.get(stopId).add(routeShortName);
-                }
-
-                // Yield to browser every 100k rows to avoid UI freeze
-                if (i % 100000 === 0) {
-                    statusEl.textContent = `Processing... ${Math.round(i / total * 100)}% (${stopRoutes.size.toLocaleString()} stops mapped)`;
-                    await new Promise(r => setTimeout(r, 0));
-                }
-            }
-
-            statusEl.textContent = `Writing ${stopRoutes.size.toLocaleString()} stop mappings to Firestore...`;
-
-            const BATCH_SIZE = 400;
-            const entries = Array.from(stopRoutes.entries());
-            let written = 0;
-
-            for (let i = 0; i < entries.length; i += BATCH_SIZE) {
-                const batch = db.batch();
-                entries.slice(i, i + BATCH_SIZE).forEach(([stopId, routeSet]) => {
-                    const safeId = `${agency}_${stopId}`.replace(/[^a-zA-Z0-9_\-]/g, '_');
-                    batch.set(db.collection('stopRoutes').doc(safeId), {
-                        agency,
-                        stopId,
-                        routes: Array.from(routeSet),
-                    });
-                });
-                await batch.commit();
-                written += Math.min(BATCH_SIZE, entries.length - i);
-                statusEl.textContent = `Writing... ${Math.round(written / entries.length * 100)}%`;
-            }
-
-            const countEl = document.getElementById('gtfsStopRouteCount');
-            if (countEl) countEl.textContent = `${stopRoutes.size.toLocaleString()} stops mapped`;
-            statusEl.textContent = `Done. Mapped ${stopRoutes.size.toLocaleString()} stops across ${agency}.`;
-            btn.textContent = 'Import Stop→Routes';
-            btn.disabled = false;
-            _gtfsTripsMap = null;
-            fileInput.value = '';
-            document.getElementById('gtfsTripsFileInput').value = '';
-            document.getElementById('gtfsStopTimesSection').style.display = 'none';
-        } catch (err) {
-            console.error('Stop→Route import error:', err);
-            statusEl.textContent = 'Error: ' + err.message;
-            btn.textContent = 'Import Stop→Routes';
-            btn.disabled = false;
-        }
-    };
-    reader.readAsText(fileInput.files[0]);
-};
-
-// Reload route library when agency selector changes
-const _gtfsAgencySelect = document.getElementById('gtfsAgencySelect');
-if (_gtfsAgencySelect) {
-    _gtfsAgencySelect.addEventListener('change', () => {
-        gtfsParsedRoutes = [];
-        document.getElementById('gtfsImportBtn').disabled = true;
-        document.getElementById('gtfsPreview').style.display = 'none';
-        const fileInput = document.getElementById('gtfsFileInput');
-        if (fileInput) fileInput.value = '';
-        loadRouteLibrary();
-    });
-
-}

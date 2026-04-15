@@ -57,13 +57,6 @@ export const AdminTriage = {
         const stop = stopsLibrary.find(s => s.id === stopId);
         if (!stop) return;
 
-        const tripField = item.role === 'start'
-            ? { startStopName: stop.name, startStopCode: stop.code || '' }
-            : { endStopName: stop.name, endStopCode: stop.code || '' };
-
-        // 1. Update the trip
-        await db.collection('trips').doc(item.tripId).update(tripField);
-
         // 2. Add raw string as alias (if not already there)
         const aliases = stop.aliases || [];
         const alreadyAliased = aliases.some(a => a.toLowerCase() === item.rawName.toLowerCase());
