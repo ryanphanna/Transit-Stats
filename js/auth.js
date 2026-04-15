@@ -39,8 +39,17 @@ export const Auth = {
             if (!doc.exists) return { allowed: false, error: 'Access denied. This app is invite-only.' };
             return { allowed: true, isAdmin: doc.data().isAdmin === true };
         } catch (err) {
-            console.error('Whitelist error:', err);
-            return { allowed: false, error: 'Verification failed. Try again.' };
+            console.error('Whitelist check failed, retrying:', err);
+            // Retry once before giving up — guards against transient network errors
+            // on page load signing out valid users.
+            try {
+                const doc = await db.collection('allowedUsers').doc(email.toLowerCase()).get();
+                if (!doc.exists) return { allowed: false, error: 'Access denied. This app is invite-only.' };
+                return { allowed: true, isAdmin: doc.data().isAdmin === true };
+            } catch (retryErr) {
+                console.error('Whitelist check failed after retry:', retryErr);
+                return { allowed: false, error: 'Verification failed. Try again.' };
+            }
         }
     },
 

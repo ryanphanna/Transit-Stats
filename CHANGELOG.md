@@ -6,6 +6,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- **CSS Modular Refactoring**: Extracted the monolithic 1770-line `main.css` into 11 specialized style modules (`styles/core/`, `styles/components/`, `styles/pages/`). `main.css` is now a pure `@import` manifest, dramatically improving maintainability and isolating page-specific UI code without altering any underlying layout logic.
+- **Trip Data Immutability Guarantee**: Completely severed write access to telemetry trip strings from the Triage Link cycle. Trips are no longer mutated upon classification; instead, linking natively leverages pure Stop Library pointer aliases, ensuring absolute source-of-truth integrity for 100% of collected data records.
+- **Admin Controller cleanup**: Excised 200 lines of orphaned, legacy GTFS parsing code from the bottom of `admin.js`. This code was fully deprecated during the 1.19.0 MPA architectural overhaul. `admin.js` is now a dedicated, cohesive 450-line view controller.
+- **Admin Inbox redesign**: Unrecognized stops are now grouped by stop name with collapsible accordion headers. Click a group to expand and see individual trip rows (route, direction, boarding/exit, date). "Accept All" button batch-links every trip in a group at once. Removed the garish orange left-border bar.
+- **Stop card density**: Library stop cards are significantly more compact — reduced padding, smaller grid min-width (280px → 220px), tighter alias pills. Fits more stops on screen.
+- **Triage column widened**: Sidebar increased from 300px to 360px to give grouped inbox items room to breathe.
+
+## [1.20.9] - 2026-04-13
+
+### Fixed
+- **Auth logout on page load**: `checkWhitelist` now retries once on Firestore error before returning `allowed: false`. A transient network error on page load was immediately signing out authenticated users.
+
 ## [1.20.8] - 2026-04-14
 
 ### Added

@@ -59,5 +59,9 @@ When fixing a bug, always provide:
 - `predictionAccuracy` — running accuracy summary per user
 - `queryLogs` — AI query history (userId, question, answer, timestamp)
 
+## Auth Pattern
+
+**Whitelist check errors must not sign out valid users.** `Auth.checkWhitelist` retries once on Firestore error before returning `allowed: false`. A transient network error on page load used to immediately sign out authenticated users. Never change this to fail-closed on first error without a retry.
+
 ## AI Query Tools (functions/lib/gemini.js)
 `get_all_time_stats` · `get_all_time_stop_stats` · `get_all_time_route_stats` · `get_monthly_trip_counts` · `get_day_of_week_stats` · `get_day_of_week_stats_for_year` · `get_trips_for_date` · `get_trips_for_date_range` · `get_route_stats_for_period` · `get_riding_streak` · `get_stop_pair_stats` · `get_average_trip_duration` · `get_weekday_vs_weekend_stats` · `get_busiest_weeks` · `get_unique_stops`
