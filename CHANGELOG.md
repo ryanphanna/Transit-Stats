@@ -6,6 +6,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.21.1] - 2026-04-15
+
+### Fixed
+- **END command blocked by content duplicate check**: The 60-second content dedup window was silently dropping END/STOP retry attempts. If an end-trip command failed for any reason, the user couldn't retry for 60 seconds and received no feedback. END/STOP commands now bypass the duplicate check entirely.
+- **"Fucking end the trip" and similar AI-parsed END intents silently did nothing**: When Gemini classified a message as END_TRIP but extracted no stop name, the handler skipped calling `handleEndTrip` and sent no reply — the trip wasn't ended and the user was ghosted. Now always calls `handleEndTrip` (with null stop if none extracted), consistent with sending bare "END".
+- **Unhandled exception in `handleEndTrip` caused 500 with no user feedback**: If a Firestore error occurred during the trip-end write, the exception propagated to the top-level handler which returned HTTP 500. The user received no reply and subsequent retries were blocked by content dedup. Added try/catch in `handleTripFlow` so the user gets "Could not end your trip. Please try again." instead of silence.
+- **STATUS showed UTC time instead of local time**: `toLocaleTimeString` called without a `timeZone` option defaults to the Cloud Functions server timezone (UTC). STATUS now passes the agency's IANA timezone (e.g. `America/Toronto`) so the displayed time matches the user's local clock.
+
 ## [1.21.0] - 2026-04-15
 
 ### Fixed

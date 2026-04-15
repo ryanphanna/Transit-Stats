@@ -59,7 +59,10 @@ async function dispatch(phoneNumber, body, messageSid) {
     return '';
   }
 
-  if (await checkContentDuplicate(phoneNumber, body)) {
+  // END/STOP commands bypass content dedup — if an end attempt fails, the user
+  // must be able to retry immediately without waiting 60 seconds.
+  const isEndCommand = /^(END|STOP)(\s|$)/i.test(body);
+  if (!isEndCommand && await checkContentDuplicate(phoneNumber, body)) {
     logger.info('Duplicate content within window', { From: phoneNumber });
     return '';
   }
@@ -213,7 +216,12 @@ async function handleTripFlow(phoneNumber, user, body) {
 
   if (endTripData || singleLineEndMatch) {
     const stopInput = singleLineEndMatch ? singleLineEndMatch[2] : endTripData?.stop;
-    await handlers.handleEndTrip(phoneNumber, user, stopInput, endTripData?.route, endTripData?.notes);
+    try {
+      await handlers.handleEndTrip(phoneNumber, user, stopInput, endTripData?.route, endTripData?.notes);
+    } catch (err) {
+      logger.error('handleEndTrip failed', { error: err.message, stack: err.stack });
+      await sendSmsReply(phoneNumber, 'Could not end your trip. Please try again.');
+    }
     return true;
   }
 
@@ -284,9 +292,7 @@ async function handleAIIntent(phoneNumber, user, body) {
   }
   case 'END_TRIP': {
     const endStop = constructStopInput(geminiResult);
-    if (endStop) {
-      await handlers.handleEndTrip(phoneNumber, user, endStop, null, geminiResult.notes);
-    }
+    await handlers.handleEndTrip(phoneNumber, user, endStop || null, null, geminiResult.notes);
     return true;
   }
   case 'DISCARD_TRIP':

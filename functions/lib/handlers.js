@@ -105,9 +105,13 @@ async function handleStatus(phoneNumber, user) {
   const startTime = activeTrip.startTime.toDate();
   const elapsedMs = Date.now() - startTime.getTime();
   const elapsedMin = Math.round(elapsedMs / 60000);
+  const statusTimezone = activeTrip.agency
+    ? await lookupAgencyTimezone(activeTrip.agency)
+    : 'America/Toronto';
   const timeStr = startTime.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
+    timeZone: statusTimezone || 'America/Toronto',
   });
 
   const startStopDisplay = getStopDisplay(
