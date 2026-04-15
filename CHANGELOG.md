@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.20.11] - 2026-04-15
+
+### Fixed
+- **Login Continue button blocked by map overlay**: `.auth-card` was missing `position: relative`, so its `z-index` was ignored. The decorative `.auth-map-bg` (position: absolute, covering the full view) sat on top and swallowed all pointer events. Fixed by adding `position: relative` to `.auth-card` and `pointer-events: none` to `.auth-map-bg`.
+
 ## [1.20.10] - 2026-04-15
 
 ### Changed

@@ -15,6 +15,7 @@
   background: var(--bg-card);
   border-radius: 20px;
   box-shadow: var(--shadow);
+  position: relative;
   z-index: var(--z-ui);
 }
 
@@ -41,6 +42,7 @@
   z-index: var(--z-bg);
   opacity: 0.3;
   filter: grayscale(1);
+  pointer-events: none;
 }
 
 
