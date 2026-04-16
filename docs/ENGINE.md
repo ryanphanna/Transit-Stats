@@ -151,3 +151,24 @@ SEQUENCE_BOOST: 1.5         // Multiplier applied at transfer points
 | `js/predict.js` | ESM | Browser client |
 
 Both files implement the same engine. Changes must be applied to both. The CJS version is the reference — apply changes there first, then mirror to ESM.
+
+---
+
+## Concept: v6 — External Data Sources
+
+**Core idea:** The engine can request information beyond trip history. Instead of only learning from what you've done, v6 pulls in external signals at inference time to inform predictions.
+
+**Candidate sources:**
+- **Weather** — rain/snow affects which routes you take and where you board
+- **TTC service alerts** — disruptions make certain routes or stops unlikely
+- **Calendar/events** — concerts, games, holidays shift your travel patterns
+- **Time since last trip** — gap context that pure history can't see
+
+**What this requires:**
+- A signal-fetching layer that pulls external data at trip start (low-latency, cached)
+- Feature engineering to encode external signals alongside existing trip features
+- Retraining pipeline that includes external features in the training set
+
+**Why it's a new version and not an add-on to v5:** Adding new feature types to an ONNX model requires retraining from scratch with the new schema. The model file and inference code both change.
+
+**Status:** Concept only. No training data collection yet.
