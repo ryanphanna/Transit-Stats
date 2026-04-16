@@ -203,9 +203,57 @@ function isHeuristicLogValid(stopCodeRaw, routeRaw) {
   );
 }
 
+/**
+ * Parse single-line trip format: "[route] [stop] [direction]"
+ * e.g. "510 Spadina/College North" or "47 Lansdowne / Dupont South"
+ * @param {string} body - Message body (must be a single line)
+ * @param {string} defaultAgency - User's default agency
+ * @returns {object|null} Parsed trip data or null if not a match
+ */
+function parseSingleLineTripFormat(body, defaultAgency) {
+  if (typeof body !== 'string') return null;
+
+  const trimmed = body.trim();
+
+  // Only handle single-line messages
+  const lines = trimmed.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+  if (lines.length !== 1) return null;
+
+  const DIRECTION_WORDS = new Set([
+    'N', 'NB', 'NORTH', 'NORTHBOUND', 'NORTHWARD',
+    'S', 'SB', 'SOUTH', 'SOUTHBOUND', 'SOUTHWARD',
+    'E', 'EB', 'EAST', 'EASTBOUND', 'EASTWARD',
+    'W', 'WB', 'WEST', 'WESTBOUND', 'WESTWARD',
+    'CW', 'CLOCKWISE', 'CCW', 'COUNTERCLOCKWISE',
+    'IB', 'IN', 'INBOUND', 'OB', 'OUT', 'OUTBOUND',
+  ]);
+
+  const words = trimmed.split(/\s+/);
+  if (words.length < 3) return null; // Need at least route + stop + direction
+
+  // First word is the route
+  const route = normalizeRoute(words[0]);
+  if (!route) return null;
+
+  // Last word must be a direction — without it we can't distinguish from other formats
+  const lastWord = words[words.length - 1].toUpperCase();
+  if (!DIRECTION_WORDS.has(lastWord)) return null;
+
+  const direction = normalizeDirection(words[words.length - 1]);
+  const stopWords = words.slice(1, -1);
+  if (stopWords.length === 0) return null;
+
+  const stop = toTitleCase(stopWords.join(' '));
+
+  if (!isHeuristicLogValid(stop, route)) return null;
+
+  return { route, stop, direction, agency: defaultAgency };
+}
+
 module.exports = {
   parseStopInput,
   parseMultiLineTripFormat,
+  parseSingleLineTripFormat,
   parseEndTripFormat,
   parseAgencyOverride,
   isHeuristicLogValid,

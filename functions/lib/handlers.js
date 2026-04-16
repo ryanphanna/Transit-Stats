@@ -26,6 +26,7 @@ const {
   saveConversationTurn,
 } = require('./db');
 const { PredictionEngine } = require('./predict.js');
+const { TransferEngine } = require('./transfer.js');
 const { PredictionEngineV4 } = require('./predict_v4.js');
 const { PredictionEngineV5 } = require('./predict_v5.js');
 const {
@@ -68,6 +69,7 @@ async function handleHelp(phoneNumber) {
     'STATS - your last 30 days',
     'FORGOT - forgot to end a trip',
     'DISCARD - didn\'t board, delete the trip',
+    'UNLINK - separate a linked journey',
   ];
   if (isPremium) commands.push('ASK [question] - AI stats');
 
@@ -76,6 +78,8 @@ async function handleHelp(phoneNumber) {
 
 To start a trip, send:
 
+ROUTE STOP DIRECTION
+or on separate lines:
 ROUTE
 STOP
 DIRECTION (optional)
@@ -164,6 +168,43 @@ async function handleDiscard(phoneNumber, user) {
   await clearPendingState(phoneNumber);
 
   await sendSmsReply(phoneNumber, `Deleted ${routeDisplay}.`);
+}
+
+/**
+ * Handle UNLINK command - removes journey link from the most recently ended trip
+ */
+async function handleUnlink(phoneNumber, user) {
+  // Find the most recently completed trip with a journeyId
+  const snap = await db.collection('trips')
+    .where('userId', '==', user.userId)
+    .where('endTime', '!=', null)
+    .orderBy('endTime', 'desc')
+    .limit(10)
+    .get();
+
+  const linked = snap.docs.find(d => d.data().journeyId);
+  if (!linked) {
+    await sendSmsReply(phoneNumber, 'No linked trip to unlink.');
+    return;
+  }
+
+  const trip = linked.data();
+  const journeyId = trip.journeyId;
+  const routeDisplay = getRouteDisplay(trip.route, trip.direction);
+
+  // Remove journeyId from all trips sharing this journey
+  const journeySnap = await db.collection('trips')
+    .where('userId', '==', user.userId)
+    .where('journeyId', '==', journeyId)
+    .get();
+
+  const batch = db.batch();
+  journeySnap.docs.forEach(doc => {
+    batch.update(doc.ref, { journeyId: admin.firestore.FieldValue.delete() });
+  });
+  await batch.commit();
+
+  await sendSmsReply(phoneNumber, `Unlinked ${routeDisplay} journey.`);
 }
 
 /**
@@ -304,7 +345,9 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
 
   const stopData = await lookupStop(parsedStop.stopCode, parsedStop.stopName, agency);
   const verified = stopData !== null;
-  const boardingLocation = stopData ? { lat: stopData.lat, lng: stopData.lng } : null;
+  const boardingLocation = (stopData?.lat != null && stopData?.lng != null)
+    ? { lat: stopData.lat, lng: stopData.lng }
+    : null;
 
   if (activeTrip) {
     const activeTripRouteDisplay = getRouteDisplay(activeTrip.route);
@@ -587,7 +630,9 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
 
   const agency = activeTrip.agency || null;
   const endStopData = await lookupStop(parsedEndStop.stopCode, parsedEndStop.stopName, agency);
-  const exitLocation = endStopData ? { lat: endStopData.lat, lng: endStopData.lng } : null;
+  const exitLocation = (endStopData?.lat != null && endStopData?.lng != null)
+    ? { lat: endStopData.lat, lng: endStopData.lng }
+    : null;
 
   const endStopDisplay = getStopDisplay(
     endStopData ? endStopData.stopCode : parsedEndStop.stopCode,
@@ -822,19 +867,16 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     console.error('Error grading prediction:', predictionErr);
   }
 
-  // Auto-link journey: if the previous completed trip ended at this trip's boarding stop within 60 min, link silently
+  // Auto-link journey: use TransferEngine to decide if the previous trip is a transfer
   let journeyNote = '';
   try {
-    const recentTrips = await getRecentCompletedTrips(user.userId, 5);
-    const thisStartTime = activeTrip.startTime.toDate ? activeTrip.startTime.toDate() : new Date(activeTrip.startTime);
-    const thisStartStop = activeTrip.startStopName || activeTrip.startStop;
+    const transferHistory = await getRecentCompletedTrips(user.userId, 100);
 
-    const prevTrip = recentTrips.find(t => {
+    const prevTrip = transferHistory.find(t => {
       if (t.id === activeTrip.id) return false;
       if (!t.endTime || !t.endStopName) return false;
-      const prevEnd = t.endTime.toDate ? t.endTime.toDate() : new Date(t.endTime);
-      const gapMinutes = (thisStartTime - prevEnd) / 60000;
-      return gapMinutes >= 0 && gapMinutes <= 60 && PredictionEngine._stopMatch(t.endStopName, thisStartStop);
+      const confidence = TransferEngine.score(t, activeTrip, transferHistory);
+      return confidence >= TransferEngine.CONFIDENCE_THRESHOLD;
     });
 
     if (prevTrip) {
@@ -846,7 +888,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
       const prevEnd = prevTrip.endTime.toDate ? prevTrip.endTime.toDate() : new Date(prevTrip.endTime);
       const gapStr = Math.round((thisStartTime - prevEnd) / 60000);
       journeyNote = `\n\nLinked to your ${getRouteDisplay(prevTrip.route)} trip ` +
-        `(${gapStr < 1 ? '<1' : gapStr} min transfer).`;
+        `(${gapStr < 1 ? '<1' : gapStr} min transfer). UNLINK to separate.`;
     }
   } catch (journeyErr) {
     console.error('Error auto-linking journey:', journeyErr);
@@ -1057,6 +1099,7 @@ module.exports = {
   handleHelp,
   handleStatus,
   handleDiscard,
+  handleUnlink,
   handleIncomplete,
   handleRegister,
   handleVerificationCode,

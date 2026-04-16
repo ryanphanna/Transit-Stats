@@ -6,6 +6,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.22.0] - 2026-04-16
+
+### Added
+- **Single-line trip start format**: "510 Spadina/College North" now works as an alternative to multi-line format. Direction must be the last word; stop is everything in between. Parsed by new `parseSingleLineTripFormat` in `parsing.js`.
+- **UNLINK command**: Removes the journey link from the most recently ended trip. Strips `journeyId` from all trips in the journey. End-trip confirmations now include "UNLINK to separate." when a link is made.
+- **TransferEngine** (`lib/transfer.js`): Replaces the hardcoded 60-minute journey linking threshold. Learns from historical journeys (trips sharing a `journeyId`) to score transfer confidence based on stop pair match, route pair match, gap time vs historical average, and time-of-day similarity. Cold start fallback: links only if gap ≤ 15 minutes when no history exists. Threshold: 0.55 confidence.
+- **Transfer test suite**: `test_transfer.js` — 15 tests covering `extractTransfers`, `score`, and `_stopMatch`. Includes regression test for tonight's false-positive 31-minute link.
+- **Parser test suite**: `test_parsing.js` — 27 tests covering `parseMultiLineTripFormat`, `parseSingleLineTripFormat`, `parseEndTripFormat`, and `isHeuristicLogValid`. Run all tests with `npm test`.
+- **Cloud Logging access**: Added Logs Viewer role to the Firebase Admin SDK service account for direct error log queries.
+
+### Fixed
+- **End trip crash when stop has no coordinates**: `lookupStop` can return a stop document missing `lat`/`lng`. Building `exitLocation: { lat: undefined, lng: undefined }` caused Firestore to reject the update with "Cannot use undefined as a Firestore value", silently failing the end-trip command with no user feedback. Fixed by guarding both `exitLocation` and `boardingLocation` — only written if both coordinates are non-null. Same fix applied to start trips (`boardingLocation`).
+- **Stops missing lat/lng**: Backfilled coordinates for 10 Spadina-area stops by matching GTFS `stop_id` to Firestore stop codes. All 10 were Spadina/College and Spadina/Queen-area streetcar stops.
+
+### Changed
+- **`db.js` split into domain modules**: `lib/db.js` is now a backward-compatible shim. Logic lives in `lib/db/` — `core.js`, `rate-limit.js`, `users.js`, `trips.js`, `stops.js`, `conversations.js`. All existing imports continue to work unchanged.
+
 ## [1.21.1] - 2026-04-15
 
 ### Fixed

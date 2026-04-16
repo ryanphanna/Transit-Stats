@@ -12,7 +12,8 @@
     "shell": "firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "logs": "firebase functions:log",
+    "test": "node test_parsing.js && node test_transfer.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

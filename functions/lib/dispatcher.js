@@ -19,7 +19,7 @@ const {
 } = require('./db');
 const { sendSmsReply, getTwilioPhoneNumber } = require('./twilio');
 const { parseWithGemini, constructStopInput } = require('./gemini');
-const { parseMultiLineTripFormat, parseEndTripFormat } = require('./parsing');
+const { parseMultiLineTripFormat, parseSingleLineTripFormat, parseEndTripFormat } = require('./parsing');
 const { isValidRoute, normalizeDirection, getRouteDisplay, getStopDisplay, normalizeAgency } = require('./utils');
 const handlers = require('./handlers');
 
@@ -195,10 +195,11 @@ async function handlePrivateCommands(phoneNumber, user, upperBody, rawBody) {
     'STATS': handlers.handleStatsCommand,
     'FORGOT': handlers.handleIncomplete,
     'DISCARD': handlers.handleDiscard,
+    'UNLINK': handlers.handleUnlink,
   };
 
   // Strict whitelist to avoid unvalidated dynamic method invocation
-  if (['STATUS', 'STATS', 'FORGOT', 'DISCARD'].includes(upperBody)) {
+  if (['STATUS', 'STATS', 'FORGOT', 'DISCARD', 'UNLINK'].includes(upperBody)) {
     await commands[upperBody](phoneNumber, user);
     return true;
   }
@@ -225,19 +226,21 @@ async function handleTripFlow(phoneNumber, user, body) {
     return true;
   }
 
-  // Start Trip check (Multi-line)
+  // Start Trip check (Multi-line or single-line with direction)
   const userProfile = await getUserProfile(user.userId);
   const defaultAgency = userProfile?.defaultAgency || 'TTC';
   const multiLineTrip = parseMultiLineTripFormat(body, defaultAgency);
+  const singleLineTrip = !multiLineTrip ? parseSingleLineTripFormat(body, defaultAgency) : null;
+  const tripData = multiLineTrip || singleLineTrip;
 
-  if (multiLineTrip) {
+  if (tripData) {
     await handlers.handleTripLog(
       phoneNumber,
       user,
-      multiLineTrip.stop,
-      multiLineTrip.route,
-      multiLineTrip.direction,
-      multiLineTrip.agency,
+      tripData.stop,
+      tripData.route,
+      tripData.direction,
+      tripData.agency,
     );
     return true;
   }
