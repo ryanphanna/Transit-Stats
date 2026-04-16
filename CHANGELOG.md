@@ -4,8 +4,6 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Prediction Engine history](docs/ENGINE.md) · [Transfer Engine history](docs/TRANSFER_ENGINE.md) · [NextGen Roadmap](docs/ROADMAP_NEXTGEN.md) · [Technical Roadmap](docs/ROADMAP_TECHNICAL.md)
 
-## [Unreleased]
-
 ## [1.23.0] - 2026-04-16
 
 ### Added
