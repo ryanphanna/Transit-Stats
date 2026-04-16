@@ -13,7 +13,8 @@
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "test": "node test_parsing.js && node test_transfer.js"
+    "test": "node test_parsing.js && node test_transfer.js",
+    "test:integration": "node test_integration.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -26,6 +27,7 @@
     "twilio": "^5.13.0"
   },
   "overrides": {
+    "follow-redirects": "^1.16.0",
     "axios": "^1.13.5",
     "minimatch": "^3.1.5",
     "qs": "^6.15.0",
