@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.22.1] - 2026-04-15
+
+### Changed
+- **STATS response rewritten**: More conversational format. Shows past 7 days, current month by name, and 30-day summary with time on transit. Adds "Most ridden: [route] (N×)" line showing top route for the period.
+
 ## [1.22.0] - 2026-04-16
 
 ### Added

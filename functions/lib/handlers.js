@@ -1014,11 +1014,24 @@ async function handleStatsCommand(phoneNumber, user) {
   const totalMin30 = last30.reduce((sum, t) => sum + (t.duration || 0), 0);
   const uniqueRoutes30 = new Set(last30.map((t) => t.route).filter(Boolean)).size;
 
-  const lines = [
-    `Past 7 days: ${thisWeek.length} trips${getTrend(thisWeek.length, lastWeek.length)}`,
-    `Past 30 days: ${last30.length} trips${getTrend(last30.length, prev30.length)}, ${uniqueRoutes30} routes, ${(totalMin30 / 60).toFixed(1)}h`,
-    `This month: ${thisMonth.length} trips${getTrend(thisMonth.length, lastMonthToDate.length)}`,
-  ];
+  // Top route in the last 30 days
+  const routeCounts30 = {};
+  for (const t of last30) {
+    if (t.route) routeCounts30[t.route] = (routeCounts30[t.route] || 0) + 1;
+  }
+  const topRoute = Object.entries(routeCounts30).sort((a, b) => b[1] - a[1])[0];
+
+  const monthName = now.toLocaleString('en-CA', { month: 'long' });
+  const totalHours = totalMin30 / 60;
+  const timeStr = totalHours >= 1 ? `${totalHours.toFixed(1)}h` : `${Math.round(totalMin30)}min`;
+
+  const weekLine = `Past 7 days: ${thisWeek.length} trip${thisWeek.length !== 1 ? 's' : ''}${getTrend(thisWeek.length, lastWeek.length)}`;
+  const monthLine = `${monthName}: ${thisMonth.length} trip${thisMonth.length !== 1 ? 's' : ''}${getTrend(thisMonth.length, lastMonthToDate.length)}`;
+  const thirtyLine = `Last 30 days: ${last30.length} trips across ${uniqueRoutes30} route${uniqueRoutes30 !== 1 ? 's' : ''}, ${timeStr} riding${getTrend(last30.length, prev30.length)}`;
+  const topLine = topRoute ? `Most ridden: ${topRoute[0]} (${topRoute[1]}×)` : null;
+
+  const lines = [weekLine, monthLine, thirtyLine];
+  if (topLine) lines.push(topLine);
 
   await sendSmsReply(phoneNumber, lines.join('\n'));
 }
