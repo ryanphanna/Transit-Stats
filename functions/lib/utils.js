@@ -78,6 +78,10 @@ function normalizeDirection(input) {
   // Outbound
   if (['OB', 'OUT', 'OUTBOUND'].includes(upper)) return 'Outbound';
 
+  // Up Valley / Down Valley (ski resort and valley transit systems)
+  if (['UV', 'UP', 'UPVALLEY', 'UP VALLEY', 'UP-VALLEY'].includes(upper)) return 'Up Valley';
+  if (['DV', 'DOWN', 'DOWNVALLEY', 'DOWN VALLEY', 'DOWN-VALLEY'].includes(upper)) return 'Down Valley';
+
   // Return original if no match (e.g. specific destination name)
   return input.trim();
 }
@@ -146,9 +150,13 @@ function determineReliability(stateExpiresAt) {
 function normalizeRoute(route) {
   if (!route) return route;
   const s = route.toString().trim();
-  
+
   // Guard against extreme input length to provide baseline DoS protection
   if (s.length > 100) return s;
+
+  // Only uppercase trailing letter suffixes on numeric routes (e.g. "510a" → "510A").
+  // Named routes like "Lakeshore West" or "Lakeshore East" must not be uppercased.
+  if (!/^\d/.test(s)) return s;
 
   // Find the index where trailing letters start (e.g., "510a" -> index 3)
   // We scan backwards to find the boundary in O(N) without backtracking risk.
@@ -156,9 +164,9 @@ function normalizeRoute(route) {
   while (i > 0 && /[a-zA-Z]/.test(s[i - 1])) {
     i--;
   }
-  
+
   if (i === s.length) return s; // No trailing letters
-  
+
   const base = s.slice(0, i);
   const suffix = s.slice(i);
   return base + suffix.toUpperCase();

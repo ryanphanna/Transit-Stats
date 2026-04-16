@@ -16,6 +16,7 @@ const {
   getUserByPhone,
   getUserProfile,
   lookupStop,
+  findMatchingStops,
   getRoutesAtStop,
   db,
   isGeminiRateLimited,
@@ -24,6 +25,7 @@ const {
   getStopsLibrary,
   getConversationHistory,
   saveConversationTurn,
+  getLastTripAgency,
 } = require('./db');
 const { PredictionEngine } = require('./predict.js');
 const { TransferEngine } = require('./transfer.js');
@@ -343,7 +345,84 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
   const parsedStop = parseStopInput(stopInput);
   const stopDisplay = getStopDisplay(parsedStop.stopCode, parsedStop.stopName);
 
-  const stopData = await lookupStop(parsedStop.stopCode, parsedStop.stopName, agency);
+  // If agency was not explicitly specified, check the last trip's agency.
+  // This lets the system infer "you're still in LA" without the user having to
+  // repeat the agency on every message.
+  let resolvedAgency = agency;
+  if (!options.agencyExplicit) {
+    const lastAgency = await getLastTripAgency(user.userId);
+    if (lastAgency && lastAgency !== agency) {
+      // Try stop lookup under both agencies
+      const [stopInDefault, stopInLast] = await Promise.all([
+        lookupStop(parsedStop.stopCode, parsedStop.stopName, agency),
+        lookupStop(parsedStop.stopCode, parsedStop.stopName, lastAgency),
+      ]);
+
+      if (stopInDefault && stopInLast) {
+        // Found in both — genuinely ambiguous. Ask.
+        const userProfile = await getUserProfile(user.userId);
+        const defaultAgency = userProfile?.defaultAgency || agency;
+        await setPendingState(phoneNumber, {
+          type: 'confirm_agency',
+          route,
+          direction,
+          stopInput,
+          options,
+          agencyOptions: [lastAgency, defaultAgency],
+        });
+        await sendSmsReply(
+          phoneNumber,
+          `Which ${stopDisplay}?\n1. ${lastAgency}\n2. ${defaultAgency}`
+        );
+        return;
+      } else if (stopInLast) {
+        // Found in last trip's agency only — use it.
+        resolvedAgency = lastAgency;
+      } else if (stopInDefault) {
+        // Found in default agency but not last trip's — ambiguous (could be home,
+        // or the other agency's stop library is just incomplete). Ask.
+        const userProfile = await getUserProfile(user.userId);
+        const defaultAgency = userProfile?.defaultAgency || agency;
+        await setPendingState(phoneNumber, {
+          type: 'confirm_agency',
+          route,
+          direction,
+          stopInput,
+          options,
+          agencyOptions: [lastAgency, defaultAgency],
+        });
+        await sendSmsReply(
+          phoneNumber,
+          `Which ${stopDisplay}?\n1. ${lastAgency}\n2. ${defaultAgency}`
+        );
+        return;
+      } else {
+        // Neither has it — infer last trip's agency (unverified).
+        resolvedAgency = lastAgency;
+      }
+    }
+  }
+
+  // Ambiguous stop check: if the user gave a name (not a code), see if it matches
+  // multiple stops in the resolved agency. If so, ask before proceeding.
+  if (!parsedStop.stopCode && parsedStop.stopName) {
+    const candidates = await findMatchingStops(parsedStop.stopName, resolvedAgency);
+    if (candidates.length > 1) {
+      const list = candidates.map((c, i) => `${i + 1}. ${c.stopName}`).join('\n');
+      await setPendingState(phoneNumber, {
+        type: 'confirm_stop',
+        route,
+        direction,
+        agency: resolvedAgency,
+        options,
+        stopCandidates: candidates,
+      });
+      await sendSmsReply(phoneNumber, `Multiple stops match "${parsedStop.stopName}":\n${list}\nReply with a number or DISCARD to cancel.`);
+      return;
+    }
+  }
+
+  const stopData = await lookupStop(parsedStop.stopCode, parsedStop.stopName, resolvedAgency);
   const verified = stopData !== null;
   const boardingLocation = (stopData?.lat != null && stopData?.lng != null)
     ? { lat: stopData.lat, lng: stopData.lng }
@@ -407,7 +486,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
     const [history, stopsLibrary, routesAtStop, profile] = await Promise.all([
       getRecentCompletedTrips(user.userId, 100),
       getStopsLibrary(),
-      getRoutesAtStop(startStopCode, agency),
+      getRoutesAtStop(startStopCode, resolvedAgency),
       getUserProfile(user.userId),
     ]);
     PredictionEngine.stopsLibrary = stopsLibrary;
@@ -443,27 +522,33 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
     console.error('Error generating prediction at trip start:', err);
   }
 
-  await createTrip({
-    userId: user.userId,
-    route,
-    direction: direction || null,
-    startStopCode: stopData ? stopData.stopCode : parsedStop.stopCode,
-    startStopName,
-    verified,
-    boardingLocation,
-    agency,
-    sentiment: options.sentiment || null,
-    tags: options.tags || [],
-    parsed_by: options.parsed_by || 'manual',
-    prediction: prediction || null,
-    predictionV4: predictionV4 || null,
-    predictionV5: predictionV5 || null,
-    endStopPrediction: endStopPrediction || null,
-    endStopPredictions: endStopPredictions || null,
-    endStopPredictionV4: endStopPredictionV4 || null,
-    endStopPredictionV5: endStopPredictionV5 || null,
-    needs_review: !isValidRoute(route) || null,
-  });
+  try {
+    await createTrip({
+      userId: user.userId,
+      route,
+      direction: direction || null,
+      startStopCode: stopData ? stopData.stopCode : parsedStop.stopCode,
+      startStopName,
+      verified,
+      boardingLocation,
+      agency: resolvedAgency,
+      sentiment: options.sentiment || null,
+      tags: options.tags || [],
+      parsed_by: options.parsed_by || 'manual',
+      prediction: prediction || null,
+      predictionV4: predictionV4 || null,
+      predictionV5: predictionV5 || null,
+      endStopPrediction: endStopPrediction || null,
+      endStopPredictions: endStopPredictions || null,
+      endStopPredictionV4: endStopPredictionV4 || null,
+      endStopPredictionV5: endStopPredictionV5 || null,
+      needs_review: !isValidRoute(route) || null,
+    });
+  } catch (err) {
+    console.error('createTrip failed', err.message, err.stack);
+    await sendSmsReply(phoneNumber, 'Could not start your trip. Please try again.');
+    return;
+  }
 
   const routeDisplay = getRouteDisplay(route, direction);
   const finalStopDisplay = getStopDisplay(
@@ -472,9 +557,9 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
   );
 
   // Warm agency timezone cache in background — never blocks trip confirmation
-  if (agency) lookupAgencyTimezone(agency).catch(() => {});
+  if (resolvedAgency) lookupAgencyTimezone(resolvedAgency).catch(() => {});
 
-  let replyBody = `Started ${routeDisplay} from ${finalStopDisplay}${agencySuffix(agency, defaultAgency)}.`;
+  let replyBody = `Started ${routeDisplay} from ${finalStopDisplay}${agencySuffix(resolvedAgency, defaultAgency)}.`;
   if (isAdmin && endStopPredictions && endStopPredictions.length > 0) {
     const predLines = endStopPredictions.map((p, i) => `${i + 1}. ${p.stop} (${p.confidence}%)`).join('\n');
     const shortcutNums = endStopPredictions.map((_, i) => i + 1).join('/');
@@ -482,7 +567,9 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
   } else {
     replyBody += `\n\nEND [stop] to finish. FORGOT if you forgot to end. INFO for help.`;
   }
-  await sendSmsReply(phoneNumber, replyBody);
+  await sendSmsReply(phoneNumber, replyBody).catch(err => {
+    console.error('sendSmsReply failed after createTrip — trip created but user not notified', err.message);
+  });
 }
 
 /**
@@ -777,6 +864,12 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
         source: 'sms',
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
       });
+      await db.collection('predictionAccuracy').doc(user.userId).set({
+        v4Total: admin.firestore.FieldValue.increment(1),
+        v4Hits: admin.firestore.FieldValue.increment(isHitV4 ? 1 : 0),
+        v4PartialHits: admin.firestore.FieldValue.increment(isPartialHitV4 ? 1 : 0),
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
       console.log(`Prediction V4 graded for ${user.userId}: ${isHitV4 ? 'HIT' : (isPartialHitV4 ? 'PARTIAL' : 'MISS')} | ` +
         `${predictedLabelV4} → ${actualLabelV4}`);
     }
@@ -813,6 +906,12 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
         source: 'sms',
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
       });
+      await db.collection('predictionAccuracy').doc(user.userId).set({
+        v5Total: admin.firestore.FieldValue.increment(1),
+        v5Hits: admin.firestore.FieldValue.increment(isHitV5 ? 1 : 0),
+        v5PartialHits: admin.firestore.FieldValue.increment(isPartialHitV5 ? 1 : 0),
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
       console.log(`Prediction V5 graded for ${user.userId}: ${isHitV5 ? 'HIT' : (isPartialHitV5 ? 'PARTIAL' : 'MISS')} | ` +
         `${predictedLabelV5} → ${actualLabelV5}`);
     }
@@ -838,6 +937,11 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
         source: 'sms',
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
       });
+      await db.collection('predictionAccuracy').doc(user.userId).set({
+        v4EndStopTotal: admin.firestore.FieldValue.increment(1),
+        v4EndStopHits: admin.firestore.FieldValue.increment(endStopHitV4 ? 1 : 0),
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
       console.log(`End stop V4 graded for ${user.userId}: ${endStopHitV4 ? 'HIT' : 'MISS'} | predicted ${storedEndStopV4.stop} → actual ${actualEndStopForGrading}`);
     }
 
@@ -861,6 +965,11 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
         source: 'sms',
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
       });
+      await db.collection('predictionAccuracy').doc(user.userId).set({
+        v5EndStopTotal: admin.firestore.FieldValue.increment(1),
+        v5EndStopHits: admin.firestore.FieldValue.increment(endStopHitV5 ? 1 : 0),
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
       console.log(`End stop V5 graded for ${user.userId}: ${endStopHitV5 ? 'HIT' : 'MISS'} | predicted ${storedEndStopV5.stop} → actual ${actualEndStopForGrading}`);
     }
   } catch (predictionErr) {
@@ -965,11 +1074,6 @@ async function handleStatsCommand(phoneNumber, user) {
   const fourteenDaysAgo = new Date(now); fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
   const thirtyDaysAgo = new Date(now); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const sixtyDaysAgo = new Date(now); sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-  const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  
-  // Previous month same period
-  const prevMonthFirst = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const prevMonthSameDay = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
 
   const snapshot = await db.collection('trips')
     .where('userId', '==', user.userId)
@@ -990,11 +1094,6 @@ async function handleStatsCommand(phoneNumber, user) {
     const d = toDate(t);
     return d >= sixtyDaysAgo && d < thirtyDaysAgo;
   });
-  const thisMonth = allTrips.filter((t) => toDate(t) >= firstOfMonth);
-  const lastMonthToDate = allTrips.filter((t) => {
-    const d = toDate(t);
-    return d >= prevMonthFirst && d < prevMonthSameDay;
-  });
 
   if (allTrips.length === 0) {
     await sendSmsReply(phoneNumber, 'No trips logged in the last 60 days.');
@@ -1004,11 +1103,11 @@ async function handleStatsCommand(phoneNumber, user) {
   const profile = await getUserProfile(user.userId);
   const isPremium = !!profile?.isPremium;
 
-  const getTrend = (current, previous) => {
+  const getTrend = (current, previous, label) => {
     if (!isPremium || previous === 0) return '';
     const pct = Math.round(((current - previous) / previous) * 100);
     const arrow = pct >= 0 ? '↑' : '↓';
-    return ` (${arrow}${Math.abs(pct)}%)`;
+    return ` (${arrow}${Math.abs(pct)}% vs ${label})`;
   };
 
   const totalMin30 = last30.reduce((sum, t) => sum + (t.duration || 0), 0);
@@ -1021,19 +1120,14 @@ async function handleStatsCommand(phoneNumber, user) {
   }
   const topRoute = Object.entries(routeCounts30).sort((a, b) => b[1] - a[1])[0];
 
-  const monthName = now.toLocaleString('en-CA', { month: 'long' });
-  const totalHours = totalMin30 / 60;
+const totalHours = totalMin30 / 60;
   const timeStr = totalHours >= 1 ? `${totalHours.toFixed(1)}h` : `${Math.round(totalMin30)}min`;
 
-  const weekLine = `Past 7 days: ${thisWeek.length} trip${thisWeek.length !== 1 ? 's' : ''}${getTrend(thisWeek.length, lastWeek.length)}`;
-  const monthLine = `${monthName}: ${thisMonth.length} trip${thisMonth.length !== 1 ? 's' : ''}${getTrend(thisMonth.length, lastMonthToDate.length)}`;
-  const thirtyLine = `Last 30 days: ${last30.length} trips across ${uniqueRoutes30} route${uniqueRoutes30 !== 1 ? 's' : ''}, ${timeStr} riding${getTrend(last30.length, prev30.length)}`;
-  const topLine = topRoute ? `Most ridden: ${topRoute[0]} (${topRoute[1]}×)` : null;
+  const weekLine = `Past 7 days: ${thisWeek.length} trip${thisWeek.length !== 1 ? 's' : ''}${getTrend(thisWeek.length, lastWeek.length, 'prior week')}`;
+  const topSuffix = topRoute ? ` · Most ridden: ${topRoute[0]} (${topRoute[1]}×)` : '';
+  const thirtyLine = `Last 30 days: ${last30.length} trips across ${uniqueRoutes30} route${uniqueRoutes30 !== 1 ? 's' : ''}, ${timeStr} riding${getTrend(last30.length, prev30.length, 'prior 30')}${topSuffix}`;
 
-  const lines = [weekLine, monthLine, thirtyLine];
-  if (topLine) lines.push(topLine);
-
-  await sendSmsReply(phoneNumber, lines.join('\n'));
+  await sendSmsReply(phoneNumber, [weekLine, thirtyLine].join('\n\n'));
 }
 
 /**

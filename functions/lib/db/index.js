@@ -4,8 +4,8 @@
 const { admin, db } = require('./core');
 const { isRateLimited, isGeminiRateLimited, shouldRespondToUnknown, checkIdempotency, checkContentDuplicate } = require('./rate-limit');
 const { getUserByPhone, getUserProfile, isEmailAllowed, storeVerificationCode, getVerificationData } = require('./users');
-const { getActiveTrip, createTrip, getRecentCompletedTrips, getPendingState, setPendingState, clearPendingState } = require('./trips');
-const { lookupStop, getRoutesAtStop, getStopsLibrary } = require('./stops');
+const { getActiveTrip, createTrip, getRecentCompletedTrips, getPendingState, setPendingState, clearPendingState, getLastTripAgency } = require('./trips');
+const { lookupStop, findMatchingStops, getRoutesAtStop, getStopsLibrary } = require('./stops');
 const { getConversationHistory, saveConversationTurn } = require('./conversations');
 
 module.exports = {
@@ -28,10 +28,12 @@ module.exports = {
   setPendingState,
   clearPendingState,
   lookupStop,
+  findMatchingStops,
   getRoutesAtStop,
   getStopsLibrary,
   getConversationHistory,
   saveConversationTurn,
+  getLastTripAgency,
   getFirestore: () => db,
   getAdmin: () => admin,
 };

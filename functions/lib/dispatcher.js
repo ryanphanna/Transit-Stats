@@ -122,6 +122,56 @@ async function handlePendingState(phoneNumber, body, upperBody, state) {
     return true;
   }
 
+  if (state.type === 'confirm_agency') {
+    if (/^[12]$/.test(body.trim())) {
+      const user = await getUserByPhone(phoneNumber);
+      if (user) {
+        const chosenAgency = state.agencyOptions[parseInt(body.trim(), 10) - 1];
+        await clearPendingState(phoneNumber);
+        await handlers.handleTripLog(
+          phoneNumber, user, state.stopInput, state.route, state.direction,
+          chosenAgency, { ...state.options, agencyExplicit: true }
+        );
+      }
+      return true;
+    }
+
+    if (upperBody === 'DISCARD') {
+      await clearPendingState(phoneNumber);
+      await sendSmsReply(phoneNumber, 'Trip cancelled.');
+      return true;
+    }
+
+    // Anything else (STATUS, STATS, new trip, etc.) falls through to normal dispatch.
+    // The pending state stays until resolved or it expires.
+    return false;
+  }
+
+  if (state.type === 'confirm_stop') {
+    const num = parseInt(body.trim(), 10);
+    if (!isNaN(num) && num >= 1 && num <= state.stopCandidates.length) {
+      const user = await getUserByPhone(phoneNumber);
+      if (user) {
+        const chosen = state.stopCandidates[num - 1];
+        await clearPendingState(phoneNumber);
+        // Pass stop code so lookupStop resolves unambiguously
+        await handlers.handleTripLog(
+          phoneNumber, user, chosen.stopCode, state.route, state.direction,
+          state.agency, { ...state.options, agencyExplicit: true }
+        );
+      }
+      return true;
+    }
+
+    if (upperBody === 'DISCARD') {
+      await clearPendingState(phoneNumber);
+      await sendSmsReply(phoneNumber, 'Trip cancelled.');
+      return true;
+    }
+
+    return false;
+  }
+
   if (state.type === 'confirm_start') {
     if (upperBody === 'START') {
       const user = await getUserByPhone(phoneNumber);
@@ -241,6 +291,7 @@ async function handleTripFlow(phoneNumber, user, body) {
       tripData.route,
       tripData.direction,
       tripData.agency,
+      { agencyExplicit: tripData.agencyExplicit },
     );
     return true;
   }
@@ -287,7 +338,7 @@ async function handleAIIntent(phoneNumber, user, body) {
         geminiResult.route,
         safeDir,
         aiAgency || defaultAgency,
-        { parsed_by: 'ai' },
+        { parsed_by: 'ai', agencyExplicit: !!aiAgency },
       );
       return true;
     }

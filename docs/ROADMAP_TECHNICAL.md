@@ -12,7 +12,7 @@ quality and coverage improvements.
 
 - [ ] **`STATS` command improvements** — extend the structured stats reply with weekly
   and monthly comparisons, not just all-time totals.
-- [ ] **Ambiguous stop handling** — when a stop name matches multiple library entries
+- [x] **Ambiguous stop handling** — when a stop name matches multiple library entries
   (e.g. "King" on multiple routes), reply with a disambiguation prompt rather than
   picking arbitrarily.
 - [ ] **Multi-leg journey via SMS** — the LINK command exists but is manual. Detect
@@ -82,7 +82,7 @@ the binding is in the stops library and route metadata.
   environments (currently mixed).
 - [ ] **Firestore index audit** — review composite indexes against actual query patterns.
   Remove unused indexes; add missing ones surfaced by slow query logs.
-- [ ] **Rate limiting on SMS handler** — per-number request throttle to prevent
+- [x] **Rate limiting on SMS handler** — per-number request throttle to prevent
   accidental SMS loops from hammering Firestore.
 - [ ] **Error alerting** — Cloud Function errors currently surface only in logs.
   Add structured alerting for handler failures and Gemini proxy errors.

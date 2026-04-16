@@ -6,6 +6,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.23.0] - 2026-04-16
+
+### Added
+- **Ambiguous stop disambiguation**: When a stop name matches multiple entries in the stops library, the system now asks "Multiple stops match '[name]': 1. X 2. Y — Reply with a number or DISCARD to cancel." User picks a number, trip proceeds with the unambiguous stop code. Previously, the first result was picked silently. Mirrors the existing `confirm_agency` flow — stored in `smsState` as `confirm_stop`, resolved in the dispatcher.
+- **Up Valley / Down Valley directions**: Gemini SMS parser now recognizes and normalizes "Up Valley" and "Down Valley" directions (alongside Inbound, Outbound, Clockwise, Counterclockwise) — previously the prompt only listed the four cardinal directions, so natural-language messages with these directions would pass through unnormalized.
+- **Agency inference from last trip**: When no agency is specified, the system checks the most recent trip's agency. If it differs from the profile default, it uses that agency instead — so trips in a non-home city work automatically without adding an agency line every time. If the stop is found in both the inferred and default agency's library (ambiguous), the user is asked "Which [stop]? 1. [last agency] 2. [default agency]" and replies with a number. This also handles the return-home case: the first TTC trip after travelling asks once, then resets automatically.
+
+### Fixed
+- **V4 and V5 accuracy not rolled up**: Route and end stop predictions from V4/V5 were written to `predictionStats` (individual records) but never incremented the `predictionAccuracy` summary doc — so V4/V5 accuracy was invisible without a full collection scan. Each grading block now updates `v4Total/v4Hits/v4PartialHits`, `v5Total/v5Hits/v5PartialHits`, `v4EndStopTotal/v4EndStopHits`, and `v5EndStopTotal/v5EndStopHits` alongside V3's existing counters.
+- **Named route stored with uppercased direction word**: Routes like "Lakeshore West" or "Lakeshore East" were stored as "Lakeshore WEST" / "Lakeshore EAST" because `normalizeRoute` uppercased any trailing letter sequence, which was designed for numeric suffixes like `510a → 510A`. Fixed by skipping the suffix logic for routes that don't start with a digit.
+- **Trip start crash gives no user feedback**: If `createTrip` threw (e.g. a Firestore write error), the exception propagated to the top-level handler which returned HTTP 500 — the user received no reply and had no way to retry. Added try/catch in `handleTripLog` so the user gets "Could not start your trip. Please try again." instead of silence. Same pattern as the `handleEndTrip` fix in 1.21.1.
+- **Twilio failure after trip creation swallowed silently**: If `sendSmsReply` threw after `createTrip` succeeded, the exception propagated and the trip was written but the user received no confirmation. The trip now logs the Twilio failure and continues — the trip is preserved and will appear as active on next STATUS.
+
 ## [1.22.1] - 2026-04-15
 
 ### Changed

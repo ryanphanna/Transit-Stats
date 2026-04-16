@@ -791,6 +791,7 @@ function constructStopInput(result) {
  * @returns {Promise<object|null>} Parsed and sanitized data or null if failed
  */
 async function parseWithGemini(text) {
+  if (process.env.TS_TEST_MODE) return null; // Use heuristic parser in tests
   const apiKey = geminiApiKey.value();
   if (!apiKey) {
     console.error('Gemini API key not configured');
@@ -816,7 +817,7 @@ async function parseWithGemini(text) {
     - OTHER: Not a transit command.
 
     Extraction Rules:
-    - Direction: Normalize: "Northbound", "Southbound", "Eastbound", "Westbound".
+    - Direction: Normalize: "Northbound", "Southbound", "Eastbound", "Westbound", "Inbound", "Outbound", "Clockwise", "Counterclockwise", "Up Valley", "Down Valley".
     - Route: Extract ONLY the route identifier explicitly mentioned (e.g., "504", "Line 1", "510a").
       Routes are typically 1-3 digits or "Line X". Never infer or guess a route —
       if none is clearly stated, return null.

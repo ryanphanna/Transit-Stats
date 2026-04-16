@@ -85,6 +85,7 @@ function parseMultiLineTripFormat(body, defaultAgency) {
     stop,
     direction,
     agency,
+    agencyExplicit: agency !== defaultAgency,
   };
 }
 
@@ -247,7 +248,7 @@ function parseSingleLineTripFormat(body, defaultAgency) {
 
   if (!isHeuristicLogValid(stop, route)) return null;
 
-  return { route, stop, direction, agency: defaultAgency };
+  return { route, stop, direction, agency: defaultAgency, agencyExplicit: false };
 }
 
 module.exports = {
