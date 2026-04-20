@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **Twilio webhook retry creates duplicate trips**: When the Cloud Function took too long to respond, Twilio retried the webhook and the system processed the same message twice — creating phantom trips with garbled stop names. Fixed by atomically writing a `processedMessages/{MessageSid}` document before dispatching. If the document already exists (Firestore `create` throws ALREADY_EXISTS), the request is a retry and returns an empty TwiML response immediately.
+
 ## [1.24.0] - 2026-04-20
 
 ### Added

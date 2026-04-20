@@ -7,6 +7,7 @@ const express = require('express');
 const { defineSecret } = require('firebase-functions/params');
 
 // Modules
+const admin = require('firebase-admin');
 const logger = require('./lib/logger');
 const {
   validateTwilioSignature,
@@ -35,6 +36,23 @@ async function handleSmsRequest(req, res) {
     if (!phoneNumber || !body) {
       res.status(400).send('Missing phone number or message body');
       return;
+    }
+
+    // Idempotency: reject Twilio webhook retries for already-processed messages
+    if (messageSid) {
+      try {
+        await admin.firestore().collection('processedMessages').doc(messageSid).create({
+          processedAt: new Date(),
+          from: phoneNumber,
+        });
+      } catch (err) {
+        if (err.code === 'ALREADY_EXISTS' || (err.code && err.code === 6)) {
+          logger.info('Duplicate webhook rejected', { messageSid, from: phoneNumber });
+          res.type('text/xml').send(twimlResponse(''));
+          return;
+        }
+        throw err;
+      }
     }
 
     // Delegate all logic to the dispatcher
