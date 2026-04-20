@@ -44,6 +44,7 @@ async function handleSmsRequest(req, res) {
         await admin.firestore().collection('processedMessages').doc(messageSid).create({
           processedAt: new Date(),
           from: phoneNumber,
+          body,
         });
       } catch (err) {
         if (err.code === 'ALREADY_EXISTS' || (err.code && err.code === 6)) {

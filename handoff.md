@@ -352,15 +352,11 @@ All stops below were researched this session. None have been created yet. For ea
 
 ---
 
-### Webhook idempotency bug
-On April 1 at 9:34 PM, two identical trips were created 1 second apart (510 Northbound, startStopName "Until") — Ryan confirmed he never sent a trip start text at that time. The system received a spurious Twilio webhook retry and processed it as a new trip. The phantom trip was deleted and the real trip's start stop cleared to null.
-
-**Fix needed:** Add idempotency to the Twilio webhook handler — deduplicate incoming requests by `MessageSid` before processing. Twilio retries if the server doesn't respond within 5 seconds, which can cause double-processing under load or slow cold starts. Store processed `MessageSid`s in Firestore (e.g. `processedMessages` collection) with a short TTL and skip if already seen.
+### Webhook idempotency — FIXED
+Twilio webhook retries now deduplicated via `processedMessages/{MessageSid}` Firestore collection. Each incoming message atomically creates a document before dispatch — retries see ALREADY_EXISTS and return empty TwiML immediately. Body is stored alongside `processedAt` and `from` for audit/troubleshooting. Documents kept permanently (useful for debugging missing or duplicate trips).
 
 ### Still unresolved after this session
-A few trips still need investigation before stop creation:
-- **"Until"** — resolved: orphan deleted, real trip start stop cleared to null. Root cause: Twilio webhook retry (see above).
-- **"West"** (Line 2, direction Spadina, board) — "West" is likely the subway direction, not a stop. Pull trip and correct.
+All major trips corrected. Remaining unresolved stop names in the audit are low-value 1× singles from infrequent routes — address as they come up organically.
 - **"St Clair W / Hounslow Heath Rd"** (510 Eastbound board) — unusual — 510 runs N/S. Pull trip and investigate.
 - **"Kipling"** (MiWay route 1 Westbound board) — MiWay stop, skipped for now.
 - **"Laird & West Of Ridgeway"** (MiWay route 1 Westbound exit) — MiWay stop, skipped for now.
