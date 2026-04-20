@@ -2,7 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
-**See also:** [Prediction Engine history](docs/ENGINE.md) · [Transfer Engine history](docs/TRANSFER_ENGINE.md) · [NextGen Roadmap](docs/ROADMAP_NEXTGEN.md) · [Technical Roadmap](docs/ROADMAP_TECHNICAL.md)
+**See also:** [Prediction Engine history](docs/ENGINE.md) · [Transfer Engine history](docs/TRANSFER_ENGINE.md) · [Network Engine history](docs/NETWORK_ENGINE.md) · [NextGen Roadmap](docs/ROADMAP_NEXTGEN.md) · [Technical Roadmap](docs/ROADMAP_TECHNICAL.md)
+
+## [Unreleased]
+
+## [1.24.0] - 2026-04-20
+
+### Added
+- **NetworkEngine v1** (`functions/lib/network.js`): New prediction engine that learns the transit graph from completed trips. Each trip end records an edge `fromStop → toStop` with duration to Firestore (`networkGraph` collection). At trip start, the graph for the current route is loaded and used as a higher-priority directional filter than topology.json — so any network (BART, Muni, LA Metro, future cities) builds itself automatically without manual stop-sequence curation. Falls back to topology.json when fewer than 3 trips have been observed on an edge. Reverse-edge inference: a B→A westbound trip also confirms A is reachable from B eastbound.
+- **Network graph backfill script** (`Tools/backfill-network-graph.js`): One-time script to seed the graph from all existing trips so NetworkEngine has data immediately on deploy.
+- **Route-aware stop disambiguation**: When a stop name matches multiple library entries, candidates are filtered by the trip's route before prompting. If only one candidate serves that route, it is selected automatically with no user prompt. If multiple candidates serve the route, only those are shown — narrowing the list. Falls back to all candidates when no route data exists yet for any match.
+- **Stop route back-write**: Every time a trip start resolves a stop successfully, the route is written to the stop's `routes` array in the background. Stops learn which routes serve them automatically over time — no manual maintenance needed.
+
+### Changed
+- **Stop disambiguation starts trip immediately**: When a stop name is ambiguous and there is no active trip conflict, the trip now starts at send time with the raw stop name stored temporarily. The user is sent "510 started. Multiple stops match...: Reply with a number to set your stop, or DISCARD to cancel." Replying with a number updates the trip's stop fields to the canonical name and code; DISCARD deletes the trip. If the user never replies, the trip is preserved for duration/time-on-transit stats but excluded from origin stop stats (same outcome as FORGOT). Previously the trip did not start until disambiguation resolved, causing incorrect boarding times.
+- **STATS "Top route" moved to its own line and reworded**: Was appended inline to the 30-day line as "· Most ridden: 1 (39×)". Now appears as a separate paragraph: "Top route: 1 (39×)".
+
+### Fixed
+- **End-stop predictions bleed across directions on topology-covered lines (V3)**: `_preFilterCandidatesByTopology` and `_applyTopologyFilter` fell back to the full unfiltered candidate set when the topology filter produced zero results — so going eastbound from Spadina on Route 2 showed westbound stops (Dufferin, Lansdowne) because all historical trips from that stop were westbound. The fallback now only triggers when topology *can't* be applied (route or boarding stop not found in topology). When topology fully covers the route and direction, an empty filtered set is returned as-is, which correctly yields no prediction rather than wrong-direction predictions.
+- **Line 1 direction filter incorrectly applied at Union Station**: Boarding at Union treated it as a Yonge-branch stop, causing northbound trips to filter toward lower indexes (back up Yonge) instead of allowing University-branch end stops. Union is now exempt from topology filtering in both `_preFilterCandidatesByTopology` and `_applyTopologyFilter` — either branch is valid from there, so historical data is left unfiltered.
+- **Disambiguation start message showed "Unknown" during pending window**: When a trip was created during stop disambiguation, startStopName was written as null — so STATUS during the pending window showed "Active trip: 1 Northbound from Unknown". Now writes the raw stop name the user typed as a temporary placeholder until disambiguation resolves.
 
 ## [1.23.0] - 2026-04-16
 

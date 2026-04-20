@@ -29,6 +29,7 @@ const {
 } = require('./db');
 const { PredictionEngine } = require('./predict.js');
 const { TransferEngine } = require('./transfer.js');
+const { NetworkEngine } = require('./network.js');
 const { PredictionEngineV4 } = require('./predict_v4.js');
 const { PredictionEngineV5 } = require('./predict_v5.js');
 const {
@@ -404,20 +405,76 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
   }
 
   // Ambiguous stop check: if the user gave a name (not a code), see if it matches
-  // multiple stops in the resolved agency. If so, ask before proceeding.
+  // multiple stops in the resolved agency. If no active trip conflict, start the
+  // trip immediately so boarding time is captured, then resolve the stop async.
   if (!parsedStop.stopCode && parsedStop.stopName) {
-    const candidates = await findMatchingStops(parsedStop.stopName, resolvedAgency);
+    let candidates = await findMatchingStops(parsedStop.stopName, resolvedAgency);
+    if (candidates.length > 1 && route) {
+      // Filter by route if stops have route data — auto-select if only one remains
+      const routeFiltered = candidates.filter(c =>
+        !c.routes || c.routes.length === 0 ||
+        c.routes.some(r => normalizeRoute(r) === normalizeRoute(route))
+      );
+      if (routeFiltered.length === 1) candidates = routeFiltered;
+      else if (routeFiltered.length > 1) candidates = routeFiltered;
+      // If routeFiltered is 0, keep all candidates (no route data to filter on)
+    }
     if (candidates.length > 1) {
       const list = candidates.map((c, i) => `${i + 1}. ${c.stopName}`).join('\n');
-      await setPendingState(phoneNumber, {
-        type: 'confirm_stop',
-        route,
-        direction,
-        agency: resolvedAgency,
-        options,
-        stopCandidates: candidates,
-      });
-      await sendSmsReply(phoneNumber, `Multiple stops match "${parsedStop.stopName}":\n${list}\nReply with a number or DISCARD to cancel.`);
+
+      if (!activeTrip) {
+        let tripId;
+        try {
+          tripId = await createTrip({
+            userId: user.userId,
+            route,
+            direction: direction || null,
+            startStopCode: null,
+            startStopName: parsedStop.stopName || null,
+            startStop: null,
+            verified: false,
+            boardingLocation: null,
+            agency: resolvedAgency,
+            sentiment: options.sentiment || null,
+            tags: options.tags || [],
+            parsed_by: options.parsed_by || 'manual',
+            prediction: null,
+            predictionV4: null,
+            predictionV5: null,
+            endStopPrediction: null,
+            endStopPredictions: null,
+            endStopPredictionV4: null,
+            endStopPredictionV5: null,
+            needs_review: !isValidRoute(route) || null,
+          });
+        } catch (err) {
+          console.error('createTrip failed during stop disambiguation', err.message);
+          await sendSmsReply(phoneNumber, 'Could not start your trip. Please try again.');
+          return;
+        }
+        await setPendingState(phoneNumber, {
+          type: 'confirm_stop',
+          tripId,
+          route,
+          direction,
+          agency: resolvedAgency,
+          options,
+          stopCandidates: candidates,
+        });
+        const routeDisplay = getRouteDisplay(route, direction);
+        await sendSmsReply(phoneNumber, `${routeDisplay} started. Multiple stops match "${parsedStop.stopName}":\n${list}\nReply with a number to set your stop, or DISCARD to cancel.`);
+      } else {
+        // Active trip conflict — leave trip creation until after disambiguation
+        await setPendingState(phoneNumber, {
+          type: 'confirm_stop',
+          route,
+          direction,
+          agency: resolvedAgency,
+          options,
+          stopCandidates: candidates,
+        });
+        await sendSmsReply(phoneNumber, `Multiple stops match "${parsedStop.stopName}":\n${list}\nReply with a number or DISCARD to cancel.`);
+      }
       return;
     }
   }
@@ -427,6 +484,13 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
   const boardingLocation = (stopData?.lat != null && stopData?.lng != null)
     ? { lat: stopData.lat, lng: stopData.lng }
     : null;
+
+  // Background: teach this stop which routes serve it
+  if (stopData?.id && route) {
+    db.collection('stops').doc(stopData.id).update({
+      routes: require('firebase-admin').firestore.FieldValue.arrayUnion(route),
+    }).catch(() => {});
+  }
 
   if (activeTrip) {
     const activeTripRouteDisplay = getRouteDisplay(activeTrip.route);
@@ -483,13 +547,15 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
   let isAdmin = false;
   let defaultAgency = 'TTC';
   try {
-    const [history, stopsLibrary, routesAtStop, profile] = await Promise.all([
+    const [history, stopsLibrary, routesAtStop, profile, networkGraph] = await Promise.all([
       getRecentCompletedTrips(user.userId, 100),
       getStopsLibrary(),
       getRoutesAtStop(startStopCode, resolvedAgency),
       getUserProfile(user.userId),
+      NetworkEngine.load(db, user.userId, resolvedAgency, route),
     ]);
     PredictionEngine.stopsLibrary = stopsLibrary;
+    PredictionEngine.networkGraph = networkGraph || null;
     isAdmin = !!profile?.isAdmin;
     defaultAgency = profile?.defaultAgency || 'TTC';
     const now = new Date();
@@ -726,15 +792,33 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     endStopData ? endStopData.stopName : parsedEndStop.stopName,
   );
 
+  const endStopNameFinal = endStopData ? endStopData.stopName : parsedEndStop.stopName;
+
   await db.collection('trips').doc(activeTrip.id).update({
     endStopCode: endStopData ? endStopData.stopCode : parsedEndStop.stopCode,
-    endStopName: endStopData ? endStopData.stopName : parsedEndStop.stopName,
+    endStopName: endStopNameFinal,
     endTime: endTime,
     exitLocation: exitLocation,
     duration: duration,
     notes: notes || null,
     verified: activeTrip.verified && (endStopData !== null),
   });
+
+  // Teach the network graph — only if both stops are canonical. Raw names are
+  // skipped entirely; they'll be picked up by the top-up script once normalized.
+  if (activeTrip.startStopName && activeTrip.direction && endStopData) {
+    const startStopCanonical = await lookupStop(activeTrip.startStopCode, activeTrip.startStopName, activeTrip.agency);
+    if (startStopCanonical) {
+      NetworkEngine.observe(db, user.userId, {
+        route: activeTrip.route,
+        agency: activeTrip.agency,
+        direction: activeTrip.direction,
+        startStopName: startStopCanonical.stopName,
+        endStopName: endStopData.stopName,
+        duration,
+      }).catch(err => console.error('NetworkEngine.observe failed (non-fatal):', err.message));
+    }
+  }
 
   const routeDisplay = getRouteDisplay(activeTrip.route, activeTrip.direction);
 
@@ -1124,10 +1208,12 @@ const totalHours = totalMin30 / 60;
   const timeStr = totalHours >= 1 ? `${totalHours.toFixed(1)}h` : `${Math.round(totalMin30)}min`;
 
   const weekLine = `Past 7 days: ${thisWeek.length} trip${thisWeek.length !== 1 ? 's' : ''}${getTrend(thisWeek.length, lastWeek.length, 'prior week')}`;
-  const topSuffix = topRoute ? ` · Most ridden: ${topRoute[0]} (${topRoute[1]}×)` : '';
-  const thirtyLine = `Last 30 days: ${last30.length} trips across ${uniqueRoutes30} route${uniqueRoutes30 !== 1 ? 's' : ''}, ${timeStr} riding${getTrend(last30.length, prev30.length, 'prior 30')}${topSuffix}`;
+  const topLine = topRoute ? `Top route: ${topRoute[0]} (${topRoute[1]}×)` : '';
+  const thirtyLine = `Last 30 days: ${last30.length} trips across ${uniqueRoutes30} route${uniqueRoutes30 !== 1 ? 's' : ''}, ${timeStr} riding${getTrend(last30.length, prev30.length, 'prior 30')}`;
 
-  await sendSmsReply(phoneNumber, [weekLine, thirtyLine].join('\n\n'));
+  const parts = [weekLine, thirtyLine];
+  if (topLine) parts.push(topLine);
+  await sendSmsReply(phoneNumber, parts.join('\n\n'));
 }
 
 /**

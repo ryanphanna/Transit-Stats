@@ -2,6 +2,11 @@ const twilio = require('twilio');
 const { defineSecret } = require('firebase-functions/params');
 const { escapeXml } = require('./utils');
 
+// Test mode: captured replies accumulate here instead of being sent via Twilio.
+const _testReplies = [];
+function getCapturedReplies() { return [..._testReplies]; }
+function clearCapturedReplies() { _testReplies.length = 0; }
+
 const twilioAuthToken = defineSecret('TWILIO_AUTH_TOKEN');
 const twilioAccountSid = defineSecret('TWILIO_ACCOUNT_SID');
 const twilioPhoneNumber = defineSecret('TWILIO_PHONE_NUMBER');
@@ -47,6 +52,11 @@ function getMessagingServiceSid() {
  * @returns {Promise<boolean>} success status
  */
 async function sendSmsReply(to, message) {
+  if (process.env.TS_TEST_MODE) {
+    _testReplies.push({ to, message });
+    return true;
+  }
+
   const client = getTwilioClient();
   const messagingServiceSid = getMessagingServiceSid();
   const from = getTwilioPhoneNumber();
@@ -185,4 +195,6 @@ module.exports = {
   sendSmsReply,
   twimlResponse,
   validateTwilioSignature,
+  getCapturedReplies,
+  clearCapturedReplies,
 };

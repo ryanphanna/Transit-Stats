@@ -154,17 +154,36 @@ async function handlePendingState(phoneNumber, body, upperBody, state) {
       if (user) {
         const chosen = state.stopCandidates[num - 1];
         await clearPendingState(phoneNumber);
-        // Pass stop code so lookupStop resolves unambiguously
-        await handlers.handleTripLog(
-          phoneNumber, user, chosen.stopCode, state.route, state.direction,
-          state.agency, { ...state.options, agencyExplicit: true }
-        );
+        if (state.tripId) {
+          // Trip already started — update the stop fields now that we know which stop
+          const boardingLocation = (chosen.lat != null && chosen.lng != null)
+            ? { lat: chosen.lat, lng: chosen.lng }
+            : null;
+          await db.collection('trips').doc(state.tripId).update({
+            startStopCode: chosen.stopCode,
+            startStopName: chosen.stopName,
+            startStop: chosen.stopName,
+            verified: true,
+            boardingLocation,
+          });
+          const routeDisplay = getRouteDisplay(state.route, state.direction);
+          await sendSmsReply(phoneNumber, `Stop set to ${chosen.stopName}.\n\nEND [stop] to finish. FORGOT if you forgot to end.`);
+        } else {
+          // No trip started yet (active-trip conflict path) — pass stop code so lookupStop resolves unambiguously
+          await handlers.handleTripLog(
+            phoneNumber, user, chosen.stopCode, state.route, state.direction,
+            state.agency, { ...state.options, agencyExplicit: true }
+          );
+        }
       }
       return true;
     }
 
     if (upperBody === 'DISCARD') {
       await clearPendingState(phoneNumber);
+      if (state.tripId) {
+        await db.collection('trips').doc(state.tripId).delete();
+      }
       await sendSmsReply(phoneNumber, 'Trip cancelled.');
       return true;
     }

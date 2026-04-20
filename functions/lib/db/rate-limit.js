@@ -6,6 +6,7 @@ const { admin, db } = require('./core');
 const logger = require('../logger');
 
 async function isRateLimited(phoneNumber) {
+  if (process.env.TS_TEST_MODE) return false;
   const rateLimitRef = db.collection('rateLimits').doc(phoneNumber);
   const doc = await rateLimitRef.get();
   const now = new Date();
@@ -108,6 +109,7 @@ async function shouldRespondToUnknown(phoneNumber) {
 }
 
 async function checkIdempotency(messageSid) {
+  if (process.env.TS_TEST_MODE) return false;
   if (!messageSid) return false;
   const msgRef = db.collection('processedMessages').doc(messageSid);
   try {
@@ -123,6 +125,7 @@ async function checkIdempotency(messageSid) {
 }
 
 async function checkContentDuplicate(phoneNumber, body) {
+  if (process.env.TS_TEST_MODE) return false;
   if (!phoneNumber || !body) return false;
   const key = crypto.createHash('sha256').update(phoneNumber + '|' + body).digest('hex');
   const ref = db.collection('processedMessages').doc('content_' + key);

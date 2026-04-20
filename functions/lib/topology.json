@@ -9,7 +9,7 @@
       "color": "#FFD700",
       "direction_labels": ["southbound", "northbound"],
       "route_aliases": ["Line 1", "1 Line", "Yonge", "University", "Yonge-University", "YU"],
-      "note": "U-shaped: Finch(0)→Union(16)→VMC(35). Direction logic is branch-aware in predict.js — Union is the turning point.",
+      "note": "U-shaped: Finch(0)→Union(16)→VMC(35). Direction logic is branch-aware in predict.js — Union is the turning point. Boarding at Union skips topology filtering entirely (either branch is valid from there).",
       "stops": [
         "Finch",
         "North York Centre",

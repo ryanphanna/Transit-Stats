@@ -23,8 +23,10 @@
 let _topology = null;
 try { _topology = require('./topology.json'); } catch (e) { /* topology filter disabled */ }
 
+const { NetworkEngine } = require('./network');
+
 const PredictionEngine = {
-  VERSION: '3.1.1',
+  VERSION: '3.2.0',
 
   CONFIG: {
     TIME_SIGMA_HOURS: 1.5,
@@ -38,6 +40,13 @@ const PredictionEngine = {
    * Each entry: { name: string, aliases: string[] }
    */
   stopsLibrary: [],
+
+  /**
+   * Learned network graph for the current trip's route/agency.
+   * Set before calling guessEndStop / guessTopEndStops.
+   * When set, used as a higher-priority filter than topology.json.
+   */
+  networkGraph: null,
 
   /**
    * Guess the next route given the current stop and time.
@@ -372,34 +381,48 @@ const PredictionEngine = {
    * @returns {Array}
    */
   _preFilterCandidatesByTopology: function (candidates, route, boardingStop, direction) {
-    if (!_topology || !boardingStop || !direction) return candidates;
+    if (!boardingStop || !direction) return candidates;
+
+    // NetworkEngine takes priority over topology.json — it learns from real trips
+    // and handles branchy networks (BART, etc.) without manual curation.
+    if (this.networkGraph) {
+      const filtered = NetworkEngine.filterCandidates(candidates, this.networkGraph, boardingStop, direction);
+      if (filtered !== null) return filtered;
+      // null means insufficient data — fall through to topology.json
+    }
+
+    if (!_topology) return candidates;
 
     const routeStr = this._baseRoute(route.toString());
     const line = this._topologyLine(routeStr);
-    if (!line) return candidates;
+    if (!line) return candidates; // Route not in topology — can't filter
 
     const normDir = this._normalizeDirection(direction);
     if (!normDir) return candidates;
 
     const boardingIdx = this._topologyStopIndex(line, this._canonicalizeStop(boardingStop) || boardingStop);
-    if (boardingIdx === -1) return candidates;
+    if (boardingIdx === -1) return candidates; // Boarding stop not in topology — can't filter
 
+    // Topology fully covers this route/stop/direction. Return filtered set even if empty —
+    // empty means no valid history exists for this direction, which is correct (don't
+    // bleed wrong-direction trips through when the user travels a new direction).
     let goingHigher;
     if (line.name === 'Yonge-University') {
       const unionIdx = this._topologyStopIndex(line, this._canonicalizeStop('Union') || 'Union');
       if (unionIdx === -1) return candidates;
+      // Union is the branch pivot — either branch is valid from here, so topology can't
+      // constrain direction. Fall back to unfiltered candidates.
+      if (boardingIdx === unionIdx) return candidates;
       goingHigher = boardingIdx <= unionIdx ? normDir === 'Southbound' : normDir === 'Northbound';
     } else {
       goingHigher = normDir === 'Eastbound' || normDir === 'Northbound';
     }
 
-    const filtered = candidates.filter(t => {
+    return candidates.filter(t => {
       const endIdx = this._topologyStopIndex(line, this._canonicalizeStop(t.endStopName) || t.endStopName);
       if (endIdx === -1) return true; // Unknown stop — keep
       return goingHigher ? endIdx > boardingIdx : endIdx < boardingIdx;
     });
-
-    return filtered.length > 0 ? filtered : candidates;
   },
 
   /**
@@ -434,7 +457,10 @@ const PredictionEngine = {
     if (line.name === 'Yonge-University') {
       const unionIdx = this._topologyStopIndex(line, this._canonicalizeStop('Union') || 'Union');
       if (unionIdx === -1) return candidates;
-      if (boardingIdx <= unionIdx) {
+      // Union is the branch pivot — either branch is valid from here, so topology can't
+      // constrain direction. Fall back to unfiltered candidates.
+      if (boardingIdx === unionIdx) return candidates;
+      if (boardingIdx < unionIdx) {
         // Yonge branch: southbound → higher (toward Union), northbound → lower (toward Finch)
         goingHigher = normDir === 'Southbound';
       } else {
@@ -445,13 +471,12 @@ const PredictionEngine = {
       goingHigher = normDir === 'Eastbound' || normDir === 'Northbound';
     }
 
-    const filtered = candidates.filter(c => {
+    // Topology fully covers this route/stop/direction. Return filtered set even if empty.
+    return candidates.filter(c => {
       const endIdx = this._topologyStopIndex(line, this._canonicalizeStop(c.stop) || c.stop);
       if (endIdx === -1) return true; // Unknown stop — keep (don't over-filter)
       return goingHigher ? endIdx > boardingIdx : endIdx < boardingIdx;
     });
-
-    return filtered.length > 0 ? filtered : candidates;
   },
 
   /**

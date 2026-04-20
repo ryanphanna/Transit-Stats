@@ -70,6 +70,16 @@ async function clearPendingState(phoneNumber) {
   await db.collection('smsState').doc(phoneNumber).delete();
 }
 
+async function getLastTripAgency(userId) {
+  const snap = await db.collection('trips')
+    .where('userId', '==', userId)
+    .orderBy('startTime', 'desc')
+    .limit(1)
+    .get();
+  if (snap.empty) return null;
+  return snap.docs[0].data().agency || null;
+}
+
 module.exports = {
   getActiveTrip,
   createTrip,
@@ -77,4 +87,5 @@ module.exports = {
   getPendingState,
   setPendingState,
   clearPendingState,
+  getLastTripAgency,
 };
