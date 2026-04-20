@@ -1,0 +1,67 @@
+name: Weekly Model Retrain
+
+on:
+  schedule:
+    - cron: '0 4 * * 1'  # Every Monday at 4 AM UTC
+  workflow_dispatch:       # Manual trigger from GitHub UI
+
+permissions:
+  contents: write
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install firebase-admin pandas scikit-learn xgboost onnxmltools numpy
+
+      - name: Write service account key
+        env:
+          FIREBASE_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          mkdir -p "$HOME/Desktop/Dev/Credentials"
+          echo "$FIREBASE_KEY" > "$HOME/Desktop/Dev/Credentials/Firebase for Transit Stats.json"
+
+      - name: Export trips from Firestore
+        run: GRPC_DNS_RESOLVER=native python3 ml/export_trips.py
+
+      - name: Retrain V4 + V5
+        run: GRPC_DNS_RESOLVER=native python3 ml/train_endstop.py
+
+      - name: Copy models to functions/lib
+        run: |
+          cp ml/model_v4_endstop.json functions/lib/model_v4_endstop.json
+          cp ml/model_v5_endstop.onnx functions/lib/model_v5_endstop.onnx
+          cp ml/model_v5_endstop_meta.json functions/lib/model_v5_endstop_meta.json
+
+      - name: Commit and push updated models
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add \
+            functions/lib/model_v4_endstop.json \
+            functions/lib/model_v5_endstop.onnx \
+            functions/lib/model_v5_endstop_meta.json \
+            ml/model_v4_endstop.json \
+            ml/model_v5_endstop.onnx \
+            ml/model_v5_endstop_meta.json
+          git diff --cached --quiet || git commit -m "chore: weekly model retrain [skip ci]"
+          git push origin main
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Deploy functions to Firebase
+        run: firebase deploy --only functions --token "${{ secrets.FIREBASE_TOKEN }}"

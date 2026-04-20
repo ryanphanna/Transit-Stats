@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Autonomous weekly model retraining** (`.github/workflows/retrain.yml`): GitHub Action fires every Monday at 4 AM UTC. Exports fresh trips from Firestore, retrains V4 (logistic regression) and V5 (XGBoost) with ride-count weighting, commits updated model files, and deploys functions to Firebase — no manual steps needed. Also triggerable manually via GitHub UI. Requires `FIREBASE_SERVICE_ACCOUNT` and `FIREBASE_TOKEN` secrets.
+- **Ride-count weighting in V4/V5 training** (`ml/train_endstop.py`): Training examples are now weighted by same-agency ride count — recent trips count more in the loss function. Mirrors V3's per-agency ride-count decay. A trip 100 same-agency rides ago gets half the weight of the most recent trip.
+
 ### Changed
 - **V3 recency decay now per-agency ride count, not calendar time** (v3.3.0): Previously, trip weights decayed by days elapsed — so a week in LA decayed TTC predictions even though Toronto commute patterns hadn't changed. Now decay is measured by how many same-agency rides occurred after each trip. A trip 100 same-agency rides ago counts for half what the most recent trip counts for (configurable via `DECAY_HALFLIFE_RIDES`). Being in a different city no longer ages your home network's predictions.
 

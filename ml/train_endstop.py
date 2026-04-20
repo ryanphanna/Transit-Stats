@@ -40,6 +40,36 @@ def load_data():
     return df
 
 
+def compute_ride_count_weights(df, halflife_rides=100):
+    """
+    Compute per-trip sample weights based on how many same-agency trips
+    occurred after each trip. Mirrors V3's _recencyWeight logic.
+    A trip 100 same-agency rides ago gets weight 0.5 relative to the most recent.
+    """
+    import math
+    df = df.copy()
+    df["_dt"] = pd.to_datetime(df["start_time"], utc=True, errors="coerce")
+    df_sorted = df.sort_values("_dt").reset_index(drop=False)
+
+    lambda_val = math.log(2) / halflife_rides
+    agency_count = {}
+    rides_after = [0] * len(df_sorted)
+
+    for i in range(len(df_sorted) - 1, -1, -1):
+        agency = str(df_sorted.at[i, "agency"] or "unknown")
+        rides_after[i] = agency_count.get(agency, 0)
+        agency_count[agency] = agency_count.get(agency, 0) + 1
+
+    df_sorted["_rides_after"] = rides_after
+    df_sorted["_weight"] = df_sorted["_rides_after"].apply(
+        lambda r: math.exp(-lambda_val * r)
+    )
+
+    # Re-align weights back to original df index order
+    weight_series = df_sorted.set_index("index")["_weight"]
+    return df.index.map(weight_series).values
+
+
 def clean(df):
     # Need route, start_stop, end_stop, hour, day
     df = df[df["route"].notna() & df["start_stop"].notna() & df["end_stop"].notna()].copy()
@@ -100,7 +130,7 @@ def build_features(df):
 # 2. Train
 # ---------------------------------------------------------------------------
 
-def train_v4(X_train, y_train, classes):
+def train_v4(X_train, y_train, classes, weights_train=None):
     from sklearn.linear_model import LogisticRegression
     from sklearn.preprocessing import LabelEncoder
 
@@ -109,11 +139,11 @@ def train_v4(X_train, y_train, classes):
     y_enc = le.transform(y_train)
 
     model = LogisticRegression(max_iter=1000, class_weight="balanced")
-    model.fit(X_train, y_enc)
+    model.fit(X_train, y_enc, sample_weight=weights_train)
     return model, le
 
 
-def train_v5(X_train, y_train, classes):
+def train_v5(X_train, y_train, classes, weights_train=None):
     from sklearn.preprocessing import LabelEncoder
     from xgboost import XGBClassifier
 
@@ -129,7 +159,7 @@ def train_v5(X_train, y_train, classes):
         eval_metric="mlogloss",
         verbosity=0,
     )
-    model.fit(X_train.values, y_enc)
+    model.fit(X_train.values, y_enc, sample_weight=weights_train)
     return model, le
 
 
@@ -219,27 +249,31 @@ def main():
         print("Not enough training data after cleaning. Need at least 20 trips.")
         sys.exit(1)
 
+    # Compute ride-count-based sample weights before train/test split
+    weights = compute_ride_count_weights(df)
+
     X = build_features(df)
     y = df["end_stop"]
     classes = sorted(y.unique())
     feature_names = list(X.columns)
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=None
+    X_train, X_test, y_train, y_test, w_train, w_test = train_test_split(
+        X, y, weights, test_size=0.2, random_state=42, stratify=None
     )
 
     print(f"\nTraining on {len(X_train)} trips, testing on {len(X_test)}...")
-    print(f"Features: {len(feature_names)}  |  End stop classes: {len(classes)}\n")
+    print(f"Features: {len(feature_names)}  |  End stop classes: {len(classes)}")
+    print(f"Weight range: {w_train.min():.3f} – {w_train.max():.3f}\n")
 
     # V4
     print("Training V4 (logistic regression)...")
-    v4_model, v4_le = train_v4(X_train, y_train, classes)
+    v4_model, v4_le = train_v4(X_train, y_train, classes, weights_train=w_train)
     v4_top1, v4_top3 = evaluate(v4_model, X_test, y_test, v4_le, "V4")
     export_v4(v4_model, v4_le, feature_names)
 
     # V5
     print("\nTraining V5 (XGBoost)...")
-    v5_model, v5_le = train_v5(X_train, y_train, classes)
+    v5_model, v5_le = train_v5(X_train, y_train, classes, weights_train=w_train)
     v5_top1, v5_top3 = evaluate(v5_model, X_test, y_test, v5_le, "V5")
     export_v5(v5_model, v5_le, feature_names, v5_top1, v5_top3, len(df))
 
