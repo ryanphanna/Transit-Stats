@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- **V3 recency decay now per-agency ride count, not calendar time** (v3.3.0): Previously, trip weights decayed by days elapsed — so a week in LA decayed TTC predictions even though Toronto commute patterns hadn't changed. Now decay is measured by how many same-agency rides occurred after each trip. A trip 100 same-agency rides ago counts for half what the most recent trip counts for (configurable via `DECAY_HALFLIFE_RIDES`). Being in a different city no longer ages your home network's predictions.
+
 ### Fixed
 - **Twilio webhook retry creates duplicate trips**: When the Cloud Function took too long to respond, Twilio retried the webhook and the system processed the same message twice — creating phantom trips with garbled stop names. Fixed by atomically writing a `processedMessages/{MessageSid}` document before dispatching. If the document already exists (Firestore `create` throws ALREADY_EXISTS), the request is a retry and returns an empty TwiML response immediately.
 

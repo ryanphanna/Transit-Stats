@@ -26,11 +26,11 @@ try { _topology = require('./topology.json'); } catch (e) { /* topology filter d
 const { NetworkEngine } = require('./network');
 
 const PredictionEngine = {
-  VERSION: '3.2.0',
+  VERSION: '3.3.0',
 
   CONFIG: {
     TIME_SIGMA_HOURS: 1.5,
-    DECAY_HALFLIFE_DAYS: 20,
+    DECAY_HALFLIFE_RIDES: 100, // rides on same agency at which a trip's weight halves
     SEQUENCE_WINDOW_HOURS: 3,
     SEQUENCE_BOOST: 1.5,
   },
@@ -80,6 +80,7 @@ const PredictionEngine = {
 
     const lastTrip = this._getLastRecentTrip(history, now);
     const atTransferPoint = lastTrip && this._stopMatch(lastTrip.endStopName, stopName);
+    const ridesAfterMap = this._computeRidesAfter(history);
 
     const votes = {};
     let totalWeight = 0;
@@ -94,7 +95,7 @@ const PredictionEngine = {
       const family = this._baseRoute(trip.route);
       const key = `${family}|${normDir || ''}`;
       const weight =
-        this._recencyWeight(tripTime, now) *
+        this._recencyWeight(ridesAfterMap.get(trip) || 0) *
         this._timeSimilarity(now, tripTime) *
         this._daySimilarity(now.getDay(), tripTime.getDay()) *
         (atTransferPoint ? this.CONFIG.SEQUENCE_BOOST : 1.0);
@@ -167,6 +168,7 @@ const PredictionEngine = {
     // Only applies when topology covers this route + boarding stop + direction.
     candidates = this._preFilterCandidatesByTopology(candidates, context.route, context.startStopName, context.direction);
 
+    const ridesAfterMap = this._computeRidesAfter(history);
     const votes = {};
     let totalWeight = 0;
 
@@ -176,7 +178,7 @@ const PredictionEngine = {
         : new Date(trip.startTime);
 
       const weight =
-        this._recencyWeight(tripTime, now) *
+        this._recencyWeight(ridesAfterMap.get(trip) || 0) *
         this._timeSimilarity(now, tripTime) *
         this._daySimilarity(now.getDay(), tripTime.getDay()) *
         (context.duration && trip.duration ? this._durationSimilarity(context.duration, trip.duration) : 1.0);
@@ -232,6 +234,7 @@ const PredictionEngine = {
     // Pre-filter: remove trips that ended at a topologically impossible stop.
     candidates = this._preFilterCandidatesByTopology(candidates, context.route, context.startStopName, context.direction);
 
+    const ridesAfterMap = this._computeRidesAfter(history);
     const votes = {};
     let totalWeight = 0;
 
@@ -241,7 +244,7 @@ const PredictionEngine = {
         : new Date(trip.startTime);
 
       const weight =
-        this._recencyWeight(tripTime, now) *
+        this._recencyWeight(ridesAfterMap.get(trip) || 0) *
         this._timeSimilarity(now, tripTime) *
         this._daySimilarity(now.getDay(), tripTime.getDay()) *
         (context.duration && trip.duration ? this._durationSimilarity(context.duration, trip.duration) : 1.0);
@@ -330,10 +333,28 @@ const PredictionEngine = {
     return this._canonicalizeStop(a) === this._canonicalizeStop(b);
   },
 
-  _recencyWeight: function (tripTime, now) {
-    const daysSince = (now - tripTime) / (1000 * 60 * 60 * 24);
-    const lambda = Math.log(2) / this.CONFIG.DECAY_HALFLIFE_DAYS;
-    return Math.exp(-lambda * daysSince);
+  // Pre-compute per-trip ride counts: for each trip, how many same-agency
+  // trips occurred after it. O(n) single pass from newest to oldest.
+  _computeRidesAfter: function (history) {
+    const sorted = [...history].sort((a, b) => {
+      const ta = a.startTime?.toDate ? a.startTime.toDate() : new Date(a.startTime || 0);
+      const tb = b.startTime?.toDate ? b.startTime.toDate() : new Date(b.startTime || 0);
+      return ta - tb;
+    });
+    const agencyCount = {};
+    const ridesAfter = new Map();
+    for (let i = sorted.length - 1; i >= 0; i--) {
+      const trip = sorted[i];
+      const agency = trip.agency || 'unknown';
+      ridesAfter.set(trip, agencyCount[agency] || 0);
+      agencyCount[agency] = (agencyCount[agency] || 0) + 1;
+    }
+    return ridesAfter;
+  },
+
+  _recencyWeight: function (ridesAfter) {
+    const lambda = Math.log(2) / this.CONFIG.DECAY_HALFLIFE_RIDES;
+    return Math.exp(-lambda * ridesAfter);
   },
 
   _timeSimilarity: function (now, tripTime) {

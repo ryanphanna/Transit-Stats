@@ -6,7 +6,7 @@ Not a roadmap (see [ROADMAP_NEXTGEN.md](./ROADMAP_NEXTGEN.md)). Not a feature ch
 
 ---
 
-## Current Version: v3.1.1
+## Current Version: v3.3.0
 
 ### Active Signals
 
@@ -14,7 +14,7 @@ Not a roadmap (see [ROADMAP_NEXTGEN.md](./ROADMAP_NEXTGEN.md)). Not a feature ch
 |---|---|---|
 | **Stop match** | `guess`, `guessEndStop` | Hard filters candidates to trips that started at the current stop (canonicalized). No match = no vote. |
 | **GTFS route filter** | `guess` | Hard filters candidates to routes known to serve the boarding stop. Sourced from GTFS stop→route mapping. Falls back to unfiltered if no candidates survive (guards against stale data). |
-| **Recency weight** | Both | Exponential decay with 20-day half-life. Recent trips vote harder than old ones. |
+| **Recency weight** | Both | Exponential decay by same-agency ride count. A trip 100 same-agency rides ago votes at half weight. Being in another city does not decay home network predictions. |
 | **Time similarity** | Both | Gaussian centered on current time (σ = 1.5h). Trips at the same time of day score higher. |
 | **Day similarity** | Both | Weekday/weekend boundary is a hard penalty (0.1×). Within weekdays, adjacent days score higher than distant ones. Within weekend, Sat/Sun score 0.7. |
 | **Sequence boost** | `guess` | 1.5× multiplier applied when the last completed trip ended at the current boarding stop (i.e. this looks like a transfer). Window: 3 hours. |
@@ -26,10 +26,10 @@ Not a roadmap (see [ROADMAP_NEXTGEN.md](./ROADMAP_NEXTGEN.md)). Not a feature ch
 ### Config
 
 ```js
-TIME_SIGMA_HOURS: 1.5       // Width of time-of-day Gaussian
-DECAY_HALFLIFE_DAYS: 20     // Recency decay: a trip 20 days old votes at half weight
-SEQUENCE_WINDOW_HOURS: 3    // How recent a prior trip must be to trigger sequence boost
-SEQUENCE_BOOST: 1.5         // Multiplier applied at transfer points
+TIME_SIGMA_HOURS: 1.5        // Width of time-of-day Gaussian
+DECAY_HALFLIFE_RIDES: 100    // Recency decay: a trip 100 same-agency rides ago votes at half weight
+SEQUENCE_WINDOW_HOURS: 3     // How recent a prior trip must be to trigger sequence boost
+SEQUENCE_BOOST: 1.5          // Multiplier applied at transfer points
 ```
 
 ---
@@ -54,7 +54,13 @@ SEQUENCE_BOOST: 1.5         // Multiplier applied at transfer points
 
 ---
 
-### v3.1.1 — *current*
+### v3.3.0 — *current*
+**What changed from v3.2:** Recency decay axis changed from calendar time to same-agency ride count. Previously, a week travelling in LA decayed TTC predictions — the engine treated elapsed time as evidence of pattern change, even when the pattern hadn't changed at all. Now each trip's weight decays based on how many same-agency rides occurred after it. `DECAY_HALFLIFE_RIDES: 100` means a trip 100 TTC rides ago votes at half the weight of the most recent trip. Being in a different city no longer ages your home network predictions.
+
+### v3.2.0
+**What changed from v3.1.1:** NetworkEngine integrated as a higher-priority directional filter. At trip start, the learned graph for the current route is loaded and used to pre-filter end stop candidates before topology.json. Falls back to topology.json when fewer than 3 trips observed on an edge. Reverse-edge inference: B→A westbound implies A is reachable from B eastbound.
+
+### v3.1.1 — *previously current*
 **What changed from v3.1:** Topology filter moved upstream — candidate trips are now pre-filtered by topology before voting, not post-filtered after. Impossible destinations are eliminated before the model scores anything. Same fallback behaviour (unfiltered if no candidates survive).
 
 ### v3.1
