@@ -59,6 +59,10 @@ When fixing a bug, always provide:
 - `predictionAccuracy` — running accuracy summary per user
 - `queryLogs` — AI query history (userId, question, answer, timestamp)
 
+## Idempotency Pattern
+
+**Do not write `processedMessages/{MessageSid}` in `sms.js`.** `checkIdempotency()` in the dispatcher already does this atomically — it writes the doc and returns `true` if it already exists (retry). Adding a second write in `sms.js` causes `checkIdempotency` to always see `ALREADY_EXISTS` and drop every message as a duplicate. The dispatcher is the single source of truth for MessageSid deduplication.
+
 ## Auth Pattern
 
 **Whitelist check errors must not sign out valid users.** `Auth.checkWhitelist` retries once on Firestore error before returning `allowed: false`. A transient network error on page load used to immediately sign out authenticated users. Never change this to fail-closed on first error without a retry.

@@ -6,14 +6,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.25.0] - 2026-04-20
+
 ### Added
 - **Autonomous weekly model retraining** (`.github/workflows/retrain.yml`): GitHub Action fires every Monday at 4 AM UTC. Exports fresh trips from Firestore, retrains V4 (logistic regression) and V5 (XGBoost) with ride-count weighting, commits updated model files, and deploys functions to Firebase — no manual steps needed. Also triggerable manually via GitHub UI. Requires `FIREBASE_SERVICE_ACCOUNT` and `FIREBASE_TOKEN` secrets.
 - **Ride-count weighting in V4/V5 training** (`ml/train_endstop.py`): Training examples are now weighted by same-agency ride count — recent trips count more in the loss function. Mirrors V3's per-agency ride-count decay. A trip 100 same-agency rides ago gets half the weight of the most recent trip.
+
+- **LA Metro G Line (Orange) and J Line (Silver) added to topology** (`functions/lib/topology.json`): Both BRT lines now have full stop sequences. G Line: 17 stops, North Hollywood → Chatsworth. J Line: 13 key stops, El Monte → Harbor Gateway Transit Center via Union Station and the Harbor Transitway. Enables direction filtering from the first trip on either line.
 
 ### Changed
 - **V3 recency decay now per-agency ride count, not calendar time** (v3.3.0): Previously, trip weights decayed by days elapsed — so a week in LA decayed TTC predictions even though Toronto commute patterns hadn't changed. Now decay is measured by how many same-agency rides occurred after each trip. A trip 100 same-agency rides ago counts for half what the most recent trip counts for (configurable via `DECAY_HALFLIFE_RIDES`). Being in a different city no longer ages your home network's predictions.
 
 ### Fixed
+- **All SMS replies silently dropped** (`sms.js`): The idempotency fix in b385882 added a `processedMessages/{MessageSid}` write to `sms.js` before calling `dispatch()`. But `checkIdempotency()` in the dispatcher already does the same atomic write — so every message's write succeeded in `sms.js`, then `checkIdempotency` got `ALREADY_EXISTS` and returned `true` (duplicate), dropping every message with no reply. Fixed by removing the redundant write from `sms.js`. The dispatcher's `checkIdempotency` is the single source of truth for deduplication.
 - **Twilio webhook retry creates duplicate trips**: When the Cloud Function took too long to respond, Twilio retried the webhook and the system processed the same message twice — creating phantom trips with garbled stop names. Fixed by atomically writing a `processedMessages/{MessageSid}` document before dispatching. If the document already exists (Firestore `create` throws ALREADY_EXISTS), the request is a retry and returns an empty TwiML response immediately.
 
 ## [1.24.0] - 2026-04-20

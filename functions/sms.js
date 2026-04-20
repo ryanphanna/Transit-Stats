@@ -38,24 +38,6 @@ async function handleSmsRequest(req, res) {
       return;
     }
 
-    // Idempotency: reject Twilio webhook retries for already-processed messages
-    if (messageSid) {
-      try {
-        await admin.firestore().collection('processedMessages').doc(messageSid).create({
-          processedAt: new Date(),
-          from: phoneNumber,
-          body,
-        });
-      } catch (err) {
-        if (err.code === 'ALREADY_EXISTS' || (err.code && err.code === 6)) {
-          logger.info('Duplicate webhook rejected', { messageSid, from: phoneNumber });
-          res.type('text/xml').send(twimlResponse(''));
-          return;
-        }
-        throw err;
-      }
-    }
-
     // Delegate all logic to the dispatcher
     await dispatch(phoneNumber, body, messageSid);
 

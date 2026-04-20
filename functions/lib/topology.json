@@ -331,6 +331,76 @@
         "Downtown Santa Monica": ["Santa Monica", "Santa Monica Station"]
       }
     },
+    "LA-G": {
+      "network": "LA Metro",
+      "city": "Los Angeles",
+      "name": "G Line (Orange)",
+      "type": "brt",
+      "color": "#F37921",
+      "direction_labels": ["westbound", "eastbound"],
+      "route_aliases": ["G Line", "Orange Line", "Metro G", "G", "LA Metro G", "LA-Orange"],
+      "note": "Linear: North Hollywood(0)→Chatsworth(16). Westbound = toward Chatsworth.",
+      "stops": [
+        "North Hollywood",
+        "Laurel Canyon",
+        "Valley College",
+        "Woodman",
+        "Van Nuys",
+        "Sepulveda",
+        "Woodley",
+        "Balboa",
+        "Reseda",
+        "Tampa",
+        "Pierce College",
+        "De Soto",
+        "Canoga",
+        "Sherman Way",
+        "Roscoe",
+        "Nordhoff",
+        "Chatsworth"
+      ],
+      "aliases": {
+        "North Hollywood": ["NoHo", "North Hollywood Station"],
+        "Valley College": ["Valley College Station"],
+        "Van Nuys": ["Van Nuys Station"],
+        "Chatsworth": ["Chatsworth Station"]
+      }
+    },
+    "LA-J": {
+      "network": "LA Metro",
+      "city": "Los Angeles",
+      "name": "J Line (Silver)",
+      "type": "brt",
+      "color": "#A0A0A0",
+      "direction_labels": ["northbound", "southbound"],
+      "route_aliases": ["J Line", "Silver Line", "Metro J", "J", "LA Metro J", "LA-Silver"],
+      "note": "Linear: El Monte(0)→Harbor Gateway Transit Center(22). Northbound = toward El Monte.",
+      "stops": [
+        "El Monte",
+        "Cal State LA",
+        "LA General Medical Center",
+        "Union Station",
+        "7th Street/Metro Center",
+        "Pico",
+        "Grand/LATTC",
+        "37th Street/USC",
+        "Slauson",
+        "Manchester",
+        "Harbor Freeway",
+        "Rosecrans",
+        "Harbor Gateway Transit Center"
+      ],
+      "aliases": {
+        "El Monte": ["El Monte Station", "El Monte Bus Station"],
+        "Cal State LA": ["California State University LA", "CSULA", "Cal State"],
+        "LA General Medical Center": ["LA General", "General Hospital", "County Hospital"],
+        "Union Station": ["Los Angeles Union Station", "Union Station Metro"],
+        "7th Street/Metro Center": ["7th/Metro", "Metro Center", "7th St"],
+        "Grand/LATTC": ["LATTC", "Grand LATTC"],
+        "37th Street/USC": ["USC", "37th/USC", "37th Street"],
+        "Harbor Gateway Transit Center": ["Harbor Gateway", "Harbor Gateway TC"]
+      }
+    },
     "Muni-N": {
       "network": "Muni Metro",
       "city": "San Francisco",
