@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **Null startStopName/endStopName on 10 510-route trips**: Trips logged before stop name persistence was reliable had null name fields despite valid stop codes. Backfilled GTFS names from `startStopCode`/`endStopCode` directly in Firestore. Affected trips tagged with `corrected: ['startStopName']` or `corrected: ['endStopName']` for auditability.
+
 ## [1.25.0] - 2026-04-20
 
 ### Added

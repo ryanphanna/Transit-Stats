@@ -1,6 +1,32 @@
-# Handoff — 2026-04-19
+# Handoff — 2026-04-21
 
-## What was done this session
+## What was done this session (2026-04-21)
+
+### SMS reply bug fixed — all messages were silently dropped
+The idempotency fix in b385882 added a `processedMessages/{MessageSid}` write to `sms.js` before calling `dispatch()`. But `checkIdempotency()` in the dispatcher already does the same atomic write — so every message's first write succeeded in `sms.js`, then `checkIdempotency` got ALREADY_EXISTS and returned `true`, dropping every message with no reply. Fixed by removing the redundant write from `sms.js`. The dispatcher's `checkIdempotency` is the sole owner of MessageSid deduplication.
+
+**Files:** `functions/sms.js`
+
+---
+
+### LA Metro G Line and J Line added to topology
+Both BRT lines now have full stop sequences in `topology.json`. G Line (Orange): 17 stops, North Hollywood → Chatsworth. J Line (Silver): 13 key stops, El Monte → Harbor Gateway Transit Center via Union Station and the Harbor Transitway. Enables direction filtering from the first trip on either line. Stop lists verified against Wikipedia.
+
+**Files:** `functions/lib/topology.json`
+
+---
+
+### 510 trip stop name backfill
+10 trips on routes 510/510a/510b had `null` startStopName or endStopName despite having valid stop codes. Backfilled GTFS canonical names using `startStopCode`/`endStopCode`. Each corrected trip tagged with `corrected: ['startStopName']` or `corrected: ['endStopName']` in Firestore for auditability. One trip (`JF0uHmCBqxILYyBhXDbL`) could not be recovered — null name and null code.
+
+---
+
+### 510 speed/distance CSVs exported
+Two CSVs on Ryan's Desktop: `510_Northbound.csv` and `510_Southbound.csv`. Each trip has `dist_km` (haversine between stop coordinates) and `speed_kmh` (dist / duration). Coordinates sourced from actual GPS boardingLocation/exitLocation where available, GTFS stop lookup otherwise. 90/91 trips have speed calculated. `coord_source` column indicates `gps` vs `gtfs` vs `missing`.
+
+---
+
+## What was done previously (2026-04-19)
 
 ### Stop disambiguation starts trip immediately
 When a stop name is ambiguous (multiple matches) and there's no active trip conflict, the trip now starts at send time with a null start stop. User gets "510 started. Multiple stops match...: Reply with a number to set your stop, or DISCARD to cancel." If they never reply, the trip counts for time-on-transit but not origin stop stats — same outcome as FORGOT. This was triggered by Ryan boarding the 510 and not seeing the disambiguation prompt for 3+ minutes.
@@ -385,5 +411,8 @@ The [Unreleased] section has some duplicate content in the STATS entry — got m
 
 ---
 
-## Ryan is travelling to LA and SF next week
-BART, Muni, and LA Metro lines are in topology.json. NetworkEngine will start learning those networks from the first ride. No manual setup needed.
+## Ryan is travelling to LA and SF
+BART, Muni, and LA Metro lines are in topology.json (including G and J BRT lines added this session). NetworkEngine will start learning those networks from the first ride. Note: NetworkEngine requires MIN_TRIPS=3 on any edge before it contributes to predictions — topology.json carries all the weight on a short visit.
+
+## Current version
+v1.25.0 — released 2026-04-20. Functions deployed.
