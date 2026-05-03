@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.27.1] - 2026-05-03
+
+### Fixed
+- **Cross-agency stop fallback scoped to same city** (`functions/lib/db/stops.js`): The `_findAndExpandStop` fallback previously searched the entire stops collection globally, risking a wrong-city match (e.g. Toronto Union Station resolving for a Muni trip). Now filters to stops whose home agency shares the same city per `AGENCY_CITY`. Agencies not in `AGENCY_CITY` skip the fallback entirely rather than risk a bad match.
+
 ## [1.27.0] - 2026-05-03
 
 ### Changed
