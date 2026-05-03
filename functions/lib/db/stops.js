@@ -1,72 +1,89 @@
 /**
  * Stop lookup and GTFS route mapping
  */
+const admin = require('firebase-admin');
 const { db } = require('./core');
 
 async function lookupStop(stopCode, stopName, agency) {
   try {
-    let snapshot;
+    if (!stopCode && !stopName) return null;
 
+    // Code lookup — uses composite index (agencies array-contains + code ==)
     if (stopCode) {
-      snapshot = await db.collection('stops')
-        .where('agency', '==', agency)
+      const snap = await db.collection('stops')
+        .where('agencies', 'array-contains', agency)
         .where('code', '==', stopCode)
         .limit(1)
         .get();
-    } else if (stopName) {
-      snapshot = await db.collection('stops')
-        .where('agency', '==', agency)
-        .where('name', '==', stopName)
-        .limit(1)
-        .get();
-
-      if (snapshot.empty) {
-        const allStops = await db.collection('stops').where('agency', '==', agency).get();
-        const lowerName = stopName.toLowerCase();
-
-        // Case-insensitive name match
-        for (const doc of allStops.docs) {
-          const data = doc.data();
-          if (data.name && data.name.toLowerCase() === lowerName) {
-            return { id: doc.id, ...data, stopCode: data.code, stopName: data.name };
-          }
-        }
-
-        // Alias exact match
-        const aliasSnapshot = await db.collection('stops')
-          .where('agency', '==', agency)
-          .where('aliases', 'array-contains', stopName)
-          .limit(1)
-          .get();
-
-        if (!aliasSnapshot.empty) {
-          const doc = aliasSnapshot.docs[0];
-          const data = doc.data();
-          return { id: doc.id, ...data, stopCode: data.code, stopName: data.name };
-        }
-
-        // Alias case-insensitive match
-        for (const doc of allStops.docs) {
-          const data = doc.data();
-          if (data.aliases?.some(a => a.toLowerCase() === lowerName)) {
-            return { id: doc.id, ...data, stopCode: data.code, stopName: data.name };
-          }
-        }
-
-        return null;
+      if (!snap.empty) {
+        const doc = snap.docs[0];
+        const data = doc.data();
+        return { id: doc.id, ...data, stopCode: data.code, stopName: data.name };
       }
-    } else {
-      return null;
     }
 
-    if (snapshot.empty) return null;
-    const doc = snapshot.docs[0];
-    const data = doc.data();
-    return { id: doc.id, ...data, stopCode: data.code, stopName: data.name };
+    // Name lookup — fetch all stops for this agency, scan name + aliases in memory.
+    // Shared stops (e.g. Montgomery Station) appear here for every agency in their
+    // agencies array, so no cross-agency fallback needed.
+    if (stopName) {
+      const lowerName = stopName.toLowerCase();
+      const agencySnap = await db.collection('stops')
+        .where('agencies', 'array-contains', agency)
+        .get();
+
+      for (const doc of agencySnap.docs) {
+        const data = doc.data();
+        if (data.name?.toLowerCase() === lowerName) {
+          return { id: doc.id, ...data, stopCode: data.code, stopName: data.name };
+        }
+      }
+      for (const doc of agencySnap.docs) {
+        const data = doc.data();
+        if (data.aliases?.some(a => a.toLowerCase() === lowerName)) {
+          return { id: doc.id, ...data, stopCode: data.code, stopName: data.name };
+        }
+      }
+    }
+
+    // Cross-agency fallback: stop exists in library under a different agency.
+    // If found, auto-expand the stop's agencies array so future lookups hit directly.
+    const term = stopCode || stopName;
+    if (term) {
+      const found = await _findAndExpandStop(term, agency);
+      if (found) return found;
+    }
+
+    return null;
   } catch (error) {
     console.error('Error looking up stop:', error);
     return null;
   }
+}
+
+// Search all stops by name, alias, or code. When a match is found for an agency
+// not yet in its agencies array, add it — so the stop self-registers for that agency.
+async function _findAndExpandStop(term, agency) {
+  const lowerTerm = term.toLowerCase();
+  const allStops = await db.collection('stops').get();
+
+  for (const doc of allStops.docs) {
+    const data = doc.data();
+    const match =
+      data.name?.toLowerCase() === lowerTerm ||
+      data.code === term ||
+      data.aliases?.some(a => a.toLowerCase() === lowerTerm);
+
+    if (match) {
+      if (!data.agencies?.includes(agency)) {
+        doc.ref.update({
+          agencies: admin.firestore.FieldValue.arrayUnion(agency),
+          updatedAt: new Date(),
+        }).catch(err => console.error('agencies auto-expand failed:', err.message));
+      }
+      return { id: doc.id, ...data, stopCode: data.code, stopName: data.name };
+    }
+  }
+  return null;
 }
 
 async function getRoutesAtStop(stopCode, agency) {
@@ -98,19 +115,20 @@ async function findMatchingStops(stopName, agency) {
   if (!stopName || !agency) return [];
   const lowerName = stopName.toLowerCase();
 
-  const allStops = await db.collection('stops').where('agency', '==', agency).get();
+  const snap = await db.collection('stops')
+    .where('agencies', 'array-contains', agency)
+    .get();
+
   const seen = new Set();
   const matches = [];
 
-  for (const doc of allStops.docs) {
+  for (const doc of snap.docs) {
     const data = doc.data();
-    const nameMatch = data.name && data.name.toLowerCase() === lowerName;
+    const nameMatch = data.name?.toLowerCase() === lowerName;
     const aliasMatch = data.aliases?.some(a => a.toLowerCase() === lowerName);
-    if (nameMatch || aliasMatch) {
-      if (!seen.has(doc.id)) {
-        seen.add(doc.id);
-        matches.push({ id: doc.id, stopCode: data.code, stopName: data.name });
-      }
+    if ((nameMatch || aliasMatch) && !seen.has(doc.id)) {
+      seen.add(doc.id);
+      matches.push({ id: doc.id, stopCode: data.code, stopName: data.name });
     }
     if (matches.length >= 5) break;
   }

@@ -151,25 +151,11 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "agency",
-          "order": "ASCENDING"
+          "fieldPath": "agencies",
+          "arrayConfig": "CONTAINS"
         },
         {
-          "fieldPath": "stopCode",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "stops",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "agency",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "stopName",
+          "fieldPath": "code",
           "order": "ASCENDING"
         }
       ]

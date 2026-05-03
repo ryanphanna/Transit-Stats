@@ -46,6 +46,11 @@ quality and coverage improvements.
 
 - [ ] **Stop alias coverage** — expand the stops library to cover more agencies and
   surface more alias variants. Current coverage is TTC-heavy.
+- [ ] **Multi-agency stops (`agencies` array)** — replace the single `agency` field on
+  stop documents with an `agencies` array, so shared transit hubs (Union Station, etc.)
+  are stored once and matched for any operator that boards there. Requires migrating
+  existing stop documents and updating `lookupStop`/`findMatchingStops` to query with
+  `array-contains`. Currently worked around by a cross-agency name fallback in `lookupStop`.
 - [ ] **Scheduled GTFS refresh** — static GTFS data ages. Add a Cloud Function that
   detects feed staleness and triggers a re-import, rather than requiring a manual
   admin import.

@@ -6,7 +6,27 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.27.0] - 2026-05-03
+
+### Changed
+- **Stops library now uses `agencies` array for multi-agency support** (`functions/lib/db/stops.js`, `firestore.indexes.json`): Stop documents now carry an `agencies: [...]` array alongside the existing `agency` field. `lookupStop` and `findMatchingStops` query via `array-contains` so a single stop entry (e.g. Montgomery Station) resolves correctly for BART, Muni, or any other operator. All 191 existing stops migrated automatically.
+- **Stop agencies array self-expands from trip data** (`functions/lib/db/stops.js`): When a stop is found via cross-agency fallback (i.e. the trip's agency isn't yet in the stop's `agencies` array), the array is updated automatically. Shared stops like Union Station or Montgomery Station grow their agency list organically as new trips are logged — no manual maintenance needed.
+
+## [1.26.0] - 2026-05-02
+
+### Changed
+- **Agency disambiguation now asks by city, not agency name** (`functions/lib/handlers.js`): "Which Union Station? 1. LA Metro 2. TTC" now reads "Which Union Station? 1. Los Angeles 2. Toronto". Falls back to agency name when both options are in the same city (e.g. LA Metro vs LADOT). City map lives in `AGENCY_CITY` in `constants.js`.
+- **Unknown agencies now accepted on line 3/4 without pre-registration** (`functions/lib/parsing.js`): Previously, only agencies listed in `KNOWN_AGENCIES` were recognized — typing "Barrie Transit" on line 4 was silently ignored and fell back to default agency inference. Line 4 is now always treated as an agency. Line 3 is treated as an agency if it doesn't resolve to a recognized direction word.
+
 ### Fixed
+- **Shared transit hub stops not found under operator agency** (`functions/lib/db/stops.js`): `lookupStop` now falls back to a cross-agency search when a stop name isn't in the specified agency's library. Covers cases like Union Station (in LA Metro's library, but boarded via DASH/Foothill/Metrolink).
+
+## [1.25.1] - 2026-05-02
+
+### Fixed
+- **`toTitleCase` capitalizing ordinal suffixes** (`functions/lib/utils.js`): Letters immediately following digits (e.g. "9th") were being uppercased to "9Th". Fixed by skipping capitalization when the non-letter prefix ends with a digit.
+- **MTS, SMART, Golden Gate Transit, Amtrak, LA DOT not recognized as agencies** (`functions/lib/constants.js`): These agency names and their variants were missing from `AGENCY_CANONICAL` and `KNOWN_AGENCIES`, causing explicit agency lines to be silently ignored and the parser to fall back to last-trip agency inference.
+- **Explicit agency ignored when it matches default agency** (`functions/lib/parsing.js`): `agencyExplicit` was derived from `agency !== defaultAgency`, so typing "TTC" when TTC is your default was treated as no agency specified. The parser then fell through to last-trip agency inference, picking the wrong agency (e.g. SamTrans after a Bay Area trip). Fixed by tracking whether the user actually typed an agency line, independent of whether it matches the default.
 - **Null startStopName/endStopName on 10 510-route trips**: Trips logged before stop name persistence was reliable had null name fields despite valid stop codes. Backfilled GTFS names from `startStopCode`/`endStopCode` directly in Firestore. Affected trips tagged with `corrected: ['startStopName']` or `corrected: ['endStopName']` for auditability.
 
 ## [1.25.0] - 2026-04-20

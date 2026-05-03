@@ -47,6 +47,7 @@ const {
   lookupAgencyTimezone,
 } = require('./gemini');
 const { parseStopInput } = require('./parsing');
+const { AGENCY_CITY } = require('./constants');
 
 /**
  * Returns " via [Agency]" if the trip agency differs from the user's default, otherwise "".
@@ -57,6 +58,15 @@ const { parseStopInput } = require('./parsing');
 function agencySuffix(tripAgency, defaultAgency) {
   if (!tripAgency || tripAgency === defaultAgency) return '';
   return ` via ${tripAgency}`;
+}
+
+// Returns the city label for an agency to use in disambiguation prompts.
+// Falls back to the agency name if both options share the same city (e.g. LA Metro vs LADOT).
+function getDisambiguationLabel(agency, otherAgency) {
+  const city = AGENCY_CITY[agency];
+  const otherCity = AGENCY_CITY[otherAgency];
+  if (!city || city === otherCity) return agency;
+  return city;
 }
 
 /**
@@ -373,7 +383,9 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
         });
         await sendSmsReply(
           phoneNumber,
-          `Which ${stopDisplay}?\n1. ${lastAgency}\n2. ${defaultAgency}`
+          `Which ${stopDisplay}?
+1. ${getDisambiguationLabel(lastAgency, defaultAgency)}
+2. ${getDisambiguationLabel(defaultAgency, lastAgency)}`
         );
         return;
       } else if (stopInLast) {
@@ -394,7 +406,9 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
         });
         await sendSmsReply(
           phoneNumber,
-          `Which ${stopDisplay}?\n1. ${lastAgency}\n2. ${defaultAgency}`
+          `Which ${stopDisplay}?
+1. ${getDisambiguationLabel(lastAgency, defaultAgency)}
+2. ${getDisambiguationLabel(defaultAgency, lastAgency)}`
         );
         return;
       } else {

@@ -51,27 +51,46 @@ function parseMultiLineTripFormat(body, defaultAgency) {
   const route = normalizeRoute(lines[0]);
   const stop = toTitleCase(lines[1]);
 
-  // Normalize direction if present on line 3
-  let direction = lines.length > 2 ? normalizeDirection(lines[2]) : null;
-  let agency = defaultAgency;
+  // Canonical direction values returned by normalizeDirection — anything else is unrecognized.
+  const CANONICAL_DIRECTIONS = new Set([
+    'Northbound', 'Southbound', 'Eastbound', 'Westbound',
+    'Clockwise', 'Counterclockwise', 'Inbound', 'Outbound',
+    'Up Valley', 'Down Valley',
+  ]);
 
-  // Check line 3 for agency if it's not a recognized direction (or even if it is, maybe it's an agency)
-  // This helps when direction is omitted.
+  // Direction is line 3 only when it resolves to a recognized canonical word.
+  // "Barrie Transit" passes through normalizeDirection unchanged, so it won't
+  // match here and falls through to the agency check below instead.
+  let direction = null;
+  if (lines.length > 2) {
+    const nd = normalizeDirection(lines[2]);
+    if (CANONICAL_DIRECTIONS.has(nd)) direction = nd;
+  }
+
+  let agency = defaultAgency;
+  let agencyExplicit = false;
+
   if (lines.length === 3) {
+    // Line 3: check KNOWN_AGENCIES first (for canonical normalization), then
+    // treat any non-direction text as an agency — even if not pre-registered.
     const potentialAgency = lines[2];
     const lowerAgency = potentialAgency.toLowerCase();
     const knownAgency = KNOWN_AGENCIES.find((a) => a.toLowerCase() === lowerAgency);
     if (knownAgency) {
       agency = normalizeAgency(knownAgency);
-      direction = null; // Shift if it was an agency
+      direction = null;
+      agencyExplicit = true;
+    } else if (!direction) {
+      // Not a direction and not a known agency — store as-is (e.g. "Barrie Transit")
+      agency = normalizeAgency(potentialAgency);
+      agencyExplicit = true;
     }
   } else if (lines.length > 3) {
-    // Check line 4 for agency
-    const potentialAgency = lines[3];
-    const lowerAgency = potentialAgency.toLowerCase();
-    const knownAgency = KNOWN_AGENCIES.find((a) => a.toLowerCase() === lowerAgency);
-    if (knownAgency) {
-      agency = normalizeAgency(knownAgency);
+    // Line 4 is always the agency — no direction ambiguity at this position.
+    const potentialAgency = lines[3].trim();
+    if (potentialAgency) {
+      agency = normalizeAgency(potentialAgency);
+      agencyExplicit = true;
     }
   }
 
@@ -85,7 +104,7 @@ function parseMultiLineTripFormat(body, defaultAgency) {
     stop,
     direction,
     agency,
-    agencyExplicit: agency !== defaultAgency,
+    agencyExplicit,
   };
 }
 

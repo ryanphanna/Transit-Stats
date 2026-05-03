@@ -64,6 +64,24 @@ exports.AGENCY_CANONICAL = {
   'actransit': 'AC Transit',
   // SamTrans
   'samtrans': 'SamTrans',
+  // MTS (San Diego)
+  'mts': 'MTS',
+  'sd mts': 'MTS',
+  'san diego mts': 'MTS',
+  'sdmts': 'MTS',
+  // LADOT variants
+  'la dot': 'LADOT',
+  // Amtrak
+  'amtrak': 'Amtrak',
+  // Golden Gate Transit
+  'golden gate transit': 'Golden Gate Transit',
+  'ggt': 'Golden Gate Transit',
+  // SMART
+  'smart': 'SMART',
+  // Santa Rosa CityBus
+  'santa rosa citybus': 'Santa Rosa CityBus',
+  'citybus': 'Santa Rosa CityBus',
+  'srcitybus': 'Santa Rosa CityBus',
 };
 
 exports.KNOWN_AGENCIES = [
@@ -96,6 +114,18 @@ exports.KNOWN_AGENCIES = [
   'AC Transit',
   'ACTRANSIT',
   'SamTrans',
+  // San Diego
+  'MTS',
+  'SD MTS',
+  'SDMTS',
+  // Other
+  'Amtrak',
+  'SMART',
+  'Golden Gate Transit',
+  'GGT',
+  'LA DOT',
+  'Santa Rosa CityBus',
+  'CityBus',
 ];
 
 exports.BAD_ROUTE_SUFFIXES = [
@@ -112,3 +142,34 @@ exports.VALID_INTENTS = [
 ];
 
 exports.VALID_SENTIMENTS = ['POSITIVE', 'NEGATIVE', 'NEUTRAL'];
+
+// Maps canonical agency name to the city/region shown in disambiguation prompts.
+// When two agencies map to the same city, the agency name is shown instead.
+exports.AGENCY_CITY = {
+  'TTC': 'Toronto',
+  'GO Transit': 'Toronto / GTA',
+  'MiWay': 'Mississauga',
+  'YRT': 'York Region',
+  'Brampton Transit': 'Brampton',
+  'Durham Transit': 'Durham Region',
+  'HSR': 'Hamilton',
+  'GRT': 'Waterloo Region',
+  'OC Transpo': 'Ottawa',
+  'STM': 'Montréal',
+  'TransLink': 'Vancouver',
+  'NYC MTA': 'New York City',
+  'LA Metro': 'Los Angeles',
+  'LADOT': 'Los Angeles',
+  'Big Blue Bus': 'Santa Monica',
+  'BART': 'Bay Area',
+  'Muni': 'San Francisco',
+  'Caltrain': 'Bay Area',
+  'VTA': 'San José',
+  'AC Transit': 'East Bay',
+  'SamTrans': 'Peninsula',
+  'MTS': 'San Diego',
+  'Amtrak': 'Amtrak',
+  'Golden Gate Transit': 'Marin / Sonoma',
+  'SMART': 'Sonoma / Marin',
+  'Santa Rosa CityBus': 'Santa Rosa',
+};

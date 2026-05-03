@@ -23,7 +23,7 @@ function toTitleCase(str) {
     .map((word) => {
       // Capitalize across slash-separated parts (e.g. "spadina/king" → "Spadina/King")
       // Use regex to skip leading non-letter chars (e.g. "(laird" → "(Laird")
-      return word.split('/').map((part) => part.replace(/^([^a-zA-Z]*)([a-zA-Z])/, (_, pre, letter) => pre + letter.toUpperCase())).join('/');
+      return word.split('/').map((part) => part.replace(/^([^a-zA-Z]*)([a-zA-Z])/, (_, pre, letter) => /\d$/.test(pre) ? pre + letter : pre + letter.toUpperCase())).join('/');
     })
     .join(' ');
 
