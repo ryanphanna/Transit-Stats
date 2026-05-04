@@ -52,6 +52,26 @@ const { parseStopInput } = require('./parsing');
 const { AGENCY_CITY } = require('./constants');
 
 /**
+ * Pick the best V4/V5 route prediction that GTFS confirms actually serves this stop.
+ * If routesAtStop is empty/null (no GTFS data), fall back to the top prediction.
+ * Suppresses predictions below 25% confidence regardless.
+ *
+ * @param {Array} topRoutes - Sorted [{route, confidence, version}] from guessTopRoutes()
+ * @param {Array|null} routesAtStop - Routes known to serve this stop from GTFS, or null
+ * @returns {Object|null}
+ */
+function correctPredictionByGtfs(topRoutes, routesAtStop) {
+  if (!topRoutes || topRoutes.length === 0) return null;
+  const baseRoute = r => r.toString().replace(/[a-zA-Z]+$/, '').trim();
+  if (routesAtStop && routesAtStop.length > 0) {
+    const known = new Set(routesAtStop.map(r => baseRoute(r)));
+    return topRoutes.find(p => p.confidence >= 25 && known.has(baseRoute(p.route))) || null;
+  }
+  const top = topRoutes[0];
+  return top.confidence >= 25 ? top : null;
+}
+
+/**
  * Returns " via [Agency]" if the trip agency differs from the user's default, otherwise "".
  * @param {string} tripAgency
  * @param {string} defaultAgency
@@ -609,20 +629,17 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
     // V4/V5 only run when the trip is on the user's default agency —
     // the models are trained on one agency's data and produce garbage elsewhere.
     if (resolvedAgency === defaultAgency) {
-      predictionV4 = PredictionEngineV4.guess({
-        stopName: startStopName,
-        time: now,
-      });
-      predictionV5 = await PredictionEngineV5.guess({
-        stopName: startStopName,
-        time: now,
-      });
-      const [topV4, topV5] = await Promise.all([
+      const [rawTopV4, rawTopV5, topEndV4, topEndV5] = await Promise.all([
+        Promise.resolve(PredictionEngineV4.guessTopRoutes({ stopName: startStopName, time: now }, 5)),
+        PredictionEngineV5.guessTopRoutes({ stopName: startStopName, time: now }, 5),
         PredictionEngineV4.guessTopEndStops(endStopContext, 1),
         PredictionEngineV5.guessTopEndStops(endStopContext, 1),
       ]);
-      if (topV4.length > 0) endStopPredictionV4 = topV4[0];
-      if (topV5.length > 0) endStopPredictionV5 = topV5[0];
+      // Correct: pick best prediction that GTFS confirms serves this stop; floor at 25%
+      predictionV4 = correctPredictionByGtfs(rawTopV4, routesAtStop);
+      predictionV5 = correctPredictionByGtfs(rawTopV5, routesAtStop);
+      if (topEndV4.length > 0) endStopPredictionV4 = topEndV4[0];
+      if (topEndV5.length > 0) endStopPredictionV5 = topEndV5[0];
     }
     endStopPrediction = PredictionEngine.guessEndStop(history, endStopContext);
     if (isAdmin) {
@@ -725,21 +742,19 @@ async function handleConfirmStart(phoneNumber, user, state) {
       time: now,
       routesAtStop: routesAtStop || undefined,
     });
-    confirmPredictionV4 = PredictionEngineV4.guess({
-      stopName: newTrip.stopName,
-      time: now,
-    });
-    confirmPredictionV5 = await PredictionEngineV5.guess({
-      stopName: newTrip.stopName,
-      time: now,
-    });
+    if (newTrip.agency === confirmDefaultAgency) {
+      const [confirmRawV4, confirmRawV5, confirmTopV4, confirmTopV5] = await Promise.all([
+        Promise.resolve(PredictionEngineV4.guessTopRoutes({ stopName: newTrip.stopName, time: now }, 5)),
+        PredictionEngineV5.guessTopRoutes({ stopName: newTrip.stopName, time: now }, 5),
+        PredictionEngineV4.guessTopEndStops(confirmEndStopContext, 1),
+        PredictionEngineV5.guessTopEndStops(confirmEndStopContext, 1),
+      ]);
+      confirmPredictionV4 = correctPredictionByGtfs(confirmRawV4, routesAtStop);
+      confirmPredictionV5 = correctPredictionByGtfs(confirmRawV5, routesAtStop);
+      if (confirmTopV4.length > 0) confirmEndStopPredictionV4 = confirmTopV4[0];
+      if (confirmTopV5.length > 0) confirmEndStopPredictionV5 = confirmTopV5[0];
+    }
     confirmEndStopPrediction = PredictionEngine.guessEndStop(history, confirmEndStopContext);
-    const [confirmTopV4, confirmTopV5] = await Promise.all([
-      PredictionEngineV4.guessTopEndStops(confirmEndStopContext, 1),
-      PredictionEngineV5.guessTopEndStops(confirmEndStopContext, 1),
-    ]);
-    if (confirmTopV4.length > 0) confirmEndStopPredictionV4 = confirmTopV4[0];
-    if (confirmTopV5.length > 0) confirmEndStopPredictionV5 = confirmTopV5[0];
     if (confirmIsAdmin) {
       const top = PredictionEngine.guessTopEndStops(history, confirmEndStopContext, 3);
       if (top.length > 0) confirmEndStopPredictions = top;
@@ -1364,12 +1379,16 @@ async function fillPredictions(user, tripId, stopName, route, direction, agency)
     const now = new Date();
     const endStopContext = { route, startStopName: stopName, direction, time: now };
 
-    const [predictionV4, predictionV5, topV4, topV5] = await Promise.all([
-      Promise.resolve(PredictionEngineV4.guess({ stopName, time: now })),
-      PredictionEngineV5.guess({ stopName, time: now }),
+    const [rawTopV4, rawTopV5, topV4, topV5] = await Promise.all([
+      Promise.resolve(PredictionEngineV4.guessTopRoutes({ stopName, time: now }, 5)),
+      PredictionEngineV5.guessTopRoutes({ stopName, time: now }, 5),
       PredictionEngineV4.guessTopEndStops(endStopContext, 1),
       PredictionEngineV5.guessTopEndStops(endStopContext, 1),
     ]);
+
+    // No routesAtStop available here — apply confidence floor only
+    const predictionV4 = correctPredictionByGtfs(rawTopV4, null);
+    const predictionV5 = correctPredictionByGtfs(rawTopV5, null);
 
     const update = {};
     if (predictionV4) update.predictionV4 = predictionV4;
@@ -1427,10 +1446,27 @@ async function handleMmsTrip(phoneNumber, user, mediaUrl, receivedAt) {
   }
 
   const stopInput = parsed.stopCode || parsed.stopName;
+
+  // Routes found but no stop — ask for just the stop and pre-save routes
   if (!stopInput) {
-    await sendSmsReply(phoneNumber, 'Found routes but could not read the stop. Log by text:\n[Route]\n[Stop]');
+    const userProfile2 = await getUserProfile(user.userId);
+    const defaultAgency2 = userProfile2?.defaultAgency || 'TTC';
+    const { normalizeAgency: normalizeAg } = require('./utils');
+    const candidates = parsed.routes.map(r => ({
+      route: r.route,
+      agency: r.agency ? normalizeAg(r.agency) : defaultAgency2,
+    }));
+    const routeList = candidates.map(r => r.route).join(' and ');
+    await setPendingState(phoneNumber, {
+      type: 'mms_stop_needed',
+      routeCandidates: candidates,
+      defaultAgency: defaultAgency2,
+      receivedAt,
+    });
+    await sendSmsReply(phoneNumber, `Got ${routeList} — what stop are you at? (or DISCARD to cancel)`);
     return;
   }
+
 
   const userProfile = await getUserProfile(user.userId);
   const defaultAgency = userProfile?.defaultAgency || 'TTC';

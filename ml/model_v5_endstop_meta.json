@@ -3,13 +3,12 @@
   "version": "5",
   "classes": [
     "Lawrence West",
+    "Lawrence West Station",
     "Queen's Park Station",
-    "SPADINA & NASSAU",
-    "Spadina & Nassau",
-    "Spadina / Nassau",
+    "SPADINA",
+    "Spadina Ave at Nassau St",
+    "Spadina Ave at Nassau St South Side",
     "Spadina Station",
-    "Spadina/Nassau",
-    "Spadina/nassau",
     "St George",
     "St George Station",
     "York University"
@@ -23,15 +22,17 @@
     "route_2",
     "route_510",
     "stop_bay station",
+    "stop_lawrence west station",
     "stop_queen's park station",
     "stop_spadina",
-    "stop_spadina / nassau",
+    "stop_spadina ave at nassau st",
+    "stop_spadina ave at nassau st south side",
     "stop_spadina station",
     "stop_st patrick station",
     "stop_union station",
     "stop_york university"
   ],
-  "top1_accuracy": 0.4783,
-  "top3_accuracy": 0.9565,
-  "n_trips": 114
+  "top1_accuracy": 0.8387,
+  "top3_accuracy": 0.9032,
+  "n_trips": 153
 }

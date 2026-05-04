@@ -1016,14 +1016,36 @@ Rules:
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) return null;
 
+  let parsed;
   try {
-    const parsed = JSON.parse(jsonMatch[0]);
+    parsed = JSON.parse(jsonMatch[0]);
     if (!parsed || !Array.isArray(parsed.routes)) return null;
     parsed.routes = parsed.routes.filter(r => r.route && typeof r.route === 'string');
-    return parsed.routes.length > 0 ? parsed : null;
+    if (parsed.routes.length === 0) return null;
   } catch {
     return null;
   }
+
+  // If routes were found but stop code is missing, do a focused second pass
+  // specifically looking for the small "Next Vehicle" SMS sticker text.
+  if (!parsed.stopCode) {
+    try {
+      const focusedPrompt = `Look carefully at this transit stop pole photo. Find any small sticker or label with the words "Next Vehicle", "Text stop", or "SMS". These stickers contain a short numeric stop code (usually 4-6 digits) and a phone number (e.g. "Text 11985 to 898882" — the stop code would be 11985). Return ONLY the numeric stop code as plain text, or the word null if you cannot find one.`;
+      const focusedResult = await retryWithBackoff(async () => {
+        return model.generateContent([
+          { inlineData: { data: imageBase64, mimeType } },
+          { text: focusedPrompt },
+        ]);
+      });
+      const focusedText = focusedResult.response.text().trim();
+      const codeMatch = focusedText.match(/\b\d{4,6}\b/);
+      if (codeMatch) parsed.stopCode = codeMatch[0];
+    } catch {
+      // Non-fatal — proceed without stop code
+    }
+  }
+
+  return parsed;
 }
 
 module.exports = {

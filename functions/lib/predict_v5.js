@@ -140,6 +140,54 @@ const PredictionEngineV5 = {
   },
 
   /**
+   * Return the top N route predictions sorted by probability descending.
+   * @param {Object} context - { stopName, time }
+   * @param {number} topN
+   * @returns {Promise<Array>} [{ route, confidence, version }]
+   */
+  guessTopRoutes: async function (context, topN = 5) {
+    if (!context || !context.time) return [];
+
+    const date = context.time instanceof Date ? context.time : new Date(context.time);
+    const hour = date.getHours();
+    const pyDay = (date.getDay() + 6) % 7;
+
+    const hour_sin = Math.sin(2 * Math.PI * hour / 24);
+    const hour_cos = Math.cos(2 * Math.PI * hour / 24);
+    const day_sin  = Math.sin(2 * Math.PI * pyDay / 7);
+    const day_cos  = Math.cos(2 * Math.PI * pyDay / 7);
+
+    const cleanStop = context.stopName ? context.stopName.trim().toLowerCase() : '';
+    const stopFeature = `stop_${cleanStop}`;
+
+    const x = new Float32Array(meta.feature_names.length);
+    for (let i = 0; i < meta.feature_names.length; i++) {
+      const fn = meta.feature_names[i];
+      if      (fn === 'hour_sin')  x[i] = hour_sin;
+      else if (fn === 'hour_cos')  x[i] = hour_cos;
+      else if (fn === 'day_sin')   x[i] = day_sin;
+      else if (fn === 'day_cos')   x[i] = day_cos;
+      else if (fn === stopFeature) x[i] = 1.0;
+    }
+
+    try {
+      const ort = require('onnxruntime-node');
+      const session = await getSession();
+      const tensor = new ort.Tensor('float32', x, [1, meta.feature_names.length]);
+      const results = await session.run({ float_input: tensor });
+      const probs = results.probabilities.data;
+
+      return Array.from(probs)
+        .map((p, i) => ({ route: String(meta.classes[i]), confidence: Math.round(p * 100), version: this.VERSION }))
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, topN);
+    } catch (err) {
+      console.error('[V5] guessTopRoutes error:', err.message);
+      return [];
+    }
+  },
+
+  /**
    * Predict top N exit stops using the V5 XGBoost end stop model.
    * Topology pre-filter zeros out impossible stops before reading probabilities.
    * @param {Object} context - { route, startStopName, direction, time }

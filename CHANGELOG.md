@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Prediction Engine history](docs/ENGINE.md) · [Transfer Engine history](docs/TRANSFER_ENGINE.md) · [Network Engine history](docs/NETWORK_ENGINE.md) · [NextGen Roadmap](docs/ROADMAP_NEXTGEN.md) · [Technical Roadmap](docs/ROADMAP_TECHNICAL.md)
 
+## [1.29.1] - 2026-05-04
+### Fixed
+- **`getTripCount` not exported from db module** (`functions/lib/db/index.js`): `getTripCount` was defined and exported in `db/trips.js` but never re-exported from the barrel `db/index.js`, so `handlers.js` received `undefined` and the SMS achievements check threw on every trip start.
+- **MMS stop code missed when "Next Vehicle" sticker text is small** (`functions/lib/gemini.js`): When Gemini Vision found routes but no stop code, it silently fell back to manual entry. A second focused pass now runs on the same image, specifically prompting Gemini to locate the "Next Vehicle" / "Text stop" sticker and extract the numeric code from it (e.g. "Text 11985 to 898882" → 11985). Non-fatal if the second pass also fails.
+- **MMS partial parse fallbacks ask only for what's missing** (`functions/lib/handlers.js`, `functions/lib/dispatcher.js`): When Gemini finds routes but no stop, it now replies "Got 510 and 310 — what stop are you at?" and stores the routes in a `mms_stop_needed` pending state. The user's next reply (stop name or code) is matched with the pre-saved routes and proceeds directly — no need to re-type the route. If multiple routes were found, a route disambiguation prompt follows after the stop is provided.
+
+## [1.29.0] - 2026-05-04
+### Added
+- **`guessTopRoutes()` on V4 and V5 engines** (`functions/lib/predict_v4.js`, `functions/lib/predict_v5.js`): Both engines now expose a `guessTopRoutes(context, n)` method returning the top N route candidates sorted by probability. Used internally by the new GTFS correction filter.
+- **GTFS-correction filter for V4/V5 route predictions** (`functions/lib/handlers.js`): Instead of suppressing a wrong V4/V5 guess, the system now picks the best prediction from the engine's top-5 that GTFS actually confirms serves this boarding stop. Falls back to the top prediction when no GTFS data exists. Predictions below 25% confidence are suppressed regardless. Applied at trip start, conflict-resolution start, and `fillPredictions`.
+- **V4/V5 agency gate in `handleConfirmStart`** (`functions/lib/handlers.js`): The conflict-resolution path (trip start when active trip exists) was missing the `agency === defaultAgency` gate, so V4/V5 ran on all agencies. Fixed.
+
 ## [1.28.1] - 2026-05-04
 ### Fixed
 - **MMS stop code extraction** (`functions/lib/gemini.js`): Improved Gemini Vision prompt to better identify numeric stop IDs (any length, typically 3-6 digits like '110' or '11985') on small 'Next Vehicle' stickers. Prompt now includes real-world examples derived from the stops library to improve extraction confidence. Fixes cases where routes were found but the stop was missed.

@@ -26,9 +26,13 @@ const handlers = require('./handlers');
 /**
  * Main dispatch logic for an SMS message
  */
-async function dispatch(phoneNumber, body, messageSid) {
+async function dispatch(phoneNumber, body, messageSid, media = {}) {
+  const receivedAt = Date.now();
+  const { numMedia = 0, mediaUrl = null } = media;
+  const isMms = numMedia > 0 && !!mediaUrl;
+
   // 1. Basic Validation
-  if (!phoneNumber || !body) {
+  if (!phoneNumber || (!body && !isMms)) {
     throw new Error('Missing phone number or message body');
   }
 
@@ -38,20 +42,22 @@ async function dispatch(phoneNumber, body, messageSid) {
     return '';
   }
 
-  // 1.5. Spam Filter: Drop texts containing URLs immediately
-  const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/i;
-  if (urlRegex.test(body)) {
-    logger.info('Spam URL dropped', { From: phoneNumber, Body: body });
-    return ''; // Return empty TwiML silently
+  // 1.5. Spam Filter: Drop texts containing URLs (text messages only)
+  if (body && !isMms) {
+    const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/i;
+    if (urlRegex.test(body)) {
+      logger.info('Spam URL dropped', { From: phoneNumber, Body: body });
+      return '';
+    }
   }
 
-  const upperBody = body.toUpperCase();
-  logger.info('Dispatching SMS', { From: phoneNumber, Body: body });
+  const upperBody = body ? body.toUpperCase() : '';
+  logger.info('Dispatching SMS', { From: phoneNumber, Body: body, isMms });
 
   // 2. Pre-auth Checks
   if (await isRateLimited(phoneNumber)) {
     logger.info('Rate limited', { From: phoneNumber });
-    return ''; // Return empty TwiML
+    return '';
   }
 
   if (messageSid && await checkIdempotency(messageSid)) {
@@ -59,17 +65,20 @@ async function dispatch(phoneNumber, body, messageSid) {
     return '';
   }
 
-  // END/STOP commands bypass content dedup — if an end attempt fails, the user
-  // must be able to retry immediately without waiting 60 seconds.
-  const isEndCommand = /^(END|STOP)(\s|$)/i.test(body);
-  if (!isEndCommand && await checkContentDuplicate(phoneNumber, body)) {
-    logger.info('Duplicate content within window', { From: phoneNumber });
-    return '';
-  }
+  // Content dedup and outbound loop checks don't apply to MMS
+  if (!isMms) {
+    // END/STOP commands bypass content dedup — if an end attempt fails, the user
+    // must be able to retry immediately without waiting 60 seconds.
+    const isEndCommand = /^(END|STOP)(\s|$)/i.test(body);
+    if (!isEndCommand && await checkContentDuplicate(phoneNumber, body)) {
+      logger.info('Duplicate content within window', { From: phoneNumber });
+      return '';
+    }
 
-  if (await checkOutboundLoop(body)) {
-    logger.info('Outbound loop detected — dropping', { From: phoneNumber });
-    return '';
+    if (await checkOutboundLoop(body)) {
+      logger.info('Outbound loop detected — dropping', { From: phoneNumber });
+      return '';
+    }
   }
 
   // 3. Contextual/Pending State Logic
@@ -77,6 +86,19 @@ async function dispatch(phoneNumber, body, messageSid) {
   if (pendingState) {
     const handled = await handlePendingState(phoneNumber, body, upperBody, pendingState);
     if (handled) return '';
+  }
+
+  // 3.5. MMS: authenticate then hand off to photo-based trip start
+  if (isMms) {
+    const user = await getUserByPhone(phoneNumber);
+    if (!user) {
+      if (await shouldRespondToUnknown(phoneNumber)) {
+        await sendSmsReply(phoneNumber, 'Text REGISTER [email] to get started');
+      }
+      return '';
+    }
+    await handlers.handleMmsTrip(phoneNumber, user, mediaUrl, receivedAt);
+    return '';
   }
 
   // 4. Public Commands (No Auth Required)
@@ -166,6 +188,10 @@ async function handlePendingState(phoneNumber, body, upperBody, state) {
             verified: true,
             boardingLocation,
           });
+          // Run V4/V5 predictions now that the stop is known — fire-and-forget
+          handlers.fillPredictions(
+            user, state.tripId, chosen.stopName, state.route, state.direction, state.agency
+          ).catch(() => {});
           const routeDisplay = getRouteDisplay(state.route, state.direction);
           await sendSmsReply(phoneNumber, `Stop set to ${chosen.stopName}.\n\nEND [stop] to finish. FORGOT if you forgot to end.`);
         } else {
@@ -184,6 +210,61 @@ async function handlePendingState(phoneNumber, body, upperBody, state) {
       if (state.tripId) {
         await db.collection('trips').doc(state.tripId).delete();
       }
+      await sendSmsReply(phoneNumber, 'Trip cancelled.');
+      return true;
+    }
+
+    return false;
+  }
+
+  if (state.type === 'mms_stop_needed') {
+    if (upperBody === 'DISCARD') {
+      await clearPendingState(phoneNumber);
+      await sendSmsReply(phoneNumber, 'Trip cancelled.');
+      return true;
+    }
+    const user = await getUserByPhone(phoneNumber);
+    if (user && body.trim()) {
+      await clearPendingState(phoneNumber);
+      const stopReply = body.trim();
+      const mmsOptions = { parsed_by: 'mms', startTime: state.receivedAt, source: 'mms', timing_reliability: 'approximate' };
+      if (state.routeCandidates.length === 1) {
+        const chosen = state.routeCandidates[0];
+        await handlers.handleTripLog(phoneNumber, user, stopReply, chosen.route, null, chosen.agency, mmsOptions);
+      } else {
+        const list = state.routeCandidates.map((r, i) => `${i + 1}. Route ${r.route}`).join('\n');
+        const { setPendingState: sps } = require('./db');
+        await sps(phoneNumber, {
+          type: 'confirm_mms_route',
+          routeCandidates: state.routeCandidates,
+          stopInput: stopReply,
+          defaultAgency: state.defaultAgency,
+          receivedAt: state.receivedAt,
+        });
+        await sendSmsReply(phoneNumber, `Which route?\n${list}\nor DISCARD to cancel`);
+      }
+    }
+    return true;
+  }
+
+  if (state.type === 'confirm_mms_route') {
+    const num = parseInt(body.trim(), 10);
+    if (!isNaN(num) && num >= 1 && num <= state.routeCandidates.length) {
+      const user = await getUserByPhone(phoneNumber);
+      if (user) {
+        const chosen = state.routeCandidates[num - 1];
+        await clearPendingState(phoneNumber);
+        await handlers.handleTripLog(
+          phoneNumber, user, state.stopInput, chosen.route, null,
+          chosen.agency || state.defaultAgency,
+          { parsed_by: 'mms', startTime: state.receivedAt, source: 'mms', timing_reliability: 'approximate' }
+        );
+      }
+      return true;
+    }
+
+    if (upperBody === 'DISCARD') {
+      await clearPendingState(phoneNumber);
       await sendSmsReply(phoneNumber, 'Trip cancelled.');
       return true;
     }

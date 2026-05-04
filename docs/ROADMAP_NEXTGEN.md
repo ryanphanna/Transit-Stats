@@ -71,6 +71,16 @@ Replacing hand-coded scoring weights with a model trained on actual trip history
 
 ---
 
+## NetworkEngine Improvements
+
+The NetworkEngine builds a stop-connection graph from observed trips and acts as the primary directional filter for end stop prediction. `topology.json` is a cold-start fallback only — NetworkEngine takes over once an edge has ≥3 observations.
+
+- [ ] **Transitive reachability** — if A→B and B→C are both observed with sufficient confidence, infer A→C without requiring a direct observation. Reduces the number of trips needed before the graph is useful on a new route.
+- [ ] **Hour-slot travel time buckets** — store edge durations bucketed by hour-of-day (`durationsByHour: { "7": [...], "8": [...] }`) instead of one flat pool. Use the current hour's bucket when ≥3 observations exist; fall back to the aggregate. Rush hour and off-peak travel times are currently conflated into one median.
+- [ ] **Full stop sequence inference** — reconstruct ordered stop sequences from overlapping trip observations (A→B + B→C + C→D = inferred stop order). Eventually allows topology.json to be retired for all agencies, not just used as a TTC cold-start fallback.
+
+---
+
 ## Autonomous Logging (NextGen)
 
 Moving from "Pull" (SMS triggers) to "Push" (Background detection).

@@ -147,6 +147,55 @@ const PredictionEngineV4 = {
   },
 
   /**
+   * Return the top N route predictions sorted by probability descending.
+   * @param {Object} context - { stopName, time }
+   * @param {number} topN
+   * @returns {Array} [{ route, confidence, version }]
+   */
+  guessTopRoutes: function (context, topN = 5) {
+    if (!context || !context.time) return [];
+
+    const date = context.time instanceof Date ? context.time : new Date(context.time);
+    const hour = date.getHours();
+    const pyDay = (date.getDay() + 6) % 7;
+
+    const hour_sin = Math.sin(2 * Math.PI * hour / 24);
+    const hour_cos = Math.cos(2 * Math.PI * hour / 24);
+    const day_sin  = Math.sin(2 * Math.PI * pyDay / 7);
+    const day_cos  = Math.cos(2 * Math.PI * pyDay / 7);
+
+    const cleanStop = context.stopName ? context.stopName.trim().toLowerCase() : '';
+    const stopFeatureName = `stop_${cleanStop}`;
+
+    const x = new Array(model.feature_names.length).fill(0);
+    for (let i = 0; i < model.feature_names.length; i++) {
+      const fn = model.feature_names[i];
+      if (fn === 'hour_sin') x[i] = hour_sin;
+      else if (fn === 'hour_cos') x[i] = hour_cos;
+      else if (fn === 'day_sin') x[i] = day_sin;
+      else if (fn === 'day_cos') x[i] = day_cos;
+      else if (fn === stopFeatureName) x[i] = 1.0;
+    }
+
+    const logits = [];
+    for (let c = 0; c < model.classes.length; c++) {
+      let z = model.intercept[c];
+      for (let f = 0; f < x.length; f++) z += model.coef[c][f] * x[f];
+      logits.push(z);
+    }
+
+    const maxLogit = Math.max(...logits);
+    let sumExp = 0;
+    const exps = logits.map(z => { const e = Math.exp(z - maxLogit); sumExp += e; return e; });
+    const probs = exps.map(e => e / sumExp);
+
+    return probs
+      .map((p, i) => ({ route: model.classes[i].toString(), confidence: Math.round(p * 100), version: this.VERSION }))
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, topN);
+  },
+
+  /**
    * Predict top N exit stops using the V4 end stop logistic regression model.
    * Topology pre-filter zeros out directionally impossible stops before softmax.
    * @param {Object} context - { route, startStopName, direction, time }

@@ -32,14 +32,16 @@ async function handleSmsRequest(req, res) {
     const phoneNumber = req.body.From;
     const body = (req.body.Body || '').trim();
     const messageSid = req.body.MessageSid;
+    const numMedia = parseInt(req.body.NumMedia || '0', 10);
+    const mediaUrl = numMedia > 0 ? (req.body.MediaUrl0 || null) : null;
 
-    if (!phoneNumber || !body) {
+    if (!phoneNumber || (!body && !mediaUrl)) {
       res.status(400).send('Missing phone number or message body');
       return;
     }
 
     // Delegate all logic to the dispatcher
-    await dispatch(phoneNumber, body, messageSid);
+    await dispatch(phoneNumber, body, messageSid, { numMedia, mediaUrl });
 
     // Twilio expects a valid TwiML response
     res.type('text/xml').send(twimlResponse(''));

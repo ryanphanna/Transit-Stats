@@ -1,8 +1,22 @@
 # Prediction Engine
 
-Engineering record for the TransitStats `PredictionEngine`. Tracks what changed, why, and what signals are currently active.
+Engineering record for the TransitStats prediction and inference engines. Tracks what changed, why, and what signals are currently active.
 
-Not a roadmap (see [ROADMAP_NEXTGEN.md](./ROADMAP_NEXTGEN.md)). Not a feature changelog (see [CHANGELOG.md](../CHANGELOG.md)). This is the internal notebook for the engine itself.
+Not a roadmap (see [ROADMAP_NEXTGEN.md](./ROADMAP_NEXTGEN.md)). Not a feature changelog (see [CHANGELOG.md](../CHANGELOG.md)). This is the internal notebook for the engines themselves.
+
+---
+
+## Engine Inventory
+
+| Engine | File | Type | What it does | Status |
+|---|---|---|---|---|
+| **PredictionEngine V3** | `functions/lib/predict.js` | Heuristic weighted voting | Predicts next route and end stop at trip start using recency, time-of-day, and day-of-week signals. Hand-coded weights. | Live (production) |
+| **PredictionEngine V4** | `functions/lib/predict_v4.js` | Logistic regression (trained) | Same prediction task as V3; weights learned from trip history rather than hand-coded. Weights in `ml/model_v4.json`. | Shadow mode |
+| **PredictionEngine V5** | `functions/lib/predict_v5.js` | XGBoost (trained, ONNX) | Same as V4; gradient boosted trees discover feature interactions LR can't. Model in `ml/model_v5.onnx`. | Shadow mode |
+| **NetworkEngine** | `functions/lib/network.js` | Observed graph (Firestore) | Builds a stop-connection graph from completed trips. Filters directionally impossible end stop candidates. Primary filter — topology.json is the cold-start fallback only. Auto-updates at trip end. | Live |
+| **TransferEngine** | `functions/lib/transfer.js` | Heuristic confidence scoring | Determines whether two consecutive trips are a transfer within one journey or two separate trips, using historical transfer patterns (stop pairs, route pairs, gap time, time-of-day). | Live |
+
+**Retraining:** V4 and V5 require a manual retrain via `ml/predict_v4.ipynb` + `ml/export_trips.py` when enough new trips have accumulated. NetworkEngine and TransferEngine update passively from trip data — no retrain needed. See `ml/CLAUDE.md` for the retrain workflow.
 
 ---
 
