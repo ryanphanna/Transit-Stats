@@ -26,6 +26,7 @@ const {
   getConversationHistory,
   saveConversationTurn,
   getLastTripAgency,
+  getTripCount,
 } = require('./db');
 const { PredictionEngine } = require('./predict.js');
 const { TransferEngine } = require('./transfer.js');
@@ -45,6 +46,7 @@ const {
   aggregateTripStats,
   answerQueryWithGemini,
   lookupAgencyTimezone,
+  parseStopSignImage,
 } = require('./gemini');
 const { parseStopInput } = require('./parsing');
 const { AGENCY_CITY } = require('./constants');
@@ -67,6 +69,31 @@ function getDisambiguationLabel(agency, otherAgency) {
   const otherCity = AGENCY_CITY[otherAgency];
   if (!city || city === otherCity) return agency;
   return city;
+}
+
+/**
+ * Checks for transit milestones and returns a celebratory note if reached.
+ * @param {string} userId
+ * @returns {Promise<string>}
+ */
+async function getAchievementNote(userId) {
+  try {
+    const count = await getTripCount(userId);
+    const milestones = {
+      1: '🎉 Your 1st trip! Welcome aboard.',
+      10: '🔟 Your 10th trip! Double digits.',
+      25: '🏅 Your 25th trip! Quarter century.',
+      50: '🥈 Your 50th trip! Silver milestone.',
+      100: '🥇 Your 100th trip! Centurion status.',
+      250: '👑 Your 250th trip! Elite rider.',
+      500: '🏟️ Your 500th trip! Transit legend.',
+      1000: '🌌 Your 1,000th trip! Mythical status.',
+    };
+    return milestones[count] ? `\n\n${milestones[count]}` : '';
+  } catch (err) {
+    console.error('getAchievementNote failed', err);
+    return '';
+  }
 }
 
 /**
@@ -579,21 +606,25 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       time: now,
       routesAtStop: routesAtStop || undefined,
     });
-    predictionV4 = PredictionEngineV4.guess({
-      stopName: startStopName,
-      time: now,
-    });
-    predictionV5 = await PredictionEngineV5.guess({
-      stopName: startStopName,
-      time: now,
-    });
+    // V4/V5 only run when the trip is on the user's default agency —
+    // the models are trained on one agency's data and produce garbage elsewhere.
+    if (resolvedAgency === defaultAgency) {
+      predictionV4 = PredictionEngineV4.guess({
+        stopName: startStopName,
+        time: now,
+      });
+      predictionV5 = await PredictionEngineV5.guess({
+        stopName: startStopName,
+        time: now,
+      });
+      const [topV4, topV5] = await Promise.all([
+        PredictionEngineV4.guessTopEndStops(endStopContext, 1),
+        PredictionEngineV5.guessTopEndStops(endStopContext, 1),
+      ]);
+      if (topV4.length > 0) endStopPredictionV4 = topV4[0];
+      if (topV5.length > 0) endStopPredictionV5 = topV5[0];
+    }
     endStopPrediction = PredictionEngine.guessEndStop(history, endStopContext);
-    const [topV4, topV5] = await Promise.all([
-      PredictionEngineV4.guessTopEndStops(endStopContext, 1),
-      PredictionEngineV5.guessTopEndStops(endStopContext, 1),
-    ]);
-    if (topV4.length > 0) endStopPredictionV4 = topV4[0];
-    if (topV5.length > 0) endStopPredictionV5 = topV5[0];
     if (isAdmin) {
       const top = PredictionEngine.guessTopEndStops(history, endStopContext, 3);
       if (top.length > 0) endStopPredictions = top;
@@ -615,6 +646,9 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       sentiment: options.sentiment || null,
       tags: options.tags || [],
       parsed_by: options.parsed_by || 'manual',
+      startTime: options.startTime || null,
+      source: options.source || null,
+      timing_reliability: options.timing_reliability || null,
       prediction: prediction || null,
       predictionV4: predictionV4 || null,
       predictionV5: predictionV5 || null,
@@ -647,6 +681,10 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
   } else {
     replyBody += `\n\nEND [stop] to finish. FORGOT if you forgot to end. INFO for help.`;
   }
+  // Add achievement note if applicable
+  const achievementNote = await getAchievementNote(user.userId);
+  replyBody += achievementNote;
+
   await sendSmsReply(phoneNumber, replyBody).catch(err => {
     console.error('sendSmsReply failed after createTrip — trip created but user not notified', err.message);
   });
@@ -749,8 +787,13 @@ async function handleConfirmStart(phoneNumber, user, state) {
     const shortcutNums = confirmEndStopPredictions.map((_, i) => i + 1).join('/');
     confirmReplyBody += `\n\nPredicted end:\n${predLines}\n\nEND [stop] or END ${shortcutNums} to finish. FORGOT if forgot to end. INFO for help.`;
   } else {
-    confirmReplyBody += `\n\nEND [stop] to finish. FORGOT if you forgot to end. INFO for help.`;
+    confirmReplyBody += `\n\nEND [stop] to finish. FORGOT if forgot to end. INFO for help.`;
   }
+
+  // Add achievement note if applicable
+  const achievementNote = await getAchievementNote(user.userId);
+  confirmReplyBody += achievementNote;
+
   await sendSmsReply(phoneNumber, confirmReplyBody);
 }
 
@@ -864,6 +907,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
 
       await db.collection('predictionStats').add({
         userId: user.userId,
+        agency: activeTrip.agency || null,
         isHit: !!isHit,
         isPartialHit: !isHit && !!isPartialHit,
         predicted: predictedLabel,
@@ -948,6 +992,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
 
       await db.collection('predictionStats').add({
         userId: user.userId,
+        agency: activeTrip.agency || null,
         isHit: !!isHitV4,
         isPartialHit: !isHitV4 && !!isPartialHitV4,
         predicted: predictedLabelV4,
@@ -990,6 +1035,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
 
       await db.collection('predictionStats').add({
         userId: user.userId,
+        agency: activeTrip.agency || null,
         isHit: !!isHitV5,
         isPartialHit: !isHitV5 && !!isPartialHitV5,
         predicted: predictedLabelV5,
@@ -1021,6 +1067,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
       const endStopHitV4 = PredictionEngine._stopMatch(storedEndStopV4.stop, actualEndStopForGrading);
       await db.collection('predictionStats').add({
         userId: user.userId,
+        agency: activeTrip.agency || null,
         isHit: null,
         isPartialHit: null,
         predicted: null,
@@ -1049,6 +1096,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
       const endStopHitV5 = PredictionEngine._stopMatch(storedEndStopV5.stop, actualEndStopForGrading);
       await db.collection('predictionStats').add({
         userId: user.userId,
+        agency: activeTrip.agency || null,
         isHit: null,
         isPartialHit: null,
         predicted: null,
@@ -1302,6 +1350,123 @@ async function handleJourneyLink(phoneNumber, user) {
   );
 }
 
+/**
+ * Run V4/V5 predictions for a trip that was created during stop disambiguation
+ * (predictions are null at create time because the stop wasn't known yet).
+ * Fire-and-forget — errors are logged but never surface to the user.
+ */
+async function fillPredictions(user, tripId, stopName, route, direction, agency) {
+  try {
+    const profile = await getUserProfile(user.userId);
+    const defaultAgency = profile?.defaultAgency || null;
+    if (!defaultAgency || agency !== defaultAgency) return;
+
+    const now = new Date();
+    const endStopContext = { route, startStopName: stopName, direction, time: now };
+
+    const [predictionV4, predictionV5, topV4, topV5] = await Promise.all([
+      Promise.resolve(PredictionEngineV4.guess({ stopName, time: now })),
+      PredictionEngineV5.guess({ stopName, time: now }),
+      PredictionEngineV4.guessTopEndStops(endStopContext, 1),
+      PredictionEngineV5.guessTopEndStops(endStopContext, 1),
+    ]);
+
+    const update = {};
+    if (predictionV4) update.predictionV4 = predictionV4;
+    if (predictionV5) update.predictionV5 = predictionV5;
+    if (topV4.length > 0) update.endStopPredictionV4 = topV4[0];
+    if (topV5.length > 0) update.endStopPredictionV5 = topV5[0];
+
+    if (Object.keys(update).length > 0) {
+      await db.collection('trips').doc(tripId).update(update);
+    }
+  } catch (err) {
+    console.error('fillPredictions failed', err.message);
+  }
+}
+
+/**
+ * Handle an incoming MMS photo message — parse the stop sign and start a trip.
+ * receivedAt is captured at the top of dispatch() so startTime reflects when
+ * the photo was sent, not when AI processing finishes.
+ */
+async function handleMmsTrip(phoneNumber, user, mediaUrl, receivedAt) {
+  // Fetch the image from Twilio (requires Basic Auth with account credentials)
+  let imageBase64, mimeType;
+  try {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    const response = await fetch(mediaUrl, {
+      headers: {
+        Authorization: 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64'),
+      },
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    mimeType = response.headers.get('content-type') || 'image/jpeg';
+    const buffer = await response.arrayBuffer();
+    imageBase64 = Buffer.from(buffer).toString('base64');
+  } catch (err) {
+    console.error('MMS image fetch failed', err.message);
+    await sendSmsReply(phoneNumber, 'Could not load your photo. Try again or log by text:\n[Route]\n[Stop]');
+    return;
+  }
+
+  // Parse the stop sign with Gemini Vision
+  let parsed;
+  try {
+    parsed = await parseStopSignImage(imageBase64, mimeType);
+  } catch (err) {
+    console.error('MMS vision parsing failed', err.message);
+    await sendSmsReply(phoneNumber, 'Could not read the stop sign. Try a clearer shot or log by text.');
+    return;
+  }
+
+  if (!parsed || !parsed.routes || parsed.routes.length === 0) {
+    await sendSmsReply(phoneNumber, 'No transit stop found in that photo. Try a closer shot of the sign.');
+    return;
+  }
+
+  const stopInput = parsed.stopCode || parsed.stopName;
+  if (!stopInput) {
+    await sendSmsReply(phoneNumber, 'Found routes but could not read the stop. Log by text:\n[Route]\n[Stop]');
+    return;
+  }
+
+  const userProfile = await getUserProfile(user.userId);
+  const defaultAgency = userProfile?.defaultAgency || 'TTC';
+
+  const tripOptions = { parsed_by: 'mms', startTime: receivedAt, source: 'mms', timing_reliability: 'approximate' };
+
+  if (parsed.routes.length === 1) {
+    const { route, agency } = parsed.routes[0];
+    const { normalizeAgency } = require('./utils');
+    await handleTripLog(
+      phoneNumber, user, stopInput, route, null,
+      agency ? normalizeAgency(agency) : defaultAgency,
+      tripOptions,
+    );
+    return;
+  }
+
+  // Multiple routes at this stop — ask user to pick
+  const { normalizeAgency } = require('./utils');
+  const candidates = parsed.routes.map(r => ({
+    route: r.route,
+    agency: r.agency ? normalizeAgency(r.agency) : defaultAgency,
+  }));
+  const list = candidates.map((r, i) => `${i + 1}. Route ${r.route}`).join('\n');
+  const stopLabel = parsed.stopName || stopInput;
+
+  await setPendingState(phoneNumber, {
+    type: 'confirm_mms_route',
+    stopInput,
+    routeCandidates: candidates,
+    defaultAgency,
+    receivedAt,
+  });
+  await sendSmsReply(phoneNumber, `Multiple routes at ${stopLabel}:\n${list}\n\nWhich route? Reply with a number, or DISCARD to cancel.`);
+}
+
 module.exports = {
   handleHelp,
   handleStatus,
@@ -1316,4 +1481,6 @@ module.exports = {
   handleQuery,
   handleStatsCommand,
   handleJourneyLink,
+  handleMmsTrip,
+  fillPredictions,
 };

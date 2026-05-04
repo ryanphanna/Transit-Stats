@@ -6,6 +6,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Snap-to-start via MMS** (`functions/sms.js`, `functions/lib/dispatcher.js`, `functions/lib/handlers.js`, `functions/lib/gemini.js`): Sending a photo of a stop sign pole via MMS now starts a trip. Gemini Vision extracts stop code/name and visible route numbers. Single route → trip starts immediately. Multiple routes → numbered disambiguation prompt using the existing pending state system. Trip `startTime` is set to the photo send time (captured at webhook entry), not AI processing time. Logged as `source: 'mms'`, `timing_reliability: 'approximate'`.
+- **`ml/ACCURACY_LOG.md` created**: New doc tracking live production shadow accuracy snapshots, separate from `MODEL_LOG.md` (which tracks training accuracy). First entry records pre-fix V4/V5 baseline before counter reset.
+- **V4/V5 `predictionAccuracy` counters reset to 0**: Pre-fix numbers were corrupted by the agency gate and disambiguation bugs. Baseline recorded in `ml/ACCURACY_LOG.md`. V3 counters left intact.
+- **V4/V5 predictions gated on user's default agency** (`functions/lib/handlers.js`): V4 and V5 models are trained on one agency's data and produce meaningless predictions on trips for other agencies. Both engines now only run when the trip agency matches `profile.defaultAgency`. V3 is unaffected and still runs on all trips.
+- **V4/V5 predictions filled after stop disambiguation** (`functions/lib/handlers.js`, `functions/lib/dispatcher.js`): Trips created during stop disambiguation (user prompted to pick between multiple matching stops) were always stored with `predictionV4/V5: null` because the canonical stop name wasn't known at create time. A new `fillPredictions()` helper now runs V4/V5 after the user resolves the stop and patches the trip document, fire-and-forget.
+- **`agency` field added to all `predictionStats` writes** (`functions/lib/handlers.js`): All five grading writes now include `agency: activeTrip.agency` so accuracy can be broken down by agency without a fragile timestamp join against the trips collection.
+- **`createTrip` accepts optional `startTime` override** (`functions/lib/db/trips.js`): When a `startTime` is passed, it is stored as a Firestore `Timestamp` rather than `serverTimestamp()`. Enables accurate boarding time for MMS trips and any future non-realtime logging paths.
+- **Retroactive verification pass** (`Tools/retro-verify.js`): Admin script that scans all completed, unverified trips and flips `verified: true` when the start/end stop names now resolve against the stops library. Supports both legacy `agency` field and new `agencies` array on stop documents. First run verified 311 trips; 90 remain unresolved (stops not yet in library). Safe to re-run as library grows.
+
 ## [1.27.1] - 2026-05-03
 
 ### Fixed

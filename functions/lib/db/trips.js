@@ -23,9 +23,14 @@ async function getActiveTrip(userId) {
 
 async function createTrip(tripData) {
   const profile = await getUserProfile(tripData.userId);
+  const { startTime: startTimeOverride, ...restTripData } = tripData;
+  const startTime = startTimeOverride
+    ? admin.firestore.Timestamp.fromDate(new Date(startTimeOverride))
+    : admin.firestore.FieldValue.serverTimestamp();
+
   const docRef = await db.collection('trips').add({
-    ...tripData,
-    startTime: admin.firestore.FieldValue.serverTimestamp(),
+    ...restTripData,
+    startTime,
     endTime: null,
     source: tripData.source || 'sms',
     timing_reliability: tripData.timing_reliability || 'actual',
@@ -80,9 +85,17 @@ async function getLastTripAgency(userId) {
   return snap.docs[0].data().agency || null;
 }
 
+async function getTripCount(userId) {
+  const snap = await db.collection('trips')
+    .where('userId', '==', userId)
+    .count().get();
+  return snap.data().count;
+}
+
 module.exports = {
   getActiveTrip,
   createTrip,
+  getTripCount,
   getRecentCompletedTrips,
   getPendingState,
   setPendingState,
