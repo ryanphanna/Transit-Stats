@@ -980,6 +980,52 @@ async function lookupAgencyTimezone(agency) {
   return 'America/Toronto';
 }
 
+/**
+ * Parse a transit stop sign photo and extract stop/route information.
+ * @param {string} imageBase64 - Base64-encoded image data
+ * @param {string} mimeType - Image MIME type (e.g. 'image/jpeg')
+ * @returns {Promise<{stopCode: string|null, stopName: string|null, routes: Array<{route: string, agency: string|null}>}|null>}
+ */
+async function parseStopSignImage(imageBase64, mimeType) {
+  const genAI = new GoogleGenerativeAI(geminiApiKey.value());
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+  const prompt = `Analyze this photo of a transit stop sign, pole, or shelter. Extract stop information and return ONLY valid JSON with no other text:
+{
+  "stopCode": "numeric stop ID or code if visible (often on 'Next Vehicle' or 'SMS' stickers, e.g. 'Text 12345'), otherwise null",
+  "stopName": "intersection, station name, or landmark if visible, otherwise null",
+  "routes": [
+    { "route": "route identifier as a string (e.g. '510', 'Line 1', 'Blue')", "agency": "transit agency name if determinable, otherwise null" }
+  ]
+}
+
+Rules:
+1. Only include routes clearly visible on the signage.
+2. If multiple route numbers are shown, list all of them.
+3. For stop codes, look for numeric IDs of any length (typically 3-6 digits, e.g. '110', '8128', '11985'), especially near 'Next Vehicle' or text-messaging instructions.
+4. If no transit stop information is found, return null.`;
+
+  const result = await retryWithBackoff(async () => {
+    return model.generateContent([
+      { inlineData: { data: imageBase64, mimeType } },
+      { text: prompt },
+    ]);
+  });
+
+  const text = result.response.text().trim();
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) return null;
+
+  try {
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (!parsed || !Array.isArray(parsed.routes)) return null;
+    parsed.routes = parsed.routes.filter(r => r.route && typeof r.route === 'string');
+    return parsed.routes.length > 0 ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 module.exports = {
   retryWithBackoff,
   aggregateTripStats,
@@ -987,4 +1033,5 @@ module.exports = {
   constructStopInput,
   parseWithGemini,
   lookupAgencyTimezone,
+  parseStopSignImage,
 };
