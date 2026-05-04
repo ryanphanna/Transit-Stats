@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Prediction Engine history](docs/ENGINE.md) · [Transfer Engine history](docs/TRANSFER_ENGINE.md) · [Network Engine history](docs/NETWORK_ENGINE.md) · [NextGen Roadmap](docs/ROADMAP_NEXTGEN.md) · [Technical Roadmap](docs/ROADMAP_TECHNICAL.md)
 
-## [Unreleased]
+## [1.28.1] - 2026-05-04
 ### Fixed
 - **MMS stop code extraction** (`functions/lib/gemini.js`): Improved Gemini Vision prompt to better identify numeric stop IDs (any length, typically 3-6 digits like '110' or '11985') on small 'Next Vehicle' stickers. Prompt now includes real-world examples derived from the stops library to improve extraction confidence. Fixes cases where routes were found but the stop was missed.
 
