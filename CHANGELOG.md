@@ -4,9 +4,11 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Prediction Engine history](docs/ENGINE.md) · [Transfer Engine history](docs/TRANSFER_ENGINE.md) · [Network Engine history](docs/NETWORK_ENGINE.md) · [NextGen Roadmap](docs/ROADMAP_NEXTGEN.md) · [Technical Roadmap](docs/ROADMAP_TECHNICAL.md)
 
-## [Unreleased]
+## [1.28.0] - 2026-05-04
 
 ### Added
+- **SMS Achievements**: Automated milestone celebrations for trip counts (1st, 10th, 50th, 100th, etc.) sent directly via SMS reply.
+- **Trip Counting**: High-performance Firestore aggregation for user trip totals.
 - **Snap-to-start via MMS** (`functions/sms.js`, `functions/lib/dispatcher.js`, `functions/lib/handlers.js`, `functions/lib/gemini.js`): Sending a photo of a stop sign pole via MMS now starts a trip. Gemini Vision extracts stop code/name and visible route numbers. Single route → trip starts immediately. Multiple routes → numbered disambiguation prompt using the existing pending state system. Trip `startTime` is set to the photo send time (captured at webhook entry), not AI processing time. Logged as `source: 'mms'`, `timing_reliability: 'approximate'`.
 - **`ml/ACCURACY_LOG.md` created**: New doc tracking live production shadow accuracy snapshots, separate from `MODEL_LOG.md` (which tracks training accuracy). First entry records pre-fix V4/V5 baseline before counter reset.
 - **V4/V5 `predictionAccuracy` counters reset to 0**: Pre-fix numbers were corrupted by the agency gate and disambiguation bugs. Baseline recorded in `ml/ACCURACY_LOG.md`. V3 counters left intact.
