@@ -80,14 +80,14 @@ async function getAchievementNote(userId) {
   try {
     const count = await getTripCount(userId);
     const milestones = {
-      1: '🎉 Your 1st trip! Welcome aboard.',
-      10: '🔟 Your 10th trip! Double digits.',
-      25: '🏅 Your 25th trip! Quarter century.',
-      50: '🥈 Your 50th trip! Silver milestone.',
-      100: '🥇 Your 100th trip! Centurion status.',
-      250: '👑 Your 250th trip! Elite rider.',
-      500: '🏟️ Your 500th trip! Transit legend.',
-      1000: '🌌 Your 1,000th trip! Mythical status.',
+      1: '🎉 Your 1st trip! Welcome to the network.',
+      10: '🔟 Your 10th trip! Frequent Rider status.',
+      25: '🏅 Your 25th trip! System Regular status.',
+      50: '🥈 Your 50th trip! Commuter Pro status.',
+      100: '🥇 Your 100th trip! Network Veteran status.',
+      250: '👑 Your 250th trip! Elite Commuter status.',
+      500: '🏟️ Your 500th trip! System Analyst status.',
+      1000: '🌌 Your 1,000th trip! Transit Authority status.',
     };
     return milestones[count] ? `\n\n${milestones[count]}` : '';
   } catch (err) {
