@@ -24,8 +24,10 @@ serviceAccountKey.json
 migrations/admin-emails.config.js
 
 # AI context files
+AGENTS.md
 CLAUDE.md
 GEMINI.md
+.github/copilot-instructions.md
 
 # IDE
 .idea/
