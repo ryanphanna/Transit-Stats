@@ -91,6 +91,164 @@ function getDisambiguationLabel(agency, otherAgency) {
   return city;
 }
 
+async function promptAgencyChoice(
+  phoneNumber, stopDisplay, route, direction, stopInput, options, lastAgency, defaultAgency
+) {
+  await setPendingState(phoneNumber, {
+    type: 'confirm_agency',
+    route,
+    direction,
+    stopInput,
+    options,
+    agencyOptions: [lastAgency, defaultAgency],
+  });
+  await sendSmsReply(
+    phoneNumber,
+    `Which ${stopDisplay}?
+1. ${getDisambiguationLabel(lastAgency, defaultAgency)}
+2. ${getDisambiguationLabel(defaultAgency, lastAgency)}`
+  );
+}
+
+async function resolveTripAgency(
+  phoneNumber, userId, parsedStop, route, direction, agency, options, stopInput, stopDisplay
+) {
+  let resolvedAgency = agency;
+  if (options.agencyExplicit) return { resolvedAgency, handled: false };
+
+  const lastAgency = await getLastTripAgency(userId);
+  if (!lastAgency || lastAgency === agency) return { resolvedAgency, handled: false };
+
+  const [stopInDefault, stopInLast] = await Promise.all([
+    lookupStop(parsedStop.stopCode, parsedStop.stopName, agency, route),
+    lookupStop(parsedStop.stopCode, parsedStop.stopName, lastAgency, route),
+  ]);
+
+  if (stopInDefault && stopInLast) {
+    const userProfile = await getUserProfile(userId);
+    const defaultAgency = userProfile?.defaultAgency || agency;
+    await promptAgencyChoice(phoneNumber, stopDisplay, route, direction, stopInput, options, lastAgency, defaultAgency);
+    return { resolvedAgency, handled: true };
+  }
+
+  if (stopInLast) {
+    resolvedAgency = lastAgency;
+    return { resolvedAgency, handled: false };
+  }
+
+  if (stopInDefault) {
+    const userProfile = await getUserProfile(userId);
+    const defaultAgency = userProfile?.defaultAgency || agency;
+    await promptAgencyChoice(phoneNumber, stopDisplay, route, direction, stopInput, options, lastAgency, defaultAgency);
+    return { resolvedAgency, handled: true };
+  }
+
+  // Neither has it — infer last trip's agency (unverified).
+  resolvedAgency = lastAgency;
+  return { resolvedAgency, handled: false };
+}
+
+function narrowStopCandidates(candidates, route, direction) {
+  let narrowed = candidates;
+  if (narrowed.length > 1 && route) {
+    // Filter by route — keep stops that serve this route (or have no route data)
+    const routeFiltered = narrowed.filter(c =>
+      !c.routes || c.routes.length === 0 ||
+      c.routes.some(r => normalizeRoute(r) === normalizeRoute(route))
+    );
+    if (routeFiltered.length >= 1) narrowed = routeFiltered;
+  }
+  // Further narrow by direction if provided and candidates still ambiguous
+  if (narrowed.length > 1 && direction) {
+    const dirFiltered = narrowed.filter(c =>
+      !c.direction || c.direction.toLowerCase() === direction.toLowerCase()
+    );
+    if (dirFiltered.length >= 1) narrowed = dirFiltered;
+  }
+  return narrowed;
+}
+
+async function maybeHandleStopDisambiguation({
+  phoneNumber, user, activeTrip, parsedStop, route, direction, resolvedAgency, options,
+}) {
+  if (parsedStop.stopCode || !parsedStop.stopName) return false;
+
+  const candidates = narrowStopCandidates(
+    await findMatchingStops(parsedStop.stopName, resolvedAgency),
+    route,
+    direction
+  );
+  if (candidates.length <= 1) return false;
+
+  const list = candidates.map((c, i) => {
+    const dir = c.direction ? ` (${c.direction})` : '';
+    return `${i + 1}. ${c.stopName}${dir}`;
+  }).join('\n');
+
+  if (!activeTrip) {
+    let tripId;
+    try {
+      tripId = await createTrip({
+        userId: user.userId,
+        route,
+        direction: direction || null,
+        startStopCode: null,
+        startStopName: parsedStop.stopName || null,
+        startStop: null,
+        verified: false,
+        boardingLocation: null,
+        agency: resolvedAgency,
+        sentiment: options.sentiment || null,
+        tags: options.tags || [],
+        parsed_by: options.parsed_by || 'manual',
+        prediction: null,
+        predictionV4: null,
+        predictionV5: null,
+        endStopPrediction: null,
+        endStopPredictions: null,
+        endStopPredictionV4: null,
+        endStopPredictionV5: null,
+        needs_review: !isValidRoute(route) || null,
+      });
+    } catch (err) {
+      console.error('createTrip failed during stop disambiguation', err.message);
+      await sendSmsReply(phoneNumber, 'Could not start your trip. Please try again.');
+      return true;
+    }
+    await setPendingState(phoneNumber, {
+      type: 'confirm_stop',
+      tripId,
+      route,
+      direction,
+      agency: resolvedAgency,
+      options,
+      stopCandidates: candidates,
+    });
+    const routeDisplay = getRouteDisplay(route, direction);
+    await sendSmsReply(
+      phoneNumber,
+      `${routeDisplay} started. Multiple stops match "${parsedStop.stopName}":\n${list}\n` +
+      'Reply with a number to set your stop, or DISCARD to cancel.'
+    );
+    return true;
+  }
+
+  // Active trip conflict — leave trip creation until after disambiguation
+  await setPendingState(phoneNumber, {
+    type: 'confirm_stop',
+    route,
+    direction,
+    agency: resolvedAgency,
+    options,
+    stopCandidates: candidates,
+  });
+  await sendSmsReply(
+    phoneNumber,
+    `Multiple stops match "${parsedStop.stopName}":\n${list}\nReply with a number or DISCARD to cancel.`
+  );
+  return true;
+}
+
 /**
  * Checks for transit milestones and returns a celebratory note if reached.
  * @param {string} userId
@@ -403,150 +561,33 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
   const parsedStop = parseStopInput(stopInput);
   const stopDisplay = getStopDisplay(parsedStop.stopCode, parsedStop.stopName);
 
-  // If agency was not explicitly specified, check the last trip's agency.
-  // This lets the system infer "you're still in LA" without the user having to
-  // repeat the agency on every message.
-  let resolvedAgency = agency;
-  if (!options.agencyExplicit) {
-    const lastAgency = await getLastTripAgency(user.userId);
-    if (lastAgency && lastAgency !== agency) {
-      // Try stop lookup under both agencies
-      const [stopInDefault, stopInLast] = await Promise.all([
-        lookupStop(parsedStop.stopCode, parsedStop.stopName, agency, route),
-        lookupStop(parsedStop.stopCode, parsedStop.stopName, lastAgency, route),
-      ]);
-
-      if (stopInDefault && stopInLast) {
-        // Found in both — genuinely ambiguous. Ask.
-        const userProfile = await getUserProfile(user.userId);
-        const defaultAgency = userProfile?.defaultAgency || agency;
-        await setPendingState(phoneNumber, {
-          type: 'confirm_agency',
-          route,
-          direction,
-          stopInput,
-          options,
-          agencyOptions: [lastAgency, defaultAgency],
-        });
-        await sendSmsReply(
-          phoneNumber,
-          `Which ${stopDisplay}?
-1. ${getDisambiguationLabel(lastAgency, defaultAgency)}
-2. ${getDisambiguationLabel(defaultAgency, lastAgency)}`
-        );
-        return;
-      } else if (stopInLast) {
-        // Found in last trip's agency only — use it.
-        resolvedAgency = lastAgency;
-      } else if (stopInDefault) {
-        // Found in default agency but not last trip's — ambiguous (could be home,
-        // or the other agency's stop library is just incomplete). Ask.
-        const userProfile = await getUserProfile(user.userId);
-        const defaultAgency = userProfile?.defaultAgency || agency;
-        await setPendingState(phoneNumber, {
-          type: 'confirm_agency',
-          route,
-          direction,
-          stopInput,
-          options,
-          agencyOptions: [lastAgency, defaultAgency],
-        });
-        await sendSmsReply(
-          phoneNumber,
-          `Which ${stopDisplay}?
-1. ${getDisambiguationLabel(lastAgency, defaultAgency)}
-2. ${getDisambiguationLabel(defaultAgency, lastAgency)}`
-        );
-        return;
-      } else {
-        // Neither has it — infer last trip's agency (unverified).
-        resolvedAgency = lastAgency;
-      }
-    }
-  }
+  const { resolvedAgency, handled } = await resolveTripAgency(
+    phoneNumber,
+    user.userId,
+    parsedStop,
+    route,
+    direction,
+    agency,
+    options,
+    stopInput,
+    stopDisplay
+  );
+  if (handled) return;
 
   // Ambiguous stop check: if the user gave a name (not a code), see if it matches
   // multiple stops in the resolved agency. If no active trip conflict, start the
   // trip immediately so boarding time is captured, then resolve the stop async.
-  if (!parsedStop.stopCode && parsedStop.stopName) {
-    let candidates = await findMatchingStops(parsedStop.stopName, resolvedAgency);
-    if (candidates.length > 1 && route) {
-      // Filter by route — keep stops that serve this route (or have no route data)
-      const routeFiltered = candidates.filter(c =>
-        !c.routes || c.routes.length === 0 ||
-        c.routes.some(r => normalizeRoute(r) === normalizeRoute(route))
-      );
-      if (routeFiltered.length >= 1) candidates = routeFiltered;
-    }
-    // Further narrow by direction if provided and candidates still ambiguous
-    if (candidates.length > 1 && direction) {
-      const dirFiltered = candidates.filter(c =>
-        !c.direction || c.direction.toLowerCase() === direction.toLowerCase()
-      );
-      if (dirFiltered.length >= 1) candidates = dirFiltered;
-    }
-    if (candidates.length > 1) {
-      const list = candidates.map((c, i) => {
-        const dir = c.direction ? ` (${c.direction})` : '';
-        return `${i + 1}. ${c.stopName}${dir}`;
-      }).join('\n');
-
-      if (!activeTrip) {
-        let tripId;
-        try {
-          tripId = await createTrip({
-            userId: user.userId,
-            route,
-            direction: direction || null,
-            startStopCode: null,
-            startStopName: parsedStop.stopName || null,
-            startStop: null,
-            verified: false,
-            boardingLocation: null,
-            agency: resolvedAgency,
-            sentiment: options.sentiment || null,
-            tags: options.tags || [],
-            parsed_by: options.parsed_by || 'manual',
-            prediction: null,
-            predictionV4: null,
-            predictionV5: null,
-            endStopPrediction: null,
-            endStopPredictions: null,
-            endStopPredictionV4: null,
-            endStopPredictionV5: null,
-            needs_review: !isValidRoute(route) || null,
-          });
-        } catch (err) {
-          console.error('createTrip failed during stop disambiguation', err.message);
-          await sendSmsReply(phoneNumber, 'Could not start your trip. Please try again.');
-          return;
-        }
-        await setPendingState(phoneNumber, {
-          type: 'confirm_stop',
-          tripId,
-          route,
-          direction,
-          agency: resolvedAgency,
-          options,
-          stopCandidates: candidates,
-        });
-        const routeDisplay = getRouteDisplay(route, direction);
-        await sendSmsReply(phoneNumber, `${routeDisplay} started. Multiple stops match "${parsedStop.stopName}":\n${list}\nReply with a number to set your stop, or DISCARD to cancel.`);
-      } else {
-        // Active trip conflict — leave trip creation until after disambiguation
-        await setPendingState(phoneNumber, {
-          type: 'confirm_stop',
-          route,
-          direction,
-          agency: resolvedAgency,
-          options,
-          stopCandidates: candidates,
-        });
-        await sendSmsReply(phoneNumber, `Multiple stops match "${parsedStop.stopName}":\n${list}\nReply with a number or DISCARD to cancel.`);
-      }
-      return;
-    }
-  }
+  const disambiguationHandled = await maybeHandleStopDisambiguation({
+    phoneNumber,
+    user,
+    activeTrip,
+    parsedStop,
+    route,
+    direction,
+    resolvedAgency,
+    options,
+  });
+  if (disambiguationHandled) return;
 
   const stopData = await lookupStop(parsedStop.stopCode, parsedStop.stopName, resolvedAgency, route);
   const verified = stopData !== null;
@@ -1324,7 +1365,7 @@ async function handleStatsCommand(phoneNumber, user) {
   }
   const topRoute = Object.entries(routeCounts30).sort((a, b) => b[1] - a[1])[0];
 
-const totalHours = totalMin30 / 60;
+  const totalHours = totalMin30 / 60;
   const timeStr = totalHours >= 1 ? `${totalHours.toFixed(1)}h` : `${Math.round(totalMin30)}min`;
 
   const weekLine = `Past 7 days: ${thisWeek.length} trip${thisWeek.length !== 1 ? 's' : ''}${getTrend(thisWeek.length, lastWeek.length, 'prior week')}`;

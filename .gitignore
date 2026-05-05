@@ -57,3 +57,6 @@ coverage/
 _legacy_v1/
 _legacy_v1\ 2/
 trips.csv
+
+# Local scratch scripts
+functions/scratch/
