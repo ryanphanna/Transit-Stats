@@ -273,30 +273,24 @@
 /* --- Right Graphic Pane --- */
 .v2-right-pane {
   flex: 1;
-  background: linear-gradient(160deg, #1e1b4b 0%, #4c1d95 55%, #6b21a8 100%);
+  background: #e8e8e8;
   position: relative;
   overflow: hidden;
 }
 
-.v2-network-art {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Heatmap glow dots rendered as Leaflet DivIcons */
+.v2-glow-dot {
+  width: 8px;
+  height: 8px;
+  background: #7c3aed;
+  border-radius: 50%;
+  box-shadow: 0 0 4px 2px rgba(124, 58, 237, 0.35);
+  animation: v2DotGlow 3.5s ease-in-out infinite;
 }
 
-.v2-network-svg {
-  width: 85%;
-  max-width: 520px;
-  height: auto;
-  opacity: 0.9;
-  animation: v2NetworkPulse 6s ease-in-out infinite;
-}
-
-@keyframes v2NetworkPulse {
-  0%, 100% { opacity: 0.85; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.015); }
+@keyframes v2DotGlow {
+  0%, 100% { opacity: 0.55; box-shadow: 0 0 3px 1px rgba(124,58,237,0.25); }
+  50%       { opacity: 0.9;  box-shadow: 0 0 7px 3px rgba(124,58,237,0.45); }
 }
 
 .v2-preview-map {

@@ -9,6 +9,10 @@
  * Changelog:
  *   v1 - Trip observation, duration-based reachability, directional filtering.
  *        Falls back to topology.json when confidence is insufficient.
+ *   v2 - Dual-write: every observation also updates a global graph (keyed by
+ *        agency+route, no userId). Stop-sequence facts are objective — a route's
+ *        stops don't change per rider. Global graph cold-starts new users and
+ *        feeds stop disambiguation without waiting for personal history.
  */
 
 const NetworkEngine = {
@@ -33,44 +37,75 @@ const NetworkEngine = {
     const normDir = this._normalizeDirection(direction);
     if (!normDir) return;
 
-    const docRef = db.collection('networkGraph').doc(this._docId(userId, agency, route));
     const edgeKey = this._edgeKey(startStopName, normDir, endStopName);
 
-    await db.runTransaction(async tx => {
-      const doc = await tx.get(docRef);
-      const data = doc.exists ? doc.data() : {
-        userId,
-        agency,
-        route: route.toString(),
-        edges: {},
-      };
+    const writeGraph = async (docRef, baseData) => {
+      await db.runTransaction(async tx => {
+        const doc = await tx.get(docRef);
+        const data = doc.exists ? doc.data() : { ...baseData, edges: {} };
 
-      const edge = data.edges[edgeKey] || {
-        fromStop: startStopName,
-        toStop: endStopName,
-        direction: normDir,
-        durations: [],
-        tripCount: 0,
-      };
+        const edge = data.edges[edgeKey] || {
+          fromStop: startStopName,
+          toStop: endStopName,
+          direction: normDir,
+          durations: [],
+          tripCount: 0,
+        };
 
-      // Keep a rolling window of 50 observations
-      edge.durations = [...edge.durations.slice(-49), Math.round(duration)];
-      edge.tripCount = (edge.tripCount || 0) + 1;
-      edge.medianMinutes = this._median(edge.durations);
-      edge.updatedAt = new Date().toISOString();
+        edge.durations = [...edge.durations.slice(-49), Math.round(duration)];
+        edge.tripCount = (edge.tripCount || 0) + 1;
+        edge.medianMinutes = this._median(edge.durations);
+        edge.updatedAt = new Date().toISOString();
 
-      data.edges[edgeKey] = edge;
-      tx.set(docRef, data);
-    });
+        data.edges[edgeKey] = edge;
+        tx.set(docRef, data);
+      });
+    };
+
+    await Promise.all([
+      // Per-user graph — personal analytics and preference-based predictions
+      writeGraph(
+        db.collection('networkGraph').doc(this._docId(userId, agency, route)),
+        { userId, agency, route: route.toString() }
+      ),
+      // Global graph — cold-start, stop disambiguation, shared topology
+      writeGraph(
+        db.collection('networkGraph').doc(this._globalDocId(agency, route)),
+        { agency, route: route.toString(), global: true }
+      ),
+    ]);
   },
 
   /**
-   * Load the learned graph for a user/route from Firestore.
-   * Returns null if no data exists yet.
+   * Load the graph for a user/route. Falls back to the global graph when the
+   * personal graph has fewer than MIN_TRIPS on any edge (cold-start).
    */
   async load(db, userId, agency, route) {
     if (!userId || !agency || !route) return null;
-    const doc = await db.collection('networkGraph').doc(this._docId(userId, agency, route)).get();
+    const [personal, global] = await Promise.all([
+      db.collection('networkGraph').doc(this._docId(userId, agency, route)).get(),
+      db.collection('networkGraph').doc(this._globalDocId(agency, route)).get(),
+    ]);
+
+    const personalData = personal.exists ? personal.data() : null;
+    const globalData = global.exists ? global.data() : null;
+
+    // Use personal if it has confident edges, otherwise fall back to global
+    if (personalData) {
+      const hasConfident = Object.values(personalData.edges || {})
+        .some(e => e.tripCount >= this.MIN_TRIPS);
+      if (hasConfident) return personalData;
+    }
+
+    return globalData || personalData || null;
+  },
+
+  /**
+   * Load only the global graph (agency-wide, no user context).
+   */
+  async loadGlobal(db, agency, route) {
+    if (!agency || !route) return null;
+    const doc = await db.collection('networkGraph').doc(this._globalDocId(agency, route)).get();
     return doc.exists ? doc.data() : null;
   },
 
@@ -162,6 +197,11 @@ const NetworkEngine = {
   _docId(userId, agency, route) {
     const n = s => s.toString().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
     return `${userId}_${n(agency)}_${n(this._baseRoute(route))}`;
+  },
+
+  _globalDocId(agency, route) {
+    const n = s => s.toString().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    return `global_${n(agency)}_${n(this._baseRoute(route))}`;
   },
 
   _baseRoute(route) {

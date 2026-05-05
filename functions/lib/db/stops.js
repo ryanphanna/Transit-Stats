@@ -5,7 +5,7 @@ const admin = require('firebase-admin');
 const { db } = require('./core');
 const { AGENCY_CITY } = require('../constants');
 
-async function lookupStop(stopCode, stopName, agency) {
+async function lookupStop(stopCode, stopName, agency, route = null) {
   try {
     if (!stopCode && !stopName) return null;
 
@@ -23,26 +23,56 @@ async function lookupStop(stopCode, stopName, agency) {
       }
     }
 
-    // Name lookup — fetch all stops for this agency, scan name + aliases in memory.
-    // Shared stops (e.g. Montgomery Station) appear here for every agency in their
-    // agencies array, so no cross-agency fallback needed.
+    // Name lookup — collect all name/alias matches, then prefer the one that
+    // actually serves the requested route (checked via stopRoutes collection).
+    // Without route context the first name match wins, same as before.
     if (stopName) {
       const lowerName = stopName.toLowerCase();
       const agencySnap = await db.collection('stops')
         .where('agencies', 'array-contains', agency)
         .get();
 
+      const candidates = [];
       for (const doc of agencySnap.docs) {
         const data = doc.data();
         if (data.name?.toLowerCase() === lowerName) {
-          return { id: doc.id, ...data, stopCode: data.code, stopName: data.name };
+          candidates.push({ id: doc.id, ...data, stopCode: data.code, stopName: data.name });
         }
       }
-      for (const doc of agencySnap.docs) {
-        const data = doc.data();
-        if (data.aliases?.some(a => a.toLowerCase() === lowerName)) {
-          return { id: doc.id, ...data, stopCode: data.code, stopName: data.name };
+      if (candidates.length === 0) {
+        for (const doc of agencySnap.docs) {
+          const data = doc.data();
+          if (data.aliases?.some(a => a.toLowerCase() === lowerName)) {
+            candidates.push({ id: doc.id, ...data, stopCode: data.code, stopName: data.name });
+          }
         }
+      }
+
+      if (candidates.length > 0) {
+        if (!route || candidates.length === 1) return candidates[0];
+
+        // Multiple candidates or single candidate needing route validation:
+        // prefer the stop that stopRoutes confirms serves this route.
+        const normRoute = route.toString().replace(/\s+/g, '').toLowerCase();
+        for (const candidate of candidates) {
+          if (!candidate.stopCode) continue;
+          const docId = `${agency}_${candidate.stopCode}`.replace(/[^a-zA-Z0-9_-]/g, '_');
+          try {
+            const srDoc = await db.collection('stopRoutes').doc(docId).get();
+            if (srDoc.exists) {
+              const routes = srDoc.data().routes || [];
+              const serves = routes.some(r => r.toString().replace(/\s+/g, '').toLowerCase() === normRoute);
+              if (serves) return candidate;
+            }
+          } catch (_) { /* non-fatal */ }
+        }
+
+        // No candidate confirmed by stopRoutes — if only one candidate exists,
+        // return it anyway (missing stopRoutes data shouldn't block all lookups).
+        // If multiple exist and none is confirmed, return null to avoid guessing.
+        if (candidates.length === 1) return candidates[0];
+        console.warn(`lookupStop: ${candidates.length} stops named "${stopName}" but none confirmed for route ${route} via stopRoutes`);
+        return null;
       }
     }
 
@@ -146,7 +176,7 @@ async function findMatchingStops(stopName, agency) {
     const aliasMatch = data.aliases?.some(a => a.toLowerCase() === lowerName);
     if ((nameMatch || aliasMatch) && !seen.has(doc.id)) {
       seen.add(doc.id);
-      matches.push({ id: doc.id, stopCode: data.code, stopName: data.name });
+      matches.push({ id: doc.id, stopCode: data.code, stopName: data.name, routes: data.routes || [], direction: data.direction || null });
     }
     if (matches.length >= 5) break;
   }

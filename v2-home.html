@@ -21,6 +21,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/pages/v2.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 </head>
 <body class="v2-theme v2-split-body">
     <main class="v2-split-container">
@@ -37,7 +38,7 @@
                         <input type="tel" id="v2-phone-input" class="v2-phone-input" placeholder="(555) 000-0000" autofocus>
                         <button id="v2-btn-go" class="v2-btn-go"><i data-lucide="arrow-right"></i></button>
                     </div>
-                    <p class="v2-input-hint">Enter your phone number to see your map or sign up.</p>
+                    <p class="v2-input-hint">Enter your number to pull up your map.</p>
                 </div>
 
                 <div id="v2-success-container" class="v2-auth-success hidden">
@@ -52,68 +53,35 @@
                     <div class="v2-feature-card">
                         <div class="v2-f-icon"><i data-lucide="message-square"></i></div>
                         <div class="v2-f-text">
-                            <strong>Track</strong>
-                            <span>Log trips via SMS</span>
+                            <strong>Snap to trip</strong>
+                            <span>Text a stop — it figures out the rest</span>
                         </div>
                     </div>
                     <div class="v2-feature-card">
                         <div class="v2-f-icon"><i data-lucide="map"></i></div>
                         <div class="v2-f-text">
-                            <strong>Map</strong>
-                            <span>Visualize history</span>
+                            <strong>Your map</strong>
+                            <span>Every ride, plotted</span>
                         </div>
                     </div>
                     <div class="v2-feature-card">
                         <div class="v2-f-icon"><i data-lucide="sparkles"></i></div>
                         <div class="v2-f-text">
-                            <strong>Ask</strong>
-                            <span>Analyze with AI</span>
+                            <strong>Ask AI</strong>
+                            <span>Query your whole history</span>
                         </div>
                     </div>
                 </div>
-
-                <footer class="v2-pane-footer">
-                    <p class="v2-byline">A personal project — text a stop name when you board, and this thing logs your trip, maps your whole network, and lets you ask AI questions about your commute.</p>
-                    <a href="/index.html" class="v2-legacy-link">Legacy Dashboard</a>
-                </footer>
             </div>
         </section>
 
-        <!-- Right Pane: Static Network Art -->
+        <!-- Right Pane: TTC-style Map Art -->
         <section class="v2-right-pane">
-            <div class="v2-network-art" aria-hidden="true">
-                <svg class="v2-network-svg" viewBox="0 0 600 700" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Route lines -->
-                    <line x1="80" y1="200" x2="520" y2="200" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
-                    <line x1="150" y1="120" x2="150" y2="580" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
-                    <line x1="80" y1="200" x2="300" y2="450" stroke="rgba(255,255,255,0.10)" stroke-width="2"/>
-                    <line x1="300" y1="200" x2="480" y2="380" stroke="rgba(255,255,255,0.10)" stroke-width="2"/>
-                    <line x1="150" y1="340" x2="480" y2="380" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
-                    <line x1="300" y1="450" x2="480" y2="380" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
-                    <line x1="150" y1="480" x2="300" y2="450" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
-
-                    <!-- Stop dots — larger / highlighted -->
-                    <circle cx="80" cy="200" r="8" fill="rgba(168,85,247,0.9)" stroke="white" stroke-width="2"/>
-                    <circle cx="300" cy="200" r="10" fill="#a855f7" stroke="white" stroke-width="2.5"/>
-                    <circle cx="520" cy="200" r="8" fill="rgba(168,85,247,0.9)" stroke="white" stroke-width="2"/>
-                    <circle cx="150" cy="340" r="8" fill="rgba(168,85,247,0.8)" stroke="white" stroke-width="2"/>
-                    <circle cx="480" cy="380" r="12" fill="#a855f7" stroke="white" stroke-width="3"/>
-                    <circle cx="300" cy="450" r="8" fill="rgba(168,85,247,0.8)" stroke="white" stroke-width="2"/>
-                    <circle cx="150" cy="480" r="6" fill="rgba(168,85,247,0.6)" stroke="white" stroke-width="1.5"/>
-                    <circle cx="150" cy="120" r="6" fill="rgba(168,85,247,0.6)" stroke="white" stroke-width="1.5"/>
-                    <circle cx="150" cy="580" r="6" fill="rgba(168,85,247,0.6)" stroke="white" stroke-width="1.5"/>
-
-                    <!-- Small background dots -->
-                    <circle cx="390" cy="290" r="4" fill="rgba(255,255,255,0.2)"/>
-                    <circle cx="220" cy="320" r="3" fill="rgba(255,255,255,0.15)"/>
-                    <circle cx="440" cy="150" r="3" fill="rgba(255,255,255,0.15)"/>
-                    <circle cx="350" cy="530" r="4" fill="rgba(255,255,255,0.15)"/>
-                    <circle cx="90" cy="420" r="3" fill="rgba(255,255,255,0.12)"/>
-                </svg>
-            </div>
+            <div id="v2-preview-map" class="v2-preview-map"></div>
         </section>
     </main>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script type="module" src="js/v2/v2-home.js"></script>
 </body>

@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Prediction Engine history](docs/ENGINE.md) · [Transfer Engine history](docs/TRANSFER_ENGINE.md) · [Network Engine history](docs/NETWORK_ENGINE.md) · [NextGen Roadmap](docs/ROADMAP_NEXTGEN.md) · [Technical Roadmap](docs/ROADMAP_TECHNICAL.md)
 
+## [1.30.0] - 2026-05-05
+
+### Added
+- **Route + direction-aware stop disambiguation** (`functions/lib/handlers.js`, `functions/lib/db/stops.js`): When a stop name matches multiple physical stops (e.g. "Dufferin / Lawrence" at an intersection served by both a Lawrence bus and a Dufferin bus), candidates are now filtered by route first, then direction. If one candidate remains, it's auto-selected silently. If multiple remain, the disambiguation prompt lists direction in parentheses so the user can tell them apart. Same filtering applied to end-trip stop lookup using the active trip's known route and direction.
+- **`direction` field on stop documents**: Stop docs now carry a canonical direction string (e.g. `"Eastbound"`) sourced from GTFS headsigns. Used by the disambiguation filter to auto-select without prompting when the trip direction is known.
+- **`findMatchingStops` returns `routes` and `direction`** (`functions/lib/db/stops.js`): Previously omitted, meaning the route filter in the disambiguation path was always a no-op. Both fields are now included so the filter actually works.
+- **Global NetworkGraph** (`functions/lib/network.js`): Every trip observation now dual-writes to a global graph doc keyed by `global_{agency}_{route}` in addition to the per-user doc. Stop-sequence facts are objective (a route's stops don't change per rider), so the global graph cold-starts predictions for new users and feeds stop disambiguation without waiting for personal history. `load()` falls back to the global graph when the personal graph has no confident edges. New `loadGlobal()` method for direct access.
+
+### Fixed
+- **`lookupStop` now route-aware** (`functions/lib/db/stops.js`): When looking up a stop by name, all matching candidates are collected first. If a route is provided and multiple candidates exist, the system checks `stopRoutes` to prefer the stop that actually serves the route. Prevents wrong-stop assignment when a common intersection name resolves to a stop on a different route (e.g. stop 2070 being assigned to a 52B trip when 2070 only serves route 929).
+
+### Data
+- **Added stops 5360, 5361** (Lawrence / Dufferin, Eastbound and Westbound): GTFS-verified stops for route 52/52B on Dufferin St at Lawrence Ave. Previously missing, causing "Dufferin / Lawrence" to always resolve to stop 2070 (a 929 Lawrence Ave stop) regardless of route.
+- **Added stop 2069** (Dufferin / Lawrence, Northbound): GTFS-verified Northbound stop for routes 29/329/929. Complements existing stop 2070 (Southbound).
+- **Fixed stop 2070** routes array: Removed incorrectly auto-taught `52B`. Added `direction: "Southbound"`.
+
+### UI
+- **v2 homepage preview map uses real GTFS geometry** (`js/v2/v2-home.js`): All four TTC subway lines (1, 2, 4, 5) now use coordinates extracted directly from the official GTFS shapes.txt — 159 pts for Line 1, 156 for Line 2, 28 for Line 4, 102 for Line 5. Previous coordinates were hand-approximated.
+- **TTC line colours corrected** (`js/v2/v2-home.js`): Line 4 updated to official magenta (`#B300B3`); Line 5 updated to official orange (`#FF8000`).
+
 ## [1.29.1] - 2026-05-04
 ### Fixed
 - **`getTripCount` not exported from db module** (`functions/lib/db/index.js`): `getTripCount` was defined and exported in `db/trips.js` but never re-exported from the barrel `db/index.js`, so `handlers.js` received `undefined` and the SMS achievements check threw on every trip start.

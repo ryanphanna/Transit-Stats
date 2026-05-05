@@ -412,8 +412,8 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
     if (lastAgency && lastAgency !== agency) {
       // Try stop lookup under both agencies
       const [stopInDefault, stopInLast] = await Promise.all([
-        lookupStop(parsedStop.stopCode, parsedStop.stopName, agency),
-        lookupStop(parsedStop.stopCode, parsedStop.stopName, lastAgency),
+        lookupStop(parsedStop.stopCode, parsedStop.stopName, agency, route),
+        lookupStop(parsedStop.stopCode, parsedStop.stopName, lastAgency, route),
       ]);
 
       if (stopInDefault && stopInLast) {
@@ -471,17 +471,25 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
   if (!parsedStop.stopCode && parsedStop.stopName) {
     let candidates = await findMatchingStops(parsedStop.stopName, resolvedAgency);
     if (candidates.length > 1 && route) {
-      // Filter by route if stops have route data — auto-select if only one remains
+      // Filter by route — keep stops that serve this route (or have no route data)
       const routeFiltered = candidates.filter(c =>
         !c.routes || c.routes.length === 0 ||
         c.routes.some(r => normalizeRoute(r) === normalizeRoute(route))
       );
-      if (routeFiltered.length === 1) candidates = routeFiltered;
-      else if (routeFiltered.length > 1) candidates = routeFiltered;
-      // If routeFiltered is 0, keep all candidates (no route data to filter on)
+      if (routeFiltered.length >= 1) candidates = routeFiltered;
+    }
+    // Further narrow by direction if provided and candidates still ambiguous
+    if (candidates.length > 1 && direction) {
+      const dirFiltered = candidates.filter(c =>
+        !c.direction || c.direction.toLowerCase() === direction.toLowerCase()
+      );
+      if (dirFiltered.length >= 1) candidates = dirFiltered;
     }
     if (candidates.length > 1) {
-      const list = candidates.map((c, i) => `${i + 1}. ${c.stopName}`).join('\n');
+      const list = candidates.map((c, i) => {
+        const dir = c.direction ? ` (${c.direction})` : '';
+        return `${i + 1}. ${c.stopName}${dir}`;
+      }).join('\n');
 
       if (!activeTrip) {
         let tripId;
@@ -540,16 +548,18 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
     }
   }
 
-  const stopData = await lookupStop(parsedStop.stopCode, parsedStop.stopName, resolvedAgency);
+  const stopData = await lookupStop(parsedStop.stopCode, parsedStop.stopName, resolvedAgency, route);
   const verified = stopData !== null;
   const boardingLocation = (stopData?.lat != null && stopData?.lng != null)
     ? { lat: stopData.lat, lng: stopData.lng }
     : null;
 
-  // Background: teach this stop which routes serve it
+  // Background: teach this stop which routes serve it, and promote gtfs→verified on first real trip
   if (stopData?.id && route) {
+    const stopUpdate = { routes: require('firebase-admin').firestore.FieldValue.arrayUnion(route) };
+    if (stopData.source === 'gtfs') stopUpdate.source = 'verified';
     db.collection('stops').doc(stopData.id).update({
-      routes: require('firebase-admin').firestore.FieldValue.arrayUnion(route),
+      ...stopUpdate,
     }).catch(() => {});
   }
 
@@ -854,7 +864,35 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
   const duration = Math.round((endTime.toDate().getTime() - startTime.getTime()) / 60000);
 
   const agency = activeTrip.agency || null;
-  const endStopData = await lookupStop(parsedEndStop.stopCode, parsedEndStop.stopName, agency);
+  const tripRoute = activeTrip.route || null;
+  const tripDirection = activeTrip.direction || null;
+
+  // Apply the same route+direction candidate filtering used at boarding — the
+  // active trip already has both, so we can almost always auto-select with no prompt.
+  let endStopData = null;
+  if (!parsedEndStop.stopCode && parsedEndStop.stopName) {
+    let endCandidates = await findMatchingStops(parsedEndStop.stopName, agency);
+    if (endCandidates.length > 1 && tripRoute) {
+      const routeFiltered = endCandidates.filter(c =>
+        !c.routes || c.routes.length === 0 ||
+        c.routes.some(r => normalizeRoute(r) === normalizeRoute(tripRoute))
+      );
+      if (routeFiltered.length >= 1) endCandidates = routeFiltered;
+    }
+    if (endCandidates.length > 1 && tripDirection) {
+      const dirFiltered = endCandidates.filter(c =>
+        !c.direction || c.direction.toLowerCase() === tripDirection.toLowerCase()
+      );
+      if (dirFiltered.length >= 1) endCandidates = dirFiltered;
+    }
+    if (endCandidates.length === 1) {
+      const c = endCandidates[0];
+      endStopData = await lookupStop(c.stopCode, null, agency, tripRoute);
+    }
+  }
+  if (!endStopData) {
+    endStopData = await lookupStop(parsedEndStop.stopCode, parsedEndStop.stopName, agency, tripRoute);
+  }
   const exitLocation = (endStopData?.lat != null && endStopData?.lng != null)
     ? { lat: endStopData.lat, lng: endStopData.lng }
     : null;
@@ -875,6 +913,11 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     notes: notes || null,
     verified: activeTrip.verified && (endStopData !== null),
   });
+
+  // Promote gtfs→verified on the end stop if this trip confirmed it
+  if (endStopData?.id && endStopData.source === 'gtfs') {
+    db.collection('stops').doc(endStopData.id).update({ source: 'verified' }).catch(() => {});
+  }
 
   // Teach the network graph — only if both stops are canonical. Raw names are
   // skipped entirely; they'll be picked up by the top-up script once normalized.

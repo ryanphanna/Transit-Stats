@@ -44,6 +44,11 @@ quality and coverage improvements.
 
 ## Theme 3 — Stop & Route Data
 
+- [ ] **Broader GTFS stop import** — current stop library covers stops you've actually
+  boarded or alighted at (`source: "manual"` or `source: "gtfs"` seeded from trip history).
+  Expand to import all stops on routes you ride so name resolution works for new stops
+  before you've been there. Script exists at `Tools/gtfs-import-prep.py`; run with the
+  full-route mode rather than the used-stops-only mode.
 - [ ] **Stop alias coverage** — expand the stops library to cover more agencies and
   surface more alias variants. Current coverage is TTC-heavy.
 - [ ] **Multi-agency stops (`agencies` array)** — replace the single `agency` field on
