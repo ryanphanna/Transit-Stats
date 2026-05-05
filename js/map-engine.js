@@ -15,13 +15,20 @@ export const MapEngine = {
         markers: null
     },
     _stopLookup: new Map(),
+    _skipLookup: new Set(),
     _hasIndexedStops: false,
     _lastRenderedCount: 0,
     _isFirstLoad: true,
+    _renderTimer: null,
+    _lastLibSize: 0,
 
-    init(initialTrips = []) {
+    init(initialTrips = [], initialCenter = null) {
+        console.log("MapEngine.init: Started", { tripsCount: initialTrips.length });
         this.trips = initialTrips;
-        if (this.map) return;
+        if (this.map) {
+            console.log("MapEngine.init: Map already exists");
+            return;
+        }
 
         const container = document.getElementById('main-map');
         if (!container) {
@@ -30,18 +37,22 @@ export const MapEngine = {
         }
 
         // Avoid Leaflet error if container already initialized
-        if (container._leaflet_id) return;
+        if (container._leaflet_id) {
+            console.warn("MapEngine: Leaflet already initialized on this container");
+            return;
+        }
 
-        console.log("MapEngine: Initializing...");
-        
-        // Default to Toronto
-        const center = [43.6532, -79.3832];
-        
+        console.log("MapEngine: Initializing Leaflet map instance...");
+
+        const center = initialCenter || [43.6532, -79.3832];
+
         try {
             this.map = L.map('main-map', {
                 zoomControl: false,
-                attributionControl: false
+                attributionControl: false,
+                preferCanvas: true
             }).setView(center, 13);
+            console.log("MapEngine: Leaflet map instance created");
 
             // Add Zoom Control to Bottom Right
             L.control.zoom({ position: 'bottomright' }).addTo(this.map);
@@ -49,35 +60,39 @@ export const MapEngine = {
             this.setupLayers();
             this.renderMarkers();
             this.setupControls();
+            console.log("MapEngine: Setup complete");
         } catch (err) {
             console.error("MapEngine: Failed to initialize Leaflet:", err);
         }
     },
 
     setupLayers() {
-        // Base Layer (CartoDB Positron - Light/Dark based on theme)
+        // Base Layer
+        const isV2 = document.body.classList.contains('v2-clean');
         const isDark = document.body.classList.contains('dark');
-        const tileUrl = isDark 
-            ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-            : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+        
+        let tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+        let attribution = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
+        if (isV2) {
+            // Minimalist Grayscale (CartoDB Positron)
+            tileUrl = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+            attribution = '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+        } else if (isDark) {
+            tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+            attribution = '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+        }
 
         this.layers.base = L.tileLayer(tileUrl, {
-            subdomains: 'abcd',
-            maxZoom: 19
+            maxZoom: 19,
+            attribution,
         }).addTo(this.map);
 
         this.layers.transit = null;
 
-        // Marker Cluster Group - much faster for large datasets
-        if (window.L.markerClusterGroup) {
-            this.layers.markers = L.markerClusterGroup({
-                showCoverageOnHover: false,
-                maxClusterRadius: 40,
-                spiderfyOnMaxZoom: true
-            }).addTo(this.map);
-        } else {
-            this.layers.markers = L.layerGroup().addTo(this.map);
-        }
+        // Use standard LayerGroup + Canvas for best stability and speed.
+        // MarkerClusterGroup can be heavy on the main thread for thousands of points.
+        this.layers.markers = L.layerGroup().addTo(this.map);
     },
 
     setupControls() {
@@ -99,7 +114,13 @@ export const MapEngine = {
 
     updateTrips(newTrips) {
         this.trips = newTrips;
-        if (this.map) this.renderMarkers();
+        if (!this.map) return;
+        
+        if (this._renderTimer) cancelAnimationFrame(this._renderTimer);
+        this._renderTimer = requestAnimationFrame(() => {
+            this.renderMarkers();
+            this._renderTimer = null;
+        });
     },
 
     /**
@@ -107,12 +128,14 @@ export const MapEngine = {
      * Dramatically improves performance over linear searching.
      */
     _rebuildStopIndex() {
-        if (!PredictionEngine.stopsLibrary || PredictionEngine.stopsLibrary.length === 0) return;
+        const lib = PredictionEngine.stopsLibrary;
+        if (!lib || lib.length === 0) return;
         
-        console.log(`MapEngine: Reindexing ${PredictionEngine.stopsLibrary.length} stops...`);
+        console.log(`MapEngine: Reindexing ${lib.length} stops...`);
+        const start = performance.now();
         this._stopLookup.clear();
         
-        PredictionEngine.stopsLibrary.forEach(stop => {
+        lib.forEach(stop => {
             if (!stop.lat || (!stop.lng && !stop.lon)) return;
             const loc = { lat: stop.lat, lng: stop.lng || stop.lon };
             
@@ -136,29 +159,42 @@ export const MapEngine = {
         });
 
         this._hasIndexedStops = true;
+        this._lastLibSize = lib.length;
+        console.log(`MapEngine: Reindex complete in ${Math.round(performance.now() - start)}ms`);
     },
 
     _getStopLocation(stopName) {
         if (!stopName) return null;
         
+        // Fast skip for known unresolvable stops
+        if (this._skipLookup.has(stopName)) return null;
+
         // Ensure index is ready
-        if (!this._hasIndexedStops || this._stopLookup.size === 0) {
+        const currentLibSize = PredictionEngine.stopsLibrary?.length || 0;
+        if (!this._hasIndexedStops || this._lastLibSize !== currentLibSize) {
             this._rebuildStopIndex();
         }
 
         const canon = PredictionEngine._canonicalizeStop(stopName);
-        return this._stopLookup.get(canon) || null;
+        const loc = this._stopLookup.get(canon);
+        
+        if (!loc) {
+            this._skipLookup.add(stopName);
+            return null;
+        }
+        return loc;
     },
 
     renderMarkers() {
         if (!this.map || !this.layers.markers) return;
 
+        const start = performance.now();
         // Clear existing
         this.layers.markers.clearLayers();
 
         // Always check if we need to rebuild the index (e.g. library finished loading)
         const currentLibSize = PredictionEngine.stopsLibrary?.length || 0;
-        if (currentLibSize > 0 && !this._hasIndexedStops) {
+        if (currentLibSize > 0 && (!this._hasIndexedStops || this._lastLibSize !== currentLibSize)) {
             this._rebuildStopIndex();
         }
 
@@ -167,7 +203,13 @@ export const MapEngine = {
         const showBoarding = this.filter === 'boarding' || isBoth;
         const showExiting = this.filter === 'exiting' || isBoth;
 
-        this.trips.forEach(trip => {
+        // Safety limit: only render markers for the first 1000 trips to prevent UI freeze
+        const limitedTrips = this.trips.slice(0, 1000);
+        if (this.trips.length > 1000) {
+            console.warn(`MapEngine: Capping render to 1000 trips (from ${this.trips.length}) for stability.`);
+        }
+
+        limitedTrips.forEach(trip => {
             // Process Boarding
             if (showBoarding) {
                 let bLoc = trip.boardingLocation;
@@ -203,15 +245,26 @@ export const MapEngine = {
 
         // Batch add markers for performance
         const markers = [];
+        const isV2 = document.body.classList.contains('v2-clean');
+
         points.forEach(p => {
-            const color = p.type === 'boarding' ? '#4f46e5' : '#10b981';
+            let color = p.type === 'boarding' ? '#4f46e5' : '#10b981';
+            let radius = 6;
+            let opacity = 0.8;
+
+            if (isV2) {
+                color = '#a855f7'; // Purple dots
+                radius = 5;
+                opacity = 0.9;
+            }
+
             const marker = L.circleMarker([p.lat, p.lng], {
-                radius: 6,
+                radius: radius,
                 fillColor: color,
                 color: '#fff',
-                weight: 2,
+                weight: 1.5,
                 opacity: 1,
-                fillOpacity: 0.8
+                fillOpacity: opacity
             }).bindPopup(p.label);
             markers.push(marker);
         });
@@ -230,6 +283,7 @@ export const MapEngine = {
                 console.warn("MapEngine: Fit bounds failed", err);
             }
         }
+        console.log(`MapEngine: Rendered ${points.length} markers in ${Math.round(performance.now() - start)}ms`);
     },
 
     locateUser() {

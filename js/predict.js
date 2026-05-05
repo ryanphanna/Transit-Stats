@@ -17,6 +17,7 @@ export const PredictionEngine = {
      */
     stopsLibrary: [],
     _stopsIndex: new Map(),
+    _normCache: new Map(),
 
     /**
      * Guess the next route given the current stop and time.
@@ -114,9 +115,9 @@ export const PredictionEngine = {
         let candidates = history.filter(t => {
             if (!this._isValidTrip(t)) return false;
             // Trip must have a destination to be a candidate for end stop prediction
-            if (!t.endStop) return false;
+            if (!t.endStop && !t.endStopName) return false;
             return this._baseRoute(t.route) === routeFamily &&
-                this._stopMatch(t.startStop, context.startStopName);
+                this._stopMatch(t.startStop || t.startStopName, context.startStopName);
         });
 
         if (candidates.length === 0) return null;
@@ -143,8 +144,8 @@ export const PredictionEngine = {
                 this._daySimilarity(now.getDay(), tripTime.getDay()) *
                 (context.duration && trip.duration ? this._durationSimilarity(context.duration, trip.duration) : 1.0);
 
-            const key = this._canonicalizeStop(trip.endStop);
-            if (!votes[key]) votes[key] = { stop: trip.endStop, weight: 0 };
+            const key = this._canonicalizeStop(trip.endStop || trip.endStopName);
+            if (!votes[key]) votes[key] = { stop: trip.endStop || trip.endStopName, weight: 0 };
             votes[key].weight += weight;
             totalWeight += weight;
         }
@@ -154,7 +155,7 @@ export const PredictionEngine = {
         const top = Object.values(votes).sort((a, b) => b.weight - a.weight)[0];
         
         // Find average duration for this corridor to predict "Arrival Time"
-        const durations = candidates.filter(t => this._stopMatch(t.endStop, top.stop)).map(t => t.duration);
+        const durations = candidates.filter(t => this._stopMatch(t.endStop || t.endStopName, top.stop)).map(t => t.duration);
         const avgDuration = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
 
         return {
@@ -166,12 +167,15 @@ export const PredictionEngine = {
     },
 
     _isValidTrip(trip) {
-        const stop = trip.startStop;
+        const stop = trip.startStop || trip.startStopName;
         const route = trip.route;
         if (!stop || !route) return false;
 
         const stopStr = stop.toString();
         if (stopStr.length > 60) return false;
+
+        const sentenceWords = /\b(i'm|i am|just|boarded|headed|northbound|southbound|eastbound|westbound)\b/i;
+        if (sentenceWords.test(stopStr)) return false;
         
         const routeStr = route.toString().trim();
         if (routeStr.length <= 4 && !/\d/.test(routeStr) && !/^line\s*\d/i.test(routeStr)) return false;
@@ -181,6 +185,8 @@ export const PredictionEngine = {
 
     _canonicalizeStop(name) {
         if (!name) return null;
+        if (this._normCache.has(name)) return this._normCache.get(name);
+
         const norm = n => n.trim().toLowerCase()
             .replace(/\s*[\/&@]\s*/g, '/')
             .replace(/\s+at\s+/g, '/');
@@ -196,7 +202,9 @@ export const PredictionEngine = {
                 }
             }
         }
-        return this._stopsIndex.get(lower) || lower;
+        const result = this._stopsIndex.get(lower) || lower;
+        this._normCache.set(name, result);
+        return result;
     },
 
     _stopMatch(a, b) {

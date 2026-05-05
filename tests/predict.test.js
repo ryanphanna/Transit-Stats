@@ -1,4 +1,4 @@
-const { PredictionEngine } = require('../functions/lib/predict');
+import { PredictionEngine } from '../js/predict';
 
 // ---------------------------------------------------------------------------
 // Helpers

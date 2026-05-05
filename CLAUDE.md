@@ -44,7 +44,8 @@ When fixing a bug, always provide:
 
 - **Insights view** contains ONLY the Commute Highlights section. No stats, toggles, peak times, or route/stop lists.
 - **No git push** without asking first.
-- **Keep CHANGELOG.md updated** under `[Unreleased]` as work is completed.
+- **Commit often** — after each logical chunk of work, not just at session end. Ryan forgets; remind him if a session is wrapping up with uncommitted changes.
+- **Keep CHANGELOG.md updated** under `[Unreleased]` as work is completed. Use TLDR-style language — short, direct, no filler.
 - **Always deploy hosting alongside functions** (`firebase deploy --only hosting,functions`) — hosting-only changes (frontend fixes, auth) won't reach users otherwise.
 - **Log significant work** to the TransitStatsLog Notion database (see Gemini.md for Notion sync patterns).
 - The `Firebase for Transit Stats.json` key lives at `/Users/ryan/Desktop/Dev/Credentials/` — use it for admin queries, never commit it.
