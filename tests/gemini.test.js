@@ -41,9 +41,9 @@ describe('Gemini aggregateTripStats', () => {
   });
 
   test('groups by time of day', () => {
-    // Note: getHours() is local. If machine is Toronto time (EDT -4),
-    // 08:00Z -> 04:00 (Night), 15:00Z -> 11:00 (Midday)
-    const stats = aggregateTripStats(mockTrips);
+    const stats = aggregateTripStats(mockTrips, 'America/Toronto');
+    expect(stats.timeOfDay.night).toBe(2);
+    expect(stats.timeOfDay.midday).toBe(1);
     const total = stats.timeOfDay.morning + stats.timeOfDay.midday + stats.timeOfDay.afternoon +
                   stats.timeOfDay.evening + stats.timeOfDay.night;
     expect(total).toBe(3);
@@ -100,5 +100,23 @@ describe('Gemini aggregateTripStats', () => {
     const stats = aggregateTripStats([]);
     expect(stats.windowStart).toBeNull();
     expect(stats.windowEnd).toBeNull();
+  });
+
+  test('uses requested timezone for day-of-week and date bucketing', () => {
+    const trip = {
+      route: 'A',
+      startStopName: 'Start',
+      endStopName: 'End',
+      startTime: new Date('2026-03-20T00:30:00Z'),
+      duration: 15,
+    };
+
+    const toronto = aggregateTripStats([trip], 'America/Toronto');
+    const tokyo = aggregateTripStats([trip], 'Asia/Tokyo');
+
+    expect(toronto.dailyCounts['2026-03-19']).toBe(1);
+    expect(toronto.dayOfWeek.Thursday).toBe(1);
+    expect(tokyo.dailyCounts['2026-03-20']).toBe(1);
+    expect(tokyo.dayOfWeek.Friday).toBe(1);
   });
 });

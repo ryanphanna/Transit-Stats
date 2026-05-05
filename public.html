@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransitStats — Public Profile</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+    <main id="app-root">
+        <section class="view active">
+            <div class="container" style="max-width: 900px; padding-top: 2rem; padding-bottom: 3rem;">
+                <div class="card mb-3" style="padding: 1.5rem;">
+                    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+                        <div id="userEmoji" class="brand-icon" style="margin:0;"></div>
+                        <div>
+                            <h1 id="userName" style="margin:0 0 0.25rem 0;">Public Profile</h1>
+                            <div id="userAgency" class="text-secondary"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;" class="mb-3">
+                    <div class="card">
+                        <div class="text-secondary">Trips</div>
+                        <div id="totalTrips" style="font-size:2rem;font-weight:800;">0</div>
+                    </div>
+                    <div class="card">
+                        <div class="text-secondary">Hours</div>
+                        <div id="totalHours" style="font-size:2rem;font-weight:800;">0</div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h3><i data-lucide="bar-chart-3" class="icon-inline"></i> Top Routes</h3>
+                    </div>
+                    <div id="topRoutesList">
+                        <div class="loading-state">Loading...</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i data-lucide="map" class="icon-inline"></i> Map</h3>
+                    </div>
+                    <div id="publicMapContainer" style="height:420px;border-radius:16px;overflow:hidden;"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script type="module" src="js/public.js"></script>
+</body>
+</html>

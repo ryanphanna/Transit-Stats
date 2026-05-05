@@ -6,6 +6,43 @@ const { defineSecret } = require('firebase-functions/params');
 const { VALID_INTENTS, VALID_SENTIMENTS } = require('./constants');
 
 const geminiApiKey = defineSecret('GEMINI_API_KEY');
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+function getTimezoneDateParts(date, timezone) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    weekday: 'long',
+  }).formatToParts(date).reduce((acc, part) => {
+    if (part.type !== 'literal') acc[part.type] = part.value;
+    return acc;
+  }, {});
+
+  return {
+    year: Number(parts.year),
+    month: Number(parts.month),
+    day: Number(parts.day),
+    hour: Number(parts.hour),
+    minute: Number(parts.minute),
+    second: Number(parts.second),
+    weekday: parts.weekday,
+    dateKey: `${parts.year}-${parts.month}-${parts.day}`,
+  };
+}
+
+function getWeekStartDateKeyInTimezone(date, timezone) {
+  const parts = getTimezoneDateParts(date, timezone);
+  const weekdayIndex = DAY_NAMES.indexOf(parts.weekday);
+  const utcMidday = new Date(Date.UTC(parts.year, parts.month - 1, parts.day, 12, 0, 0));
+  utcMidday.setUTCDate(utcMidday.getUTCDate() - ((weekdayIndex + 6) % 7));
+  return getTimezoneDateParts(utcMidday, timezone).dateKey;
+}
 
 /**
  * Retry helper with exponential backoff
@@ -54,7 +91,6 @@ function aggregateTripStats(trips, timezone = 'America/Toronto') {
   const exitStopMap = {};
   const hourMap = {};
   const dayOfWeekMap = {};
-  const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   let windowStart = null;
   let windowEnd = null;
 
@@ -82,10 +118,9 @@ function aggregateTripStats(trips, timezone = 'America/Toronto') {
 
     if (trip.startTime) {
       const date = trip.startTime.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
-      const hour = date.getHours();
-      hourMap[hour] = (hourMap[hour] || 0) + 1;
-      const day = DAY_NAMES[date.getDay()];
-      dayOfWeekMap[day] = (dayOfWeekMap[day] || 0) + 1;
+      const parts = getTimezoneDateParts(date, timezone);
+      hourMap[parts.hour] = (hourMap[parts.hour] || 0) + 1;
+      dayOfWeekMap[parts.weekday] = (dayOfWeekMap[parts.weekday] || 0) + 1;
       if (!windowStart || date < windowStart) windowStart = date;
       if (!windowEnd || date > windowEnd) windowEnd = date;
     }
@@ -135,7 +170,7 @@ function aggregateTripStats(trips, timezone = 'America/Toronto') {
   trips.forEach((trip) => {
     if (!trip.startTime) return;
     const date = trip.startTime.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
-    const key = date.toLocaleDateString('en-CA', { timeZone: timezone });
+    const key = getTimezoneDateParts(date, timezone).dateKey;
     dailyCounts[key] = (dailyCounts[key] || 0) + 1;
   });
 
@@ -457,7 +492,8 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats, conve
       trips.docs.forEach((d) => {
         const ts = d.data().endTime;
         const date = ts.toDate ? ts.toDate() : new Date(ts);
-        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const parts = getTimezoneDateParts(date, timezone);
+        const key = `${parts.year}-${String(parts.month).padStart(2, '0')}`;
         months[key] = (months[key] || 0) + 1;
       });
       return months;
@@ -469,13 +505,12 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats, conve
         .select('startTime')
         .get();
 
-      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const days = {};
       trips.docs.forEach((d) => {
         const ts = d.data().startTime;
         if (!ts) return;
         const date = ts.toDate ? ts.toDate() : new Date(ts);
-        const day = dayNames[date.getDay()];
+        const day = getTimezoneDateParts(date, timezone).weekday;
         days[day] = (days[day] || 0) + 1;
       });
       return days;
@@ -505,10 +540,7 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats, conve
         const ts = d.data().startTime;
         if (!ts) return;
         const date = ts.toDate ? ts.toDate() : new Date(ts);
-        const day = date.getDay();
-        const monday = new Date(date);
-        monday.setDate(date.getDate() - ((day + 6) % 7));
-        const key = monday.toISOString().slice(0, 10);
+        const key = getWeekStartDateKeyInTimezone(date, timezone);
         weeks[key] = (weeks[key] || 0) + 1;
       });
 
@@ -529,7 +561,7 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats, conve
         const ts = d.data().startTime;
         if (!ts) return;
         const date = ts.toDate ? ts.toDate() : new Date(ts);
-        const day = date.getDay();
+        const day = DAY_NAMES.indexOf(getTimezoneDateParts(date, timezone).weekday);
         if (day === 0 || day === 6) weekends++;
         else weekdays++;
       });
@@ -560,7 +592,6 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats, conve
         .select('startStopName', 'endStopName', 'startTime', 'duration')
         .get();
 
-      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const byDay = {};
       const durations = [];
 
@@ -575,7 +606,7 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats, conve
         const ts = t.startTime;
         if (!ts) return;
         const date = ts.toDate ? ts.toDate() : new Date(ts);
-        const day = dayNames[date.getDay()];
+        const day = getTimezoneDateParts(date, timezone).weekday;
         byDay[day] = (byDay[day] || 0) + 1;
 
         if (t.duration > 0) durations.push(t.duration);
@@ -606,7 +637,7 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats, conve
         const ts = d.data().startTime;
         if (!ts) return;
         const date = ts.toDate ? ts.toDate() : new Date(ts);
-        days.add(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`);
+        days.add(getTimezoneDateParts(date, timezone).dateKey);
       });
 
       const sorted = [...days].sort();
@@ -624,15 +655,15 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats, conve
         prev = day;
       }
 
-      const today = new Date().toISOString().slice(0, 10);
-      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      const today = getTimezoneDateParts(new Date(), timezone).dateKey;
+      const yesterday = getTimezoneDateParts(new Date(Date.now() - 86400000), timezone).dateKey;
       const currentStreak = days.has(today) || days.has(yesterday) ? current : 0;
 
       return { longest_streak_days: longest, current_streak_days: currentStreak };
     },
     get_route_stats_for_period: async ({ start_date, end_date }) => {
-      const start = new Date(`${start_date}T00:00:00`);
-      const end = new Date(`${end_date}T23:59:59`);
+      const { start } = dayBoundsInTimezone(start_date, timezone);
+      const { end } = dayBoundsInTimezone(end_date, timezone);
       const snap = await db.collection('trips')
         .where('userId', '==', userId)
         .where('startTime', '>=', start)
@@ -698,14 +729,14 @@ async function answerQueryWithGemini(userId, question, recentTrips, stats, conve
         .select('startTime')
         .get();
 
-      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const days = {};
       trips.docs.forEach((d) => {
         const ts = d.data().startTime;
         if (!ts) return;
         const date = ts.toDate ? ts.toDate() : new Date(ts);
-        if (date.getFullYear() !== year) return;
-        const day = dayNames[date.getDay()];
+        const parts = getTimezoneDateParts(date, timezone);
+        if (parts.year !== year) return;
+        const day = parts.weekday;
         days[day] = (days[day] || 0) + 1;
       });
       return days;

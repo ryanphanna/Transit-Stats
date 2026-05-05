@@ -68,6 +68,10 @@
         "destination": "/Tools/Rocket/index.html"
       },
       {
+        "source": "/public",
+        "destination": "/public.html"
+      },
+      {
         "source": "/settings",
         "destination": "/settings.html"
       },

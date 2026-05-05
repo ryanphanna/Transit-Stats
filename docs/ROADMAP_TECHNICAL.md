@@ -21,6 +21,7 @@ quality and coverage improvements.
   North American format. Standardize to E.164 throughout.
 - [x] **Stop photo via MMS** — user snaps a photo of a stop sign pole and sends it via MMS. Cloud Function fetches the image from Twilio, runs Gemini Vision to extract stop code/name and routes, starts trip immediately if one route found or prompts with a numbered list if multiple. Trip start time set to photo send time, not AI processing time. `source: 'mms'`, `timing_reliability: 'approximate'`.
 - [ ] **RCS suggested reply buttons** — attach tappable quick-reply chips to key responses for Android RCS users. Priority targets: `STATUS` reply (END TRIP / DISCARD / STATS) and trip-start confirmation (predicted end stops as tappable buttons, replacing the `END 1/2/3` shortcut system). SMS users receive the plain-text version unchanged via Twilio's automatic fallback.
+- [ ] **Dynamic stale-trip handling** — stop treating trips older than a fixed age as nonexistent. Keep any `endTime == null` trip actionable, but mark unusually old trips as stale and tailor the UX (`END`, `FORGOT`, `DISCARD`) based on route context, agency, and observed duration patterns rather than a hard 6-hour cutoff.
 
 ---
 
@@ -39,6 +40,11 @@ quality and coverage improvements.
   gaps, total trip time, and per-leg breakdown.
 - [ ] **Public trip feed** — opt-in shareable profile showing ridership stats and
   recent routes. Read-only, no personal stop detail.
+- [ ] **Profile-authoritative public visibility** — make `profiles.isPublic` the sole
+  source of truth for whether a public page exists, instead of splitting authority
+  between `profiles.isPublic` and denormalized `trips.isPublic`. Public mode should
+  disappear immediately when toggled off; trip-level flags can remain only as a cache
+  or be removed entirely after migration.
 
 ---
 

@@ -16,6 +16,7 @@ export const Profile = {
     setupListeners() {
         const agencySelect = document.getElementById('settings-agency');
         const betaPredictions = document.getElementById('settings-beta-predictions');
+        const publicProfile = document.getElementById('settings-public-profile');
 
         agencySelect?.addEventListener('change', (e) => {
             this.updateSetting('defaultAgency', e.target.value);
@@ -31,6 +32,15 @@ export const Profile = {
         document.getElementById('btn-save-name')?.addEventListener('click', () => {
             const name = document.getElementById('settings-name')?.value.trim();
             if (name) this.updateSetting('displayName', name);
+        });
+
+        publicProfile?.addEventListener('change', (e) => {
+            this.updateSetting('isPublic', e.target.checked);
+        });
+
+        document.getElementById('btn-save-username')?.addEventListener('click', () => {
+            const username = document.getElementById('settings-username')?.value.trim();
+            if (username) this.reserveUsername(username);
         });
     },
 
@@ -63,6 +73,19 @@ export const Profile = {
                 }
             }
 
+            if (!this.data?.username) {
+                const usernameSnap = await db.collection('usernames')
+                    .where('uid', '==', user.uid)
+                    .limit(1)
+                    .get();
+                if (!usernameSnap.empty) {
+                    this.data = {
+                        ...this.data,
+                        username: usernameSnap.docs[0].id,
+                    };
+                }
+            }
+
             this.syncUI(user.email);
         } catch (err) {
             console.error('Profile load error:', err);
@@ -82,6 +105,9 @@ export const Profile = {
         const phoneEl = document.getElementById('settings-phone');
         const agencyEl = document.getElementById('settings-agency');
         const betaEl = document.getElementById('settings-beta-predictions');
+        const publicProfileEl = document.getElementById('settings-public-profile');
+        const usernameEl = document.getElementById('settings-username');
+        const publicLinkEl = document.getElementById('settings-public-link');
 
         if (emailEl) emailEl.textContent = email || auth.currentUser?.email || '—';
         if (phoneEl) phoneEl.textContent = this.phone || 'Not linked';
@@ -101,6 +127,21 @@ export const Profile = {
 
         if (betaEl && this.data?.betaFeatures) {
             betaEl.checked = !!this.data.betaFeatures.predictions;
+        }
+
+        if (publicProfileEl) {
+            publicProfileEl.checked = !!this.data?.isPublic;
+        }
+
+        if (usernameEl) {
+            usernameEl.value = this.data?.username || '';
+            usernameEl.disabled = !!this.data?.username;
+        }
+
+        if (publicLinkEl) {
+            publicLinkEl.textContent = this.data?.username
+                ? `${window.location.origin}/public?user=${this.data.username}`
+                : 'Reserve a username to enable sharing.';
         }
     },
 
@@ -126,5 +167,51 @@ export const Profile = {
             console.error('Save failed:', err);
             UI.showNotification('Failed to save: ' + err.message);
         }
-    }
+    },
+
+    async reserveUsername(rawUsername) {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const username = rawUsername.trim().toLowerCase();
+        if (!/^[a-z0-9_]{3,20}$/.test(username)) {
+            UI.showNotification('Username must be 3-20 characters: lowercase letters, numbers, and underscores only.');
+            return;
+        }
+
+        if (this.data?.username) {
+            if (this.data.username === username) {
+                UI.showNotification('Username already reserved.');
+            } else {
+                UI.showNotification('Username changes are not supported.');
+            }
+            return;
+        }
+
+        try {
+            const existing = await db.collection('usernames').doc(username).get();
+            if (existing.exists) {
+                UI.showNotification('Username is already taken.');
+                return;
+            }
+
+            await db.collection('usernames').doc(username).set({
+                uid: user.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+
+            await db.collection('profiles').doc(user.uid).set({
+                username,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            }, { merge: true });
+
+            if (!this.data) this.data = {};
+            this.data.username = username;
+            this.syncUI(user.email);
+            UI.showNotification('Username reserved.');
+        } catch (err) {
+            console.error('Username save failed:', err);
+            UI.showNotification('Failed to reserve username: ' + err.message);
+        }
+    },
 };

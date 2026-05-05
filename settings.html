@@ -71,6 +71,32 @@
                             </div>
                         </div>
 
+                        <div class="settings-group">
+                            <div class="settings-group-title"><i data-lucide="globe"></i><span>Public Profile</span></div>
+                            <div class="settings-card premium-card">
+                                <div class="settings-row">
+                                    <div class="settings-label-group">
+                                        <span class="settings-main-label">Public Profile</span>
+                                        <span class="settings-sub-label">Allow others to view your shared stats page</span>
+                                    </div>
+                                    <input type="checkbox" id="settings-public-profile">
+                                </div>
+                                <div class="settings-row">
+                                    <div class="settings-label-group">
+                                        <span class="settings-sub-label">Username</span>
+                                        <input type="text" id="settings-username" class="minimal-input" placeholder="choose_username">
+                                    </div>
+                                    <button id="btn-save-username" class="btn btn-sm btn-ghost p-1" title="Save username"><i data-lucide="at-sign" class="icon-inline m-0" style="width:14px;"></i></button>
+                                </div>
+                                <div class="settings-row">
+                                    <div class="settings-label-group">
+                                        <span class="settings-sub-label">Share Link</span>
+                                        <span id="settings-public-link" class="settings-main-label text-xs">Reserve a username to enable sharing.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Sign Out -->
                         <div class="mt-4">
                             <button id="btn-logout" class="btn btn-danger-outline full-width">Sign Out</button>

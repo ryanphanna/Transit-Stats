@@ -9,6 +9,7 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 index: './index.html',
+                public: './public.html',
                 dashboard: './dashboard.html',
                 insights: './insights.html',
                 map: './map.html',
@@ -31,7 +32,7 @@ export default defineConfig({
             configureServer(server) {
                 server.middlewares.use((req, res, next) => {
                     const url = req.url.split('?')[0];
-                    const targets = ['/dashboard', '/map', '/v2', '/v2-home', '/admin', '/users', '/settings', '/insights'];
+                    const targets = ['/dashboard', '/map', '/v2', '/v2-home', '/admin', '/users', '/settings', '/insights', '/public'];
                     if (targets.includes(url)) {
                         req.url = url + '.html' + (req.url.includes('?') ? '?' + req.url.split('?')[1] : '');
                     }

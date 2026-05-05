@@ -1,5 +1,6 @@
 import { db } from './firebase.js';
 import { UI } from './ui-utils.js';
+import { Visuals } from './visuals.js';
 
 const escapeHtml = UI.escapeHtml;
 
@@ -39,7 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // 3. Render Profile Header
-        document.getElementById('userName').textContent = profile.name || username;
+        document.getElementById('userName').textContent = profile.displayName || profile.name || username;
         // User emoji/icon handling
         const emojiEl = document.getElementById('userEmoji');
         if (profile.emoji) {
@@ -55,6 +56,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 4. Fetch Trips
         const tripsSnapshot = await db.collection('trips')
             .where('userId', '==', userId)
+            .where('isPublic', '==', true)
             .limit(200)
             .get();
 
@@ -140,15 +142,19 @@ function initPublicMap(trips) {
         className: 'map-transit-layer'
     }).addTo(map);
 
-    if (trips.length > 0 && Visuals && Visuals.renderHeatmap) {
+    if (trips.length > 0 && Visuals?.renderPointHeatmap) {
         Visuals.renderPointHeatmap(trips, map);
 
-        // Fit bounds logic from visuals.js usually handles this, 
-        // but let's ensure we fit to the points found
         const points = [];
         trips.forEach(t => {
-            if (t.startLoc) points.push([t.startLoc.latitude, t.startLoc.longitude]);
-            if (t.endLoc) points.push([t.endLoc.latitude, t.endLoc.longitude]);
+            const start = t.boardingLocation || t.boardLocation || t.startLoc;
+            const end = t.exitLocation || t.endLoc;
+            const startLat = start?.lat ?? start?.latitude;
+            const startLng = start?.lng ?? start?.longitude;
+            const endLat = end?.lat ?? end?.latitude;
+            const endLng = end?.lng ?? end?.longitude;
+            if (startLat != null && startLng != null) points.push([startLat, startLng]);
+            if (endLat != null && endLng != null) points.push([endLat, endLng]);
         });
 
         if (points.length > 0) {

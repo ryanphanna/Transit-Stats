@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Prediction Engine history](docs/ENGINE.md) · [Transfer Engine history](docs/TRANSFER_ENGINE.md) · [Network Engine history](docs/NETWORK_ENGINE.md) · [NextGen Roadmap](docs/ROADMAP_NEXTGEN.md) · [Technical Roadmap](docs/ROADMAP_TECHNICAL.md)
 
+## [Unreleased]
+
+### Added
+- **Regression test coverage for SMS/MMS routing and prediction wiring** (`functions/test_dispatcher.js`, `functions/test_handlers.js`, `functions/test_stops.js`, `functions/test_network.js`): Added focused tests for END retry dedup bypass, MMS Snap-to-Start dispatch and pending-state follow-ups (`mms_stop_needed`, `confirm_mms_route`), MMS timing metadata propagation (`startTime`, `source`, `timing_reliability`), route-aware stop selection in `lookupStop`, global NetworkGraph fallback behavior, and GTFS-corrected V4/V5 route selection before trip creation.
+
+### Changed
+- **SMS flow internals refactored for maintainability** (`functions/lib/dispatcher.js`, `functions/lib/handlers.js`): Split pending-state handling into focused state-specific helpers in the dispatcher, and decomposed `handleTripLog` agency/stop-disambiguation logic into dedicated helper functions. No behavior changes intended.
+
 ## [1.30.0] - 2026-05-05
 
 ### Added

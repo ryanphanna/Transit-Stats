@@ -1,13 +1,14 @@
 # AI Guidelines & Context
 
 ## Notion Synchronization
-- Periodically update the **TransitStatsLog** in Notion with significant changes (Infrastructure, UX/UI, Refactors, Fixes).
+- Automatically add entries to the **TransitStatsLog** in Notion for significant shipped changes, fixes, refactors, roadmap-worthy follow-ups, and other meaningful improvements whenever work is completed.
 - **TransitStatsLog Database ID**: `3269563c-9a49-80d4-b39b-eef09d8227e2`
 - Use the **NavigatorLog** structure for consistency; **TransitStatsLog** includes specific **Issue** and **Fix** fields.
 - **Rocket Integration**: Development is logged in the main `TransitStatsLog`. No second research log is required.
+- When logging entries, use the appropriate **Author** value for the active coding agent.
 
 ## Git & Deployment
-- **Commit Frequency**: Proactively commit changes after completing a logical block of work (e.g., after fixing a set of related security alerts or implementing a major feature).
+- **Commit Frequency**: Proactively commit changes after completing a logical block of work when it feels necessary or warranted (e.g., after fixing a set of related security alerts, landing a meaningful feature, or finishing a coherent batch of improvements).
 - **NEVER** auto-push changes to GitHub. Always ask for permission before running `git push`.
 - Always check `.gitignore` before performing large operations to ensure legacy or system-generated files are excluded.
 - **Changelog**: Always keep the `CHANGELOG.md` up to date by adding changes to the `[Unreleased]` section as they are completed. **NEVER** edit a versioned section (e.g. `## [1.28.0]`) once it has been dated and pushed. Do not add version numbers in the `[Unreleased]` section. In final release commits (version bumps), **always remove** the empty `[Unreleased]` section to maintain a clean record.
