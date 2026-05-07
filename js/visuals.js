@@ -2,11 +2,51 @@ export const Visuals = {
     heatmapLayer: null,
 
     /**
-     * Renders a Point Heatmap of boarding and alighting locations
-     * @param {Array} trips - Array of trip objects from Firestore
+     * Renders a high-intensity heatmap using Leaflet.heat
+     * @param {Array} trips - Array of trip objects
      * @param {Object} map - Leaflet map instance
      */
-    renderPointHeatmap: function (trips, map) {
+    renderHeatmap: function (trips, map) {
+        if (!map) return;
+        if (typeof L.heatLayer === 'undefined') {
+            console.warn('Leaflet.heat not loaded, falling back to point heatmap');
+            return this.renderPointHeatmap(trips, map);
+        }
+
+        if (this.heatmapLayer) {
+            map.removeLayer(this.heatmapLayer);
+        }
+
+        const points = [];
+        trips.forEach(trip => {
+            const bLoc = trip.boardingLocation || trip.boardLocation;
+            if (bLoc && bLoc.lat) {
+                points.push([bLoc.lat, bLoc.lng, 0.8]); // intensity
+            }
+
+            if (trip.exitLocation && trip.exitLocation.lat) {
+                points.push([trip.exitLocation.lat, trip.exitLocation.lng, 0.5]);
+            }
+        });
+
+        if (points.length === 0) return;
+
+        this.heatmapLayer = L.heatLayer(points, {
+            radius: 25,
+            blur: 15,
+            maxZoom: 17,
+            gradient: {
+                0.4: 'blue',
+                0.6: 'cyan',
+                0.7: 'lime',
+                0.8: 'yellow',
+                1.0: 'red'
+            }
+        }).addTo(map);
+    },
+
+    /**
+     * Renders a Point Heatmap (Legacy/Fallback)
         if (!map) return;
 
         if (this.heatmapLayer) {

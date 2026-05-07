@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Map-First Public Profile** (`public.html`, `js/public.js`, `styles/main.css`): Redesigned the public profile as a full-screen, high-impact heatmap experience. Core stats and identity now float over an interactive transit map.
+- **High-intensity Heatmap Rendering** (`js/visuals.js`): Integrated `Leaflet.heat` for professional-grade heatmap visualization of user trip patterns.
 - **Triple Emoji Identity system** (`js/identity.js`, `js/profile.js`, `settings.html`): Replaced the text-based username system with a visual triplet of unique emojis (e.g., 🚌🌮🐼). Handles are stored as URL-safe slugs (e.g., `bus_taco_panda`).
 - **Interactive Emoji Picker** (`js/profile.js`, `settings.html`, `styles/main.css`): Built a custom popover picker in Settings with a curated library of 80+ transit, food, animal, and nature icons. Prevents duplicate emoji selection within a triplet.
 - **Auto-generated Emoji identities** (`js/profile.js`): New users are automatically assigned a random emoji triplet upon their first dashboard visit.

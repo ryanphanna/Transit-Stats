@@ -11,47 +11,40 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 </head>
 <body>
     <main id="app-root">
-        <section class="view active">
-            <div class="container" style="max-width: 900px; padding-top: 2rem; padding-bottom: 3rem;">
-                <div class="card mb-3" style="padding: 1.5rem;">
-                    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
-                        <div id="userEmoji" class="brand-icon" style="margin:0;"></div>
-                        <div>
-                            <h1 id="userName" style="margin:0 0 0.25rem 0;">Public Profile</h1>
-                            <div id="userAgency" class="text-secondary"></div>
+        <section class="view active public-view">
+            <div id="publicMap" class="full-map"></div>
+
+            <div class="public-overlay">
+                <div class="public-card profile-card">
+                    <div class="profile-header">
+                        <div id="userEmoji" class="brand-icon" style="margin:0; font-size: 2rem;"></div>
+                        <div class="profile-info">
+                            <h2 id="userName" style="margin:0; font-size: 1.25rem;">Public Profile</h2>
+                            <p id="userAgency" class="text-secondary" style="margin:0; font-size: 0.8rem;"></p>
+                        </div>
+                    </div>
+                    <div class="public-stats-grid">
+                        <div class="public-stat">
+                            <strong id="totalTrips">0</strong>
+                            <span>Trips</span>
+                        </div>
+                        <div class="public-stat">
+                            <strong id="totalHours">0</strong>
+                            <span>Hours</span>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;" class="mb-3">
-                    <div class="card">
-                        <div class="text-secondary">Trips</div>
-                        <div id="totalTrips" style="font-size:2rem;font-weight:800;">0</div>
-                    </div>
-                    <div class="card">
-                        <div class="text-secondary">Hours</div>
-                        <div id="totalHours" style="font-size:2rem;font-weight:800;">0</div>
-                    </div>
-                </div>
-
-                <div class="card mb-3">
-                    <div class="card-header">
-                        <h3><i data-lucide="bar-chart-3" class="icon-inline"></i> Top Routes</h3>
-                    </div>
-                    <div id="topRoutesList">
-                        <div class="loading-state">Loading...</div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3><i data-lucide="map" class="icon-inline"></i> Map</h3>
-                    </div>
-                    <div id="publicMapContainer" style="height:420px;border-radius:16px;overflow:hidden;"></div>
-                </div>
+            <div class="public-branding">
+                <a href="/" class="branding-link">
+                    <i data-lucide="bus" class="icon-inline"></i>
+                    <span>TransitStats</span>
+                </a>
             </div>
         </section>
     </main>

@@ -1,12 +1,9 @@
 import { db } from './firebase.js';
 import { UI } from './ui-utils.js';
+import { Identity } from './identity.js';
 import { Visuals } from './visuals.js';
 
-const escapeHtml = UI.escapeHtml;
-
 // Public Profile Logic
-
-// Main Logic
 document.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(window.location.search);
     const username = params.get('user');
@@ -40,15 +37,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // 3. Render Profile Header
-        document.getElementById('userName').textContent = profile.displayName || profile.name || username;
-        // User emoji/icon handling
+        document.getElementById('userName').textContent = profile.displayName || profile.name || 'Traveler';
+        
         const emojiEl = document.getElementById('userEmoji');
-        if (profile.emoji) {
+        if (profile.username) {
+            emojiEl.textContent = Identity.toEmojis(profile.username);
+        } else if (profile.emoji) {
             emojiEl.textContent = profile.emoji;
         } else {
             emojiEl.innerHTML = '<i data-lucide="user"></i>';
             if (window.lucide) window.lucide.createIcons();
         }
+        
         if (profile.defaultAgency) {
             document.getElementById('userAgency').textContent = profile.defaultAgency;
         }
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const tripsSnapshot = await db.collection('trips')
             .where('userId', '==', userId)
             .where('isPublic', '==', true)
-            .limit(200)
+            .limit(1000)
             .get();
 
         const trips = [];
@@ -71,21 +71,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     } catch (error) {
         console.error('Error loading profile:', error);
-        showError('Error loading profile. It might be private or not exist.');
-    } // End try-catch
+        showError('Error loading profile');
+    }
 });
 
 function showError(msg) {
-    const container = document.querySelector('.container');
-    container.innerHTML = `
-        <div style="text-align: center; margin-top: 100px;">
-            <div style="font-size: 3em; margin-bottom: 20px; color: var(--text-muted);"><i data-lucide="alert-circle" style="width: 48px; height: 48px;"></i></div>
-            <h2></h2>
-            <p><a href="/" style="color: var(--accent-primary);">Go Home</a></p>
+    const overlay = document.querySelector('.public-overlay');
+    overlay.innerHTML = `
+        <div class="public-card" style="text-align: center;">
+            <div style="font-size: 2em; margin-bottom: 10px; color: var(--danger);"><i data-lucide="alert-circle"></i></div>
+            <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">${msg}</h2>
+            <a href="/" class="btn btn-sm btn-outline full-width">Go Home</a>
         </div>
     `;
     if (window.lucide) window.lucide.createIcons();
-    container.querySelector('h2').textContent = msg;
 }
 
 function renderStats(trips) {
@@ -95,70 +94,35 @@ function renderStats(trips) {
 
     document.getElementById('totalTrips').textContent = totalTrips;
     document.getElementById('totalHours').textContent = totalHours;
-
-    // Top Routes Logic
-    const routeCounts = {};
-    trips.forEach(trip => {
-        const route = trip.route || 'Unknown';
-        routeCounts[route] = (routeCounts[route] || 0) + 1;
-    });
-
-    const sortedRoutes = Object.entries(routeCounts)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 5)
-        .map(([route, count]) => ({ route, count }));
-
-    const topRoutesList = document.getElementById('topRoutesList');
-    if (sortedRoutes.length > 0) {
-        const maxTrips = sortedRoutes[0].count;
-        topRoutesList.innerHTML = sortedRoutes.map(item => `
-            <div class="stat-card" style="text-align: left; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
-                <div>
-                    <div style="font-weight: 600; font-size: 1.1em;">${escapeHtml(item.route)}</div>
-                    <div style="font-size: 0.85em; color: var(--text-secondary);">${escapeHtml(item.count)} trips</div>
-                </div>
-                <div style="width: 100px; height: 6px; background: var(--bg-primary); border-radius: 3px; overflow: hidden;">
-                    <div style="height: 100%; width: ${(item.count / maxTrips) * 100}%; background: var(--accent-primary);"></div>
-                </div>
-            </div>
-        `).join('');
-    } else {
-        topRoutesList.innerHTML = '<div class="empty-state">No trips recorded yet.</div>';
-    }
 }
 
 function initPublicMap(trips) {
-    // Basic Leaflet Map
-    const map = L.map('publicMapContainer').setView([43.70, -79.42], 12); // Default Toronto
-    // Cleaner 'No Labels' version for a premium look
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-        className: 'map-base-layer'
-    }).addTo(map);
+    const map = L.map('publicMap', {
+        zoomControl: false,
+        attributionControl: false
+    }).setView([43.70, -79.42], 12);
 
-    // Transit Routes Overlay: Memomaps for colored route paths
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png').addTo(map);
+
+    // Transit Routes Overlay
     L.tileLayer('https://tile.memomaps.de/tilegen/{z}/{x}/{y}.png', {
         maxZoom: 18,
-        opacity: 0.7,
-        className: 'map-transit-layer'
+        opacity: 0.4
     }).addTo(map);
 
-    if (trips.length > 0 && Visuals?.renderPointHeatmap) {
-        Visuals.renderPointHeatmap(trips, map);
-
+    if (trips.length > 0) {
+        Visuals.renderHeatmap(trips, map);
+        
         const points = [];
         trips.forEach(t => {
-            const start = t.boardingLocation || t.boardLocation || t.startLoc;
-            const end = t.exitLocation || t.endLoc;
-            const startLat = start?.lat ?? start?.latitude;
-            const startLng = start?.lng ?? start?.longitude;
-            const endLat = end?.lat ?? end?.latitude;
-            const endLng = end?.lng ?? end?.longitude;
-            if (startLat != null && startLng != null) points.push([startLat, startLng]);
-            if (endLat != null && endLng != null) points.push([endLat, endLng]);
+            const start = t.boardingLocation || t.boardLocation;
+            const end = t.exitLocation;
+            if (start?.lat) points.push([start.lat, start.lng]);
+            if (end?.lat) points.push([end.lat, end.lng]);
         });
 
         if (points.length > 0) {
-            map.fitBounds(points);
+            map.fitBounds(points, { padding: [100, 100] });
         }
     }
 }
