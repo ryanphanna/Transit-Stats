@@ -38,8 +38,26 @@ export const Profile = {
             if (name) this.updateSetting('displayName', name);
         });
 
-        publicProfile?.addEventListener('change', (e) => {
-            this.updateSetting('isPublic', e.target.checked);
+        publicProfile?.addEventListener('change', async (e) => {
+            const isPublic = e.target.checked;
+            await this.updateSetting('isPublic', isPublic);
+            
+            // Sync to all trips (Master Switch behavior)
+            try {
+                UI.showNotification(`Syncing ${isPublic ? 'public' : 'private'} state to all trips...`);
+                const user = auth.currentUser;
+                const tripsSnap = await db.collection('trips').where('userId', '==', user.uid).get();
+                
+                const batch = db.batch();
+                tripsSnap.docs.forEach(doc => {
+                    batch.update(doc.ref, { isPublic: isPublic });
+                });
+                await batch.commit();
+                UI.showNotification('All trips updated.');
+            } catch (err) {
+                console.error('Trip sync failed:', err);
+                UI.showNotification('Failed to sync trips: ' + err.message);
+            }
         });
 
         document.getElementById('btn-save-identity')?.addEventListener('click', () => {
