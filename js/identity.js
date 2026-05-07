@@ -10,6 +10,11 @@ export const Identity = {
         'station': '🚉', 'map': '🗺️', 'ticket': '🎫', 'stop': '🛑', 'bridge': '🌉',
         'cablecar': '🚠', 'helicopter': '🚁', 'airplane': '✈️', 'sailing': '⛵', 'taxi': '🚕',
         'truck': '🚚', 'anchor': '⚓', 'fuel': '⛽', 'traffic': '🚥', 'auto': '🚗',
+        'monorail': '🚝', 'bullettrain': '🚅', 'tram': '🚊', 'minibus': '🚐', 'motorcycle': '🏍️',
+        'scooter2': '🛵', 'busstop': '🚏', 'motorway': '🛣️', 'tracks': '🛤️', 'luggage': '🧳',
+        'passport': '🛂', 'customs': '🛃', 'baggage': '🛄', 'leftluggage': '🛅', 'compass': '🧭',
+        'v_traffic': '🚦', 'construction': '🚧', 'rowboat': '🚣', 'speedboat': '🚤', 'ship2': '🛳️',
+        'departure': '🛫', 'arrival': '🛬', 'aerialtram': '🚡', 'mountainrail': '🚞',
         
         // --- Animals ---
         'panda': '🐼', 'fox': '🦊', 'koala': '🐨', 'lion': '🦁', 'tiger': '🐯',
