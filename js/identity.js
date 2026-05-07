@@ -11,7 +11,7 @@ export const Identity = {
         'cablecar': '🚠', 'helicopter': '🚁', 'airplane': '✈️', 'sailing': '⛵', 'taxi': '🚕',
         'truck': '🚚', 'anchor': '⚓', 'fuel': '⛽', 'traffic': '🚥', 'auto': '🚗',
         'monorail': '🚝', 'bullettrain': '🚅', 'tram': '🚊', 'minibus': '🚐', 'motorcycle': '🏍️',
-        'scooter2': '🛵', 'busstop': '🚏', 'motorway': '🛣️', 'tracks': '🛤️', 'compass': '🧭',
+        'scooter2': '🛵', 'busstop': '🚏', 'motorway': '🛣️', 'tracks': '🛤️',
         'v_traffic': '🚦', 'construction': '🚧', 'rowboat': '🚣', 'speedboat': '🚤', 'ship2': '🛳️',
         'departure': '🛫', 'arrival': '🛬', 'aerialtram': '🚡', 'mountainrail': '🚞',
         
