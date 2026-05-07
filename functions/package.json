@@ -24,7 +24,7 @@
     "firebase-functions": "^7.2.5",
     "onnxruntime-node": "^1.24.3",
     "qs": "^6.15.0",
-    "twilio": "^5.13.0"
+    "twilio": "^6.0.1"
   },
   "overrides": {
     "follow-redirects": "^1.16.0",
