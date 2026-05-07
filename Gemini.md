@@ -1,11 +1,13 @@
 # AI Guidelines & Context
 
 ## Notion Synchronization
-- Automatically add entries to the **TransitStatsLog** in Notion for significant shipped changes, fixes, refactors, roadmap-worthy follow-ups, and other meaningful improvements whenever work is completed.
-- **TransitStatsLog Database ID**: `3269563c-9a49-80d4-b39b-eef09d8227e2`
-- Use the **NavigatorLog** structure for consistency; **TransitStatsLog** includes specific **Issue** and **Fix** fields.
-- **Rocket Integration**: Development is logged in the main `TransitStatsLog`. No second research log is required.
+- Automatically add entries to the **NewTransitStatsLog** in Notion only when the work clearly meets the bar in `TRANSITSTATSLOG.md`.
+- **NewTransitStatsLog Database ID**: `3589563c-9a49-8153-9c30-dee3bb00dc9c`
+- Use the **NavigatorLog** structure for consistency; **NewTransitStatsLog** includes specific **Issue** and **Fix** fields.
+- **Rocket Integration**: Development is logged in the main `NewTransitStatsLog`. No second research log is required.
 - When logging entries, use the appropriate **Author** value for the active coding agent.
+- Legacy migrated rows may leave `Author` blank if the old database did not track authorship.
+- Follow `TRANSITSTATSLOG.md` for what belongs in the log, what does not, title format, workflow, and property usage.
 
 ## Git & Deployment
 - **Commit Frequency**: Proactively commit changes after completing a logical block of work when it feels necessary or warranted (e.g., after fixing a set of related security alerts, landing a meaningful feature, or finishing a coherent batch of improvements).

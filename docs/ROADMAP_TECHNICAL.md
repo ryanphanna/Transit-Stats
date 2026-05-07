@@ -38,13 +38,8 @@ quality and coverage improvements.
   once prediction accuracy clears 90%. Feeds from the engine's confidence score.
 - [ ] **Journey view** — a dedicated view for multi-leg journeys, showing transfer
   gaps, total trip time, and per-leg breakdown.
-- [ ] **Public trip feed** — opt-in shareable profile showing ridership stats and
-  recent routes. Read-only, no personal stop detail.
-- [ ] **Profile-authoritative public visibility** — make `profiles.isPublic` the sole
-  source of truth for whether a public page exists, instead of splitting authority
-  between `profiles.isPublic` and denormalized `trips.isPublic`. Public mode should
-  disappear immediately when toggled off; trip-level flags can remain only as a cache
-  or be removed entirely after migration.
+- [x] **Public trip feed** — opt-in shareable profile showing ridership stats and recent routes. Read-only, no personal stop detail.
+- [x] **Profile-authoritative public visibility** — make `profiles.isPublic` the sole source of truth for whether a public page exists, instead of splitting authority between `profiles.isPublic` and denormalized `trips.isPublic`. Public mode should disappear immediately when toggled off.
 
 ---
 

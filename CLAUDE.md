@@ -4,14 +4,16 @@
 A personal Firebase-backed transit trip tracker. Trips are logged via SMS (Twilio → Cloud Functions). The web app is a read/analyze dashboard — no trip logging from the browser.
 
 ## Architecture
-- **Frontend**: Vanilla JS ES modules, Vite build, Leaflet maps, Lucide icons
+- **Frontend**: Vanilla JS ES modules, Vite build, Leaflet maps, Lucide icons. Logic is organized by page in `js/pages/`.
 - **Backend**: Firebase Cloud Functions (Node.js) in `functions/`
 - **Database**: Firestore
 - **SMS**: Twilio → `functions/lib/handlers.js` → dispatched via `functions/lib/dispatcher.js`
 
 Key frontend modules:
-- `js/main.js` — app boot, view routing, auth, event listeners
-- `js/trips.js` — Firestore listener, feed rendering, stats rendering
+- `js/pages/dashboard.js` — dashboard entry point and trip edit logic
+- `js/pages/login.js` — auth flow and landing page
+- `js/pages/public.js` — public profile rendering
+- `js/trips.js` — shared trips orchestrator
 - `js/stats.js` — pure computation (no DOM)
 - `js/predict.js` — client-side prediction engine
 - `js/admin.js` — stop library, inbox, GTFS import
@@ -47,7 +49,7 @@ When fixing a bug, always provide:
 - **Commit often** — after each logical chunk of work, not just at session end. Ryan forgets; remind him if a session is wrapping up with uncommitted changes.
 - **Keep CHANGELOG.md updated** under `[Unreleased]` as work is completed. Use TLDR-style language — short, direct, no filler.
 - **Always deploy hosting alongside functions** (`firebase deploy --only hosting,functions`) — hosting-only changes (frontend fixes, auth) won't reach users otherwise.
-- **Log significant work** to the TransitStatsLog Notion database (see Gemini.md for Notion sync patterns).
+- **Log notable work** to the NewTransitStatsLog Notion database using the standard in `TRANSITSTATSLOG.md` (see Gemini.md for the current database ID).
 - The `Firebase for Transit Stats.json` key lives at `/Users/ryan/Desktop/Dev/Credentials/` — use it for admin queries, never commit it.
 
 ## Firestore Collections

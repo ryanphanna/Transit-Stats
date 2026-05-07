@@ -51,12 +51,11 @@ Replacing hand-coded scoring weights with a model trained on actual trip history
 - [x] **Topology file**: `ml/topology.json` — ordered stop sequences for Lines 1, 2, 4, 5.
 
 ### 3. Inference Integration — V4 & V5
-- [ ] **Cloud Function inference**: Load model weights, run prediction, return top-3 — for both V4 and V5.
-- [x] **Topology constraint filter**: Applied at inference time in V3 engine — zero out directionally impossible end stop candidates using `topology.json` stop sequences. Lines 1, 2, 4, 5 covered. Line 1 handled with branch-aware logic (Yonge vs University branch, Union as turning point).
-- [ ] **A/B shadow scoring**: Run V4 and V5 alongside V3 on every SMS prediction — log all results without changing user-facing output.
-- [ ] **Feedback loop**: Log prediction outcomes (correct/incorrect) back to Firestore for continuous retraining signal.
-- [ ] **Autonomous retraining**: Cloud Function that retrains V4 and V5 weekly from Firestore directly — no local steps, no notebook.
-- [ ] **Retrain audit log**: Log each retrain (date, trip count, accuracy) to Firestore so model improvement is trackable.
+- [x] **Cloud Function inference**: V4 and V5 models run on every trip start (gated by default agency).
+- [x] **GTFS-correction filter**: Predictions are cross-referenced with GTFS `stopRoutes` to ensure the suggested route actually serves the boarding stop.
+- [x] **A/B shadow scoring**: Results are logged to `predictionStats` for real-time accuracy tracking.
+- [x] **Autonomous retraining**: GitHub Action (`retrain.yml`) retrains V4 and V5 weekly from Firestore data.
+- [ ] **End stop prediction**: Train a separate classifier for end stop (not just route).
 
 ### 4. Model Evolution — V5 (Gradient Boosted Tree)
 - [x] **XGBoost classifier**: Benchmarked on same 385-trip dataset — 60.6% top-1 / 80.3% top-3 (+8.5pp / +5.6pp over V4). Same features, better algorithm.

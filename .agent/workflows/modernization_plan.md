@@ -13,7 +13,7 @@ This plan outlines the steps to modernize the TransitStats codebase, improving i
     - Move "Edit Trip" logic to `js/trips.js`.
     - Move "Auth Switcher" and "Section Navigation" logic to `js/ui-manager.js`.
 - [ ] **1.3: Clean up `index.html`**
-    - Remove remaining inline `onclick` handlers and move them to `js/main.js` event listeners.
+    - Remove remaining inline `onclick` handlers and move them to event listeners in the appropriate page-level script (e.g., `js/pages/dashboard.js`).
 
 ## Phase 2: Modernization (MEDIUM RISK)
 *Goal: Shift from Global Namespaces to ES Modules.*

@@ -1,0 +1,389 @@
+[
+  {
+    "Name": "Security Hardening & Repository Optimization",
+    "Category": [
+      "Fix",
+      "Infrastructure",
+      "Refactor"
+    ],
+    "Effort": "Medium",
+    "Issue": "Exposed credentials in Git history; unmasked PII in server logs; auth-bypass vulnerabilities; and inefficient Firestore read patterns.",
+    "Fix": "Rotated exposed Gemini/Firebase keys; implemented PII-safe logging with phone number masking; normalized email casing across auth flows; and optimized Firestore security rules to eliminate read amplification.",
+    "Status": "Shipped",
+    "Version": "v1.9.1",
+    "Shipped": ""
+  },
+  {
+    "Name": "Security Hardening & Conflict Resolution",
+    "Category": [
+      "Fix",
+      "Infrastructure",
+      "Refactor"
+    ],
+    "Effort": "High",
+    "Issue": "Security vulnerabilities (REDoS), sanitization gaps, and outdated dependencies identified during manual audit and CodeQL scanning; merge conflicts resulting from parallel v1/v2 development.",
+    "Fix": "Patched REDoS vulnerabilities in Cloud Functions and prediction engine; solved complex merge conflicts in admin and main JS modules; addressed CodeQL sanitization alerts for GTFS imports; updated security dependencies (undici, tootallnate) in package.json; and established standardized AI workflow guidelines in Gemini.md.",
+    "Status": "Shipped",
+    "Version": "1.9.2",
+    "Shipped": ""
+  },
+  {
+    "Name": "Modularization and Stability Refactor (v1.9.5)",
+    "Category": [
+      "Fix",
+      "Infrastructure",
+      "Refactor"
+    ],
+    "Effort": "High",
+    "Issue": "Monolithic files and npm ci deployment failure.",
+    "Fix": "Standardized Node version, modularized main.js and sms.js, synced lockfiles.",
+    "Status": "Shipped",
+    "Version": "1.9.5",
+    "Shipped": ""
+  },
+  {
+    "Name": "Security Hardening & CodeQL Remediation",
+    "Category": [
+      "Fix",
+      "Infrastructure"
+    ],
+    "Effort": "Medium",
+    "Issue": "fast-xml-parser vulnerability (numeric entity expansion bypass), CodeQL alerts (unvalidated dynamic call, ReDoS, incomplete escaping, missing SRI).",
+    "Fix": "Upgraded fast-xml-parser to v5.5.6, fixed dynamic method calls with hasOwnProperty, simplified ReDoS regex, added backslash escaping in admin.js, and implemented SRI for all external scripts.",
+    "Status": "Shipped",
+    "Version": "1.9.5+",
+    "Shipped": "March 18, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Premium AI Stats & QoL Release",
+    "Category": [
+      "AI/Logic",
+      "Infrastructure",
+      "UX/UI"
+    ],
+    "Effort": "",
+    "Issue": "Add premium AI Stats feature, user management admin panel, XSS hardening, and resolve security alerts.",
+    "Fix": "Gated AI stats behind premium, introduced users admin panel, refactored alert/confirm to notifications, and bumped dependencies (Vite 8, Vitest 4).",
+    "Status": "Shipped",
+    "Version": "1.9.11",
+    "Shipped": "March 22, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Heatmap & AI Stats Upgrade Release",
+    "Category": [
+      "AI/Logic",
+      "Fix",
+      "Infrastructure",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "ReDoS vulnerabilities #30-32 and Unvalidated Method Call #29.",
+    "Fix": "Implemented GitHub-style Heatmap, upgraded AI stats to Function Calling, and fixed 4 CodeQL security alerts (ReDoS).",
+    "Status": "Shipped",
+    "Version": "1.10.0",
+    "Shipped": "March 24, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Fix SMS query classification + improve AI query context",
+    "Category": [
+      "AI/Logic",
+      "Fix"
+    ],
+    "Effort": "Medium",
+    "Issue": "Natural-language SMS queries failing end-to-end: misclassified as OTHER by Gemini, invalid API key, user not marked premium, Gemini returning window size as answer, all AI tools failing due to missing Firestore index, no query logging.",
+    "Fix": "1) Added QUERY intent examples to parseWithGemini prompt. 2) Added word-count fallback in handleAIIntent — 4+ word sentences that pass all trip parsers route to handleQuery directly. 3) Marked user as isPremium in Firestore (was locked out of own app). 4) Fixed invalid GEMINI_API_KEY secret (v5). 5) Fixed Gemini returning http://stats.total (window size = 200) as the answer to date-scoped questions — labeled it clearly in prompt. 6) Added userId ASC + endTime ASC Firestore index — all AI query tools were silently failing with FAILED_PRECONDITION. 7) Added dayOfWeek breakdown to aggregateTripStats + get_day_of_week_stats all-time tool. 8) Exposed windowStart/windowEnd in query prompt. 9) Improved tool descriptions. 10) Added fire-and-forget queryLogs collection.",
+    "Status": "Shipped",
+    "Version": "Unreleased (post-1.10.0)",
+    "Shipped": "March 24, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Hardened Login Flow & Boot Sequence",
+    "Category": [
+      "Fix",
+      "Refactor",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "Continue button unresponsive on production; app failing to initialize due to DOMContentLoaded race condition.",
+    "Fix": "Robust readyState check for boot; cached email persistence for Chrome focus-shift clearing; proactive mousedown capture.",
+    "Status": "Shipped",
+    "Version": "1.13.0",
+    "Shipped": "March 28, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "User Preferences UI & SMS STATS Refinement",
+    "Category": [
+      "Refactor",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "Users had no way to configure personal preferences (transit agency, beta features) in the web app. STATS command lacked granularity.",
+    "Fix": "Implemented Profile module and expanded Settings modal. Upgraded handleStatsCommand with weekly/monthly buckets.",
+    "Status": "Shipped",
+    "Version": "1.15.0-unreleased",
+    "Shipped": "March 31, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Rocket Research Instrument — Initial Build",
+    "Category": [
+      "Infrastructure",
+      "UX/UI"
+    ],
+    "Effort": "High",
+    "Issue": "No high-precision research tool existed for decomposing transit journey time components. Trip data lacked spatial anchoring of dwell/signal/motion events.",
+    "Fix": "Built Rocket: mobile-first research instrument for decomposing transit journeys into dwell, signal, and running time. Web form entry (Route, Direction, Start Stop), end stop captured at finalize, live GPS-anchored event streaming to rocket_trips, auto-sync to Transit Stats trips on completion, 🚀 badge on trip cards, tightened Firestore rules, roadmap and changelog updated, scratch files removed.",
+    "Status": "Shipped",
+    "Version": "",
+    "Shipped": "April 7, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Hardening Rocket Security & UI Overhaul",
+    "Category": [
+      "Security",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "Rocket was accessible without authentication, leading to unverified data submission and UI inconsistency with the main app.",
+    "Fix": "Implemented auth barrier and standardized the UI to match the main Transit Stats 'Atlas' aesthetic. Removed anonymous guest fallback.",
+    "Status": "Shipped",
+    "Version": "1.17.5-dev",
+    "Shipped": "April 7, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Dashboard Performance & Stability Overhaul (6hr Rule, Map Cluster, Rocket UI)",
+    "Category": [
+      "AI/Logic",
+      "Fix",
+      "UX/UI"
+    ],
+    "Effort": "",
+    "Issue": "Map page freezing, admin users failed to load, stale 'ghost' trips on dashboard, 'not linked' phone status in settings, and inconsistent Rocket UI branding.",
+    "Fix": "Implemented 6-hour active trip window across both frontend and backend. Optimized MapEngine performance with O(1) lookups and Leaflet.markercluster. Fixed admin profile security rules and settings modal phone linking reliability. Overhauled Rocket UI with premium instrumentation design.",
+    "Status": "Shipped",
+    "Version": "",
+    "Shipped": "",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Modularization & Personalization Release",
+    "Category": [
+      "Infrastructure",
+      "Refactor",
+      "UX/UI"
+    ],
+    "Effort": "",
+    "Issue": "Monolithic file bottlenecks and lack of profile-based identity customization.",
+    "Fix": "Refactored monolithic admin/trips core into modular engines (GTFSEngine, TripController, etc.). Standardized modal management. Implemented custom Display Name field in Account settings to override default handle.",
+    "Status": "Shipped",
+    "Version": "v1.19.0",
+    "Shipped": "April 8, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Prediction Engine V4 (Logistic Regression) — Shadow Mode",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "High",
+    "Issue": "V3's scoring weights are hand-coded constants chosen by intuition, not learned from actual trip data. The model cannot discover signals it wasn't explicitly told to look for.",
+    "Fix": "Logistic regression classifier trained on 385 trips (Jan–Apr 2026). Features: hour_sin/cos, day_sin/cos, start stop (one-hot). Results: 52.1% top-1 / 74.6% top-3 accuracy on held-out test set. Runs silently alongside V3 on every SMS prediction — logs its guess and grades it when the trip ends. Does not affect user-facing output.",
+    "Status": "Shipped",
+    "Version": "1.20.3",
+    "Shipped": "April 13, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Prediction engine v3.1 — topology filter + LA/SF networks",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "Medium",
+    "Issue": "Topology file existed but was never wired into the prediction engine. End stop predictions could return directionally impossible candidates (e.g. boarding eastbound and predicting a westbound exit). Route alias matching was also missing — 'Line 1', 'Red Line' etc. wouldn't resolve to the correct topology entry. Topology only covered TTC.",
+    "Fix": "Wired topology constraint filter into V3 engine (guessEndStop, guessTopEndStops). Line 1 handled with branch-aware logic using Union as the U-shape turning point. Route aliases added so any common name resolves to the correct line. Stop names canonicalized via stops library before topology lookup — no dual alias maintenance. Expanded topology to cover LA Metro (B/D/A/E), BART (SF trunk), Muni N Judah and T Third. Engine bumped to v3.1. Roadmap updated with end stop prediction for V4/V5 as next ML task.",
+    "Status": "Shipped",
+    "Version": "1.20.7",
+    "Shipped": "April 13, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "V4.1 / V5.1 end stop prediction + V3.1.1 pre-filter fix",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "High",
+    "Issue": "V4 and V5 only predicted route — no end stop prediction. V3's topology filter was applied after voting, meaning the model still scored impossible destinations before they were pruned.",
+    "Fix": "Trained separate end stop classifiers for V4.1 (logistic regression, 39% top-1 / 87% top-3) and V5.1 (XGBoost, 48% top-1 / 96% top-3) on 114 trips, 11 classes. Topology pre-filter applied before softmax/probability read — impossible stops zeroed out before scoring. V3.1.1 also moved filter upstream into candidate trip pool before voting. All three engines now eliminate impossible destinations before prediction, not after.",
+    "Status": "Shipped",
+    "Version": "1.20.8",
+    "Shipped": "April 14, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "TransferEngine, single-line trips, UNLINK, and DB refactor",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "High",
+    "Issue": "Journey linking used a hardcoded 60-minute window (linked two separate 47 trips 31 min apart). Single-line trip start with stop name ('510 Spadina/College North') failed silently. End trip crashed when stop had no lat/lng in Firestore. db.js was a 600-line monolith.",
+    "Fix": "Built TransferEngine (lib/transfer.js) — learns transfer patterns from historical journeys, scores confidence from stop pair, route pair, gap time, and time-of-day signals. Cold start fallback: 15 min. Added parseSingleLineTripFormat for '[route] [stop] [direction]' single-line format. Added UNLINK command (strips journeyId from journey) with confirmation hint in end-trip message. Fixed undefined lat/lng crash in exitLocation/boardingLocation. Backfilled 10 Spadina-area stops from GTFS. Split db.js into db/core, db/rate-limit, db/users, db/trips, db/stops, db/conversations. Added 27 parser tests and 15 TransferEngine tests (npm test).",
+    "Status": "Shipped",
+    "Version": "1.22.0",
+    "Shipped": "April 16, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "NetworkEngine v1 — self-learning transit graph",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "High",
+    "Issue": "topology.json can't represent branchy networks like BART. Needed a system that learns any transit network automatically from rides.",
+    "Fix": "Built NetworkEngine (functions/lib/network.js). Each trip end writes a fromStop → toStop edge with duration to Firestore (networkGraph collection). Used as higher-priority directional filter than topology.json, falling back if fewer than 3 trips on an edge. Route variants pool together. 265/409 trips backfilled. Not yet deployed.",
+    "Status": "In Progress",
+    "Version": "v1.25.0",
+    "Shipped": "April 19, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Stops library uses agencies array for multi-agency support",
+    "Category": [
+      "Infrastructure"
+    ],
+    "Effort": "High",
+    "Issue": "Stop documents had a single agency field, so shared stops like Montgomery Station couldn't resolve correctly for both BART and Muni without duplicate entries.",
+    "Fix": "Stop documents now carry an agencies: [...] array alongside the existing agency field. lookupStop and findMatchingStops query via array-contains. All 191 existing stops migrated automatically. Firestore index updated.",
+    "Status": "Shipped",
+    "Version": "v1.27.0",
+    "Shipped": "May 3, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "V4/V5 models retrained on 560 fresh trips",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "Low",
+    "Issue": "Route and end-stop models were stale, including the 506-fixation bug where unknown stop features caused the model to fall back to time-of-day signal biased toward 506.",
+    "Fix": "Exported 560 trips, ran train_http://routes.py (V4 42.3% top-1, V5 49.5% top-1 on 484 trips/24 classes) and train_http://endstop.py (V4 64.5%, V5 83.9% top-1 on 153 trips). Models copied to functions/lib/. predictionAccuracy counters reset to 0; pre-fix baseline in ml/ACCURACY_http://LOG.md.",
+    "Status": "Shipped",
+    "Version": "1.28.0",
+    "Shipped": "May 4, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "GTFS-correction filter for V4/V5 route predictions",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "Medium",
+    "Issue": "V4/V5 route predictions could guess a route that doesn't actually serve the boarding stop. Previous plan only suppressed these — a better answer exists in the model's own probability distribution.",
+    "Fix": "Added guessTopRoutes(context, n) to both PredictionEngineV4 and V5. handlers.js calls guessTopRoutes(5) and picks the highest-confidence prediction whose route GTFS confirms serves this stop (routesAtStop). Falls back to top prediction if no GTFS data. Confidence floor at 25%. Also added missing agency gate in handleConfirmStart.",
+    "Status": "Shipped",
+    "Version": "1.29.0",
+    "Shipped": "May 4, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Global NetworkGraph dual-write",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "Medium",
+    "Issue": "NetworkEngine stored trip observations per-user only. New users had no graph data for cold-start predictions. Stop-sequence facts are objective (a route's stops don't change per rider) so per-user isolation was unnecessarily slow to learn.",
+    "Fix": "observe() now dual-writes to a global graph doc keyed by global_{agency}_{route} alongside the per-user doc. load() falls back to the global graph when personal graph has no confident edges. Added loadGlobal() for direct access.",
+    "Status": "Shipped",
+    "Version": "",
+    "Shipped": "May 5, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Route + direction-aware stop disambiguation",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "High",
+    "Issue": "Stop name lookups were not route-aware. 'Dufferin / Lawrence' always resolved to stop 2070 (a 929 Lawrence Ave stop) regardless of route, so a 52B trip would get the wrong stop code assigned. Route filter in disambiguation was also a no-op because findMatchingStops never returned a routes field.",
+    "Fix": "lookupStop now accepts an optional route param and prefers candidates confirmed to serve the route. findMatchingStops now returns routes and direction fields. Boarding and end-trip handlers both apply route filter then direction filter before falling back to lookupStop. Disambiguation list shows direction in parentheses. Added stops 5360 (Eastbound) and 5361 (Westbound) for route 52/52B at Dufferin/Lawrence from GTFS. Added stop 2069 (Northbound 929). Fixed stop 2070 routes array (removed 52B, added Southbound direction).",
+    "Status": "Shipped",
+    "Version": "",
+    "Shipped": "May 5, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Wire up public profile page end to end",
+    "Category": [
+      "Fix",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "Public profile flow existed in code but was not actually shippable: no routed page, no Vite build input, username lookup required auth, and the public page did not restrict rendered trips to public ones.",
+    "Fix": "Added a real public page and routing, enabled public username resolution in Firestore rules, added basic settings controls for public profile + username reservation, and constrained the public trip query to isPublic == true.",
+    "Status": "Shipped",
+    "Version": "1.28.1",
+    "Shipped": "May 5, 2026",
+    "Author": "Codex"
+  },
+  {
+    "Name": "Normalize Gemini stats bucketing to requested timezone",
+    "Category": [
+      "AI/Logic",
+      "Fix"
+    ],
+    "Effort": "Medium",
+    "Issue": "Gemini stats mixed server-local date methods with timezone-aware date-window logic, which could skew day-of-week, time-of-day, month, streak, and period counts for trips outside the server timezone.",
+    "Fix": "Centralized timezone date-part extraction in functions/lib/gemini.js and updated aggregateTripStats plus related Gemini query helpers to bucket by the requested timezone consistently. Added test coverage for timezone-sensitive day/date bucketing.",
+    "Status": "Shipped",
+    "Version": "1.28.1",
+    "Shipped": "May 5, 2026",
+    "Author": "Codex"
+  },
+  {
+    "Name": "SMS & Backend Security Hardening",
+    "Category": [
+      "Security"
+    ],
+    "Effort": "Low",
+    "Issue": "Transit Stats was vulnerable to SMS flooding (excessive costs) and several high-severity dependency vulnerabilities (node-forge, path-to-regexp).",
+    "Fix": "Implemented strict 8/min rate limiting, URL spam blocking, and resolved multiple high-severity vulnerabilities in Cloud Functions dependencies.",
+    "Status": "In Progress",
+    "Version": "Unreleased (Phase 1)",
+    "Shipped": "March 31, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Make profile visibility authoritative",
+    "Category": [
+      "Infrastructure",
+      "Refactor"
+    ],
+    "Effort": "Medium",
+    "Issue": "Public profile visibility is currently split between profiles.isPublic and denormalized trips.isPublic, which makes privacy semantics harder to reason about and can drift over time.",
+    "Fix": "Migrate public-page authority to profiles.isPublic so turning public mode off hides the page immediately; keep trip-level visibility only as a cache during migration or remove it afterward.",
+    "Status": "Backlog",
+    "Version": "1.28.1",
+    "Shipped": "May 5, 2026",
+    "Author": "Codex"
+  },
+  {
+    "Name": "Dynamic stale-trip handling",
+    "Category": [
+      "AI/Logic",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "Active-trip age is treated as a hard existence cutoff rather than a stale-state signal, which can hide still-actionable trips from END, FORGOT, DISCARD, and STATUS flows.",
+    "Fix": "Keep any endTime == null trip actionable, but classify unusually old trips as stale and tune the warning threshold by route context, agency, or observed duration patterns instead of a fixed 6-hour cutoff.",
+    "Status": "Backlog",
+    "Version": "1.28.1",
+    "Shipped": "May 5, 2026",
+    "Author": "Codex"
+  }
+]

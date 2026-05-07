@@ -59,7 +59,13 @@ export const Profile = {
                 db.collection('phoneNumbers').where('userId', '==', user.uid).limit(1).get()
             ]);
 
-            this.data = profileDoc.exists ? profileDoc.data() : { isPremium: false };
+            if (profileDoc.exists) {
+                this.data = profileDoc.data();
+            } else {
+                // Auto-initialize profile if it doesn't exist
+                this.data = await this.ensureProfile(user);
+            }
+
             this.phone = !phoneSnap.empty ? phoneSnap.docs[0].id : null;
 
             // Fallback: search by email if userId lookup failed (legacy or email-primary accounts)
@@ -89,6 +95,31 @@ export const Profile = {
             this.syncUI(user.email);
         } catch (err) {
             console.error('Profile load error:', err);
+        }
+    },
+
+    /**
+     * Ensure a profile document exists for the user.
+     */
+    async ensureProfile(user) {
+        const defaultData = {
+            userId: user.uid,
+            displayName: user.displayName || user.email.split('@')[0],
+            defaultAgency: 'TTC',
+            isPremium: false,
+            isAdmin: false,
+            isPublic: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        try {
+            await db.collection('profiles').doc(user.uid).set(defaultData, { merge: true });
+            console.log('Profile initialized for', user.uid);
+            return defaultData;
+        } catch (err) {
+            console.error('Failed to initialize profile:', err);
+            return defaultData;
         }
     },
 
@@ -139,9 +170,23 @@ export const Profile = {
         }
 
         if (publicLinkEl) {
-            publicLinkEl.textContent = this.data?.username
-                ? `${window.location.origin}/public?user=${this.data.username}`
-                : 'Reserve a username to enable sharing.';
+            const baseUrl = window.location.origin === 'http://localhost:5176' ? 'https://transitstats.fyi' : window.location.origin;
+            const url = this.data?.username ? `${baseUrl}/public?user=${this.data.username}` : '';
+            
+            if (url) {
+                publicLinkEl.innerHTML = `
+                    <div class="public-link-box">
+                        <code class="public-url">${url}</code>
+                        <button id="btn-copy-public-link" class="btn btn-sm btn-outline">Copy</button>
+                    </div>
+                `;
+                document.getElementById('btn-copy-public-link')?.addEventListener('click', () => {
+                    navigator.clipboard.writeText(url);
+                    UI.showNotification('Link copied to clipboard!');
+                });
+            } else {
+                publicLinkEl.textContent = 'Reserve a username to enable sharing.';
+            }
         }
     },
 

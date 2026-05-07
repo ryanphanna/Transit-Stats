@@ -1,0 +1,113 @@
+[
+  {
+    "Name": "Premium AI Stats & QoL Release",
+    "Category": [
+      "AI/Logic",
+      "Infrastructure",
+      "UX/UI"
+    ],
+    "Effort": "",
+    "Issue": "Add premium AI Stats feature, user management admin panel, XSS hardening, and resolve security alerts.",
+    "Fix": "Gated AI stats behind premium, introduced users admin panel, refactored alert/confirm to notifications, and bumped dependencies (Vite 8, Vitest 4).",
+    "Status": "Shipped",
+    "Version": "1.9.11",
+    "Shipped": "March 22, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Heatmap & AI Stats Upgrade Release",
+    "Category": [
+      "AI/Logic",
+      "Fix",
+      "Infrastructure",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "ReDoS vulnerabilities #30-32 and Unvalidated Method Call #29.",
+    "Fix": "Implemented GitHub-style Heatmap, upgraded AI stats to Function Calling, and fixed 4 CodeQL security alerts (ReDoS).",
+    "Status": "Shipped",
+    "Version": "1.10.0",
+    "Shipped": "March 24, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Rocket Research Instrument — Initial Build",
+    "Category": [
+      "Infrastructure",
+      "UX/UI"
+    ],
+    "Effort": "High",
+    "Issue": "No high-precision research tool existed for decomposing transit journey time components. Trip data lacked spatial anchoring of dwell/signal/motion events.",
+    "Fix": "Built Rocket: mobile-first research instrument for decomposing transit journeys into dwell, signal, and running time. Web form entry (Route, Direction, Start Stop), end stop captured at finalize, live GPS-anchored event streaming to rocket_trips, auto-sync to Transit Stats trips on completion, 🚀 badge on trip cards, tightened Firestore rules, roadmap and changelog updated, scratch files removed.",
+    "Status": "Shipped",
+    "Version": "",
+    "Shipped": "April 7, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Prediction Engine V4 (Logistic Regression) — Shadow Mode",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "High",
+    "Issue": "V3's scoring weights are hand-coded constants chosen by intuition, not learned from actual trip data. The model cannot discover signals it wasn't explicitly told to look for.",
+    "Fix": "Logistic regression classifier trained on 385 trips (Jan–Apr 2026). Features: hour_sin/cos, day_sin/cos, start stop (one-hot). Results: 52.1% top-1 / 74.6% top-3 accuracy on held-out test set. Runs silently alongside V3 on every SMS prediction — logs its guess and grades it when the trip ends. Does not affect user-facing output.",
+    "Status": "Shipped",
+    "Version": "1.20.3",
+    "Shipped": "April 13, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Prediction engine v3.1 — topology filter + LA/SF networks",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "Medium",
+    "Issue": "Topology file existed but was never wired into the prediction engine. End stop predictions could return directionally impossible candidates (e.g. boarding eastbound and predicting a westbound exit). Route alias matching was also missing — 'Line 1', 'Red Line' etc. wouldn't resolve to the correct topology entry. Topology only covered TTC.",
+    "Fix": "Wired topology constraint filter into V3 engine (guessEndStop, guessTopEndStops). Line 1 handled with branch-aware logic using Union as the U-shape turning point. Route aliases added so any common name resolves to the correct line. Stop names canonicalized via stops library before topology lookup — no dual alias maintenance. Expanded topology to cover LA Metro (B/D/A/E), BART (SF trunk), Muni N Judah and T Third. Engine bumped to v3.1. Roadmap updated with end stop prediction for V4/V5 as next ML task.",
+    "Status": "Shipped",
+    "Version": "1.20.7",
+    "Shipped": "April 13, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "V4.1 / V5.1 end stop prediction + V3.1.1 pre-filter fix",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "High",
+    "Issue": "V4 and V5 only predicted route — no end stop prediction. V3's topology filter was applied after voting, meaning the model still scored impossible destinations before they were pruned.",
+    "Fix": "Trained separate end stop classifiers for V4.1 (logistic regression, 39% top-1 / 87% top-3) and V5.1 (XGBoost, 48% top-1 / 96% top-3) on 114 trips, 11 classes. Topology pre-filter applied before softmax/probability read — impossible stops zeroed out before scoring. V3.1.1 also moved filter upstream into candidate trip pool before voting. All three engines now eliminate impossible destinations before prediction, not after.",
+    "Status": "Shipped",
+    "Version": "1.20.8",
+    "Shipped": "April 14, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "TransferEngine, single-line trips, UNLINK, and DB refactor",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "High",
+    "Issue": "Journey linking used a hardcoded 60-minute window (linked two separate 47 trips 31 min apart). Single-line trip start with stop name ('510 Spadina/College North') failed silently. End trip crashed when stop had no lat/lng in Firestore. db.js was a 600-line monolith.",
+    "Fix": "Built TransferEngine (lib/transfer.js) — learns transfer patterns from historical journeys, scores confidence from stop pair, route pair, gap time, and time-of-day signals. Cold start fallback: 15 min. Added parseSingleLineTripFormat for '[route] [stop] [direction]' single-line format. Added UNLINK command (strips journeyId from journey) with confirmation hint in end-trip message. Fixed undefined lat/lng crash in exitLocation/boardingLocation. Backfilled 10 Spadina-area stops from GTFS. Split db.js into db/core, db/rate-limit, db/users, db/trips, db/stops, db/conversations. Added 27 parser tests and 15 TransferEngine tests (npm test).",
+    "Status": "Shipped",
+    "Version": "1.22.0",
+    "Shipped": "April 16, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Wire up public profile page end to end",
+    "Category": [
+      "Fix",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "Public profile flow existed in code but was not actually shippable: no routed page, no Vite build input, username lookup required auth, and the public page did not restrict rendered trips to public ones.",
+    "Fix": "Added a real public page and routing, enabled public username resolution in Firestore rules, added basic settings controls for public profile + username reservation, and constrained the public trip query to isPublic == true.",
+    "Status": "Shipped",
+    "Version": "1.28.1",
+    "Shipped": "May 5, 2026",
+    "Author": "Codex"
+  }
+]

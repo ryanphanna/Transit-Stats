@@ -1,0 +1,1142 @@
+[
+  {
+    "Name": "Clean Repository Architecture & Git Optimization",
+    "Category": [
+      "Infrastructure",
+      "Refactor"
+    ],
+    "Effort": "Low",
+    "Issue": "Git 'too many active changes' warning; UI freezing during stop library indexing; and layout inconsistencies between Web App views.",
+    "Fix": "Refactored global layout for consistent module alignment; properly ignored legacy directories to resolve Git tracking warnings; and optimized dashboard statistics with increased debounce and batch-based stop indexing.",
+    "Status": "Shipped",
+    "Version": "1.9.1",
+    "Shipped": ""
+  },
+  {
+    "Name": "Security Hardening & Repository Optimization",
+    "Category": [
+      "Fix",
+      "Infrastructure",
+      "Refactor"
+    ],
+    "Effort": "Medium",
+    "Issue": "Exposed credentials in Git history; unmasked PII in server logs; auth-bypass vulnerabilities; and inefficient Firestore read patterns.",
+    "Fix": "Rotated exposed Gemini/Firebase keys; implemented PII-safe logging with phone number masking; normalized email casing across auth flows; and optimized Firestore security rules to eliminate read amplification.",
+    "Status": "Shipped",
+    "Version": "v1.9.1",
+    "Shipped": ""
+  },
+  {
+    "Name": "Security Hardening & Conflict Resolution",
+    "Category": [
+      "Fix",
+      "Infrastructure",
+      "Refactor"
+    ],
+    "Effort": "High",
+    "Issue": "Security vulnerabilities (REDoS), sanitization gaps, and outdated dependencies identified during manual audit and CodeQL scanning; merge conflicts resulting from parallel v1/v2 development.",
+    "Fix": "Patched REDoS vulnerabilities in Cloud Functions and prediction engine; solved complex merge conflicts in admin and main JS modules; addressed CodeQL sanitization alerts for GTFS imports; updated security dependencies (undici, tootallnate) in package.json; and established standardized AI workflow guidelines in Gemini.md.",
+    "Status": "Shipped",
+    "Version": "1.9.2",
+    "Shipped": ""
+  },
+  {
+    "Name": "Security Hardening & GTFS Enrichment",
+    "Category": [
+      "Fix",
+      "Infrastructure",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "REDoS vulnerabilities across SMS parsing engine; potential sanitization bypasses.",
+    "Fix": "Hardened regex patterns in parsing.js to eliminate REDoS vulnerabilities; implemented a recursive HTML/comment stripping algorithm in gemini.js for robust sanitization; patched CSS attribute injection in admin.js; and enforced secure versions for undici/tootallnate via package.json overrides. Consolidated and reordered the project changelog for the 1.9.3 release.",
+    "Status": "Shipped",
+    "Version": "1.9.3",
+    "Shipped": ""
+  },
+  {
+    "Name": "Fix Deployment and Satisfy Module Dependencies",
+    "Category": [
+      "Fix",
+      "Infrastructure",
+      "Refactor"
+    ],
+    "Effort": "Medium",
+    "Issue": "Vite build failing due to missing admin.html and public.html entry points, and missing V2 JS modules.",
+    "Fix": "Simplified vite.config.js, restored functions/ directory to root, and restored missing JS modules from legacy directory.",
+    "Status": "Shipped",
+    "Version": "v1.9.4",
+    "Shipped": "March 18, 2026"
+  },
+  {
+    "Name": "Fix npm ci deployment failures via lockfile sync",
+    "Category": [
+      "Fix",
+      "Infrastructure"
+    ],
+    "Effort": "Low",
+    "Issue": "Deployment failing due to 'npm ci' version mismatch errors. The lock file did not satisfy the specific version overrides required by the project.",
+    "Fix": "Synchronized package-lock.json with package.json dependency overrides for undici and @tootallnate/once. This ensures npm ci works correctly in CI/CD environments.",
+    "Status": "Shipped",
+    "Version": "v1.9.4 (Hotfix)",
+    "Shipped": "March 18, 2026"
+  },
+  {
+    "Name": "Modularization and Stability Refactor (v1.9.5)",
+    "Category": [
+      "Fix",
+      "Infrastructure",
+      "Refactor"
+    ],
+    "Effort": "High",
+    "Issue": "Monolithic files and npm ci deployment failure.",
+    "Fix": "Standardized Node version, modularized main.js and sms.js, synced lockfiles.",
+    "Status": "Shipped",
+    "Version": "1.9.5",
+    "Shipped": ""
+  },
+  {
+    "Name": "Security Hardening & CodeQL Remediation",
+    "Category": [
+      "Fix",
+      "Infrastructure"
+    ],
+    "Effort": "Medium",
+    "Issue": "fast-xml-parser vulnerability (numeric entity expansion bypass), CodeQL alerts (unvalidated dynamic call, ReDoS, incomplete escaping, missing SRI).",
+    "Fix": "Upgraded fast-xml-parser to v5.5.6, fixed dynamic method calls with hasOwnProperty, simplified ReDoS regex, added backslash escaping in admin.js, and implemented SRI for all external scripts.",
+    "Status": "Shipped",
+    "Version": "1.9.5+",
+    "Shipped": "March 18, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Lucide Icon Integration & Changelog Refresher",
+    "Category": [
+      "Fix",
+      "Refactor",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "Inconsistent emoji rendering and a 600-line monolithic changelog were degrading UX and maintainability.",
+    "Fix": "Replaced emojis with Lucide SVGs, implemented dynamic refreshIcons utility, formalized trip initialization, and refactored the project changelogs into a searchable archive.",
+    "Status": "Shipped",
+    "Version": "v1.9.7-dev",
+    "Shipped": "March 20, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Changelog Maintenance & Standardization",
+    "Category": [
+      "Refactor"
+    ],
+    "Effort": "Low",
+    "Issue": "Inconsistent section ordering in changelog entries and hardcoded version numbers in archive links required manual updates every time entries were archived.",
+    "Fix": "Standardized section order (Added → Changed → Removed → Fixed → Security → Performance) across all history and replaced hardcoded version cutoffs with relative file links to remove future maintenance burden.",
+    "Status": "Shipped",
+    "Version": "1.9.7",
+    "Shipped": "March 20, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Stop Library UX Improvements",
+    "Category": [
+      "Fix",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "Accepting a fuzzy-match suggestion required 3 steps (click Link, modal opens with empty search, type and click). Bulk inbox cleanup had no shortcut. admin.js still used alert() and confirm() for save/delete errors.",
+    "Fix": "Added one-click Accept button on inbox items with suggestions. Added bulk Accept all X suggestions button when 2+ suggestions exist, using a batched Firestore write. Replaced all alert()/confirm() in admin.js with UI.showNotification() and a two-step delete button.",
+    "Status": "Shipped",
+    "Version": "Unreleased",
+    "Shipped": "March 21, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Auto-Journey Linking",
+    "Category": [
+      "AI/Logic",
+      "UX/UI"
+    ],
+    "Effort": "High",
+    "Issue": "Consecutive trips connected at the same stop required manual LINK SMS command, adding friction. Discarding a linked active trip left orphaned journeyId on the partner trip. Journey links were invisible in the web UI.",
+    "Fix": "Moved journey detection to handleEndTrip — trips are now auto-linked silently when the previous completed trip ended at the same boarding stop within 60 min. DISCARD now clears journeyId from partner trips. Added journey connector UI in the trip feed showing transfer gap and a break button. LINK command kept as manual fallback.",
+    "Status": "Shipped",
+    "Version": "Unreleased",
+    "Shipped": "March 21, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "UX Polish: Dialogs, Trip Direction, Insights Header, Sparkline Fix",
+    "Category": [
+      "Fix",
+      "UX/UI"
+    ],
+    "Effort": "Low",
+    "Issue": "confirm() for trip deletion survived the 1.9.7 native-dialog cleanup. Insights view rendered as a blank unlabelled card. Trip cards showed no direction, making same-route trips in opposite directions indistinguishable. Sparkline avg line floated above bars due to % resolving against border-box height instead of content area.",
+    "Fix": "Replaced confirm() with two-step button (arms red on first click, deletes on second). Added Commute Highlights card header with medal icon to Insights view. Added abbreviated direction (NB/SB/EB/WB etc.) to trip card meta row. Fixed sparkline avg line coordinate scaling by multiplying avgPct by 40/64.",
+    "Status": "Shipped",
+    "Version": "Unreleased",
+    "Shipped": "March 21, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "XSS Hardening in Trip Feed",
+    "Category": [
+      "Fix"
+    ],
+    "Effort": "Medium",
+    "Issue": "Route names, stop names, and corridor keys in renderTripCard, renderList, and renderHighlights were injected directly into innerHTML without escaping, creating an XSS vector via user-editable trip data.",
+    "Fix": "Wrapped all user-supplied strings with Utils.hide() before innerHTML injection across all three render functions. Utils.hide() already existed but was unused in the feed.",
+    "Status": "Shipped",
+    "Version": "Unreleased",
+    "Shipped": "March 21, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "SMS Message Polish & Stop Name Normalization",
+    "Category": [
+      "Fix",
+      "Refactor",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "SMS replies had emojis, a redundant \"Stop\" prefix, no blank line before journey notes, lowercase slash intersections (Spadina/king), inconsistent slash spacing (Spadina / Nassau vs Spadina/Nassau), route variants stored lowercase (510a), and a 4-command instruction tail on every trip start.",
+    "Fix": "Removed emojis and \"Stop\" prefix. Added blank line before journey note. Fixed toTitleCase to normalize spaces around slashes and capitalize each part. Applied toTitleCase in getStopDisplay for existing data. Added normalizeRoute helper applied at parse time and handleTripLog entry so routes store correctly (510A) from any input source. Shortened instruction tail to \"END [stop] to finish. INFO for help.\". getRouteDisplay now delegates to normalizeRoute.",
+    "Status": "Shipped",
+    "Version": "Unreleased",
+    "Shipped": "March 22, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Consolidation Panel — surface and merge stop name variants in admin view",
+    "Category": [
+      "AI/Logic",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "Stop name variants (e.g. 'Spadina/Nassau', 'Spadina & Nassau', 'Spadina / Nassau') accumulated in Firestore with no way to identify or unify them from the admin view.",
+    "Fix": "Added Consolidation Panel to admin view. Scans trips, groups stop name variants by route + direction using canonicalizeForMatch, picks the most frequent variant as canonical, and shows a Merge button that batch-updates all variant trips in Firestore.",
+    "Status": "Shipped",
+    "Version": "1.9.9",
+    "Shipped": "March 22, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "SMS message polish — remove emojis, strip Stop prefix, shorten instruction tail",
+    "Category": [
+      "UX/UI"
+    ],
+    "Effort": "Low",
+    "Issue": "SMS replies contained emojis (✅, ❌, ⚠️, 📊), a redundant 'Stop' prefix before stop names, no blank line before the journey note, and a verbose four-command instruction tail.",
+    "Fix": "Removed all emojis from sendSmsReply calls. Dropped 'Stop' prefix from stop name displays. Added blank line before auto-journey note. Condensed instruction tail to 'END [stop] to finish. INFO for help.'",
+    "Status": "Shipped",
+    "Version": "1.9.9",
+    "Shipped": "March 22, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Normalization fixes — slash casing, stop display, route letter casing at storage and display",
+    "Category": [
+      "Fix",
+      "Refactor"
+    ],
+    "Effort": "Medium",
+    "Issue": "toTitleCase split only on spaces, missing slash-separated intersection parts. getStopDisplay returned raw stored values without normalization. Route variant letters (e.g. 510a) were lowercased by toTitleCase at parse time. Client normalizeIntersectionStop output used ' / ' spacing, mismatching backend's no-space format.",
+    "Fix": "toTitleCase now strips spaces around / before processing and capitalizes each slash-delimited part. getStopDisplay applies toTitleCase on all return paths. Added normalizeRoute helper (uppercases trailing letters) applied in parseMultiLineTripFormat and handleTripLog entry. Added canonicalizeForMatch for comparison-only normalization client-side.",
+    "Status": "Shipped",
+    "Version": "1.9.9",
+    "Shipped": "March 22, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Add test suite — parsing, utils, prediction engine",
+    "Category": [
+      "Infrastructure"
+    ],
+    "Effort": "High",
+    "Issue": "Zero test coverage across all modules. No way to catch regressions in parsing logic, utility functions, or prediction scoring.",
+    "Fix": "137 passing Vitest tests: parsing.test.js (40), utils.test.js (37), predict.test.js (60). Covers all 5 parsing functions, all 9 utility exports, and full prediction engine internals including scoring methods and guess/guessEndStop integration.",
+    "Status": "Shipped",
+    "Version": "1.9.10",
+    "Shipped": "March 22, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Premium AI Stats & QoL Release",
+    "Category": [
+      "AI/Logic",
+      "Infrastructure",
+      "UX/UI"
+    ],
+    "Effort": "",
+    "Issue": "Add premium AI Stats feature, user management admin panel, XSS hardening, and resolve security alerts.",
+    "Fix": "Gated AI stats behind premium, introduced users admin panel, refactored alert/confirm to notifications, and bumped dependencies (Vite 8, Vitest 4).",
+    "Status": "Shipped",
+    "Version": "1.9.11",
+    "Shipped": "March 22, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "SMS Logic Refactor & AI Stats Enhancement",
+    "Category": [
+      "AI/Logic",
+      "Fix",
+      "Refactor"
+    ],
+    "Effort": "Medium",
+    "Issue": "Redundant SMS suggestions, numerous Cloud Function linting violations, and AI query context limitations.",
+    "Fix": "Removed redundant SMS prompts, resolved 22+ lint errors in handlers.js/predict.js, and expanded AI context with full stop index.",
+    "Status": "Shipped",
+    "Version": "[Unreleased]",
+    "Shipped": "March 23, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Heatmap & AI Stats Upgrade Release",
+    "Category": [
+      "AI/Logic",
+      "Fix",
+      "Infrastructure",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "ReDoS vulnerabilities #30-32 and Unvalidated Method Call #29.",
+    "Fix": "Implemented GitHub-style Heatmap, upgraded AI stats to Function Calling, and fixed 4 CodeQL security alerts (ReDoS).",
+    "Status": "Shipped",
+    "Version": "1.10.0",
+    "Shipped": "March 24, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Fix SMS query classification + improve AI query context",
+    "Category": [
+      "AI/Logic",
+      "Fix"
+    ],
+    "Effort": "Medium",
+    "Issue": "Natural-language SMS queries failing end-to-end: misclassified as OTHER by Gemini, invalid API key, user not marked premium, Gemini returning window size as answer, all AI tools failing due to missing Firestore index, no query logging.",
+    "Fix": "1) Added QUERY intent examples to parseWithGemini prompt. 2) Added word-count fallback in handleAIIntent — 4+ word sentences that pass all trip parsers route to handleQuery directly. 3) Marked user as isPremium in Firestore (was locked out of own app). 4) Fixed invalid GEMINI_API_KEY secret (v5). 5) Fixed Gemini returning http://stats.total (window size = 200) as the answer to date-scoped questions — labeled it clearly in prompt. 6) Added userId ASC + endTime ASC Firestore index — all AI query tools were silently failing with FAILED_PRECONDITION. 7) Added dayOfWeek breakdown to aggregateTripStats + get_day_of_week_stats all-time tool. 8) Exposed windowStart/windowEnd in query prompt. 9) Improved tool descriptions. 10) Added fire-and-forget queryLogs collection.",
+    "Status": "Shipped",
+    "Version": "Unreleased (post-1.10.0)",
+    "Shipped": "March 24, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Hardened Login Flow & Boot Sequence",
+    "Category": [
+      "Fix",
+      "Refactor",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "Continue button unresponsive on production; app failing to initialize due to DOMContentLoaded race condition.",
+    "Fix": "Robust readyState check for boot; cached email persistence for Chrome focus-shift clearing; proactive mousedown capture.",
+    "Status": "Shipped",
+    "Version": "1.13.0",
+    "Shipped": "March 28, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Login Flow — Silent Module Crash & Auth Refactor",
+    "Category": [
+      "Fix",
+      "Refactor"
+    ],
+    "Effort": "High",
+    "Issue": "setTheme() was called at module-level before initDOM(), causing DOM.modals.themeLight to throw a TypeError on undefined. This silently crashed the entire JS module — zero event listeners were attached (Continue button, Sign In, all nav). Secondary issues: .hidden CSS class was never defined, breaking all step transitions. Trips._readyPromise chain was guarded at boot-time when _readyPromise is always null, so Stats/Map/RouteTracker never initialized after login.",
+    "Fix": "Moved setTheme() inside init() after initDOM(). Added .hidden { display: none !important } to main.css. Added optional chaining to DOM.modals?.themeLight guard in setTheme(). Moved Trips._readyPromise.then() chain into setupAuthObserver() after Trips.init(). Removed redundant inline HTML onclick/oninput handlers. Removed non-existent refreshApp() calls.",
+    "Status": "Shipped",
+    "Version": "Unreleased",
+    "Shipped": "March 28, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Harden Auth Flow and Resolve Boot Sequence Race Conditions",
+    "Category": [
+      "Fix",
+      "Refactor",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "JS crash on module load (setTheme before DOM), missing .hidden JS utility class, and race condition in profile/trips initialization after login.",
+    "Fix": "Moved setTheme to init phase with optional chaining, added missing .hidden CSS, and relocated Trips initialization into the auth observer logic.",
+    "Status": "Shipped",
+    "Version": "1.14.0",
+    "Shipped": "March 30, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Auth Button Stuck State Fix",
+    "Category": [
+      "Fix",
+      "UX/UI"
+    ],
+    "Effort": "Low",
+    "Issue": "Authentication buttons (Magic Link, Sign In) remained disabled and stuck in the 'Sending...' or 'Signing in...' states after successfully completing the action.",
+    "Fix": "Enforced button state reset using finally blocks in authentication event listeners to ensure buttons return to active states regardless of outcome.",
+    "Status": "Shipped",
+    "Version": "1.14.1",
+    "Shipped": "March 31, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "User Preferences UI & SMS STATS Refinement",
+    "Category": [
+      "Refactor",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "Users had no way to configure personal preferences (transit agency, beta features) in the web app. STATS command lacked granularity.",
+    "Fix": "Implemented Profile module and expanded Settings modal. Upgraded handleStatsCommand with weekly/monthly buckets.",
+    "Status": "Shipped",
+    "Version": "1.15.0-unreleased",
+    "Shipped": "March 31, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Rocket Research Instrument — Initial Build",
+    "Category": [
+      "Infrastructure",
+      "UX/UI"
+    ],
+    "Effort": "High",
+    "Issue": "No high-precision research tool existed for decomposing transit journey time components. Trip data lacked spatial anchoring of dwell/signal/motion events.",
+    "Fix": "Built Rocket: mobile-first research instrument for decomposing transit journeys into dwell, signal, and running time. Web form entry (Route, Direction, Start Stop), end stop captured at finalize, live GPS-anchored event streaming to rocket_trips, auto-sync to Transit Stats trips on completion, 🚀 badge on trip cards, tightened Firestore rules, roadmap and changelog updated, scratch files removed.",
+    "Status": "Shipped",
+    "Version": "",
+    "Shipped": "April 7, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Hardening Rocket Security & UI Overhaul",
+    "Category": [
+      "Security",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "Rocket was accessible without authentication, leading to unverified data submission and UI inconsistency with the main app.",
+    "Fix": "Implemented auth barrier and standardized the UI to match the main Transit Stats 'Atlas' aesthetic. Removed anonymous guest fallback.",
+    "Status": "Shipped",
+    "Version": "1.17.5-dev",
+    "Shipped": "April 7, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Restore Stop Name Normalization Formatting",
+    "Category": [
+      "AI/Logic",
+      "Fix"
+    ],
+    "Effort": "",
+    "Issue": "Stop names were being normalized to \"A/B\" instead of \"A / B\", causing library mismatches.",
+    "Fix": "Restored spaces around slashes in stop names to maintain library linking.",
+    "Status": "Shipped",
+    "Version": "",
+    "Shipped": "April 7, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Fix Admin Users Page Loading",
+    "Category": [
+      "Fix",
+      "Security"
+    ],
+    "Effort": "Low",
+    "Issue": "Users page showed \"Failed to load users\" for admins due to strict security rules blocking collection listing.",
+    "Fix": "Updated firestore.rules to allow 'list' and 'get' on profiles and phoneNumbers for users with isAdmin: true in allowedUsers.",
+    "Status": "Shipped",
+    "Version": "1.18.0+",
+    "Shipped": "April 8, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Map Performance Optimization",
+    "Category": [
+      "Refactor",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "Map page caused browser to freeze/crash on large datasets due to linear stop coordinate lookups and marker rendering overhead.",
+    "Fix": "Implemented O(1) stop indexing Map and Leaflet.markercluster integration. Reduced complexity from O(N*M) to O(N).",
+    "Status": "Shipped",
+    "Version": "1.18.0+",
+    "Shipped": "April 8, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Reduce Trip Timeout to 6h",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "Low",
+    "Issue": "12-hour active trip window was too long, causing stale trips to stay on the dashboard for users who forgot to end them.",
+    "Fix": "Reduced trip timeout from 12 hours to 6 hours in js/trips.js and functions/lib/db.js.",
+    "Status": "Shipped",
+    "Version": "1.18.0+",
+    "Shipped": "April 8, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Dashboard Performance & Stability Overhaul (6hr Rule, Map Cluster, Rocket UI)",
+    "Category": [
+      "AI/Logic",
+      "Fix",
+      "UX/UI"
+    ],
+    "Effort": "",
+    "Issue": "Map page freezing, admin users failed to load, stale 'ghost' trips on dashboard, 'not linked' phone status in settings, and inconsistent Rocket UI branding.",
+    "Fix": "Implemented 6-hour active trip window across both frontend and backend. Optimized MapEngine performance with O(1) lookups and Leaflet.markercluster. Fixed admin profile security rules and settings modal phone linking reliability. Overhauled Rocket UI with premium instrumentation design.",
+    "Status": "Shipped",
+    "Version": "",
+    "Shipped": "",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Settings UI/UX Overhaul & Technical Dashboard",
+    "Category": [
+      "UX/UI"
+    ],
+    "Effort": "",
+    "Issue": "Settings panel felt disjointed and lacked the technical/premium aesthetic of the new Rocket instrument. Admin insights were plain text and hard to scan.",
+    "Fix": "Redesigned settings panel with iconic card-based grouping. Implemented technical telemetry dashboard for admin stats with animated progress bars. Hardened phone link status visibility.",
+    "Status": "Shipped",
+    "Version": "",
+    "Shipped": "",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Modularization & Personalization Release",
+    "Category": [
+      "Infrastructure",
+      "Refactor",
+      "UX/UI"
+    ],
+    "Effort": "",
+    "Issue": "Monolithic file bottlenecks and lack of profile-based identity customization.",
+    "Fix": "Refactored monolithic admin/trips core into modular engines (GTFSEngine, TripController, etc.). Standardized modal management. Implemented custom Display Name field in Account settings to override default handle.",
+    "Status": "Shipped",
+    "Version": "v1.19.0",
+    "Shipped": "April 8, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Security Hardening & Version Correction",
+    "Category": [
+      "Fix",
+      "Security"
+    ],
+    "Effort": "",
+    "Issue": "CodeQL Alerts #33 (Insecure Randomness) and #35 (DOM XSS). Incorrect retroactive version logging.",
+    "Fix": "Upgraded Rocket session IDs to use crypto.getRandomValues(). Refactored GTFS preview to use textContent/createElement instead of innerHTML. Corrected release history and versioning metadata.",
+    "Status": "Shipped",
+    "Version": "v1.19.1",
+    "Shipped": "April 8, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Stability Patch",
+    "Category": [
+      "Fix",
+      "UX/UI"
+    ],
+    "Effort": "",
+    "Issue": "Map zero-height rendering fail, Admin triage data mismatch, and unresponsive Rocket control surface.",
+    "Fix": "Added missing map/header CSS, fixed Admin/Trips window scope mismatch, and implemented missing Rocket instrument listeners.",
+    "Status": "Shipped",
+    "Version": "1.19.2",
+    "Shipped": "",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Application-Wide Security Hardening",
+    "Category": [
+      "Fix",
+      "Security"
+    ],
+    "Effort": "",
+    "Issue": "Detected multiple un-sanitized innerHTML injections in dashboard feed and metrics. Rocket session recovery loop failing due to truthy default checks.",
+    "Fix": "Universal deployment of Utils.hide() and textContent across all trip rendering engines. Corrected Rocket state filter logic in session recovery.",
+    "Status": "Shipped",
+    "Version": "1.19.2",
+    "Shipped": "",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Prediction Engine V4 (Logistic Regression) — Shadow Mode",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "High",
+    "Issue": "V3's scoring weights are hand-coded constants chosen by intuition, not learned from actual trip data. The model cannot discover signals it wasn't explicitly told to look for.",
+    "Fix": "Logistic regression classifier trained on 385 trips (Jan–Apr 2026). Features: hour_sin/cos, day_sin/cos, start stop (one-hot). Results: 52.1% top-1 / 74.6% top-3 accuracy on held-out test set. Runs silently alongside V3 on every SMS prediction — logs its guess and grades it when the trip ends. Does not affect user-facing output.",
+    "Status": "Shipped",
+    "Version": "1.20.3",
+    "Shipped": "April 13, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Prediction engine v3.1 — topology filter + LA/SF networks",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "Medium",
+    "Issue": "Topology file existed but was never wired into the prediction engine. End stop predictions could return directionally impossible candidates (e.g. boarding eastbound and predicting a westbound exit). Route alias matching was also missing — 'Line 1', 'Red Line' etc. wouldn't resolve to the correct topology entry. Topology only covered TTC.",
+    "Fix": "Wired topology constraint filter into V3 engine (guessEndStop, guessTopEndStops). Line 1 handled with branch-aware logic using Union as the U-shape turning point. Route aliases added so any common name resolves to the correct line. Stop names canonicalized via stops library before topology lookup — no dual alias maintenance. Expanded topology to cover LA Metro (B/D/A/E), BART (SF trunk), Muni N Judah and T Third. Engine bumped to v3.1. Roadmap updated with end stop prediction for V4/V5 as next ML task.",
+    "Status": "Shipped",
+    "Version": "1.20.7",
+    "Shipped": "April 13, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Settings full page + map/insights/users bug fixes",
+    "Category": [
+      "Fix"
+    ],
+    "Effort": "Medium",
+    "Issue": "Multiple bugs: map page froze (Trips.allTrips undefined), insights stuck loading (computeHighlights never called), users page crashed (Promise.all killed by phone query failure), prediction card shown to all users, settings was a modal.",
+    "Fix": "Settings moved to full /settings page. Map fixed (TripController.allTrips). Insights fixed (renderHighlights wired up). Users fixed (profiles load independently, phones best-effort). Prediction card removed from dashboard — predictions stay SMS-only.",
+    "Status": "Shipped",
+    "Version": "1.20.6",
+    "Shipped": "April 13, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Admin inbox rebuilt — per-trip linking to normalized stops",
+    "Category": [
+      "UX/UI"
+    ],
+    "Effort": "High",
+    "Issue": "Admin inbox grouped unrecognized stops by raw string, making it impossible to distinguish NB vs SB stops with the same name (e.g. Spadina/Nassau). Linking a string to a stop affected all trips with that string regardless of direction.",
+    "Fix": "Rebuilt inbox to show individual trips. Each trip can be linked directly to the correct canonical stop. Linking updates that trip's stop fields, adds the raw string as an alias on the stop, and adds route + direction via arrayUnion — so the same variant never appears again. SMS auto-reply already uses canonical name via alias lookup.",
+    "Status": "Shipped",
+    "Version": "1.20.6",
+    "Shipped": "April 13, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "V4.1 / V5.1 end stop prediction + V3.1.1 pre-filter fix",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "High",
+    "Issue": "V4 and V5 only predicted route — no end stop prediction. V3's topology filter was applied after voting, meaning the model still scored impossible destinations before they were pruned.",
+    "Fix": "Trained separate end stop classifiers for V4.1 (logistic regression, 39% top-1 / 87% top-3) and V5.1 (XGBoost, 48% top-1 / 96% top-3) on 114 trips, 11 classes. Topology pre-filter applied before softmax/probability read — impossible stops zeroed out before scoring. V3.1.1 also moved filter upstream into candidate trip pool before voting. All three engines now eliminate impossible destinations before prediction, not after.",
+    "Status": "Shipped",
+    "Version": "1.20.8",
+    "Shipped": "April 14, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Fix auth logout on transient Firestore error",
+    "Category": [
+      "Fix"
+    ],
+    "Effort": "Low",
+    "Issue": "checkWhitelist returned allowed: false on any Firestore error, causing auth-guard.js to sign users out on transient network errors at page load.",
+    "Fix": "Added retry logic to checkWhitelist — retries the Firestore call once before returning allowed: false. Also added auth pattern note to http://CLAUDE.md to prevent regression.",
+    "Status": "Shipped",
+    "Version": "1.20.9",
+    "Shipped": "April 13, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "CSS refactor, admin inbox redesign, and header fixes",
+    "Category": [
+      "Refactor"
+    ],
+    "Effort": "Medium",
+    "Issue": "Unreleased CSS refactor and admin inbox work was committed but never deployed. Header logo was not left-justified due to grid layout. Stops/Users nav items were admin-only.",
+    "Fix": "Split main.css into 11 style modules. Changed header layout to flexbox so logo is flush left. Made Stops/Users visible to all users. Shipped admin inbox redesign (grouped by stop, Accept All) and admin controller cleanup.",
+    "Status": "Shipped",
+    "Version": "1.20.10",
+    "Shipped": "April 15, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "TransferEngine, single-line trips, UNLINK, and DB refactor",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "High",
+    "Issue": "Journey linking used a hardcoded 60-minute window (linked two separate 47 trips 31 min apart). Single-line trip start with stop name ('510 Spadina/College North') failed silently. End trip crashed when stop had no lat/lng in Firestore. db.js was a 600-line monolith.",
+    "Fix": "Built TransferEngine (lib/transfer.js) — learns transfer patterns from historical journeys, scores confidence from stop pair, route pair, gap time, and time-of-day signals. Cold start fallback: 15 min. Added parseSingleLineTripFormat for '[route] [stop] [direction]' single-line format. Added UNLINK command (strips journeyId from journey) with confirmation hint in end-trip message. Fixed undefined lat/lng crash in exitLocation/boardingLocation. Backfilled 10 Spadina-area stops from GTFS. Split db.js into db/core, db/rate-limit, db/users, db/trips, db/stops, db/conversations. Added 27 parser tests and 15 TransferEngine tests (npm test).",
+    "Status": "Shipped",
+    "Version": "1.22.0",
+    "Shipped": "April 16, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Disambiguation timing + Unknown stop display fix",
+    "Category": [
+      "Fix"
+    ],
+    "Effort": "Low",
+    "Issue": "Trip didn't start until stop was picked (wrong boarding time). STATUS showed 'from Unknown' because startStopName was null during pending window.",
+    "Fix": "Trip starts immediately with raw stop name as placeholder. Canonical name/code written when user picks. STATUS now shows typed stop name during pending window.",
+    "Status": "Shipped",
+    "Version": "1.24.0",
+    "Shipped": "April 20, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Direction bleeding fix — V3 topology filter",
+    "Category": [
+      "Fix"
+    ],
+    "Effort": "Medium",
+    "Issue": "_preFilterCandidatesByTopology fell back to unfiltered candidates when topology produced zero results — eastbound trips showed westbound stops",
+    "Fix": "Return empty rather than unfiltered when topology fully covers route and direction. Union Station exempt — either branch valid from there.",
+    "Status": "Shipped",
+    "Version": "1.24.0",
+    "Shipped": "April 20, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Route-aware stop disambiguation + automatic route back-write",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "Medium",
+    "Issue": "Disambiguation prompted even when only one candidate stop served the trip's route (e.g. Queen's Park on Line 1 vs 506)",
+    "Fix": "Candidates filtered by route before prompting — auto-selects if only one remains. Stops learn routes automatically via background write on every successful trip start.",
+    "Status": "Shipped",
+    "Version": "1.24.0",
+    "Shipped": "April 20, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "NetworkEngine v1 — self-learning transit graph",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "High",
+    "Issue": "topology.json can't represent branchy networks like BART. Needed a system that learns any transit network automatically from rides.",
+    "Fix": "Built NetworkEngine (functions/lib/network.js). Each trip end writes a fromStop → toStop edge with duration to Firestore (networkGraph collection). Used as higher-priority directional filter than topology.json, falling back if fewer than 3 trips on an edge. Route variants pool together. 265/409 trips backfilled. Not yet deployed.",
+    "Status": "In Progress",
+    "Version": "v1.25.0",
+    "Shipped": "April 19, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Mass stop normalization — 121 stops, 30 trip corrections",
+    "Category": [
+      "Infrastructure"
+    ],
+    "Effort": "High",
+    "Issue": "144+ unresolved trips excluded from predictions and network graph due to unmatched raw stop names",
+    "Fix": "121 stops created across TTC, GO Transit, MiWay, YRT, Oakville Transit with variant aliases. 30 historical trips corrected for wrong stop names, directions, or agencies. 160 network graph edges added via topup.",
+    "Status": "Shipped",
+    "Version": "1.24.0",
+    "Shipped": "April 20, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Twilio webhook idempotency — deduplicate retries via MessageSid",
+    "Category": [
+      "Fix"
+    ],
+    "Effort": "Low",
+    "Issue": "Twilio retries webhook if server doesn't respond within 5s, causing duplicate trip creation with garbled stop names (confirmed April 1 incident)",
+    "Fix": "Atomic Firestore create on processedMessages/{MessageSid} before dispatch. Retries see ALREADY_EXISTS and return empty TwiML. Body, from, and processedAt stored permanently for audit trail.",
+    "Status": "Shipped",
+    "Version": "1.24.0",
+    "Shipped": "April 20, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Ride-count recency decay replaces calendar-time decay",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "Medium",
+    "Issue": "Calendar-time decay penalized TTC predictions during travel in other cities, even though Toronto commute patterns hadn't changed",
+    "Fix": "Decay now measured by same-agency ride count per user. DECAY_HALFLIFE_RIDES=100. Being in LA/SF doesn't age TTC predictions. O(n) precompute pass before voting loop.",
+    "Status": "Shipped",
+    "Version": "1.24.0",
+    "Shipped": "April 20, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "SMS reply bug — all messages silently dropped",
+    "Category": [
+      "Fix"
+    ],
+    "Effort": "Medium",
+    "Issue": "b385882 added a processedMessages/{MessageSid} write to sms.js before calling dispatch(). checkIdempotency() in the dispatcher already does the same atomic write — every message got ALREADY_EXISTS and was dropped with no reply.",
+    "Fix": "Removed the redundant write from sms.js. dispatcher.js checkIdempotency() is now the sole owner of MessageSid deduplication.",
+    "Status": "Shipped",
+    "Version": "1.25.0",
+    "Shipped": "April 21, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "LA Metro G Line + J Line added to topology",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "Low",
+    "Issue": "G Line (Orange BRT) and J Line (Silver BRT) missing from topology.json — no direction filtering for either line.",
+    "Fix": "Added both lines with full stop sequences verified against Wikipedia. G Line: 17 stops North Hollywood→Chatsworth. J Line: 13 stops El Monte→Harbor Gateway TC.",
+    "Status": "Shipped",
+    "Version": "1.25.0",
+    "Shipped": "April 21, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "510 trip stop name backfill from GTFS",
+    "Category": [
+      "Fix"
+    ],
+    "Effort": "Low",
+    "Issue": "10 trips on routes 510/510a/510b had null startStopName or endStopName despite valid stop codes, causing Unknown to appear in STATUS and stats.",
+    "Fix": "Backfilled GTFS canonical names using startStopCode/endStopCode. Corrected trips tagged with corrected: ['startStopName'] or corrected: ['endStopName'] in Firestore for auditability.",
+    "Status": "Shipped",
+    "Version": "1.25.0",
+    "Shipped": "April 21, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "STATS — Top route on its own line",
+    "Category": [
+      "UX/UI"
+    ],
+    "Effort": "Low",
+    "Issue": "Top route was appended inline to the stats summary, hard to read.",
+    "Fix": "Now a separate paragraph: 'Top route: 1 (39×)'. Also replaced the word 'Ridden'.",
+    "Status": "Shipped",
+    "Version": "v1.25.0",
+    "Shipped": "April 19, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Stop disambiguation starts trip immediately",
+    "Category": [
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "When a stop name was ambiguous, the disambiguation prompt was delayed 3+ minutes. Ryan boarded the 510 and the trip didn't start until disambiguation resolved.",
+    "Fix": "When a stop name is ambiguous and there's no active trip conflict, the trip now starts at send time with a null start stop. User gets an immediate confirmation with the disambiguation prompt. If they never reply, the trip counts for time-on-transit but not origin stop stats — same outcome as FORGOT.",
+    "Status": "Shipped",
+    "Version": "v1.25.0",
+    "Shipped": "April 19, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Prediction direction fixes — direction bleeding and Union Station pivot",
+    "Category": [
+      "Fix"
+    ],
+    "Effort": "Medium",
+    "Issue": "Direction bleeding: topology filters fell back to unfiltered candidates when producing zero results — eastbound from Spadina showed westbound stops. Union Station incorrectly filtered to one branch.",
+    "Fix": "Now returns empty (no prediction) rather than wrong-direction predictions when topology fully covers the route. Boarding at Union Station now skips topology filtering — either branch (Yonge or University) is valid from there.",
+    "Status": "Shipped",
+    "Version": "v1.25.0",
+    "Shipped": "April 19, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "toTitleCase capitalizing ordinal suffixes",
+    "Category": [
+      "Fix"
+    ],
+    "Effort": "Low",
+    "Issue": "Letters immediately following digits (e.g. '9th') were being uppercased to '9Th' by toTitleCase.",
+    "Fix": "Fixed by skipping capitalization when the non-letter prefix ends with a digit.",
+    "Status": "Shipped",
+    "Version": "v1.25.1",
+    "Shipped": "May 2, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Explicit agency ignored when it matches default agency",
+    "Category": [
+      "Fix"
+    ],
+    "Effort": "Medium",
+    "Issue": "agencyExplicit was derived from agency !== defaultAgency, so typing 'TTC' when TTC is your default was treated as no agency specified. The parser then fell through to last-trip agency inference, picking the wrong agency (e.g. SamTrans after a Bay Area trip).",
+    "Fix": "Fixed by tracking whether the user actually typed an agency line, independent of whether it matches the default.",
+    "Status": "Shipped",
+    "Version": "v1.25.1",
+    "Shipped": "May 2, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Cross-agency stop fallback scoped to same city",
+    "Category": [
+      "Fix"
+    ],
+    "Effort": "Low",
+    "Issue": "_findAndExpandStop fallback searched the entire stops collection globally, risking a wrong-city match (e.g. Toronto Union Station resolving for a Muni trip).",
+    "Fix": "Fallback now filters to stops whose home agency shares the same city per AGENCY_CITY. Agencies not in AGENCY_CITY skip the fallback entirely rather than risk a bad match.",
+    "Status": "Shipped",
+    "Version": "v1.27.1",
+    "Shipped": "May 3, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Retroactive verification pass (retro-verify.js)",
+    "Category": [
+      "Infrastructure"
+    ],
+    "Effort": "Medium",
+    "Issue": "Trips logged before stop names were reliably resolved had verified: false even though the stop names could now be matched against the current library.",
+    "Fix": "Admin script Tools/retro-verify.js scans all completed unverified trips and flips verified: true when start/end stop names now resolve. Supports both legacy agency field and new agencies array. First run verified 311 trips; 90 remain unresolved. Safe to re-run as library grows.",
+    "Status": "Shipped",
+    "Version": "",
+    "Shipped": "May 3, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Unknown agencies accepted on line 3/4 without pre-registration",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "Medium",
+    "Issue": "Only agencies listed in KNOWN_AGENCIES were recognized — typing 'Barrie Transit' on line 4 was silently ignored and fell back to default agency inference.",
+    "Fix": "Line 4 is now always treated as an agency. Line 3 is treated as an agency if it doesn't resolve to a recognized direction word.",
+    "Status": "Shipped",
+    "Version": "v1.26.0",
+    "Shipped": "May 2, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "MTS, SMART, Golden Gate Transit, Amtrak, LA DOT not recognized as agencies",
+    "Category": [
+      "Fix"
+    ],
+    "Effort": "Low",
+    "Issue": "These agency names and their variants were missing from AGENCY_CANONICAL and KNOWN_AGENCIES, causing explicit agency lines to be silently ignored and the parser to fall back to last-trip agency inference.",
+    "Fix": "Added MTS, SMART, Golden Gate Transit, Amtrak, and LA DOT (and variants) to AGENCY_CANONICAL and KNOWN_AGENCIES in constants.js.",
+    "Status": "Shipped",
+    "Version": "v1.25.1",
+    "Shipped": "May 2, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Stop agencies array self-expands from trip data",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "Low",
+    "Issue": "Shared stops (e.g. Union Station, Montgomery Station) needed manual maintenance to add each agency that uses them.",
+    "Fix": "When a stop is found via cross-agency fallback and the trip's agency isn't yet in the stop's agencies array, the array is updated automatically. Shared stops grow their agency list organically from rides.",
+    "Status": "Shipped",
+    "Version": "v1.27.0",
+    "Shipped": "May 3, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Agency disambiguation asks by city, not agency name",
+    "Category": [
+      "UX/UI"
+    ],
+    "Effort": "Low",
+    "Issue": "Disambiguation prompt showed agency names (e.g. 'LA Metro' vs 'TTC'), which is less intuitive than city names for shared stops like Union Station.",
+    "Fix": "Prompt now reads by city: 'Which Union Station? 1. Los Angeles 2. Toronto'. Falls back to agency name when both options are in the same city. City map lives in AGENCY_CITY in constants.js.",
+    "Status": "Shipped",
+    "Version": "v1.26.0",
+    "Shipped": "May 2, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Shared transit hub stops not found under operator agency",
+    "Category": [
+      "Fix"
+    ],
+    "Effort": "Medium",
+    "Issue": "lookupStop failed for stops like Union Station when the trip's agency wasn't the one that owns the stop in the library (e.g. DASH/Foothill/Metrolink trips boarding at LA Metro's Union Station entry).",
+    "Fix": "lookupStop now falls back to a cross-agency search when a stop name isn't found in the specified agency's library.",
+    "Status": "Shipped",
+    "Version": "v1.26.0",
+    "Shipped": "May 2, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Stops library uses agencies array for multi-agency support",
+    "Category": [
+      "Infrastructure"
+    ],
+    "Effort": "High",
+    "Issue": "Stop documents had a single agency field, so shared stops like Montgomery Station couldn't resolve correctly for both BART and Muni without duplicate entries.",
+    "Fix": "Stop documents now carry an agencies: [...] array alongside the existing agency field. lookupStop and findMatchingStops query via array-contains. All 191 existing stops migrated automatically. Firestore index updated.",
+    "Status": "Shipped",
+    "Version": "v1.27.0",
+    "Shipped": "May 3, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "SMS Transit Achievements",
+    "Category": [
+      "AI/Logic",
+      "UX/UI"
+    ],
+    "Effort": "",
+    "Issue": "User wants basic achievements (e.g. 50th trip) acknowledged over SMS.",
+    "Fix": "Implemented SMS-based celebrations for trip milestones using Firestore count aggregation.",
+    "Status": "Shipped",
+    "Version": "1.27.2",
+    "Shipped": "",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "MMS Stop Code Extraction Fix",
+    "Category": [
+      "AI/Logic",
+      "Fix"
+    ],
+    "Effort": "Low",
+    "Issue": "MMS stop sign parsing found routes but could not read the stop code on TTC poles.",
+    "Fix": "Improved Gemini Vision prompt to better identify numeric stop IDs (any length, typically 3-6 digits) on small 'Next Vehicle' stickers. Prompt now includes real-world examples derived from the stops library to improve extraction confidence.",
+    "Status": "Shipped",
+    "Version": "Unreleased",
+    "Shipped": "",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "V4/V5 models retrained on 560 fresh trips",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "Low",
+    "Issue": "Route and end-stop models were stale, including the 506-fixation bug where unknown stop features caused the model to fall back to time-of-day signal biased toward 506.",
+    "Fix": "Exported 560 trips, ran train_http://routes.py (V4 42.3% top-1, V5 49.5% top-1 on 484 trips/24 classes) and train_http://endstop.py (V4 64.5%, V5 83.9% top-1 on 153 trips). Models copied to functions/lib/. predictionAccuracy counters reset to 0; pre-fix baseline in ml/ACCURACY_http://LOG.md.",
+    "Status": "Shipped",
+    "Version": "1.28.0",
+    "Shipped": "May 4, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "GTFS-correction filter for V4/V5 route predictions",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "Medium",
+    "Issue": "V4/V5 route predictions could guess a route that doesn't actually serve the boarding stop. Previous plan only suppressed these — a better answer exists in the model's own probability distribution.",
+    "Fix": "Added guessTopRoutes(context, n) to both PredictionEngineV4 and V5. handlers.js calls guessTopRoutes(5) and picks the highest-confidence prediction whose route GTFS confirms serves this stop (routesAtStop). Falls back to top prediction if no GTFS data. Confidence floor at 25%. Also added missing agency gate in handleConfirmStart.",
+    "Status": "Shipped",
+    "Version": "1.29.0",
+    "Shipped": "May 4, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Homepage map with real GTFS geometry and correct TTC line colours",
+    "Category": [
+      "UX/UI"
+    ],
+    "Effort": "Low",
+    "Issue": "Preview map subway lines used hand-approximated coordinates and wrong colours for Lines 4 and 5.",
+    "Fix": "All four TTC subway lines now use coordinates extracted from official GTFS shapes.txt (159 pts Line 1, 156 Line 2, 28 Line 4, 102 Line 5). Line 4 corrected to magenta (#B300B3), Line 5 to orange (#FF8000).",
+    "Status": "Shipped",
+    "Version": "",
+    "Shipped": "May 5, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Global NetworkGraph dual-write",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "Medium",
+    "Issue": "NetworkEngine stored trip observations per-user only. New users had no graph data for cold-start predictions. Stop-sequence facts are objective (a route's stops don't change per rider) so per-user isolation was unnecessarily slow to learn.",
+    "Fix": "observe() now dual-writes to a global graph doc keyed by global_{agency}_{route} alongside the per-user doc. load() falls back to the global graph when personal graph has no confident edges. Added loadGlobal() for direct access.",
+    "Status": "Shipped",
+    "Version": "",
+    "Shipped": "May 5, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Route + direction-aware stop disambiguation",
+    "Category": [
+      "AI/Logic"
+    ],
+    "Effort": "High",
+    "Issue": "Stop name lookups were not route-aware. 'Dufferin / Lawrence' always resolved to stop 2070 (a 929 Lawrence Ave stop) regardless of route, so a 52B trip would get the wrong stop code assigned. Route filter in disambiguation was also a no-op because findMatchingStops never returned a routes field.",
+    "Fix": "lookupStop now accepts an optional route param and prefers candidates confirmed to serve the route. findMatchingStops now returns routes and direction fields. Boarding and end-trip handlers both apply route filter then direction filter before falling back to lookupStop. Disambiguation list shows direction in parentheses. Added stops 5360 (Eastbound) and 5361 (Westbound) for route 52/52B at Dufferin/Lawrence from GTFS. Added stop 2069 (Northbound 929). Fixed stop 2070 routes array (removed 52B, added Southbound direction).",
+    "Status": "Shipped",
+    "Version": "",
+    "Shipped": "May 5, 2026",
+    "Author": "Claude"
+  },
+  {
+    "Name": "Wire up public profile page end to end",
+    "Category": [
+      "Fix",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "Public profile flow existed in code but was not actually shippable: no routed page, no Vite build input, username lookup required auth, and the public page did not restrict rendered trips to public ones.",
+    "Fix": "Added a real public page and routing, enabled public username resolution in Firestore rules, added basic settings controls for public profile + username reservation, and constrained the public trip query to isPublic == true.",
+    "Status": "Shipped",
+    "Version": "1.28.1",
+    "Shipped": "May 5, 2026",
+    "Author": "Codex"
+  },
+  {
+    "Name": "Normalize Gemini stats bucketing to requested timezone",
+    "Category": [
+      "AI/Logic",
+      "Fix"
+    ],
+    "Effort": "Medium",
+    "Issue": "Gemini stats mixed server-local date methods with timezone-aware date-window logic, which could skew day-of-week, time-of-day, month, streak, and period counts for trips outside the server timezone.",
+    "Fix": "Centralized timezone date-part extraction in functions/lib/gemini.js and updated aggregateTripStats plus related Gemini query helpers to bucket by the requested timezone consistently. Added test coverage for timezone-sensitive day/date bucketing.",
+    "Status": "Shipped",
+    "Version": "1.28.1",
+    "Shipped": "May 5, 2026",
+    "Author": "Codex"
+  },
+  {
+    "Name": "Fix uppercase route letters being converted to lowercase in SMS responses",
+    "Category": [
+      "Fix",
+      "UX/UI"
+    ],
+    "Effort": "Low",
+    "Issue": "SMS response system is converting route identifiers with letters to lowercase (e.g., \"101B\" becomes \"101b\"). Doesn't affect functionality but is visually inconsistent.",
+    "Fix": "",
+    "Status": "Backlog",
+    "Version": "",
+    "Shipped": ""
+  },
+  {
+    "Name": "SMS & Backend Security Hardening",
+    "Category": [
+      "Security"
+    ],
+    "Effort": "Low",
+    "Issue": "Transit Stats was vulnerable to SMS flooding (excessive costs) and several high-severity dependency vulnerabilities (node-forge, path-to-regexp).",
+    "Fix": "Implemented strict 8/min rate limiting, URL spam blocking, and resolved multiple high-severity vulnerabilities in Cloud Functions dependencies.",
+    "Status": "In Progress",
+    "Version": "Unreleased (Phase 1)",
+    "Shipped": "March 31, 2026",
+    "Author": "Gemini"
+  },
+  {
+    "Name": "Make profile visibility authoritative",
+    "Category": [
+      "Infrastructure",
+      "Refactor"
+    ],
+    "Effort": "Medium",
+    "Issue": "Public profile visibility is currently split between profiles.isPublic and denormalized trips.isPublic, which makes privacy semantics harder to reason about and can drift over time.",
+    "Fix": "Migrate public-page authority to profiles.isPublic so turning public mode off hides the page immediately; keep trip-level visibility only as a cache during migration or remove it afterward.",
+    "Status": "Backlog",
+    "Version": "1.28.1",
+    "Shipped": "May 5, 2026",
+    "Author": "Codex"
+  },
+  {
+    "Name": "Dynamic stale-trip handling",
+    "Category": [
+      "AI/Logic",
+      "UX/UI"
+    ],
+    "Effort": "Medium",
+    "Issue": "Active-trip age is treated as a hard existence cutoff rather than a stale-state signal, which can hide still-actionable trips from END, FORGOT, DISCARD, and STATUS flows.",
+    "Fix": "Keep any endTime == null trip actionable, but classify unusually old trips as stale and tune the warning threshold by route context, agency, or observed duration patterns instead of a fixed 6-hour cutoff.",
+    "Status": "Backlog",
+    "Version": "1.28.1",
+    "Shipped": "May 5, 2026",
+    "Author": "Codex"
+  }
+]

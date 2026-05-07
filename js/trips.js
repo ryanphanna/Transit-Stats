@@ -32,11 +32,37 @@ export const Trips = {
     },
 
     async loadStopsLibrary() {
+        const CACHE_KEY = 'ts_stops_library';
+        const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
         try {
+            // 1. Try Cache
+            const cached = localStorage.getItem(CACHE_KEY);
+            if (cached) {
+                const { data, timestamp } = JSON.parse(cached);
+                if (Date.now() - timestamp < CACHE_TTL) {
+                    console.log(`Loaded ${data.length} stops from cache`);
+                    PredictionEngine.stopsLibrary = data;
+                    this.sync(TripController.allTrips, TripController.activeTrip);
+                    MapEngine.renderMarkers();
+                    return;
+                }
+            }
+
+            // 2. Fallback to Network
+            console.log("Fetching stops library from Firestore...");
             const snap = await db.collection('stops').get();
-            PredictionEngine.stopsLibrary = snap.docs.map(doc => doc.data());
+            const data = snap.docs.map(doc => doc.data());
+            
+            PredictionEngine.stopsLibrary = data;
             this.sync(TripController.allTrips, TripController.activeTrip);
-            MapEngine.renderMarkers(); 
+            MapEngine.renderMarkers();
+
+            // 3. Save to Cache
+            localStorage.setItem(CACHE_KEY, JSON.stringify({
+                data,
+                timestamp: Date.now()
+            }));
         } catch (err) {
             console.error("Library sync failed:", err);
         }
