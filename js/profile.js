@@ -1,5 +1,6 @@
 import firebase, { db, auth } from './firebase.js';
 import { UI } from './ui-utils.js';
+import { UsernameGenerator } from './username-generator.js';
 
 /**
  * TransitStats - Preference Management
@@ -41,6 +42,14 @@ export const Profile = {
         document.getElementById('btn-save-username')?.addEventListener('click', () => {
             const username = document.getElementById('settings-username')?.value.trim();
             if (username) this.reserveUsername(username);
+        });
+
+        document.getElementById('btn-roll-username')?.addEventListener('click', () => {
+            if (this.data?.username) return; // Don't roll if already reserved
+            const input = document.getElementById('settings-username');
+            if (input) {
+                input.value = UsernameGenerator.generate();
+            }
         });
     },
 
@@ -105,6 +114,7 @@ export const Profile = {
         const defaultData = {
             userId: user.uid,
             displayName: user.displayName || user.email.split('@')[0],
+            username: UsernameGenerator.generate(), // Auto-generate themed username
             defaultAgency: 'TTC',
             isPremium: false,
             isAdmin: false,
@@ -167,6 +177,8 @@ export const Profile = {
         if (usernameEl) {
             usernameEl.value = this.data?.username || '';
             usernameEl.disabled = !!this.data?.username;
+            const rollBtn = document.getElementById('btn-roll-username');
+            if (rollBtn) rollBtn.style.display = this.data?.username ? 'none' : 'block';
         }
 
         if (publicLinkEl) {
@@ -218,11 +230,13 @@ export const Profile = {
         const user = auth.currentUser;
         if (!user) return;
 
-        const username = rawUsername.trim().toLowerCase();
-        if (!/^[a-z0-9_]{3,20}$/.test(username)) {
-            UI.showNotification('Username must be 3-20 characters: lowercase letters, numbers, and underscores only.');
+        const validation = UsernameGenerator.isValid(rawUsername);
+        if (!validation.valid) {
+            UI.showNotification(validation.error);
             return;
         }
+
+        const username = rawUsername.trim().toLowerCase();
 
         if (this.data?.username) {
             if (this.data.username === username) {

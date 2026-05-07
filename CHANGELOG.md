@@ -7,10 +7,13 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Themed username generator** (`js/username-generator.js`): Added a multi-category random handle generator combining transit terms, food, animals, and adjectives (e.g., `Swift_TTC_Donut`).
+- **Profanity & system filter** (`js/username-generator.js`): Implemented a blacklist to prevent inappropriate or misleading usernames (blocking profanity and system terms like `admin`).
+- **"Roll the Dice" UI** (`settings.html`, `js/profile.js`): Added a button to the settings page to let users generate and preview themed usernames.
 - **Stop library caching** (`js/trips.js`): Implemented 24-hour `localStorage` caching for the stops library to reduce Firestore reads and improve dashboard load times.
-- **User profile auto-initialization** (`js/profile.js`): New users now have a default profile document created automatically on their first dashboard load, ensuring compatibility with public profiles.
+- **User profile auto-initialization** (`js/profile.js`): New users now have a default profile document created automatically on their first dashboard load with a themed username pre-assigned.
 - **Copy Public Link button** (`js/profile.js`): Added a clipboard-ready sharing button to the settings page for reserved usernames.
-- **Node 22 parallel testing** (`functions/package.json`): Modernized the backend test suite to use the native Node test runner with concurrent execution (`npm test`) and added a watcher (`npm run test:watch`).
+- **Node 22 parallel testing** (`functions/package.json`): Modernized the backend test suite to use the native Node test runner with concurrent execution (`npm test`).
 
 ### Changed
 - **Documentation synchronized** (`README.md`, `ROADMAP_TECHNICAL.md`, `ROADMAP_NEXTGEN.md`, `CLAUDE.md`, `AGENTS.md`): Updated all core guides to reflect the current feature set (MMS live, Public Profiles live, RCS paused) and the shift to a page-based JS architecture.
