@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
-- **User-based Visibility (Master Switch)** (`js/profile.js`): Shshifted to a user-level visibility model. Toggling the public profile in Settings now automatically syncs the visibility state across all existing and new trips via a batch update.
+- **User-based Visibility (Master Switch)** (`js/profile.js`): Shifted to a user-level visibility model. Toggling the public profile in Settings now automatically syncs the visibility state across all existing and new trips via a batch update.
 - **Map-First Public Profile** (`public.html`, `js/public.js`, `styles/main.css`): Redesigned the public profile as a full-screen, high-impact heatmap experience. Core stats and identity now float over an interactive transit map.
 - **High-intensity Heatmap Rendering** (`js/visuals.js`): Integrated `Leaflet.heat` for professional-grade heatmap visualization of user trip patterns.
 - **Triple Emoji Identity system** (`js/identity.js`, `js/profile.js`, `settings.html`): Replaced the text-based username system with a visual triplet of unique emojis (e.g., 🚌🌮🐼). Handles are stored as URL-safe slugs (e.g., `bus_taco_panda`).
@@ -15,6 +15,10 @@ All notable changes to this project will be documented in this file.
 - **Auto-generated Emoji identities** (`js/profile.js`): New users are automatically assigned a random emoji triplet upon their first dashboard visit.
 - **Stop library caching** (`js/trips.js`): Implemented 24-hour `localStorage` caching for the stops library to reduce Firestore reads and improve dashboard load times.
 - **Node 22 parallel testing** (`functions/package.json`): Modernized the backend test suite to use the native Node test runner with concurrent execution (`npm test`).
+
+### Fixed
+- **SMS Acronym Preservation** (`functions/lib/utils.js`): Updated `toTitleCase` to preserve capitalization for transit acronyms (TMU, TTC, GO, etc.) in confirmation replies.
+- **SMS Stop Name Prioritization** (`functions/lib/utils.js`): Confirmation replies now prefer canonical stop names (e.g., "Spadina Ave at Nassau St") even when a numeric code is provided.
 
 ### Changed
 - **Documentation synchronized** (`README.md`, `ROADMAP_TECHNICAL.md`, `ROADMAP_NEXTGEN.md`, `CLAUDE.md`, `AGENTS.md`): Updated all core guides to reflect the current feature set (MMS live, Public Profiles live, RCS paused) and the shift to a page-based JS architecture.

@@ -13,17 +13,29 @@ const { BAD_ROUTE_SUFFIXES, AGENCY_CANONICAL } = require('./constants');
 function toTitleCase(str) {
   if (!str) return str;
 
+  // List of acronyms to preserve in all-caps
+  const ACRONYMS = ['TMU', 'TTC', 'GTA', 'GO', 'UP', 'OC', 'HSR', 'GRT', 'YRT'];
+
   // Replace " and " with " & " (case insensitive)
   // Normalize slashes to a single char first to ensure clean splitting
   const normalized = str.replace(/ (and) /gi, ' & ').replace(/ *\/ */g, '/');
 
   const titleCased = normalized
-    .toLowerCase()
     .split(/\s+/)
     .map((word) => {
-      // Capitalize across slash-separated parts (e.g. "spadina/king" → "Spadina/King")
-      // Use regex to skip leading non-letter chars (e.g. "(laird" → "(Laird")
-      return word.split('/').map((part) => part.replace(/^([^a-zA-Z]*)([a-zA-Z])/, (_, pre, letter) => /\d$/.test(pre) ? pre + letter : pre + letter.toUpperCase())).join('/');
+      // Check if word (stripped of punctuation) is a known acronym
+      const cleanWord = word.replace(/[^a-zA-Z]/g, '').toUpperCase();
+      if (ACRONYMS.includes(cleanWord)) {
+        return word.toUpperCase();
+      }
+
+      // Otherwise, standard title case
+      const lower = word.toLowerCase();
+      return lower.split('/').map((part) => 
+        part.replace(/^([^a-zA-Z]*)([a-zA-Z])/, (_, pre, letter) => 
+          /\d$/.test(pre) ? pre + letter : pre + letter.toUpperCase()
+        )
+      ).join('/');
     })
     .join(' ');
 
@@ -120,8 +132,8 @@ function isValidRoute(route) {
  * @returns {string} Display string for the stop
  */
 function getStopDisplay(stopCode, stopName, legacyStop = null) {
-  if (stopCode) return stopCode;
   if (stopName) return toTitleCase(stopName);
+  if (stopCode) return stopCode;
   if (legacyStop) return toTitleCase(legacyStop);
   return 'Unknown';
 }
