@@ -32,13 +32,19 @@ export const Identity = {
     },
 
     /**
-     * Generate a random triplet
+     * Generate a random triplet (ensuring 3 unique keys)
      */
     generate() {
         const keys = Object.keys(this.LIBRARY);
         const triplet = [];
-        for (let i = 0; i < 3; i++) {
-            triplet.push(keys[Math.floor(Math.random() * keys.length)]);
+        const used = new Set();
+        
+        while (triplet.length < 3) {
+            const key = keys[Math.floor(Math.random() * keys.length)];
+            if (!used.has(key)) {
+                triplet.push(key);
+                used.add(key);
+            }
         }
         return triplet;
     },

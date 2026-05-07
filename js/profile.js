@@ -73,6 +73,18 @@ export const Profile = {
                 
                 this.activeSlot = parseInt(e.currentTarget.dataset.index, 10);
                 
+                // Refresh grid states to show what is already used
+                const used = new Set(this.currentTriplet);
+                // The current slot's emoji is NOT "used" in terms of blocking selection
+                used.delete(this.currentTriplet[this.activeSlot]);
+
+                grid.querySelectorAll('.emoji-item').forEach(item => {
+                    const isUsed = used.has(item.dataset.key);
+                    item.classList.toggle('used', isUsed);
+                    item.style.opacity = isUsed ? '0.3' : '1';
+                    item.style.pointerEvents = isUsed ? 'none' : 'auto';
+                });
+
                 // Position popover
                 const rect = e.currentTarget.getBoundingClientRect();
                 popover.style.top = `${rect.bottom + window.scrollY + 5}px`;
@@ -83,7 +95,7 @@ export const Profile = {
 
         grid.addEventListener('click', (e) => {
             const item = e.target.closest('.emoji-item');
-            if (!item) return;
+            if (!item || item.classList.contains('used')) return;
 
             const key = item.dataset.key;
             this.currentTriplet[this.activeSlot] = key;
