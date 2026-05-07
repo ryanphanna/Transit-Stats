@@ -8,6 +8,8 @@ export const Identity = {
         'bus': '🚌', 'train': '🚆', 'subway': '🚇', 'streetcar': '🚋', 'lightrail': '🚈',
         'rocket': '🚀', 'bike': '🚲', 'scooter': '🛴', 'walk': '🚶', 'ferry': '🚢',
         'station': '🚉', 'map': '🗺️', 'ticket': '🎫', 'stop': '🛑', 'bridge': '🌉',
+        'cablecar': '🚠', 'helicopter': '🚁', 'airplane': '✈️', 'sailing': '⛵', 'taxi': '🚕',
+        'truck': '🚚', 'anchor': '⚓', 'fuel': '⛽', 'traffic': '🚥', 'auto': '🚗',
         
         // --- Animals ---
         'panda': '🐼', 'fox': '🦊', 'koala': '🐨', 'lion': '🦁', 'tiger': '🐯',
