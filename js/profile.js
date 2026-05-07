@@ -1,6 +1,6 @@
 import firebase, { db, auth } from './firebase.js';
 import { UI } from './ui-utils.js';
-import { UsernameGenerator } from './username-generator.js';
+import { Identity } from './identity.js';
 
 /**
  * TransitStats - Preference Management
@@ -9,9 +9,12 @@ import { UsernameGenerator } from './username-generator.js';
 export const Profile = {
     data: null,
     phone: null,
+    currentTriplet: ['subway', 'subway', 'subway'],
+    activeSlot: null,
 
     async init() {
         this.setupListeners();
+        this.initEmojiPicker();
     },
 
     setupListeners() {
@@ -39,18 +42,66 @@ export const Profile = {
             this.updateSetting('isPublic', e.target.checked);
         });
 
-        document.getElementById('btn-save-username')?.addEventListener('click', () => {
-            const username = document.getElementById('settings-username')?.value.trim();
-            if (username) this.reserveUsername(username);
+        document.getElementById('btn-save-identity')?.addEventListener('click', () => {
+            const slug = Identity.toSlug(this.currentTriplet);
+            this.reserveUsername(slug);
         });
 
-        document.getElementById('btn-roll-username')?.addEventListener('click', () => {
-            if (this.data?.username) return; // Don't roll if already reserved
-            const input = document.getElementById('settings-username');
-            if (input) {
-                input.value = UsernameGenerator.generate();
+        // Close popover on outside click
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.emoji-slot') && !e.target.closest('.emoji-popover')) {
+                document.getElementById('emoji-popover')?.classList.add('hidden');
             }
         });
+    },
+
+    initEmojiPicker() {
+        const slots = document.querySelectorAll('.emoji-slot');
+        const popover = document.getElementById('emoji-popover');
+        const grid = popover?.querySelector('.emoji-grid');
+
+        if (!grid) return;
+
+        // Populate grid
+        grid.innerHTML = Identity.getLibrary().map(item => `
+            <div class="emoji-item" data-key="${item.key}">${item.emoji}</div>
+        `).join('');
+
+        slots.forEach(slot => {
+            slot.addEventListener('click', (e) => {
+                if (this.data?.username) return; // Locked if saved
+                
+                this.activeSlot = parseInt(e.currentTarget.dataset.index, 10);
+                
+                // Position popover
+                const rect = e.currentTarget.getBoundingClientRect();
+                popover.style.top = `${rect.bottom + window.scrollY + 5}px`;
+                popover.style.left = `${rect.left + window.scrollX}px`;
+                popover.classList.remove('hidden');
+            });
+        });
+
+        grid.addEventListener('click', (e) => {
+            const item = e.target.closest('.emoji-item');
+            if (!item) return;
+
+            const key = item.dataset.key;
+            this.currentTriplet[this.activeSlot] = key;
+            
+            // Update UI
+            const slot = document.querySelector(`.emoji-slot[data-index="${this.activeSlot}"]`);
+            if (slot) slot.textContent = Identity.LIBRARY[key];
+            
+            popover.classList.add('hidden');
+            this.updateUsernameDisplay();
+        });
+    },
+
+    updateUsernameDisplay() {
+        const display = document.getElementById('settings-username-display');
+        if (display) {
+            display.textContent = `@${Identity.toSlug(this.currentTriplet)}`;
+        }
     },
 
     /**
@@ -111,10 +162,11 @@ export const Profile = {
      * Ensure a profile document exists for the user.
      */
     async ensureProfile(user) {
+        const triplet = Identity.generate();
         const defaultData = {
             userId: user.uid,
             displayName: user.displayName || user.email.split('@')[0],
-            username: UsernameGenerator.generate(), // Auto-generate themed username
+            username: Identity.toSlug(triplet), // Auto-generate themed slug
             defaultAgency: 'TTC',
             isPremium: false,
             isAdmin: false,
@@ -147,7 +199,6 @@ export const Profile = {
         const agencyEl = document.getElementById('settings-agency');
         const betaEl = document.getElementById('settings-beta-predictions');
         const publicProfileEl = document.getElementById('settings-public-profile');
-        const usernameEl = document.getElementById('settings-username');
         const publicLinkEl = document.getElementById('settings-public-link');
 
         if (emailEl) emailEl.textContent = email || auth.currentUser?.email || '—';
@@ -174,16 +225,25 @@ export const Profile = {
             publicProfileEl.checked = !!this.data?.isPublic;
         }
 
-        if (usernameEl) {
-            usernameEl.value = this.data?.username || '';
-            usernameEl.disabled = !!this.data?.username;
-            const rollBtn = document.getElementById('btn-roll-username');
-            if (rollBtn) rollBtn.style.display = this.data?.username ? 'none' : 'block';
+        // --- Identity UI ---
+        const username = this.data?.username;
+        if (username) {
+            this.currentTriplet = username.split('_');
+            const saveBtn = document.getElementById('btn-save-identity');
+            if (saveBtn) saveBtn.style.display = 'none';
         }
+        
+        document.querySelectorAll('.emoji-slot').forEach((slot, i) => {
+            const key = this.currentTriplet[i];
+            slot.textContent = Identity.LIBRARY[key] || '❓';
+            if (username) slot.style.cursor = 'default';
+        });
+
+        this.updateUsernameDisplay();
 
         if (publicLinkEl) {
             const baseUrl = window.location.origin === 'http://localhost:5176' ? 'https://transitstats.fyi' : window.location.origin;
-            const url = this.data?.username ? `${baseUrl}/public?user=${this.data.username}` : '';
+            const url = username ? `${baseUrl}/public?user=${username}` : '';
             
             if (url) {
                 publicLinkEl.innerHTML = `
@@ -197,7 +257,7 @@ export const Profile = {
                     UI.showNotification('Link copied to clipboard!');
                 });
             } else {
-                publicLinkEl.textContent = 'Reserve a username to enable sharing.';
+                publicLinkEl.textContent = 'Pick your identity to enable sharing.';
             }
         }
     },
@@ -226,31 +286,19 @@ export const Profile = {
         }
     },
 
-    async reserveUsername(rawUsername) {
+    async reserveUsername(username) {
         const user = auth.currentUser;
         if (!user) return;
 
-        const validation = UsernameGenerator.isValid(rawUsername);
-        if (!validation.valid) {
-            UI.showNotification(validation.error);
-            return;
-        }
-
-        const username = rawUsername.trim().toLowerCase();
-
         if (this.data?.username) {
-            if (this.data.username === username) {
-                UI.showNotification('Username already reserved.');
-            } else {
-                UI.showNotification('Username changes are not supported.');
-            }
+            UI.showNotification('Identity changes are not supported.');
             return;
         }
 
         try {
             const existing = await db.collection('usernames').doc(username).get();
             if (existing.exists) {
-                UI.showNotification('Username is already taken.');
+                UI.showNotification('This emoji combination is already taken! Try another.');
                 return;
             }
 
@@ -267,10 +315,10 @@ export const Profile = {
             if (!this.data) this.data = {};
             this.data.username = username;
             this.syncUI(user.email);
-            UI.showNotification('Username reserved.');
+            UI.showNotification('Identity reserved!');
         } catch (err) {
             console.error('Username save failed:', err);
-            UI.showNotification('Failed to reserve username: ' + err.message);
+            UI.showNotification('Failed to reserve identity: ' + err.message);
         }
     },
 };

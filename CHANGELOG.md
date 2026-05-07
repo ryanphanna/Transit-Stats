@@ -7,12 +7,10 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
-- **Themed username generator** (`js/username-generator.js`): Added a multi-category random handle generator combining transit terms, food, animals, and adjectives (e.g., `Swift_TTC_Donut`).
-- **Profanity & system filter** (`js/username-generator.js`): Implemented a blacklist to prevent inappropriate or misleading usernames (blocking profanity and system terms like `admin`).
-- **"Roll the Dice" UI** (`settings.html`, `js/profile.js`): Added a button to the settings page to let users generate and preview themed usernames.
+- **Triple Emoji Identity system** (`js/identity.js`, `js/profile.js`, `settings.html`): Replaced the text-based username system with a visual triplet of emojis (e.g., 🚌🌮🐼). Handles are stored as URL-safe slugs (e.g., `bus_taco_panda`).
+- **Interactive Emoji Picker** (`js/profile.js`, `settings.html`, `styles/main.css`): Built a custom popover picker in Settings with a curated library of 80+ transit, food, animal, and nature icons.
+- **Auto-generated Emoji identities** (`js/profile.js`): New users are automatically assigned a random emoji triplet upon their first dashboard visit.
 - **Stop library caching** (`js/trips.js`): Implemented 24-hour `localStorage` caching for the stops library to reduce Firestore reads and improve dashboard load times.
-- **User profile auto-initialization** (`js/profile.js`): New users now have a default profile document created automatically on their first dashboard load with a themed username pre-assigned.
-- **Copy Public Link button** (`js/profile.js`): Added a clipboard-ready sharing button to the settings page for reserved usernames.
 - **Node 22 parallel testing** (`functions/package.json`): Modernized the backend test suite to use the native Node test runner with concurrent execution (`npm test`).
 
 ### Changed

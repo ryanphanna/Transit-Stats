@@ -14,3 +14,77 @@
 @import url('./pages/admin.css');
 @import url('./pages/map.css');
 @import url('./pages/settings.css');
+
+/* Triple Emoji Identity */
+.emoji-picker-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+}
+.emoji-slots {
+    display: flex;
+    gap: 0.5rem;
+}
+.emoji-slot {
+    width: 44px;
+    height: 44px;
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: transform 0.1s;
+    border: 2px solid transparent;
+}
+.emoji-slot:hover {
+    transform: scale(1.05);
+    background: var(--bg-secondary);
+}
+.emoji-slot.active {
+    border-color: var(--accent-primary);
+}
+.emoji-popover {
+    position: absolute;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    padding: 12px;
+    z-index: 1000;
+    max-width: 300px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+.emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+}
+.emoji-item {
+    font-size: 1.2rem;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.emoji-item:hover {
+    background: var(--bg-tertiary);
+}
+.public-url {
+    background: var(--bg-tertiary);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 0.8rem;
+}
+.public-link-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}

@@ -81,21 +81,27 @@
                                     </div>
                                     <input type="checkbox" id="settings-public-profile">
                                 </div>
-                                <div class="settings-row">
-                                    <div class="settings-label-group">
-                                        <span class="settings-sub-label">Username</span>
-                                        <div class="username-input-group">
-                                            <input type="text" id="settings-username" class="minimal-input" placeholder="choose_username">
-                                            <button id="btn-roll-username" class="btn btn-sm btn-ghost p-1" title="Roll for a random username"><i data-lucide="dices" class="icon-inline m-0" style="width:14px;"></i></button>
+                                <div class="settings-row" style="flex-direction: column; align-items: flex-start; gap: 0.5rem;">
+                                    <span class="settings-sub-label">Triple Emoji Identity</span>
+                                    <div id="emoji-identity-picker" class="emoji-picker-container">
+                                        <div class="emoji-slots">
+                                            <div class="emoji-slot" data-index="0">❓</div>
+                                            <div class="emoji-slot" data-index="1">❓</div>
+                                            <div class="emoji-slot" data-index="2">❓</div>
                                         </div>
+                                        <button id="btn-save-identity" class="btn btn-sm btn-primary">Save Identity</button>
                                     </div>
-                                    <button id="btn-save-username" class="btn btn-sm btn-ghost p-1" title="Save username"><i data-lucide="at-sign" class="icon-inline m-0" style="width:14px;"></i></button>
+                                    <div id="settings-username-display" class="settings-main-label text-xxs text-muted"></div>
                                 </div>
                                 <div class="settings-row">
                                     <div class="settings-label-group">
                                         <span class="settings-sub-label">Share Link</span>
-                                        <span id="settings-public-link" class="settings-main-label text-xs">Reserve a username to enable sharing.</span>
+                                        <span id="settings-public-link" class="settings-main-label text-xs">Pick your identity to enable sharing.</span>
                                     </div>
+                                </div>
+                                <!-- Emoji Picker Popover -->
+                                <div id="emoji-popover" class="emoji-popover hidden">
+                                    <div class="emoji-grid"></div>
                                 </div>
                             </div>
                         </div>
