@@ -30,7 +30,7 @@ All notable changes to this project will be documented in this file.
 - **SMS Stop Name Prioritization** (`functions/lib/utils.js`): Confirmation replies now prefer canonical stop names (e.g., "Spadina Ave at Nassau St") even when a numeric code is provided.
 
 ### Changed
-- **Documentation synchronized**: Updated [README.md](./README.md), [ROADMAP_TECHNICAL.md](./docs/ROADMAP_TECHNICAL.md), [ROADMAP_NEXTGEN.md](./docs/ROADMAP_NEXTGEN.md), [CLAUDE.md](./CLAUDE.md), and [AGENTS.md](./AGENTS.md) to reflect the current feature set and the shift to a page-based JS architecture.
+- **Documentation synchronized**: Updated all core guides (README, ROADMAP_TECHNICAL, ROADMAP_NEXTGEN, CLAUDE, AGENTS) to reflect the current feature set and the shift to a page-based JS architecture.
 - **Legacy Cleanup** (`js/main.js`): Verified and retired the legacy `js/main.js` entry point.
 - **Agency mapping pruned**: Removed speculative timezone/city data for unused agencies to maintain a lean resource profile.
 
@@ -47,3 +47,110 @@ All notable changes to this project will be documented in this file.
 - **Gemini stats now bucket dates in the requested timezone** (`functions/lib/gemini.js`, `tests/gemini.test.js`): Replaced server-local date bucketing in route/day/month/streak/time-of-day helpers with shared timezone-aware date-part extraction so ASK answers stay consistent across multi-city and near-midnight trips.
 
 ## [1.30.0] - 2026-05-05
+
+### Added
+- **Route + direction-aware stop disambiguation** (`functions/lib/handlers.js`, `functions/lib/db/stops.js`): When a stop name matches multiple physical stops (e.g. "Dufferin / Lawrence" at an intersection served by both a Lawrence bus and a Dufferin bus), candidates are now filtered by route first, then direction. If one candidate remains, it's auto-selected silently. If multiple remain, the disambiguation prompt lists direction in parentheses so the user can tell them apart. Same filtering applied to end-trip stop lookup using the active trip's known route and direction.
+- **`direction` field on stop documents**: Stop docs now carry a canonical direction string (e.g. `"Eastbound"`) sourced from GTFS headsigns. Used by the disambiguation filter to auto-select without prompting when the trip direction is known.
+- **`findMatchingStops` returns `routes` and `direction`** (`functions/lib/db/stops.js`): Previously omitted, meaning the route filter in the disambiguation path was always a no-op. Both fields are now included so the filter actually works.
+- **Global NetworkGraph** (`functions/lib/network.js`): Every trip observation now dual-writes to a global graph doc keyed by `global_{agency}_{route}` in addition to the per-user doc. Stop-sequence facts are objective (a route's stops don't change per rider), so the global graph cold-starts predictions for new users and feeds stop disambiguation without waiting for personal history. `load()` falls back to the global graph when the personal graph has no confident edges. New `loadGlobal()` method for direct access.
+
+### Fixed
+- **`lookupStop` now route-aware** (`functions/lib/db/stops.js`): When looking up a stop by name, all matching candidates are collected first. If a route is provided and multiple candidates exist, the system checks `stopRoutes` to prefer the stop that actually serves the route. Prevents wrong-stop assignment when a common intersection name resolves to a stop on a different route (e.g. stop 2070 being assigned to a 52B trip when 2070 only serves route 929).
+
+### Data
+- **Added stops 5360, 5361** (Lawrence / Dufferin, Eastbound and Westbound): GTFS-verified stops for route 52/52B on Dufferin St at Lawrence Ave. Previously missing, causing "Dufferin / Lawrence" to always resolve to stop 2070 (a 929 Lawrence Ave stop) regardless of route.
+- **Added stop 2069** (Dufferin / Lawrence, Northbound): GTFS-verified Northbound stop for routes 29/329/929. Complements existing stop 2070 (Southbound).
+- **Fixed stop 2070** routes array: Removed incorrectly auto-taught `52B`. Added `direction: "Southbound"`.
+
+### UI
+- **v2 homepage preview map uses real GTFS geometry** (`js/v2/v2-home.js`): All four TTC subway lines (1, 2, 4, 5) now use coordinates extracted directly from the official GTFS shapes.txt — 159 pts for Line 1, 156 for Line 2, 28 for Line 4, 102 for Line 5. Previous coordinates were hand-approximated.
+- **TTC line colours corrected** (`js/v2/v2-home.js`): Line 4 updated to official magenta (`#B300B3`); Line 5 updated to official orange (`#FF8000`).
+
+## [1.29.1] - 2026-05-04
+### Fixed
+- **`getTripCount` not exported from db module** (`functions/lib/db/index.js`): `getTripCount` was defined and exported in `db/trips.js` but never re-exported from the barrel `db/index.js`, so `handlers.js` received `undefined` and the SMS achievements check threw on every trip start.
+- **MMS stop code missed when "Next Vehicle" sticker text is small** (`functions/lib/gemini.js`): When Gemini Vision found routes but no stop code, it silently fell back to manual entry. A second focused pass now runs on the same image, specifically prompting Gemini to locate the "Next Vehicle" / "Text stop" sticker and extract the numeric code from it (e.g. "Text 11985 to 898882" → 11985). Non-fatal if the second pass also fails.
+- **MMS partial parse fallbacks ask only for what's missing** (`functions/lib/handlers.js`, `functions/lib/dispatcher.js`): When Gemini finds routes but no stop, it now replies "Got 510 and 310 — what stop are you at?" and stores the routes in a `mms_stop_needed` pending state. The user's next reply (stop name or code) is matched with the pre-saved routes and proceeds directly — no need to re-type the route. If multiple routes were found, a route disambiguation prompt follows after the stop is provided.
+
+## [1.29.0] - 2026-05-04
+### Added
+- **`guessTopRoutes()` on V4 and V5 engines** (`functions/lib/predict_v4.js`, `functions/lib/predict_v5.js`): Both engines now expose a `guessTopRoutes(context, n)` method returning the top N route candidates sorted by probability. Used internally by the new GTFS correction filter.
+- **GTFS-correction filter for V4/V5 route predictions** (`functions/lib/handlers.js`): Instead of suppressing a wrong V4/V5 guess, the system now picks the best prediction from the engine's top-5 that GTFS actually confirms serves this boarding stop. Falls back to the top prediction when no GTFS data exists. Predictions below 25% confidence are suppressed regardless. Applied at trip start, conflict-resolution start, and `fillPredictions`.
+- **V4/V5 agency gate in `handleConfirmStart`** (`functions/lib/handlers.js`): The conflict-resolution path (trip start when active trip exists) was missing the `agency === defaultAgency` gate, so V4/V5 ran on all agencies. Fixed.
+
+## [1.28.1] - 2026-05-04
+### Fixed
+- **MMS stop code extraction** (`functions/lib/gemini.js`): Improved Gemini Vision prompt to better identify numeric stop IDs (any length, typically 3-6 digits like '110' or '11985') on small 'Next Vehicle' stickers. Prompt now includes real-world examples derived from the stops library to improve extraction confidence. Fixes cases where routes were found but the stop was missed.
+
+## [1.28.0] - 2026-05-04
+
+### Added
+- **SMS Achievements**: Automated milestone celebrations for trip counts (1st, 10th, 50th, 100th, etc.) sent directly via SMS reply.
+- **Trip Counting**: High-performance Firestore aggregation for user trip totals.
+- **Snap-to-start via MMS** (`functions/sms.js`, `functions/lib/dispatcher.js`, `functions/lib/handlers.js`, `functions/lib/gemini.js`): Sending a photo of a stop sign pole via MMS now starts a trip. Gemini Vision extracts stop code/name and visible route numbers. Single route → trip starts immediately. Multiple routes → numbered disambiguation prompt using the existing pending state system. Trip `startTime` is set to the photo send time (captured at webhook entry), not AI processing time. Logged as `source: 'mms'`, `timing_reliability: 'approximate'`.
+- **`ml/ACCURACY_LOG.md` created**: New doc tracking live production shadow accuracy snapshots, separate from `MODEL_LOG.md` (which tracks training accuracy). First entry records pre-fix V4/V5 baseline before counter reset.
+- **V4/V5 `predictionAccuracy` counters reset to 0**: Pre-fix numbers were corrupted by the agency gate and disambiguation bugs. Baseline recorded in `ml/ACCURACY_LOG.md`. V3 counters left intact.
+- **V4/V5 predictions gated on user's default agency** (`functions/lib/handlers.js`): V4 and V5 models are trained on one agency's data and produce meaningless predictions on trips for other agencies. Both engines now only run when the trip agency matches `profile.defaultAgency`. V3 is unaffected and still runs on all trips.
+- **V4/V5 predictions filled after stop disambiguation** (`functions/lib/handlers.js`, `functions/lib/dispatcher.js`): Trips created during stop disambiguation (user prompted to pick between multiple matching stops) were always stored with `predictionV4/V5: null` because the canonical stop name wasn't known at create time. A new `fillPredictions()` helper now runs V4/V5 after the user resolves the stop and patches the trip document, fire-and-forget.
+- **`agency` field added to all `predictionStats` writes** (`functions/lib/handlers.js`): All five grading writes now include `agency: activeTrip.agency` so accuracy can be broken down by agency without a fragile timestamp join against the trips collection.
+- **`createTrip` accepts optional `startTime` override** (`functions/lib/db/trips.js`): When a `startTime` is passed, it is stored as a Firestore `Timestamp` rather than `serverTimestamp()`. Enables accurate boarding time for MMS trips and any future non-realtime logging paths.
+- **Retroactive verification pass** (`Tools/retro-verify.js`): Admin script that scans all completed, unverified trips and flips `verified: true` when the start/end stop names now resolve against the stops library. Supports both legacy `agency` field and new `agencies` array on stop documents. First run verified 311 trips; 90 remain unresolved (stops not yet in library). Safe to re-run as library grows.
+
+## [1.27.1] - 2026-05-03
+
+### Fixed
+- **Cross-agency stop fallback scoped to same city** (`functions/lib/db/stops.js`): The `_findAndExpandStop` fallback previously searched the entire stops collection globally, risking a wrong-city match (e.g. Toronto Union Station resolving for a Muni trip). Now filters to stops whose home agency shares the same city per `AGENCY_CITY`. Agencies not in `AGENCY_CITY` skip the fallback entirely rather than risk a bad match.
+
+## [1.27.0] - 2026-05-03
+
+### Changed
+- **Stops library now use agencies array for multi-agency support** (`functions/lib/db/stops.js`, `firestore.indexes.json`): Stop documents now carry an `agencies: [...]` array alongside the existing `agency` field. `lookupStop` and `findMatchingStops` query via `array-contains` so a single stop entry (e.g. Montgomery Station) resolves correctly for BART, Muni, or any other operator. All 191 existing stops migrated automatically.
+- **Stop agencies array self-expands from trip data** (`functions/lib/db/stops.js`): When a stop is found via cross-agency fallback (i.e. the trip's agency isn't yet in the stop's `agencies` array), the array is updated automatically. Shared stops like Union Station or Montgomery Station grow their agency list organically as new trips are logged — no manual maintenance needed.
+
+## [1.26.0] - 2026-05-02
+
+### Changed
+- **Agency disambiguation now asks by city, not agency name** (`functions/lib/handlers.js`): "Which Union Station? 1. LA Metro 2. TTC" now reads "Which Union Station? 1. Los Angeles 2. Toronto". Falls back to agency name when both options are in the same city (e.g. LA Metro vs LADOT). City map lives in `AGENCY_CITY` in `constants.js`.
+- **Unknown agencies now accepted on line 3/4 without pre-registration** (`functions/lib/parsing.js`): Previously, only agencies listed in `KNOWN_AGENCIES` were recognized — typing "Barrie Transit" on line 4 was silently ignored and fell back to default agency inference. Line 4 is now always treated as an agency. Line 3 is treated as an agency if it doesn't resolve to a recognized direction word.
+
+### Fixed
+- **Shared transit hub stops not found under operator agency** (`functions/lib/db/stops.js`): `lookupStop` now falls back to a cross-agency search when a stop name isn't in the specified agency's library. Covers cases like Union Station (in LA Metro's library, but boarded via DASH/Foothill/Metrolink).
+
+## [1.25.1] - 2026-05-02
+
+### Fixed
+- **`toTitleCase` capitalizing ordinal suffixes** (`functions/lib/utils.js`): Letters immediately following digits (e.g. "9th") were being uppercased to "9Th". Fixed by skipping capitalization when the non-letter prefix ends with a digit.
+- **MTS, SMART, Golden Gate Transit, Amtrak, LA DOT not recognized as agencies** (`functions/lib/constants.js`): These agency names and their variants were missing from `AGENCY_CANONICAL` and `KNOWN_AGENCIES`, causing explicit agency lines to be silently ignored and the parser to fall back to last-trip agency inference.
+- **Explicit agency ignored when it matches default agency** (`functions/lib/parsing.js`): `agencyExplicit` was derived from `agency !== defaultAgency`, so typing "TTC" when TTC is your default was treated as no agency specified. The parser then fell through to last-trip agency inference, picking the wrong agency (e.g. SamTrans after a Bay Area trip). Fixed by tracking whether the user actually typed an agency line, independent of whether it matches the default.
+- **Null startStopName/endStopName on 10 510-route trips**: Trips logged before stop name persistence was reliable had null name fields despite valid stop codes. Backfilled GTFS names from `startStopCode`/`endStopCode` directly in Firestore. Affected trips tagged with `corrected: ['startStopName']` or `corrected: ['endStopName']` for auditability.
+
+## [1.25.0] - 2026-04-20
+
+### Added
+- **Autonomous weekly model retraining** (`.github/workflows/retrain.yml`): GitHub Action fires every Monday at 4 AM UTC. Exports fresh trips from Firestore, retrains V4 (logistic regression) and V5 (XGBoost) with ride-count weighting, commits updated model files, and deploys functions to Firebase — no manual steps needed. Also triggerable manually via GitHub UI. Requires `FIREBASE_SERVICE_ACCOUNT` and `FIREBASE_TOKEN` secrets.
+- **Ride-count weighting in V4/V5 training** (`ml/train_endstop.py`): Training examples are now weighted by same-agency ride count — recent trips count more in the loss function. Mirrors V3's per-agency ride-count decay. A trip 100 same-agency rides ago gets half the weight of the most recent trip.
+
+- **LA Metro G Line (Orange) and J Line (Silver) added to topology** (`functions/lib/topology.json`): Both BRT lines now have full stop sequences. G Line: 17 stops, North Hollywood → Chatsworth. J Line: 13 key stops, El Monte → Harbor Gateway Transit Center via Union Station and the Harbor Transitway. Enables direction filtering from the first trip on either line.
+
+### Changed
+- **V3 recency decay now per-agency ride count, not calendar time** (v3.3.0): Previously, trip weights decayed by days elapsed — so a week in LA decayed TTC predictions even though Toronto commute patterns hadn't changed. Now decay is measured by how many same-agency rides occurred after each trip. A trip 100 same-agency rides ago counts for half what the most recent trip counts for (configurable via `DECAY_HALFLIFE_RIDES`). Being in a different city no longer ages your home network's predictions.
+
+### Fixed
+- **All SMS replies silently dropped** (`sms.js`): The idempotency fix in b385882 added a `processedMessages/{MessageSid}` write to `sms.js` before calling `dispatch()`. But `checkIdempotency()` in the dispatcher already does the same atomic write — so every message's write succeeded in `sms.js`, then `checkIdempotency` got `ALREADY_EXISTS` and returned `true` (duplicate), dropping every message with no reply. Fixed by removing the redundant write from `sms.js`. The dispatcher's `checkIdempotency` is the single source of truth for deduplication.
+- **Twilio webhook retry creates duplicate trips**: When the Cloud Function took too long to respond, Twilio retried the webhook and the system processed the same message twice — creating phantom trips with garbled stop names. Fixed by atomically writing a `processedMessages/{MessageSid}` document before dispatching. If the document already exists (Firestore `create` throws ALREADY_EXISTS), the request is a retry and returns an empty TwiML response immediately.
+
+## [1.24.0] - 2026-04-20
+
+### Added
+- **NetworkEngine v1** (`functions/lib/network.js`): New prediction engine that learns the transit graph from completed trips. Each trip end records an edge `fromStop → toStop` with duration to Firestore (`networkGraph` collection). At trip start, the graph for the current route is loaded and used as a higher-priority directional filter than topology.json — so any network (BART, Muni, LA Metro, future cities) builds itself automatically without manual stop-sequence curation. Falls back to topology.json when fewer than 3 trips have been observed on an edge. Reverse-edge inference: a B→A westbound trip also confirms A is reachable from B eastbound.
+- **Network graph backfill script** (`Tools/backfill-network-graph.js`): One-time script to seed the graph from all existing trips so NetworkEngine has data immediately on deploy.
+- **Route-aware stop disambiguation**: When a stop name matches multiple library entries, candidates are filtered by the trip's route before prompting. If only one candidate serves that route, it is selected automatically with no user prompt. If multiple candidates serve the route, only those are shown — narrowing the list. Falls back to all candidates when no route data exists yet for any match.
+- **Stop route back-write**: Every time a trip start resolves a stop successfully, the route is written to the stop's `routes` array in the background. Stops learn which routes serve them automatically over time — no manual maintenance needed.
+
+---
+
+## Older Releases
+Historical changes can be found in the [Changelog Archive](./CHANGELOG_ARCHIVE.md).
+
+---
+*See [migrations/](./migrations/) for scripts to address technical debt.*
