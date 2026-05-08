@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **"Likely Ended" Trip Intelligence** (`functions/lib/handlers.js`, `functions/lib/network.js`): Replaced the blunt 6-hour active trip cutoff with route-aware logic. The system now uses historical median durations from the NetworkEngine to detect likely forgotten trips and suggest saving them as incomplete.
+- **V3 Sequence Awareness** (`functions/lib/predict.js`, `functions/lib/handlers.js`): Aligned the hand-coded V3 heuristic engine with the new sequence signals. V3 now uses the `last_end_stop` feature to provide a massive boost to transfer prediction accuracy.
 - **User-based Visibility (Master Switch)** (`js/profile.js`): Shifted to a user-level visibility model. Toggling the public profile in Settings now automatically syncs the visibility state across all existing and new trips via a batch update.
 - **Map-First Public Profile** (`public.html`, `js/public.js`, `styles/main.css`): Redesigned the public profile as a full-screen, high-impact heatmap experience. Core stats and identity now float over an interactive transit map.
 - **High-intensity Heatmap Rendering** (`js/visuals.js`): Integrated `Leaflet.heat` for professional-grade heatmap visualization of user trip patterns.
@@ -27,6 +29,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - **Documentation synchronized** (`README.md`, `ROADMAP_TECHNICAL.md`, `ROADMAP_NEXTGEN.md`, `CLAUDE.md`, `AGENTS.md`): Updated all core guides to reflect the current feature set (MMS live, Public Profiles live, RCS paused) and the shift to a page-based JS architecture.
+- **Legacy Cleanup** (`js/main.js`): Verified and retired the legacy `js/main.js` entry point.
 - **Agency mapping pruned**: Removed speculative timezone/city data for unused agencies to maintain a lean resource profile.
 
 ## [1.31.0] - 2026-05-05

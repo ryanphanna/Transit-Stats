@@ -51,10 +51,9 @@ const PredictionEngine = {
   /**
    * Guess the next route given the current stop and time.
    * @param {Array} history - Completed trips (should exclude the trip being evaluated)
-   * @param {Object} context - { stopName, time, routesAtStop? }
-   *   routesAtStop: optional array of routeShortNames known to serve this stop (from GTFS stop→route
-   *   mapping). When provided, candidates are hard-filtered to only routes in this set, which
-   *   eliminates impossible predictions. Falls back to unfiltered if no candidates survive.
+   * @param {Object} context - { stopName, time, routesAtStop?, lastEndStopName? }
+   *   routesAtStop: optional array of routeShortNames known to serve this stop.
+   *   lastEndStopName: optional name of the stop where the user just finished a trip.
    * @returns {Object|null} { route, direction, stop, confidence, version }
    */
   guess: function (history, context) {
@@ -69,17 +68,21 @@ const PredictionEngine = {
 
     if (candidates.length === 0) return null;
 
-    // Apply GTFS stop→route filter: remove candidates for routes that don't serve this stop.
-    // Only applied when the mapping is present; falls back to unfiltered if no candidates survive
-    // (guards against stale/incomplete GTFS data).
     if (context.routesAtStop && context.routesAtStop.length > 0) {
       const validFamilies = new Set(context.routesAtStop.map(r => this._baseRoute(r.toString())));
       const filtered = candidates.filter(t => validFamilies.has(this._baseRoute(t.route)));
       if (filtered.length > 0) candidates = filtered;
     }
 
-    const lastTrip = this._getLastRecentTrip(history, now);
-    const atTransferPoint = lastTrip && this._stopMatch(lastTrip.endStopName, stopName);
+    // Determine sequence context
+    let atTransferPoint = false;
+    if (context.lastEndStopName) {
+      atTransferPoint = this._stopMatch(context.lastEndStopName, stopName);
+    } else {
+      const lastTrip = this._getLastRecentTrip(history, now);
+      atTransferPoint = lastTrip && this._stopMatch(lastTrip.endStopName, stopName);
+    }
+
     const ridesAfterMap = this._computeRidesAfter(history);
 
     const votes = {};
@@ -136,74 +139,19 @@ const PredictionEngine = {
   /**
    * Predict the most likely exit stop given a known route and boarding stop.
    * @param {Array} history - Completed trips
-   * @param {Object} context - { route, startStopName, direction, time, duration? }
+   * @param {Object} context - { route, startStopName, direction, time, duration?, lastEndStopName? }
    * @returns {Object|null} { stop, confidence, version }
    */
   guessEndStop: function (history, context) {
-    if (!history || history.length === 0) return null;
-
-    const now = context.time instanceof Date ? context.time : new Date(context.time);
-    const routeFamily = this._baseRoute(context.route);
-    const normDir = context.direction ? this._normalizeDirection(context.direction) : null;
-
-    let candidates = history.filter(t => {
-      if (!this._isValidTrip(t)) return false;
-      if (!t.endStopName) return false;
-      return this._baseRoute(t.route) === routeFamily &&
-        this._stopMatch(t.startStopName, context.startStopName);
-    });
-
-    if (candidates.length === 0) return null;
-
-    // Narrow by direction if known, fall back to all if no matches
-    if (normDir) {
-      const withDir = candidates.filter(t => {
-        const tDir = this._normalizeDirection(t.direction);
-        return !tDir || tDir === normDir;
-      });
-      if (withDir.length > 0) candidates = withDir;
-    }
-
-    // Pre-filter: remove trips that ended at a topologically impossible stop.
-    // Only applies when topology covers this route + boarding stop + direction.
-    candidates = this._preFilterCandidatesByTopology(candidates, context.route, context.startStopName, context.direction);
-
-    const ridesAfterMap = this._computeRidesAfter(history);
-    const votes = {};
-    let totalWeight = 0;
-
-    for (const trip of candidates) {
-      const tripTime = trip.startTime && trip.startTime.toDate
-        ? trip.startTime.toDate()
-        : new Date(trip.startTime);
-
-      const weight =
-        this._recencyWeight(ridesAfterMap.get(trip) || 0) *
-        this._timeSimilarity(now, tripTime) *
-        this._daySimilarity(now.getDay(), tripTime.getDay()) *
-        (context.duration && trip.duration ? this._durationSimilarity(context.duration, trip.duration) : 1.0);
-
-      const key = this._canonicalizeStop(trip.endStopName);
-      if (!votes[key]) votes[key] = { stop: trip.endStopName, weight: 0 };
-      votes[key].weight += weight;
-      totalWeight += weight;
-    }
-
-    if (totalWeight === 0) return null;
-
-    const top = Object.values(votes).sort((a, b) => b.weight - a.weight)[0];
-    return {
-      stop: top.stop,
-      confidence: Math.round((top.weight / totalWeight) * 100),
-      version: this.VERSION,
-    };
+    const top = this.guessTopEndStops(history, context, 1);
+    return top.length > 0 ? top[0] : null;
   },
 
   /**
    * Return the top N predicted exit stops, ranked by weight.
    * Same voting logic as guessEndStop but returns an array.
    * @param {Array} history - Completed trips
-   * @param {Object} context - { route, startStopName, direction, time, duration? }
+   * @param {Object} context - { route, startStopName, direction, time, duration?, lastEndStopName? }
    * @param {number} topN - Number of predictions to return (default 3)
    * @returns {Array} Array of { stop, confidence, version }, highest confidence first
    */
@@ -213,12 +161,13 @@ const PredictionEngine = {
     const now = context.time instanceof Date ? context.time : new Date(context.time);
     const routeFamily = this._baseRoute(context.route);
     const normDir = context.direction ? this._normalizeDirection(context.direction) : null;
+    const startStopName = context.startStopName ? context.startStopName.trim().toLowerCase() : null;
 
     let candidates = history.filter(t => {
       if (!this._isValidTrip(t)) return false;
       if (!t.endStopName) return false;
       return this._baseRoute(t.route) === routeFamily &&
-        this._stopMatch(t.startStopName, context.startStopName);
+        this._stopMatch(t.startStopName, startStopName);
     });
 
     if (candidates.length === 0) return [];
@@ -231,8 +180,17 @@ const PredictionEngine = {
       if (withDir.length > 0) candidates = withDir;
     }
 
+    // Determine sequence context
+    let atTransferPoint = false;
+    if (context.lastEndStopName) {
+      atTransferPoint = this._stopMatch(context.lastEndStopName, startStopName);
+    } else {
+      const lastTrip = this._getLastRecentTrip(history, now);
+      atTransferPoint = lastTrip && this._stopMatch(lastTrip.endStopName, startStopName);
+    }
+
     // Pre-filter: remove trips that ended at a topologically impossible stop.
-    candidates = this._preFilterCandidatesByTopology(candidates, context.route, context.startStopName, context.direction);
+    candidates = this._preFilterCandidatesByTopology(candidates, context.route, startStopName, context.direction);
 
     const ridesAfterMap = this._computeRidesAfter(history);
     const votes = {};
@@ -247,7 +205,8 @@ const PredictionEngine = {
         this._recencyWeight(ridesAfterMap.get(trip) || 0) *
         this._timeSimilarity(now, tripTime) *
         this._daySimilarity(now.getDay(), tripTime.getDay()) *
-        (context.duration && trip.duration ? this._durationSimilarity(context.duration, trip.duration) : 1.0);
+        (context.duration && trip.duration ? this._durationSimilarity(context.duration, trip.duration) : 1.0) *
+        (atTransferPoint ? this.CONFIG.SEQUENCE_BOOST : 1.0);
 
       const key = this._canonicalizeStop(trip.endStopName);
       if (!votes[key]) votes[key] = { stop: trip.endStopName, weight: 0 };

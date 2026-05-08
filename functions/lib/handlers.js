@@ -555,6 +555,35 @@ async function handleVerificationCode(phoneNumber, code) {
 /**
  * Handle trip logging
  */
+/**
+ * Determine if an active trip is likely stale (forgotten).
+ * Uses NetworkEngine data to compare elapsed time vs typical travel duration.
+ */
+async function determineStaleness(db, userId, activeTrip) {
+  const elapsedMin = Math.round((Date.now() - activeTrip.startTime.toDate().getTime()) / 60000);
+  
+  // If > 6 hours, it's definitely stale (hard cutoff)
+  if (elapsedMin > 360) return { stale: true, reason: 'hard_cutoff', elapsedMin };
+
+  // Try route-aware staleness
+  try {
+    const graph = await NetworkEngine.load(db, userId, activeTrip.agency, activeTrip.route);
+    const median = NetworkEngine.getMedianDuration(graph, activeTrip.startStopName);
+    
+    if (median) {
+      // If elapsed time is > 2x the median duration AND at least 45 minutes
+      // (guards against very short trips being flagged too early)
+      if (elapsedMin > Math.max(median * 2, 45)) {
+        return { stale: true, reason: 'route_aware', elapsedMin, median };
+      }
+    }
+  } catch (err) {
+    console.error('Staleness check failed', err.message);
+  }
+
+  return { stale: false, elapsedMin };
+}
+
 async function handleTripLog(phoneNumber, user, stopInput, route, direction, agency, options = {}) {
   route = normalizeRoute(route);
   const activeTrip = await getActiveTrip(user.userId);
@@ -605,8 +634,9 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
   }
 
   if (activeTrip) {
-    const activeTripRouteDisplay = getRouteDisplay(activeTrip.route);
-    const newTripRouteDisplay = getRouteDisplay(route);
+    const activeTripRouteDisplay = getRouteDisplay(activeTrip.route, activeTrip.direction);
+    const newTripRouteDisplay = getRouteDisplay(route, direction);
+    const { stale, elapsedMin } = await determineStaleness(db, user.userId, activeTrip);
 
     await setPendingState(phoneNumber, {
       type: 'confirm_start',
@@ -634,9 +664,13 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
       },
     });
 
-    const activeTripElapsedMin = Math.round((Date.now() - activeTrip.startTime.toDate().getTime()) / 60000);
     const activeTripStopDisplay = getStopDisplay(activeTrip.startStopCode, activeTrip.startStopName, activeTrip.startStop);
-    const message = `${activeTripRouteDisplay} from ${activeTripStopDisplay} was not ended (started ${activeTripElapsedMin} min ago).
+    const timePhrase = `${elapsedMin} min ago`;
+    const promptPrefix = stale 
+      ? `${activeTripRouteDisplay} from ${activeTripStopDisplay} looks like it ended (started ${timePhrase}).`
+      : `${activeTripRouteDisplay} from ${activeTripStopDisplay} was not ended (started ${timePhrase}).`;
+
+    const message = `${promptPrefix}
 
 START to begin ${newTripRouteDisplay} from ${stopDisplay}, and save ${activeTripRouteDisplay} from ${activeTripStopDisplay} as incomplete.
 
@@ -680,6 +714,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       stopName: startStopName,
       time: now,
       routesAtStop: routesAtStop || undefined,
+      lastEndStopName,
     });
     // V4/V5 only run when the trip is on the user's default agency —
     // the models are trained on one agency's data and produce garbage elsewhere.
@@ -799,6 +834,7 @@ async function handleConfirmStart(phoneNumber, user, state) {
       stopName: newTrip.stopName,
       time: now,
       routesAtStop: routesAtStop || undefined,
+      lastEndStopName,
     });
     if (newTrip.agency === confirmDefaultAgency) {
       const [confirmRawV4, confirmRawV5, confirmTopV4, confirmTopV5] = await Promise.all([

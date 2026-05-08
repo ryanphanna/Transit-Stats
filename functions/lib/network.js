@@ -194,6 +194,25 @@ const NetworkEngine = {
     return false;
   },
 
+  /**
+   * Return the median travel time from a boarding stop on a specific route.
+   * Scans all edges for the route to find typical exit times.
+   * @param {Object} graph - Loaded graph doc
+   * @param {string} boardingStop
+   * @returns {number|null} Median minutes
+   */
+  getMedianDuration(graph, boardingStop) {
+    if (!graph || !boardingStop) return null;
+    const normBoarding = this._normalize(boardingStop);
+    const durations = [];
+    for (const edge of Object.values(graph.edges || {})) {
+      if (this._normalize(edge.fromStop) === normBoarding && edge.medianMinutes) {
+        durations.push(edge.medianMinutes);
+      }
+    }
+    return this._median(durations);
+  },
+
   _docId(userId, agency, route) {
     const n = s => s.toString().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
     return `${userId}_${n(agency)}_${n(this._baseRoute(route))}`;
