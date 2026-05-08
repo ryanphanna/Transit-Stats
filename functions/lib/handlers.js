@@ -671,7 +671,11 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
     isAdmin = !!profile?.isAdmin;
     defaultAgency = profile?.defaultAgency || 'TTC';
     const now = new Date();
-    const endStopContext = { route, startStopName, direction, time: now };
+    const lastTrip = history.length > 0 ? history[0] : null;
+    const lastEndStopName = lastTrip?.endStopName || null;
+    const routeContext = { stopName: startStopName, time: now, lastEndStopName, stopsLibrary };
+    const endStopContext = { route, startStopName, direction, time: now, lastEndStopName, stopsLibrary };
+
     prediction = PredictionEngine.guess(history, {
       stopName: startStopName,
       time: now,
@@ -681,8 +685,8 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
     // the models are trained on one agency's data and produce garbage elsewhere.
     if (resolvedAgency === defaultAgency) {
       const [rawTopV4, rawTopV5, topEndV4, topEndV5] = await Promise.all([
-        Promise.resolve(PredictionEngineV4.guessTopRoutes({ stopName: startStopName, time: now }, 5)),
-        PredictionEngineV5.guessTopRoutes({ stopName: startStopName, time: now }, 5),
+        Promise.resolve(PredictionEngineV4.guessTopRoutes(routeContext, 5)),
+        PredictionEngineV5.guessTopRoutes(routeContext, 5),
         PredictionEngineV4.guessTopEndStops(endStopContext, 1),
         PredictionEngineV5.guessTopEndStops(endStopContext, 1),
       ]);
@@ -787,7 +791,10 @@ async function handleConfirmStart(phoneNumber, user, state) {
     confirmIsAdmin = !!confirmProfile?.isAdmin;
     confirmDefaultAgency = confirmProfile?.defaultAgency || 'TTC';
     const now = new Date();
-    const confirmEndStopContext = { route: newTrip.route, startStopName: newTrip.stopName, direction: newTrip.direction, time: now };
+    const lastTrip = history.length > 0 ? history[0] : null;
+    const lastEndStopName = lastTrip?.endStopName || null;
+    const confirmRouteContext = { stopName: newTrip.stopName, time: now, lastEndStopName, stopsLibrary };
+    const confirmEndStopContext = { route: newTrip.route, startStopName: newTrip.stopName, direction: newTrip.direction, time: now, lastEndStopName, stopsLibrary };
     confirmPrediction = PredictionEngine.guess(history, {
       stopName: newTrip.stopName,
       time: now,
@@ -795,8 +802,8 @@ async function handleConfirmStart(phoneNumber, user, state) {
     });
     if (newTrip.agency === confirmDefaultAgency) {
       const [confirmRawV4, confirmRawV5, confirmTopV4, confirmTopV5] = await Promise.all([
-        Promise.resolve(PredictionEngineV4.guessTopRoutes({ stopName: newTrip.stopName, time: now }, 5)),
-        PredictionEngineV5.guessTopRoutes({ stopName: newTrip.stopName, time: now }, 5),
+        Promise.resolve(PredictionEngineV4.guessTopRoutes(confirmRouteContext, 5)),
+        PredictionEngineV5.guessTopRoutes(confirmRouteContext, 5),
         PredictionEngineV4.guessTopEndStops(confirmEndStopContext, 1),
         PredictionEngineV5.guessTopEndStops(confirmEndStopContext, 1),
       ]);
@@ -1460,12 +1467,20 @@ async function fillPredictions(user, tripId, stopName, route, direction, agency)
     const defaultAgency = profile?.defaultAgency || null;
     if (!defaultAgency || agency !== defaultAgency) return;
 
+    const [history, stopsLibrary] = await Promise.all([
+      getRecentCompletedTrips(user.userId, 200),
+      getStopsLibrary(),
+    ]);
+
     const now = new Date();
-    const endStopContext = { route, startStopName: stopName, direction, time: now };
+    const lastTrip = history.length > 0 ? history[0] : null;
+    const lastEndStopName = lastTrip?.endStopName || null;
+    const routeContext = { stopName, time: now, lastEndStopName, stopsLibrary };
+    const endStopContext = { route, startStopName: stopName, direction, time: now, lastEndStopName, stopsLibrary };
 
     const [rawTopV4, rawTopV5, topV4, topV5] = await Promise.all([
-      Promise.resolve(PredictionEngineV4.guessTopRoutes({ stopName, time: now }, 5)),
-      PredictionEngineV5.guessTopRoutes({ stopName, time: now }, 5),
+      Promise.resolve(PredictionEngineV4.guessTopRoutes(routeContext, 5)),
+      PredictionEngineV5.guessTopRoutes(routeContext, 5),
       PredictionEngineV4.guessTopEndStops(endStopContext, 1),
       PredictionEngineV5.guessTopEndStops(endStopContext, 1),
     ]);

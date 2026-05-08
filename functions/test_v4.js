@@ -14,12 +14,18 @@ function testManual(stopName, hour, dayOfWeek) {
   const pyDay = (now.getDay() + 6) % 7;
   console.log(`\nTesting | Stop: "${stopName}" | Hour: ${hour}:00 | PyDay: ${pyDay} (JS Day ${now.getDay()})`);
 
-  const result = PredictionEngineV4.guess({
+  const result = PredictionEngineV4.guessTopRoutes({
     stopName: stopName,
-    time: now
-  });
+    time: now,
+    stopsLibrary: [], // Mock empty library for basic test
+    lastEndStopName: null
+  }, 1);
 
-  console.log(`Prediction: Route ${result.route} (V4 Confidence: ${result.confidence}%)`);
+  if (result.length > 0) {
+    console.log(`Prediction: Route ${result[0].route} (V4 Confidence: ${result[0].confidence}%)`);
+  } else {
+    console.log('Prediction: null');
+  }
 }
 
 // Emulate the two tests from the bottom of your Python Notebook!

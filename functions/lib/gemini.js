@@ -84,7 +84,7 @@ async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
  * @param {Array} trips - List of trip objects
  * @returns {object} Aggregated stats
  */
-function aggregateTripStats(trips, timezone = 'America/Toronto') {
+function aggregateTripStats(trips, defaultTimezone = 'America/Toronto') {
   const routeMap = {};
   const pairMap = {};
   const boardingStopMap = {};
@@ -100,6 +100,9 @@ function aggregateTripStats(trips, timezone = 'America/Toronto') {
     const startStop = trip.startStopName || trip.startStop || trip.startStopCode || 'Unknown';
     const endStop = trip.endStopName || trip.endStop || trip.endStopCode || 'Unknown';
     const pairKey = `${startStop} → ${endStop}`;
+
+    // Respect per-trip timezone, fallback to provided default
+    const tripTimezone = trip.timezone || defaultTimezone;
 
     if (!routeMap[route]) routeMap[route] = { count: 0, durations: [] };
     routeMap[route].count++;
@@ -118,7 +121,7 @@ function aggregateTripStats(trips, timezone = 'America/Toronto') {
 
     if (trip.startTime) {
       const date = trip.startTime.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
-      const parts = getTimezoneDateParts(date, timezone);
+      const parts = getTimezoneDateParts(date, tripTimezone);
       hourMap[parts.hour] = (hourMap[parts.hour] || 0) + 1;
       dayOfWeekMap[parts.weekday] = (dayOfWeekMap[parts.weekday] || 0) + 1;
       if (!windowStart || date < windowStart) windowStart = date;

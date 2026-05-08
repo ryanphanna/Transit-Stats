@@ -143,6 +143,31 @@ exports.VALID_INTENTS = [
 
 exports.VALID_SENTIMENTS = ['POSITIVE', 'NEGATIVE', 'NEUTRAL'];
 
+// Maps canonical agency name to its IANA timezone string.
+// Only agencies actually present in trip history are listed to avoid speculative bloat.
+exports.AGENCY_TIMEZONE = {
+  'TTC': 'America/Toronto',
+  'GO Transit': 'America/Toronto',
+  'MiWay': 'America/Toronto',
+  'YRT': 'America/Toronto',
+  'Oakville Transit': 'America/Toronto',
+  'GTAA Terminal Link': 'America/Toronto',
+  'LA Metro': 'America/Los_Angeles',
+  'LADOT': 'America/Los_Angeles',
+  'Big Blue Bus': 'America/Los_Angeles',
+  'BART': 'America/Los_Angeles',
+  'Muni': 'America/Los_Angeles',
+  'VTA': 'America/Los_Angeles',
+  'AC Transit': 'America/Los_Angeles',
+  'SamTrans': 'America/Los_Angeles',
+  'MTS': 'America/Los_Angeles',
+  'Golden Gate Transit': 'America/Los_Angeles',
+  'SMART': 'America/Los_Angeles',
+  'Santa Rosa CityBus': 'America/Los_Angeles',
+  'Flagship Cruises & Events': 'America/Los_Angeles',
+  'Amtrak': 'America/New_York', 
+};
+
 // Maps canonical agency name to the city/region shown in disambiguation prompts.
 // When two agencies map to the same city, the agency name is shown instead.
 exports.AGENCY_CITY = {

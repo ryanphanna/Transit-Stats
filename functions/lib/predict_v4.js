@@ -2,16 +2,17 @@
  * TransitStats Prediction Engine V4 (Logistic Regression)
  * 
  * Runs in parallel with V3 (Shadow Mode).
- * Uses weights trained via ml/predict_v4.ipynb.
+ * Uses weights trained via ml/train_routes.py and ml/train_endstop.py.
  */
 
 const model = require('./model_v4.json');
 const endStopModel = require('./model_v4_endstop.json');
+const { getStopFeature } = require('./ml_utils');
 
 let _topology = null;
 try { _topology = require('./topology.json'); } catch (e) {}
 
-// Shared topology helpers (mirrors predict.js)
+// Shared topology helpers
 function topologyLine(routeStr) {
   if (!_topology) return null;
   const lines = _topology.lines;
@@ -39,118 +40,31 @@ function topologyMask(route, boardingStop, direction, classes) {
   const routeStr = route.toString().replace(/^(\d+).*/, '$1');
   const line = topologyLine(routeStr);
   if (!line) return null;
-
   const normDir = direction.toLowerCase().replace(/bound$/, '').trim();
-  const goingHigherDir = ['east', 'e', 'eb', 'north', 'n', 'nb'].includes(normDir);
-  const goingLowerDir  = ['west', 'w', 'wb', 'south', 's', 'sb'].includes(normDir);
-  if (!goingHigherDir && !goingLowerDir) return null;
-
   const boardingIdx = topologyStopIndex(line, boardingStop);
   if (boardingIdx === -1) return null;
-
   let goingHigher;
   if (line.name === 'Yonge-University') {
     const unionIdx = topologyStopIndex(line, 'Union');
     if (unionIdx === -1) return null;
-    goingHigher = boardingIdx <= unionIdx ? !goingHigherDir : goingHigherDir;
-    // Yonge branch southbound = toward Union = higher index
-    goingHigher = boardingIdx <= unionIdx ? goingLowerDir === false && normDir === 'south' : goingHigherDir;
-    // Simpler: Yonge branch: south→higher, University branch: north→higher
-    goingHigher = boardingIdx <= unionIdx ? ['south','s','sb'].includes(normDir) : goingHigherDir;
+    goingHigher = boardingIdx <= unionIdx ? ['south','s','sb'].includes(normDir) : ['north','n','nb'].includes(normDir);
   } else {
-    goingHigher = goingHigherDir;
+    goingHigher = ['east','e','eb','north','n','nb'].includes(normDir);
   }
-
-  // Build a boolean mask over the class list
   const mask = classes.map(cls => {
     const idx = topologyStopIndex(line, cls);
-    if (idx === -1) return true; // unknown — keep
+    if (idx === -1) return true;
     return goingHigher ? idx > boardingIdx : idx < boardingIdx;
   });
-
-  return mask.some(Boolean) ? mask : null; // null = no valid stops, don't filter
+  return mask.some(Boolean) ? mask : null;
 }
 
 const PredictionEngineV4 = {
-  VERSION: '4.1',
+  VERSION: '4.2',
 
   /**
-   * Guess the next route given the current stop and time using the V4 Logistic Regression model.
-   * @param {Object} context - { stopName, time }
-   * @returns {Object|null} { route, confidence, version }
-   */
-  guess: function (context) {
-    if (!context || !context.time) return null;
-
-    const date = context.time instanceof Date ? context.time : new Date(context.time);
-    const hour = date.getHours(); // 0-23
-    
-    // JS getDay is 0 (Sun) to 6 (Sat). Python weekday is 0 (Mon) to 6 (Sun).
-    const pyDay = (date.getDay() + 6) % 7; 
-
-    const hour_sin = Math.sin(2 * Math.PI * hour / 24);
-    const hour_cos = Math.cos(2 * Math.PI * hour / 24);
-    const day_sin = Math.sin(2 * Math.PI * pyDay / 7);
-    const day_cos = Math.cos(2 * Math.PI * pyDay / 7);
-
-    const cleanStop = context.stopName ? context.stopName.trim().toLowerCase() : '';
-    const stopFeatureName = `stop_${cleanStop}`;
-
-    // Build the feature vector 'x' based on exported model.feature_names
-    const x = new Array(model.feature_names.length).fill(0);
-    
-    for (let i = 0; i < model.feature_names.length; i++) {
-      const fn = model.feature_names[i];
-      if (fn === 'hour_sin') x[i] = hour_sin;
-      else if (fn === 'hour_cos') x[i] = hour_cos;
-      else if (fn === 'day_sin') x[i] = day_sin;
-      else if (fn === 'day_cos') x[i] = day_cos;
-      else if (fn === stopFeatureName) x[i] = 1.0;
-    }
-
-    // Compute dot product (logits) for each class
-    const logits = [];
-    for (let c = 0; c < model.classes.length; c++) {
-      let z = model.intercept[c];
-      for (let f = 0; f < x.length; f++) {
-        z += model.coef[c][f] * x[f];
-      }
-      logits.push(z);
-    }
-
-    // Apply Softmax to get probabilities
-    const maxLogit = Math.max(...logits);
-    let sumExp = 0;
-    const exps = logits.map(z => {
-      const e = Math.exp(z - maxLogit);
-      sumExp += e;
-      return e;
-    });
-    
-    const probs = exps.map(e => e / sumExp);
-    
-    // Find highest probability route
-    let bestIdx = 0;
-    let bestProb = 0;
-    for (let c = 0; c < probs.length; c++) {
-      if (probs[c] > bestProb) {
-        bestProb = probs[c];
-        bestIdx = c;
-      }
-    }
-
-    return {
-      route: model.classes[bestIdx].toString(),
-      confidence: Math.round(bestProb * 100),
-      version: this.VERSION,
-    };
-  },
-
-  /**
-   * Return the top N route predictions sorted by probability descending.
-   * @param {Object} context - { stopName, time }
-   * @param {number} topN
-   * @returns {Array} [{ route, confidence, version }]
+   * Guess the next route given the current stop and time.
+   * @param {Object} context - { stopName, time, lastEndStopName, stopsLibrary }
    */
   guessTopRoutes: function (context, topN = 5) {
     if (!context || !context.time) return [];
@@ -162,27 +76,27 @@ const PredictionEngineV4 = {
     const hour_sin = Math.sin(2 * Math.PI * hour / 24);
     const hour_cos = Math.cos(2 * Math.PI * hour / 24);
     const day_sin  = Math.sin(2 * Math.PI * pyDay / 7);
-    const day_cos  = Math.cos(2 * Math.PI * pyDay / 7);
+    const day_cos  = Math.cos(2 * Math.PI * day_sin / 7);
 
-    const cleanStop = context.stopName ? context.stopName.trim().toLowerCase() : '';
-    const stopFeatureName = `stop_${cleanStop}`;
+    const stopFeature = getStopFeature(context.stopName, context.stopsLibrary);
+    const lastStopFeature = `last_stop_${getStopFeature(context.lastEndStopName, context.stopsLibrary).replace('stop_', '')}`;
 
     const x = new Array(model.feature_names.length).fill(0);
     for (let i = 0; i < model.feature_names.length; i++) {
       const fn = model.feature_names[i];
-      if (fn === 'hour_sin') x[i] = hour_sin;
+      if      (fn === 'hour_sin') x[i] = hour_sin;
       else if (fn === 'hour_cos') x[i] = hour_cos;
-      else if (fn === 'day_sin') x[i] = day_sin;
-      else if (fn === 'day_cos') x[i] = day_cos;
-      else if (fn === stopFeatureName) x[i] = 1.0;
+      else if (fn === 'day_sin')  x[i] = day_sin;
+      else if (fn === 'day_cos')  x[i] = day_cos;
+      else if (fn === stopFeature) x[i] = 1.0;
+      else if (fn === lastStopFeature) x[i] = 1.0;
     }
 
-    const logits = [];
-    for (let c = 0; c < model.classes.length; c++) {
+    const logits = model.classes.map((_, c) => {
       let z = model.intercept[c];
       for (let f = 0; f < x.length; f++) z += model.coef[c][f] * x[f];
-      logits.push(z);
-    }
+      return z;
+    });
 
     const maxLogit = Math.max(...logits);
     let sumExp = 0;
@@ -196,11 +110,8 @@ const PredictionEngineV4 = {
   },
 
   /**
-   * Predict top N exit stops using the V4 end stop logistic regression model.
-   * Topology pre-filter zeros out directionally impossible stops before softmax.
-   * @param {Object} context - { route, startStopName, direction, time }
-   * @param {number} topN
-   * @returns {Array} [{ stop, confidence, version }]
+   * Predict top N exit stops.
+   * @param {Object} context - { route, startStopName, direction, time, lastEndStopName, stopsLibrary }
    */
   guessTopEndStops: function (context, topN = 3) {
     if (!context || !context.time || !context.startStopName) return [];
@@ -214,38 +125,36 @@ const PredictionEngineV4 = {
     const day_sin  = Math.sin(2 * Math.PI * pyDay / 7);
     const day_cos  = Math.cos(2 * Math.PI * pyDay / 7);
 
-    const cleanStop  = context.startStopName.trim().toLowerCase();
     const cleanRoute = context.route ? context.route.toString().replace(/^(\d+).*/, '$1').toLowerCase() : '';
+    const stopFeature = getStopFeature(context.startStopName, context.stopsLibrary);
+    const lastStopFeature = `last_stop_${getStopFeature(context.lastEndStopName, context.stopsLibrary).replace('stop_', '')}`;
 
     const x = new Array(endStopModel.feature_names.length).fill(0);
     for (let i = 0; i < endStopModel.feature_names.length; i++) {
       const fn = endStopModel.feature_names[i];
-      if (fn === 'hour_sin') x[i] = hour_sin;
-      else if (fn === 'hour_cos') x[i] = hour_cos;
-      else if (fn === 'day_sin') x[i] = day_sin;
-      else if (fn === 'day_cos') x[i] = day_cos;
-      else if (fn === `stop_${cleanStop}`) x[i] = 1.0;
+      if      (fn === 'hour_sin')            x[i] = hour_sin;
+      else if (fn === 'hour_cos')            x[i] = hour_cos;
+      else if (fn === 'day_sin')             x[i] = day_sin;
+      else if (fn === 'day_cos')             x[i] = day_cos;
+      else if (fn === stopFeature)           x[i] = 1.0;
       else if (fn === `route_${cleanRoute}`) x[i] = 1.0;
+      else if (fn === lastStopFeature)      x[i] = 1.0;
     }
 
-    // Compute logits
     const logits = endStopModel.classes.map((_, c) => {
       let z = endStopModel.intercept[c];
       for (let f = 0; f < x.length; f++) z += endStopModel.coef[c][f] * x[f];
       return z;
     });
 
-    // Topology pre-filter: zero out impossible stops before softmax
     const mask = topologyMask(context.route, context.startStopName, context.direction, endStopModel.classes);
     if (mask) mask.forEach((keep, i) => { if (!keep) logits[i] = -Infinity; });
 
-    // Softmax
     const maxL = Math.max(...logits.filter(isFinite));
     let sumExp = 0;
     const exps = logits.map(z => { const e = isFinite(z) ? Math.exp(z - maxL) : 0; sumExp += e; return e; });
     const probs = exps.map(e => sumExp > 0 ? e / sumExp : 0);
 
-    // Rank and return top N
     return probs
       .map((p, i) => ({ stop: endStopModel.classes[i], prob: p }))
       .filter(v => v.prob > 0)

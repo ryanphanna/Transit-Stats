@@ -3,6 +3,7 @@
  */
 const { admin, db } = require('./core');
 const { getUserProfile } = require('./users');
+const { AGENCY_TIMEZONE } = require('../constants');
 
 async function getActiveTrip(userId) {
   const now = new Date();
@@ -38,6 +39,7 @@ async function createTrip(tripData) {
     endStopName: null,
     exitLocation: null,
     isPublic: profile?.isPublic || false,
+    timezone: AGENCY_TIMEZONE[tripData.agency] || 'UTC',
   });
   return docRef.id;
 }

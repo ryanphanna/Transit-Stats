@@ -24,6 +24,7 @@ import sys
 import numpy as np
 import pandas as pd
 
+KEY_PATH = os.path.expanduser("~/Desktop/Dev/Credentials/Firebase for Transit Stats.json")
 CSV_PATH = os.path.join(os.path.dirname(__file__), "trips.csv")
 OUT_DIR  = os.path.dirname(__file__)
 LIB_DIR  = os.path.join(os.path.dirname(__file__), "..", "functions", "lib")
@@ -42,19 +43,59 @@ def base_route(r):
     return re.sub(r'[a-zA-Z]+$', '', str(r).strip()).strip()
 
 
-def clean(df):
+import firebase_admin
+from firebase_admin import credentials, firestore
+
+# ... (rest of imports)
+
+def load_stops_library():
+    if not firebase_admin._apps:
+        cred = credentials.Certificate(KEY_PATH)
+        firebase_admin.initialize_app(cred)
+    db = firestore.client()
+    docs = db.collection("stops").stream()
+    lib = []
+    for doc in docs:
+        d = doc.to_dict()
+        lib.append({"name": d.get("name"), "aliases": d.get("aliases", [])})
+    return lib
+
+def canonicalize_stop(name, lib):
+    if not name: return "unknown"
+    import re
+    lower = str(name).strip().lower().replace(" and ", "/").replace(" & ", "/").replace(" @ ", "/").replace(" at ", "/")
+    lower = re.sub(r"\s*/\s*", "/", lower)
+    
+    for item in lib:
+        candidates = [item["name"]] + item.get("aliases", [])
+        for c in candidates:
+            c_norm = str(c).strip().lower().replace(" and ", "/").replace(" & ", "/").replace(" @ ", "/").replace(" at ", "/")
+            c_norm = re.sub(r"\s*/\s*", "/", c_norm)
+            if c_norm == lower:
+                return item["name"].lower().replace(" and ", "/").replace(" & ", "/").replace(" @ ", "/").replace(" at ", "/")
+    return lower
+
+def clean(df, lib):
     df = df.copy()
     df['route_base'] = df['route'].apply(base_route)
     df['start_time'] = pd.to_datetime(df['start_time'], format='ISO8601', utc=True)
+    
+    # Canonicalize stops
+    df["start_stop"] = df["start_stop"].apply(lambda x: canonicalize_stop(x, lib))
+    df["end_stop"] = df["end_stop"].apply(lambda x: canonicalize_stop(x, lib))
+
+    # Add sequence feature: last_end_stop
+    df = df.sort_values(["user_id", "start_time"])
+    df["last_end_stop"] = df.groupby("user_id")["end_stop"].shift(1).fillna("none")
+
     df = df.dropna(subset=['route_base', 'start_stop', 'hour_of_day', 'day_of_week'])
-    # Only keep routes with ≥3 trips — filters noise and rare one-offs
+    
+    # Filter to routes with >= 3 trips
     counts = df['route_base'].value_counts()
     df = df[df['route_base'].isin(counts[counts >= 3].index)]
+    
     print(f"{len(df)} trips kept after cleaning")
-    print("Route distribution:")
-    print(df['route_base'].value_counts().head(15).to_string())
     return df
-
 
 def build_features(df):
     df = df.copy()
@@ -62,9 +103,11 @@ def build_features(df):
     df['hour_cos'] = np.cos(2 * np.pi * df['hour_of_day'] / 24)
     df['day_sin']  = np.sin(2 * np.pi * df['day_of_week'] / 7)
     df['day_cos']  = np.cos(2 * np.pi * df['day_of_week'] / 7)
-    df['start_stop_clean'] = df['start_stop'].str.strip().str.lower()
-    stop_dummies = pd.get_dummies(df['start_stop_clean'], prefix='stop')
-    features = pd.concat([df[['hour_sin', 'hour_cos', 'day_sin', 'day_cos']], stop_dummies], axis=1)
+    
+    stop_dummies = pd.get_dummies(df['start_stop'].str.lower().str.strip(), prefix='stop')
+    last_stop_dummies = pd.get_dummies(df['last_end_stop'].str.lower().str.strip(), prefix='last_stop')
+    
+    features = pd.concat([df[['hour_sin', 'hour_cos', 'day_sin', 'day_cos']], stop_dummies, last_stop_dummies], axis=1)
     return features, stop_dummies.columns.tolist()
 
 
@@ -175,7 +218,8 @@ def main():
     from sklearn.model_selection import train_test_split
 
     df = load_data()
-    df = clean(df)
+    lib = load_stops_library()
+    df = clean(df, lib)
     features, stop_columns = build_features(df)
     feature_names = features.columns.tolist()
     labels = df['route_base']

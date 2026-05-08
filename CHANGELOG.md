@@ -17,6 +17,9 @@ All notable changes to this project will be documented in this file.
 - **Node 22 parallel testing** (`functions/package.json`): Modernized the backend test suite to use the native Node test runner with concurrent execution (`npm test`).
 
 ### Fixed
+- **ML Stop Blindness** (`ml/train_routes.py`, `ml/train_endstop.py`, `functions/lib/ml_utils.js`): Fixed a major bug where V4 and V5 models were blind to stop aliases. All training and inference data is now passed through `stopsLibrary` canonicalization.
+- **ML Sequence Amnesia**: Upgraded V4 and V5 to be sequence-aware. They now use the `last_end_stop` feature to understand transfers and journey context, significantly boosting accuracy.
+- **ML Route/End-Stop Mismatch**: Separated the training pipelines so models are properly trained for the specific task they are asked to perform in shadow mode (Routes vs. End Stops).
 - **SMS Acronym Preservation** (`functions/lib/utils.js`): Updated `toTitleCase` to preserve capitalization for transit acronyms (TMU, TTC, GO, etc.) in confirmation replies.
 - **SMS Stop Name Prioritization** (`functions/lib/utils.js`): Confirmation replies now prefer canonical stop names (e.g., "Spadina Ave at Nassau St") even when a numeric code is provided.
 
