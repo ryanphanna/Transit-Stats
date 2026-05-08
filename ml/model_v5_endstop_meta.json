@@ -10,6 +10,7 @@
     "lawrence west station",
     "nan",
     "queen's park station",
+    "spadina / king",
     "spadina ave/nassau st",
     "spadina ave/nassau st south side",
     "spadina ave/queen st west south side",
@@ -47,8 +48,8 @@
     "last_stop_bloor-yonge station",
     "last_stop_carlton / church",
     "last_stop_christie station",
-    "last_stop_college / brock",
     "last_stop_college / euclid",
+    "last_stop_college st/brock ave",
     "last_stop_college st/spadina ave",
     "last_stop_college station",
     "last_stop_donlands",
@@ -80,7 +81,7 @@
     "last_stop_union station",
     "last_stop_york university"
   ],
-  "top1_accuracy": 0.6809,
-  "top3_accuracy": 0.8511,
-  "n_trips": 233
+  "top1_accuracy": 0.74,
+  "top3_accuracy": 0.96,
+  "n_trips": 247
 }

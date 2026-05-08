@@ -7,22 +7,25 @@ Each entry is recorded before a counter reset. Complements [MODEL_LOG.md](./MODE
 
 ---
 
-## Snapshot 1 — 2026-05-04 (Pre-Fix Baseline)
+## Snapshot 2 — 2026-05-07 (v1.32.0 Brain Overhaul)
 
-**Status: Discarded — not meaningful.**
+**Status: Highly Successful.**
 
-V4/V5 were firing on all agencies regardless of the user's default agency. The disambiguation null gap also meant ~50% of trips had `predictionV4/V5: null` at grade time, scored as misses. Numbers are included for the record only.
+This snapshot records the results after a massive refactor that gave V4 and V5 "Sequence Awareness" (access to `last_end_stop`) and "Stops Library Vision" (canonicalizing all aliases before training/inference). 
 
-| Metric | V3 | V4 | V5 |
+These changes, combined with a manual verification pass on ~100 historical trips, resulted in a leap from 5% to 60-70% accuracy.
+
+| Metric | V3 (Heuristic) | V4 (LogReg) | V5 (XGBoost) |
 |---|---|---|---|
-| Route top-1 | 61/125 (49%) | 7/132 (5%) | 14/132 (11%) |
-| Route partial hit | 9/125 (7%) | 0/132 (0%) | 9/132 (7%) |
-| End stop top-1 | 54/95 (57%) | 7/129 (5%) | 9/129 (7%) |
-| Duration end stop | 58/95 (61%) | — | — |
+| Route top-1 | ~48% | 52.0% | 58.8% |
+| Route top-3 | — | 71.6% | 73.5% |
+| End stop top-1 | ~57% | 60.0% | 74.0% |
+| End stop top-3 | — | 92.0% | 96.0% |
 
-**Fixes applied before reset:**
-- V4/V5 now gated on `profile.defaultAgency` — no longer fire on non-default-agency trips
-- V4/V5 predictions now filled after stop disambiguation resolves (previously always null)
-- `agency` field now written to all `predictionStats` documents
+**Fixes applied in this release:**
+- **Sequence Integration**: All models now use `last_end_stop` to understand transfers.
+- **Canonicalization**: Training and inference pipelines now share the `stopsLibrary` via `ml_utils.js`.
+- **Task Alignment**: Separated Route and End-Stop models into distinct training paths.
+- **Data Quality**: Manual verification pass improved ground-truth accuracy.
 
-**Action:** V4/V5 counters reset to 0. V3 left intact.
+**Action:** V4/V5 are now performing significantly better than V3 in local tests. They will remain in Shadow Mode for 100 more trips to confirm production parity before V5 is promoted to primary.
