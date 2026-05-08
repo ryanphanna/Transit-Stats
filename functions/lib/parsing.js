@@ -59,10 +59,8 @@ function parseMultiLineTripFormat(body, defaultAgency) {
   ]);
 
   // Direction is line 3 only when it resolves to a recognized canonical word.
-  // "Barrie Transit" passes through normalizeDirection unchanged, so it won't
-  // match here and falls through to the agency check below instead.
   let direction = null;
-  if (lines.length > 2) {
+  if (lines.length >= 3) {
     const nd = normalizeDirection(lines[2]);
     if (CANONICAL_DIRECTIONS.has(nd)) direction = nd;
   }
@@ -70,23 +68,8 @@ function parseMultiLineTripFormat(body, defaultAgency) {
   let agency = defaultAgency;
   let agencyExplicit = false;
 
-  if (lines.length === 3) {
-    // Line 3: check KNOWN_AGENCIES first (for canonical normalization), then
-    // treat any non-direction text as an agency — even if not pre-registered.
-    const potentialAgency = lines[2];
-    const lowerAgency = potentialAgency.toLowerCase();
-    const knownAgency = KNOWN_AGENCIES.find((a) => a.toLowerCase() === lowerAgency);
-    if (knownAgency) {
-      agency = normalizeAgency(knownAgency);
-      direction = null;
-      agencyExplicit = true;
-    } else if (!direction) {
-      // Not a direction and not a known agency — store as-is (e.g. "Barrie Transit")
-      agency = normalizeAgency(potentialAgency);
-      agencyExplicit = true;
-    }
-  } else if (lines.length > 3) {
-    // Line 4 is always the agency — no direction ambiguity at this position.
+  // Line 4+ is always the agency — no direction ambiguity at this position.
+  if (lines.length > 3) {
     const potentialAgency = lines[3].trim();
     if (potentialAgency) {
       agency = normalizeAgency(potentialAgency);

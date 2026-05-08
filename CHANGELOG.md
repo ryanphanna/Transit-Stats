@@ -10,9 +10,11 @@ All notable changes to this project will be documented in this file.
 - **User-based Visibility (Master Switch)** (`js/profile.js`): Shifted to a user-level visibility model. Toggling the public profile in Settings now automatically syncs the visibility state across all existing and new trips via a batch update.
 - **Map-First Public Profile** (`public.html`, `js/public.js`, `styles/main.css`): Redesigned the public profile as a full-screen, high-impact heatmap experience. Core stats and identity now float over an interactive transit map.
 - **High-intensity Heatmap Rendering** (`js/visuals.js`): Integrated `Leaflet.heat` for professional-grade heatmap visualization of user trip patterns.
-- **Triple Emoji Identity system** (`js/identity.js`, `js/profile.js`, `settings.html`): Replaced the text-based username system with a visual triplet of unique emojis (e.g., 🚌🌮🐼). Handles are stored as URL-safe slugs (e.g., `bus_taco_panda`).
-- **Interactive Emoji Picker** (`js/profile.js`, `settings.html`, `styles/main.css`): Built a custom popover picker in Settings with a curated library of 80+ transit, food, animal, and nature icons. Prevents duplicate emoji selection within a triplet.
+- **Triple Emoji Identity system** (`js/identity.js`, `js/profile.js`, `settings.html`): Replaced the text-based username system with a visual triplet of unique emojis (e.g., 🚌🌮🐼). Triplets are now enforced to be unique (no repeated emojis). Handles are stored as URL-safe slugs (e.g., `bus_taco_panda`).
+- **Interactive Emoji Picker** (`js/profile.js`, `settings.html`, `styles/main.css`): Built a custom popover picker in Settings with a curated library of 80+ transit, food, animal, and nature icons.
 - **Auto-generated Emoji identities** (`js/profile.js`): New users are automatically assigned a random emoji triplet upon their first dashboard visit.
+- **Agency-Linked Timezones** (`functions/lib/constants.js`, `functions/lib/db/trips.js`): Refactored timezone handling to be agency-driven. Timezones are now stored directly on every trip document at creation, ensuring historical stats remain accurate during multi-city travel.
+- **Automated Coordinate Backfill** (`functions/lib/db/stops.js`): Implemented a fuzzy-matching script to assign coordinates to manual stop entries based on GTFS data. All automated updates are tagged with `source: 'automated_backfill'` for auditability.
 - **Stop library caching** (`js/trips.js`): Implemented 24-hour `localStorage` caching for the stops library to reduce Firestore reads and improve dashboard load times.
 - **Node 22 parallel testing** (`functions/package.json`): Modernized the backend test suite to use the native Node test runner with concurrent execution (`npm test`).
 
@@ -20,11 +22,12 @@ All notable changes to this project will be documented in this file.
 - **ML Stop Blindness** (`ml/train_routes.py`, `ml/train_endstop.py`, `functions/lib/ml_utils.js`): Fixed a major bug where V4 and V5 models were blind to stop aliases. All training and inference data is now passed through `stopsLibrary` canonicalization.
 - **ML Sequence Amnesia**: Upgraded V4 and V5 to be sequence-aware. They now use the `last_end_stop` feature to understand transfers and journey context, significantly boosting accuracy.
 - **ML Route/End-Stop Mismatch**: Separated the training pipelines so models are properly trained for the specific task they are asked to perform in shadow mode (Routes vs. End Stops).
-- **SMS Acronym Preservation** (`functions/lib/utils.js`): Updated `toTitleCase` to preserve capitalization for transit acronyms (TMU, TTC, GO, etc.) in confirmation replies.
+- **SMS Acronym Preservation** (`functions/lib/utils.js`): Updated `toTitleCase` to respect capitalization for transit acronyms (TMU, TTC, GO, etc.) in confirmation replies.
 - **SMS Stop Name Prioritization** (`functions/lib/utils.js`): Confirmation replies now prefer canonical stop names (e.g., "Spadina Ave at Nassau St") even when a numeric code is provided.
 
 ### Changed
 - **Documentation synchronized** (`README.md`, `ROADMAP_TECHNICAL.md`, `ROADMAP_NEXTGEN.md`, `CLAUDE.md`, `AGENTS.md`): Updated all core guides to reflect the current feature set (MMS live, Public Profiles live, RCS paused) and the shift to a page-based JS architecture.
+- **Agency mapping pruned**: Removed speculative timezone/city data for unused agencies to maintain a lean resource profile.
 
 ## [1.31.0] - 2026-05-05
 
