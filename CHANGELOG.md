@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Prediction Engine history](docs/ENGINE.md) · [Transfer Engine history](docs/TRANSFER_ENGINE.md) · [Network Engine history](docs/NETWORK_ENGINE.md) · [NextGen Roadmap](docs/ROADMAP_NEXTGEN.md) · [Technical Roadmap](docs/ROADMAP_TECHNICAL.md)
 
+## [Unreleased]
+
+## [1.32.0] - 2026-05-07
+
+### Added
 - **Refined SMS Prediction UX**: Balanced natural language with efficiency. Single predictions now ask a direct question ("Heading to [Stop]?") but retain the "END 1" shortcut and numeric identifiers for speed and clarity.
 - **Numeric Shortcut Restoration**: Restored the "1., 2., 3." numbering and "END 1/2/3" commands for end-stop predictions, prioritizing unambiguous user confirmation over minimal text.
 - **"Likely Ended" Trip Intelligence** (`functions/lib/handlers.js`, `functions/lib/network.js`): Replaced the blunt 6-hour active trip cutoff with route-aware logic. The system now uses historical median durations from the NetworkEngine to detect likely forgotten trips and suggest saving them as incomplete.
