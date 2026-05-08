@@ -254,6 +254,24 @@ async function maybeHandleStopDisambiguation({
  * @param {string} userId
  * @returns {Promise<string>}
  */
+/**
+ * Build a conversational prediction prompt for the user.
+ */
+function getPredictionPrompt(predictions) {
+  if (!predictions || predictions.length === 0) {
+    return '\n\nEND [stop] to finish. FORGOT if you forgot to end. INFO for help.';
+  }
+
+  if (predictions.length === 1) {
+    const p = predictions[0];
+    return `\n\nHeading to ${p.stop}? (${p.confidence}%)\nReply END 1 to confirm, or END [stop]. FORGOT if you forgot to end.`;
+  }
+
+  const predLines = predictions.map((p, i) => `${i + 1}. ${p.stop} (${p.confidence}%)`).join('\n');
+  const shortcutNums = predictions.map((_, i) => i + 1).join('/');
+  return `\n\nWhere to?\n${predLines}\n\nEND [stop] or END ${shortcutNums} to finish. FORGOT if forgot to end.`;
+}
+
 async function getAchievementNote(userId) {
   try {
     const count = await getTripCount(userId);
@@ -781,13 +799,8 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
   if (resolvedAgency) lookupAgencyTimezone(resolvedAgency).catch(() => {});
 
   let replyBody = `Started ${routeDisplay} from ${finalStopDisplay}${agencySuffix(resolvedAgency, defaultAgency)}.`;
-  if (isAdmin && endStopPredictions && endStopPredictions.length > 0) {
-    const predLines = endStopPredictions.map((p, i) => `${i + 1}. ${p.stop} (${p.confidence}%)`).join('\n');
-    const shortcutNums = endStopPredictions.map((_, i) => i + 1).join('/');
-    replyBody += `\n\nPredicted end:\n${predLines}\n\nEND [stop] or END ${shortcutNums} to finish. FORGOT if forgot to end. INFO for help.`;
-  } else {
-    replyBody += `\n\nEND [stop] to finish. FORGOT if you forgot to end. INFO for help.`;
-  }
+  replyBody += getPredictionPrompt(isAdmin ? endStopPredictions : null);
+  
   // Add achievement note if applicable
   const achievementNote = await getAchievementNote(user.userId);
   replyBody += achievementNote;
@@ -891,13 +904,7 @@ async function handleConfirmStart(phoneNumber, user, state) {
   const newRouteDisplay = getRouteDisplay(newTrip.route, normalizeDirection(newTrip.direction));
 
   let confirmReplyBody = `${oldTripRouteDisplay} marked as incomplete.\n\nStarted ${newRouteDisplay} from ${newStopDisplay}${agencySuffix(newTrip.agency, confirmDefaultAgency)}.`;
-  if (confirmIsAdmin && confirmEndStopPredictions && confirmEndStopPredictions.length > 0) {
-    const predLines = confirmEndStopPredictions.map((p, i) => `${i + 1}. ${p.stop} (${p.confidence}%)`).join('\n');
-    const shortcutNums = confirmEndStopPredictions.map((_, i) => i + 1).join('/');
-    confirmReplyBody += `\n\nPredicted end:\n${predLines}\n\nEND [stop] or END ${shortcutNums} to finish. FORGOT if forgot to end. INFO for help.`;
-  } else {
-    confirmReplyBody += `\n\nEND [stop] to finish. FORGOT if forgot to end. INFO for help.`;
-  }
+  confirmReplyBody += getPredictionPrompt(confirmIsAdmin ? confirmEndStopPredictions : null);
 
   // Add achievement note if applicable
   const achievementNote = await getAchievementNote(user.userId);
