@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-**See also:** [Prediction Engine history](docs/ENGINE.md) · [Transfer Engine history](docs/TRANSFER_ENGINE.md) · [Network Engine history](docs/NETWORK_ENGINE.md) · [NextGen Roadmap](docs/ROADMAP_NEXTGEN.md) · [Technical Roadmap](docs/ROADMAP_TECHNICAL.md)
+**See also:** [Prediction Engine history](docs/ENGINE.md) · [Transfer Engine history](docs/TRANSFER_ENGINE.md) · [Network Engine history](docs/NETWORK_ENGINE.md)
 
 ## [1.32.0] - 2026-05-07
 
@@ -30,7 +30,7 @@ All notable changes to this project will be documented in this file.
 - **SMS Stop Name Prioritization** (`functions/lib/utils.js`): Confirmation replies now prefer canonical stop names (e.g., "Spadina Ave at Nassau St") even when a numeric code is provided.
 
 ### Changed
-- **Documentation synchronized**: Updated all core guides including [README.md](./README.md), [ROADMAP_TECHNICAL.md](./docs/ROADMAP_TECHNICAL.md), [ROADMAP_NEXTGEN.md](./docs/ROADMAP_NEXTGEN.md), [CLAUDE.md](./CLAUDE.md), and [AGENTS.md](./AGENTS.md) to reflect the current feature set and the shift to a page-based JS architecture.
+- **Documentation synchronized**: Updated [README.md](./README.md), [ROADMAP_TECHNICAL.md](./docs/ROADMAP_TECHNICAL.md), [ROADMAP_NEXTGEN.md](./docs/ROADMAP_NEXTGEN.md), [CLAUDE.md](./CLAUDE.md), and [AGENTS.md](./AGENTS.md) to reflect the current feature set and the shift to a page-based JS architecture.
 - **Legacy Cleanup** (`js/main.js`): Verified and retired the legacy `js/main.js` entry point.
 - **Agency mapping pruned**: Removed speculative timezone/city data for unused agencies to maintain a lean resource profile.
 
