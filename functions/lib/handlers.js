@@ -262,13 +262,14 @@ function getPredictionPrompt(predictions) {
     return '\n\nEND [stop] to finish. FORGOT if you forgot to end. INFO for help.';
   }
 
+  const shortcutNums = predictions.map((_, i) => i + 1).join('/');
+  
   if (predictions.length === 1) {
     const p = predictions[0];
     return `\n\nHeading to ${p.stop}? (${p.confidence}%)\nReply END 1 to confirm, or END [stop]. FORGOT if you forgot to end.`;
   }
 
   const predLines = predictions.map((p, i) => `${i + 1}. ${p.stop} (${p.confidence}%)`).join('\n');
-  const shortcutNums = predictions.map((_, i) => i + 1).join('/');
   return `\n\nWhere to?\n${predLines}\n\nEND [stop] or END ${shortcutNums} to finish. FORGOT if forgot to end.`;
 }
 
