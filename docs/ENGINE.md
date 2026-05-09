@@ -11,12 +11,12 @@ Not a roadmap (see [ROADMAP_NEXTGEN.md](./ROADMAP_NEXTGEN.md)). Not a feature ch
 | Engine | File | Type | What it does | Status |
 |---|---|---|---|---|
 | **PredictionEngine V3** | `functions/lib/predict.js` | Heuristic weighted voting | Predicts next route and end stop at trip start using recency, time-of-day, and day-of-week signals. Hand-coded weights. | Live (production) |
-| **PredictionEngine V4** | `functions/lib/predict_v4.js` | Logistic regression (trained) | Same prediction task as V3; weights learned from trip history rather than hand-coded. Weights in `ml/model_v4.json`. | Shadow mode |
-| **PredictionEngine V5** | `functions/lib/predict_v5.js` | XGBoost (trained, ONNX) | Same as V4; gradient boosted trees discover feature interactions LR can't. Model in `ml/model_v5.onnx`. | Shadow mode |
+| **PredictionEngine V4** | `functions/lib/predict_v4.js` | Logistic regression (trained) | Shadow route and end-stop predictions learned from trip history. Artifacts in `ml/model_v4.json` and `ml/model_v4_endstop.json`. | Shadow mode |
+| **PredictionEngine V5** | `functions/lib/predict_v5.js` | XGBoost (trained, ONNX) | Shadow route and end-stop predictions using ONNX-exported XGBoost models. Artifacts in `ml/model_v5.onnx` and `ml/model_v5_endstop.onnx`. | Shadow mode |
 | **NetworkEngine** | `functions/lib/network.js` | Observed graph (Firestore) | Builds a stop-connection graph from completed trips. Filters directionally impossible end stop candidates. Primary filter — topology.json is the cold-start fallback only. Auto-updates at trip end. | Live |
 | **TransferEngine** | `functions/lib/transfer.js` | Heuristic confidence scoring | Determines whether two consecutive trips are a transfer within one journey or two separate trips, using historical transfer patterns (stop pairs, route pairs, gap time, time-of-day). | Live |
 
-**Retraining:** V4 and V5 require a manual retrain via `ml/predict_v4.ipynb` + `ml/export_trips.py` when enough new trips have accumulated. NetworkEngine and TransferEngine update passively from trip data — no retrain needed. See `ml/CLAUDE.md` for the retrain workflow.
+**Retraining:** V4 and V5 retrain from the Python pipeline in `ml/export_trips.py`, `ml/train_routes.py`, and `ml/train_endstop.py`. NetworkEngine and TransferEngine update passively from trip data — no retrain needed. See `ml/CLAUDE.md` for the retrain workflow.
 
 ---
 
@@ -101,6 +101,12 @@ SEQUENCE_BOOST: 1.5          // Multiplier applied at transfer points
 
 ---
 
+### v4.3 — *shadow mode*
+**What changed from v4.2:** Shadow model version bumped so post-fix results are distinguishable in `predictionStats`. Shared ML helpers now cover route normalization, stop canonicalization, and trip-gap encoding. Live route inference also fixed a day-of-week feature bug (`day_cos` was being derived from `day_sin` instead of the actual day index).
+
+### v4.2 — *shadow mode*
+**What changed from v4.1:** Route training migrated to the shared export/training pipeline. Agency-aware route normalization added for ML so TTC branch/shuttle/short-turn labels collapse to their base route family while non-TTC labels like `Red`, `K`, and `N` retain their identity. Current route benchmark: 62.8% top-1 / 84.9% top-3 on 429 trips. End-stop model expanded to use `prev_route`, `last_end_stop`, and trip-gap features; benchmark: 68.1% top-1 / 93.6% top-3 on 234 trips.
+
 ### v4.1 — *shadow mode*
 **What changed from v4:** End stop prediction added (`guessTopEndStops`). Trained a separate logistic regression classifier on 114 trips (11 end stop classes). Features: route (one-hot), start stop (one-hot), hour (sin/cos), day (sin/cos). Topology pre-filter applied before softmax — impossible stops zeroed out before probabilities are computed. Top-1: 39%, Top-3: 87%.
 
@@ -119,24 +125,30 @@ SEQUENCE_BOOST: 1.5          // Multiplier applied at transfer points
 **Known ceiling:** Logistic regression only weights the features given to it. Cannot discover new signals or feature interactions on its own. V5 will address this with a gradient boosted tree (XGBoost).
 
 **What's built:**
-- Training notebook + weights (`ml/predict_v4.ipynb`, `ml/model_v4.json`)
-- Trip export pipeline (`ml/export_trips.py`)
+- Shared trip export pipeline (`ml/export_trips.py`)
+- Route training pipeline (`ml/train_routes.py`) producing `ml/model_v4.json`
 - Topology file (`ml/topology.json`) — ordered stop sequences for Lines 1, 2, 4, 5
 
 **Still to build:**
-- Cloud Function inference (load weights, run prediction, return top-3)
-- Autonomous weekly retraining from Firestore (no manual steps)
+- Promote V4 route or end-stop predictions into the live user-facing path if they prove better than V3
+- Richer sequential/context features that demonstrably help beyond the current baseline
 - Retrain audit log (date, trip count, accuracy) to Firestore
 
 **Files:**
 | File | Purpose |
 |---|---|
 | `ml/export_trips.py` | Pulls Firestore trips to CSV for training |
-| `ml/predict_v4.ipynb` | Training notebook (exploration + evaluation) |
+| `ml/train_routes.py` | Route-model training and evaluation pipeline |
 | `ml/model_v4.json` | Trained logistic regression weights |
 | `ml/topology.json` | TTC line stop sequences for direction filtering |
 
 ---
+
+### v5.3 — *shadow mode*
+**What changed from v5.2:** Shadow model version bumped so post-fix results are distinguishable in `predictionStats`. Shares the same route normalization, stop canonicalization, and trip-gap helper layer as V4. Route model still outperforms V4 overall; end-stop model remains the strongest ML challenger to V3, but has not yet beaten V3 in live shadow accuracy.
+
+### v5.2 — *shadow mode*
+**What changed from v5.1:** Route training moved to the shared Python pipeline and gained agency-aware route normalization. This removed blank/malformed route classes from non-TTC data and sharply improved route metrics. Current route benchmark: 70.9% top-1 / 82.6% top-3 on 429 trips. End-stop model now uses the same route normalization plus `prev_route`, `last_end_stop`, and trip-gap features, but those extra sequence features did not improve V5 on the current held-out split; benchmark remains 78.7% top-1 / 89.4% top-3 on 234 trips.
 
 ### v5.1 — *shadow mode*
 **What changed from v5:** End stop prediction added (`guessTopEndStops`). Trained a separate XGBoost classifier on same 114-trip dataset (11 end stop classes). Same features as V4.1. Topology pre-filter applied before reading ONNX probabilities — zeroed out, renormalized, then ranked. Top-1: 48%, Top-3: 96%.
@@ -152,12 +164,13 @@ SEQUENCE_BOOST: 1.5          // Multiplier applied at transfer points
 - Config: n_estimators=200, max_depth=4, learning_rate=0.1
 
 **What's built:**
-- ONNX model (`ml/model_v5.onnx`) running in shadow mode alongside V3 and V4
+- ONNX route model (`ml/model_v5.onnx`) running in shadow mode alongside V3 and V4
+- ONNX end-stop model (`ml/model_v5_endstop.onnx`) running in shadow mode alongside V3 and V4
 - Graded and logged to `predictionStats` at trip end
 
 **Still to build:**
-- Richer signals: time since last trip, week of term, holiday flag, weather, TTC service alerts
-- Autonomous weekly retraining from Firestore
+- Promote V5 into the live user-facing path only after it clearly beats V3 on relevant shadow slices
+- Richer signals: week of term, holiday flag, weather, TTC service alerts, route/service-frequency context
 - Retrain audit log to Firestore
 - Replace V4 once V5 consistently outperforms in shadow scoring
 
@@ -174,21 +187,34 @@ Both files implement the same engine. Changes must be applied to both. The CJS v
 
 ---
 
-## Concept: v6 — External Data Sources
+## Concept: v6 — Journey-Context Engine
 
-**Core idea:** The engine can request information beyond trip history. Instead of only learning from what you've done, v6 pulls in external signals at inference time to inform predictions.
+**Core idea:** V6 should be the first model generation that treats trips as connected journey state rather than isolated starts. The main step up from V5 is not "more trees" or "more random features." It is sequence and transfer context.
 
-**Candidate sources:**
-- **Weather** — rain/snow affects which routes you take and where you board
-- **TTC service alerts** — disruptions make certain routes or stops unlikely
-- **Calendar/events** — concerts, games, holidays shift your travel patterns
-- **Time since last trip** — gap context that pure history can't see
+**Primary signal families:**
+- **Previous trip context** — previous route, previous end stop, and time since last trip
+- **Transfer likelihood** — whether the current boarding stop and timing look like a real connection versus a deliberate stopover
+- **Journey continuity** — whether this looks like a continuation of the same outing or a new trip altogether
+- **Service-level context** — route frequency, route availability, and directional plausibility when those signals are reliable
 
-**What this requires:**
-- A signal-fetching layer that pulls external data at trip start (low-latency, cached)
-- Feature engineering to encode external signals alongside existing trip features
-- Retraining pipeline that includes external features in the training set
+**Role of GTFS:**
+- GTFS is a likely **supporting input**, not the default core of V6.
+- Good uses:
+  - service-frequency features
+  - route availability by stop/time
+  - downstream-stop plausibility filters
+- Less desirable first step:
+  - feeding raw GTFS tables directly into the model without proving they help
 
-**Why it's a new version and not an add-on to v5:** Adding new feature types to an ONNX model requires retraining from scratch with the new schema. The model file and inference code both change.
+**Candidate external/context signals:**
+- **GTFS service frequencies** — helps interpret trip gaps and transfer plausibility
+- **Service alerts** — disruptions can suppress otherwise likely routes/stops
+- **Weather** — rain/snow can shift boarding behavior and route choice
+- **Calendar/events** — holidays or special events can distort normal travel patterns
 
-**Status:** Concept only. No training data collection yet.
+**Why it's a new version and not just "V5 with more features":**
+- V5 still fundamentally treats each trip start like one row in a spreadsheet.
+- V6 should reason about what stage of a journey the user is currently in.
+- That likely changes both the feature schema and the evaluation logic.
+
+**Status:** Concept only. The practical path is to prove V6-style signals incrementally inside V5 experiments first, then promote the successful pattern into a distinct V6 generation.

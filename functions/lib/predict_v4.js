@@ -7,7 +7,7 @@
 
 const model = require('./model_v4.json');
 const endStopModel = require('./model_v4_endstop.json');
-const { getStopFeature } = require('./ml_utils');
+const { getStopFeature, normalizeRouteForMl, getGapFeatures } = require('./ml_utils');
 
 let _topology = null;
 try {
@@ -64,7 +64,7 @@ function topologyMask(route, boardingStop, direction, classes) {
 }
 
 const PredictionEngineV4 = {
-  VERSION: '4.2',
+  VERSION: '4.3',
 
   /**
    * Guess the next route given the current stop and time.
@@ -80,7 +80,7 @@ const PredictionEngineV4 = {
     const hour_sin = Math.sin(2 * Math.PI * hour / 24);
     const hour_cos = Math.cos(2 * Math.PI * hour / 24);
     const day_sin  = Math.sin(2 * Math.PI * pyDay / 7);
-    const day_cos  = Math.cos(2 * Math.PI * day_sin / 7);
+    const day_cos  = Math.cos(2 * Math.PI * pyDay / 7);
 
     const stopFeature = getStopFeature(context.stopName, context.stopsLibrary);
     const lastStopFeature = `last_stop_${getStopFeature(context.lastEndStopName, context.stopsLibrary).replace('stop_', '')}`;
@@ -115,7 +115,7 @@ const PredictionEngineV4 = {
 
   /**
    * Predict top N exit stops.
-   * @param {Object} context - { route, startStopName, direction, time, lastEndStopName, stopsLibrary }
+   * @param {Object} context - { route, startStopName, direction, time, lastEndStopName, lastRoute, minutesSinceLastTrip, agency, stopsLibrary }
    */
   guessTopEndStops: function (context, topN = 3) {
     if (!context || !context.time || !context.startStopName) return [];
@@ -129,9 +129,12 @@ const PredictionEngineV4 = {
     const day_sin  = Math.sin(2 * Math.PI * pyDay / 7);
     const day_cos  = Math.cos(2 * Math.PI * pyDay / 7);
 
-    const cleanRoute = context.route ? context.route.toString().replace(/^(\d+).*/, '$1').toLowerCase() : '';
+    const cleanRoute = normalizeRouteForMl(context.route, context.agency).toString().toLowerCase();
+    const prevRoute = normalizeRouteForMl(context.lastRoute, context.agency) || 'none';
     const stopFeature = getStopFeature(context.startStopName, context.stopsLibrary);
     const lastStopFeature = `last_stop_${getStopFeature(context.lastEndStopName, context.stopsLibrary).replace('stop_', '')}`;
+    const prevRouteFeature = `prev_route_${prevRoute.toString().toLowerCase()}`;
+    const { gapLog, gapMissing } = getGapFeatures(context.minutesSinceLastTrip);
 
     const x = new Array(endStopModel.feature_names.length).fill(0);
     for (let i = 0; i < endStopModel.feature_names.length; i++) {
@@ -140,8 +143,11 @@ const PredictionEngineV4 = {
       else if (fn === 'hour_cos')            x[i] = hour_cos;
       else if (fn === 'day_sin')             x[i] = day_sin;
       else if (fn === 'day_cos')             x[i] = day_cos;
+      else if (fn === 'gap_log')             x[i] = gapLog;
+      else if (fn === 'gap_missing')         x[i] = gapMissing;
       else if (fn === stopFeature)           x[i] = 1.0;
       else if (fn === `route_${cleanRoute}`) x[i] = 1.0;
+      else if (fn === prevRouteFeature)      x[i] = 1.0;
       else if (fn === lastStopFeature)      x[i] = 1.0;
     }
 

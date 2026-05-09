@@ -27,16 +27,19 @@ COLUMNS = [
     "trip_id",
     "user_id",
     "route",
+    "prev_route",
     "start_stop",
     "end_stop",
     "direction",
     "agency",
+    "manually_verified",
     "start_time",       # ISO 8601
     "end_time",         # ISO 8601
     "duration_min",     # minutes
     "day_of_week",      # 0 = Monday … 6 = Sunday
     "hour_of_day",      # 0–23
     "minute_of_hour",   # 0–59
+    "minutes_since_last_trip",
     "journey_id",       # for multi-leg trips
 ]
 
@@ -53,6 +56,13 @@ def parse_timestamp(val):
         return datetime.fromisoformat(str(val))
     except Exception:
         return None
+
+
+def is_stop_matched(trip):
+    """Backward-compatible stop-match check during the verified→stop_matched rename."""
+    if trip.get("stop_matched") is not None:
+        return bool(trip.get("stop_matched"))
+    return bool(trip.get("verified"))
 
 
 def main():
@@ -73,9 +83,16 @@ def main():
     for doc in docs:
         d = doc.to_dict()
 
-        # Only use completed trips (have an end time, an end stop, and not discarded)
+        # Only use completed, trusted trips for training.
         has_end_stop = d.get("endStopName") or d.get("endStop")
-        if not d.get("endTime") or not has_end_stop or d.get("discarded"):
+        if (
+            not d.get("endTime")
+            or not has_end_stop
+            or d.get("discarded")
+            or d.get("incomplete")
+            or d.get("needs_review")
+            or not is_stop_matched(d)
+        ):
             skipped += 1
             continue
 
@@ -99,20 +116,41 @@ def main():
             "trip_id":       doc.id,
             "user_id":       d.get("userId", ""),
             "route":         str(d.get("route", "")).strip(),
+            "prev_route":    "",
             "start_stop":    (d.get("startStopName") or d.get("startStop") or "").strip(),
             "end_stop":      (d.get("endStopName")   or d.get("endStop")   or "").strip(),
             "direction":     (d.get("direction") or "").strip(),
             "agency":        (d.get("agency") or "").strip(),
+            "manually_verified": bool(d.get("manually_verified")),
             "start_time":    start_dt.isoformat() if start_dt else "",
             "end_time":      end_dt.isoformat()   if end_dt   else "",
             "duration_min":  duration,
             "day_of_week":   start_dt.weekday() if start_dt else "",   # 0=Mon, 6=Sun
             "hour_of_day":   start_dt.hour      if start_dt else "",
             "minute_of_hour":start_dt.minute    if start_dt else "",
+            "minutes_since_last_trip": "",
             "journey_id":    d.get("journeyId", ""),
         })
 
-    print(f"Exported {len(rows)} trips  ({skipped} skipped — incomplete or discarded)")
+    rows.sort(key=lambda r: (r["user_id"], r["start_time"]))
+    last_by_user = {}
+    for row in rows:
+        prev = last_by_user.get(row["user_id"])
+        if prev:
+            row["prev_route"] = prev["route"]
+            try:
+                prev_start = datetime.fromisoformat(prev["start_time"])
+                curr_start = datetime.fromisoformat(row["start_time"])
+                delta_min = round((curr_start - prev_start).total_seconds() / 60, 1)
+                row["minutes_since_last_trip"] = max(delta_min, 0)
+            except Exception:
+                row["minutes_since_last_trip"] = ""
+        last_by_user[row["user_id"]] = row
+
+    print(
+        f"Exported {len(rows)} trips  "
+        f"({skipped} skipped — incomplete, discarded, review-needed, or unmatched)"
+    )
 
     with open(OUTPUT_PATH, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=COLUMNS)

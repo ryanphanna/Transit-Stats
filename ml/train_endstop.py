@@ -2,7 +2,8 @@
 TransitStats — End Stop Prediction Training Script
 Trains V4 (logistic regression) and V5 (XGBoost) end stop classifiers.
 
-Features: route (one-hot), start_stop (one-hot), hour (sin/cos), day (sin/cos), last_end_stop (one-hot)
+Features: route (one-hot), prev_route (one-hot), start_stop (one-hot), hour (sin/cos),
+day (sin/cos), last_end_stop (one-hot), minutes_since_last_trip (numeric)
 Target: end_stop (canonical name)
 
 Outputs:
@@ -24,6 +25,7 @@ import numpy as np
 import pandas as pd
 import firebase_admin
 from firebase_admin import credentials, firestore
+from route_normalization import normalize_route_for_ml
 
 KEY_PATH = os.path.expanduser("~/Desktop/Dev/Credentials/Firebase for Transit Stats.json")
 CSV_PATH = os.path.join(os.path.dirname(__file__), "trips.csv")
@@ -93,24 +95,34 @@ def compute_ride_count_weights(df, halflife_rides=100):
 def clean(df, lib):
     df = df.copy()
     df["route"]      = df["route"].astype(str).str.strip()
+    df["prev_route"] = df["prev_route"].fillna("").astype(str).str.strip()
     df["start_stop"] = df["start_stop"].str.strip()
     df["end_stop"]   = df["end_stop"].str.strip()
     df["hour"]       = df["hour_of_day"].astype(int)
     df["day"]        = df["day_of_week"].astype(int)
+    df["minutes_since_last_trip"] = pd.to_numeric(
+        df.get("minutes_since_last_trip"), errors="coerce"
+    )
 
-    def base_route(r):
-        if re.match(r"^\d", r):
-            m = re.match(r"^\d+", r)
-            return m.group(0) if m else r
-        return r
-
-    df["route_base"] = df["route"].apply(base_route)
+    df["route_base"] = df.apply(
+        lambda row: normalize_route_for_ml(row.get("route"), row.get("agency")),
+        axis=1,
+    )
+    df["prev_route_base"] = df.apply(
+        lambda row: normalize_route_for_ml(row.get("prev_route"), row.get("agency")),
+        axis=1,
+    )
     df["start_stop"] = df["start_stop"].apply(lambda x: canonicalize_stop(x, lib))
     df["end_stop"] = df["end_stop"].apply(lambda x: canonicalize_stop(x, lib))
 
     # Add sequence feature: last_end_stop
     df = df.sort_values(["user_id", "start_time"])
     df["last_end_stop"] = df.groupby("user_id")["end_stop"].shift(1).fillna("none")
+    df["prev_route_base"] = df["prev_route_base"].replace("", "none").fillna("none")
+    df["minutes_since_last_trip"] = df["minutes_since_last_trip"].fillna(-1)
+    df["gap_missing"] = (df["minutes_since_last_trip"] < 0).astype(int)
+    df["gap_minutes_capped"] = df["minutes_since_last_trip"].clip(lower=0, upper=720)
+    df["gap_log"] = np.log1p(df["gap_minutes_capped"]) / math.log1p(720)
 
     # Filter to combos with >= 5 trips
     counts = df.groupby(["route_base", "start_stop"])["end_stop"].count()
@@ -135,13 +147,16 @@ def build_features(df):
         "hour_cos": hour_cos,
         "day_sin":  day_sin,
         "day_cos":  day_cos,
+        "gap_log":  df["gap_log"],
+        "gap_missing": df["gap_missing"],
     }, index=df.index)
 
     route_dummies = pd.get_dummies(df["route_base"].str.lower().str.strip(), prefix="route")
+    prev_route_dummies = pd.get_dummies(df["prev_route_base"].str.lower().str.strip(), prefix="prev_route")
     stop_dummies  = pd.get_dummies(df["start_stop"].str.lower().str.strip(), prefix="stop")
     last_stop_dummies = pd.get_dummies(df["last_end_stop"].str.lower().str.strip(), prefix="last_stop")
 
-    X = pd.concat([time_features, route_dummies, stop_dummies, last_stop_dummies], axis=1)
+    X = pd.concat([time_features, route_dummies, prev_route_dummies, stop_dummies, last_stop_dummies], axis=1)
     return X
 
 

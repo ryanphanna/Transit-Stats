@@ -54,6 +54,8 @@ coverage/
 # Cache
 .npm-cache/
 **/ .npm-cache/
+__pycache__/
+*.pyc
 
 # Legacy
 _legacy_v1/

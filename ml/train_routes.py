@@ -4,7 +4,7 @@ Trains V4 (logistic regression) and V5 (XGBoost) route classifiers.
 Replaces the manual notebook workflow for V4/V5 route models.
 
 Features: start_stop (one-hot), hour (sin/cos), day (sin/cos)
-Target: route_base (stripped variant suffix, e.g. 510a → 510)
+Target: route_base (agency-aware normalized route family)
 
 Outputs:
   ml/model_v4.json          — logistic regression weights (loaded by predict_v4.js)
@@ -18,11 +18,11 @@ Usage:
 import json
 import math
 import os
-import re
 import sys
 
 import numpy as np
 import pandas as pd
+from route_normalization import normalize_route_for_ml
 
 KEY_PATH = os.path.expanduser("~/Desktop/Dev/Credentials/Firebase for Transit Stats.json")
 CSV_PATH = os.path.join(os.path.dirname(__file__), "trips.csv")
@@ -37,10 +37,6 @@ def load_data():
     df = pd.read_csv(CSV_PATH)
     print(f"Loaded {len(df)} trips")
     return df
-
-
-def base_route(r):
-    return re.sub(r'[a-zA-Z]+$', '', str(r).strip()).strip()
 
 
 import firebase_admin
@@ -77,7 +73,10 @@ def canonicalize_stop(name, lib):
 
 def clean(df, lib):
     df = df.copy()
-    df['route_base'] = df['route'].apply(base_route)
+    df['route_base'] = df.apply(
+        lambda row: normalize_route_for_ml(row.get('route'), row.get('agency')),
+        axis=1,
+    )
     df['start_time'] = pd.to_datetime(df['start_time'], format='ISO8601', utc=True)
     
     # Canonicalize stops

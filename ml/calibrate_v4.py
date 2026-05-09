@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import json
 import os
+from route_normalization import normalize_route_for_ml
 
 with open('model_v4.json', 'r') as f:
     model_data = json.load(f)
@@ -13,11 +14,10 @@ feature_names = model_data['feature_names']
 stop_columns = model_data['stop_columns']
 
 df = pd.read_csv('trips.csv')
-def base_route(r):
-    import re
-    return re.sub(r'[a-zA-Z]+$', '', str(r).strip()).strip()
-
-df['route_base'] = df['route'].apply(base_route)
+df['route_base'] = df.apply(
+    lambda row: normalize_route_for_ml(row.get('route'), row.get('agency')),
+    axis=1,
+)
 df['start_time'] = pd.to_datetime(df['start_time'], format='ISO8601', utc=True)
 df = df.dropna(subset=['route_base', 'start_stop', 'hour_of_day', 'day_of_week'])
 
