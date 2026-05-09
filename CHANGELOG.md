@@ -6,8 +6,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.34.0] - 2026-05-09
+
 ### Fixed
 - **Multiline SMS field-order parsing** (`functions/lib/parsing.js`, `tests/parsing.test.js`): Multi-line trip logs now support both `route / stop / direction` and `route / direction / stop`, fixing cases like `506 / West / College / Spadina` that were previously misparsed with the direction stored as the stop.
+- **Explicit `START` multiline parsing** (`functions/lib/parsing.js`, `functions/lib/dispatcher.js`): Messages like `START / 2 / Kipling / West` now parse as real trip starts instead of falling through to `sms_fallback`.
+- **Casual trip-start phrasing** (`functions/lib/parsing.js`, `functions/lib/dispatcher.js`): Added deterministic parsing for sentence-style starts like `I'm on the 510 from Spadina and Nassau`.
 - **Live route day-of-week features** (`functions/lib/predict_v4.js`, `functions/lib/predict_v5.js`): Fixed a bug in live V4/V5 route inference where `day_cos` was derived from `day_sin` instead of the actual day index, which skewed day-of-week feature encoding at prediction time.
 
 ### Changed
@@ -19,6 +23,9 @@ All notable changes to this project will be documented in this file.
 - **End-stop sequence features** (`ml/export_trips.py`, `ml/train_endstop.py`, `functions/lib/ml_utils.js`, `functions/lib/predict_v4.js`, `functions/lib/predict_v5.js`, `functions/lib/handlers.js`): Added `prev_route` and trip-gap features to the end-stop training pipeline and live shadow inference path so V4/V5 can use basic journey context rather than treating each trip start as fully isolated.
 - **Line 5 station normalization** (`Tools/create-normalized-stops.js`): Promoted `Keelesdale` to `Keelesdale Station` with proper aliases and Line 5 routing, and aligned Cedarvale station metadata to include Line 5 service in the normalized stop library.
 - **Trip coordinate writes deprecated** (`functions/lib/handlers.js`, `functions/lib/dispatcher.js`): New trip writes no longer copy `boardingLocation` or `exitLocation` coordinates onto trip records; canonical stop geometry now lives in the normalized stop library, with read-side fallbacks left intact.
+- **Multi-agency route validation** (`functions/lib/utils.js`): Route validation now accepts legitimate named/non-TTC route labels like `Orange`, `Green Line`, `Pacific Surfliner`, and `Flagship Cruises & Events` instead of incorrectly flagging them for review.
+- **Review/audit tooling** (`Tools/*.js`): Added reusable scripts for duplicate manual-verification candidates, shadow prediction audits, route-review cleanup, trip-context inspection, and review-queue triage.
+- **Fallback recovery policy**: Confirmed `sms_fallback` records with clear trip-start text can be backfilled into real trip starts while preserving the original `raw_text`.
 
 ## [1.33.0] - 2026-05-07
 
