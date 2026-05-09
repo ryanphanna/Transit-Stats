@@ -76,6 +76,34 @@ const GROUPS = [
     startStopName: 'Bay Station',
     endStopName: 'Spadina Station',
   },
+  {
+    agency: 'TTC',
+    route: '1',
+    direction: 'Southbound',
+    startStopName: 'Lawrence West Station',
+    endStopName: 'Spadina Station',
+  },
+  {
+    agency: 'TTC',
+    route: '1',
+    direction: 'Northbound',
+    startStopName: "Queen's Park Station",
+    endStopName: 'St George',
+  },
+  {
+    agency: 'TTC',
+    route: '2',
+    direction: 'Eastbound',
+    startStopName: 'St George Station',
+    endStopName: 'Donlands',
+  },
+  {
+    agency: 'TTC',
+    route: '510',
+    direction: 'Northbound',
+    startStopName: 'Spadina/richmond',
+    endStopName: 'Spadina Ave at Nassau St',
+  },
 ];
 
 function parseArgs(argv) {
