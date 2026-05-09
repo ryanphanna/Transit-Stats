@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Prediction Engine history](docs/ENGINE.md) · [Transfer Engine history](docs/TRANSFER_ENGINE.md) · [Network Engine history](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Fixed
+- **AI Stats Timezone Regression** (`functions/lib/gemini.js`): Fixed a `ReferenceError: timezone is not defined` that broke the aggregate stats tool for ASK queries.
+- **Journey Linking Logic** (`functions/lib/handlers.js`): Fixed an undefined `thisStartTime` variable that prevented automated journey linking at trip end.
+- **Restored Organic Agency Expansion** (`functions/lib/parsing.js`): Corrected a regression to allow unknown agencies on Line 3 of multi-line SMS messages, ensuring the system can learn new agencies organically.
+
+### Changed
+- **Dependency Modernization**: Manually updated `eslint`, `twilio`, `globals`, and `jsdom` to their latest versions, satisfying and closing multiple Dependabot security and maintenance alerts.
+
+## [1.32.0] - 2026-05-07
+
+
+### Fixed
+- **Strict Multi-line Parsing** (`functions/lib/parsing.js`): Reverted the v1.26.0 regression that allowed Line 3 to be treated as an agency. Line 3 is now strictly reserved for **Direction** in 3-line messages. Explicit agency overrides now require a **4th line**, preventing stop names from being misparsed as agencies.
+- **ML Pipeline Data Integrity** (`ml/export_trips.py`): Hardened the training export logic to strictly require both a **Start Stop** and an **End Stop**. This ensures that "incomplete" trips (trips without a destination) are automatically excluded from training data regardless of their verification status.
+- **Incomplete Trip Normalization**: Batch-corrected 48 "incomplete" trips to nullify their `endTime` and `duration` fields, accurately reflecting that these values are unknown rather than using timeout-generated "fake" data.
+- **Cedarvale Station Aliases** (`stops` library): Added "Eglinton West" and "Eglinton West Station" as canonical aliases for Cedarvale Station to preserve historical continuity.
+
+### Added
+- **Library Expansion**: Added verified stop records for **Humber College Station (Line 6)**, **Dundas/Bathurst**, **Dundas/Dufferin**, and several **GO Transit** and **BART/Muni** stations to support multi-agency travel audits.
+
 ## [1.32.0] - 2026-05-07
 
 ### Added
