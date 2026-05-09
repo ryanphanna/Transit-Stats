@@ -36,7 +36,7 @@ All notable changes to this project will be documented in this file.
 - **Journey Linking Logic** (`functions/lib/handlers.js`): Fixed an undefined `thisStartTime` variable that prevented automated journey linking at trip end.
 
 ### Changed
-- **Documentation synchronized**: Updated all core guides (README, ROADMAP_TECHNICAL, ROADMAP_NEXTGEN, CLAUDE, AGENTS) to reflect the current feature set and the shift to a page-based JS architecture.
+- **Documentation synchronized**: Updated all core guides including [README.md](./README.md), [ROADMAP_TECHNICAL.md](./docs/ROADMAP_TECHNICAL.md), [ROADMAP_NEXTGEN.md](./docs/ROADMAP_NEXTGEN.md), [CLAUDE.md](./CLAUDE.md), and [AGENTS.md](./AGENTS.md) to reflect the current feature set and the shift to a page-based JS architecture.
 - **Legacy Cleanup** (`js/main.js`): Verified and retired the legacy `js/main.js` entry point.
 - **Agency mapping pruned**: Removed speculative timezone/city data for unused agencies to maintain a lean resource profile.
 - **Dependency Modernization**: Manually updated `eslint`, `twilio`, `globals`, and `jsdom` to their latest versions.
