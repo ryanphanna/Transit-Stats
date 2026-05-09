@@ -78,6 +78,28 @@ describe('parseMultiLineTripFormat', () => {
     expect(result).toMatchObject({ route: '501', direction: 'Southbound' });
   });
 
+  test('direction on line 2 with stop on line 3 is parsed as route/direction/stop', () => {
+    const result = parseMultiLineTripFormat('506\nWest\nCollege / Spadina', 'TTC');
+    expect(result).toMatchObject({
+      route: '506',
+      stop: 'College / Spadina',
+      direction: 'Westbound',
+      agency: 'TTC',
+      agencyExplicit: false,
+    });
+  });
+
+  test('route/direction/stop still accepts agency on line 4', () => {
+    const result = parseMultiLineTripFormat('501\nNorthbound\nMain St\nGO Transit', 'TTC');
+    expect(result).toMatchObject({
+      route: '501',
+      stop: 'Main St',
+      direction: 'Northbound',
+      agency: 'GO Transit',
+      agencyExplicit: true,
+    });
+  });
+
   test('known agency on line 3 overrides default agency and clears direction', () => {
     const result = parseMultiLineTripFormat('501\nQueen\nOC Transpo', 'TTC');
     expect(result).toMatchObject({ agency: 'OC Transpo', direction: null });

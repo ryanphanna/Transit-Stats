@@ -4,6 +4,12 @@
 const { KNOWN_AGENCIES } = require('./constants');
 const { toTitleCase, normalizeDirection, normalizeRoute, normalizeAgency } = require('./utils');
 
+const CANONICAL_DIRECTIONS = new Set([
+  'Northbound', 'Southbound', 'Eastbound', 'Westbound',
+  'Clockwise', 'Counterclockwise', 'Inbound', 'Outbound',
+  'Up Valley', 'Down Valley',
+]);
+
 /**
  * Parse stop input to determine if it's a stop code (all digits) or stop name (contains letters)
  * @param {string} input - The stop input string
@@ -49,37 +55,44 @@ function parseMultiLineTripFormat(body, defaultAgency) {
   }
 
   const route = normalizeRoute(lines[0]);
-  const stop = toTitleCase(lines[1]);
+  const line2Direction = normalizeDirection(lines[1]);
+  const line3Direction = lines.length >= 3 ? normalizeDirection(lines[2]) : null;
 
-  // Canonical direction values returned by normalizeDirection — anything else is unrecognized.
-  const CANONICAL_DIRECTIONS = new Set([
-    'Northbound', 'Southbound', 'Eastbound', 'Westbound',
-    'Clockwise', 'Counterclockwise', 'Inbound', 'Outbound',
-    'Up Valley', 'Down Valley',
-  ]);
+  // Support both:
+  // 1. route / stop / direction
+  // 2. route / direction / stop
+  const isRouteDirectionStop =
+    lines.length >= 3 &&
+    CANONICAL_DIRECTIONS.has(line2Direction) &&
+    !CANONICAL_DIRECTIONS.has(line3Direction);
 
-  // Direction is line 3 only when it resolves to a recognized canonical word.
-  // If line 3 is not a direction, treat it as an agency (matches v1.26.0 logic).
+  const stop = toTitleCase(isRouteDirectionStop ? lines[2] : lines[1]);
   let direction = null;
   let agency = defaultAgency;
   let agencyExplicit = false;
 
-  if (lines.length >= 3) {
-    const nd = normalizeDirection(lines[2]);
-    if (CANONICAL_DIRECTIONS.has(nd)) {
-      direction = nd;
+  if (isRouteDirectionStop) {
+    direction = line2Direction;
+    if (lines.length > 3) {
+      const potentialAgency = lines[3].trim();
+      if (potentialAgency) {
+        agency = normalizeAgency(potentialAgency);
+        agencyExplicit = true;
+      }
+    }
+  } else if (lines.length >= 3) {
+    if (CANONICAL_DIRECTIONS.has(line3Direction)) {
+      direction = line3Direction;
     } else {
       agency = normalizeAgency(lines[2]);
       agencyExplicit = true;
     }
-  }
-
-  // Line 4+ is always the agency — overrides line 3 if both present.
-  if (lines.length > 3) {
-    const potentialAgency = lines[3].trim();
-    if (potentialAgency) {
-      agency = normalizeAgency(potentialAgency);
-      agencyExplicit = true;
+    if (lines.length > 3) {
+      const potentialAgency = lines[3].trim();
+      if (potentialAgency) {
+        agency = normalizeAgency(potentialAgency);
+        agencyExplicit = true;
+      }
     }
   }
 

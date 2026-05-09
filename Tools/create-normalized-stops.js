@@ -181,7 +181,7 @@ const STOPS = [
   { name: 'Donlands', code: '', agency: 'TTC', aliases: ['Donlands'] },
   { name: 'Vaughan Metropolitan Centre', code: '', agency: 'TTC', aliases: ['VMC', 'Vmc', 'Vaughan Metropolitan Centre'] },
   { name: 'Richmond Hill Centre', code: '', agency: 'TTC', aliases: ['Richmond Hill Centre'] },
-  { name: 'Keelesdale', code: '', agency: 'TTC', aliases: ['Keelsdale', 'Keelesdale'] },
+  { name: 'Keelesdale Station', code: '', agency: 'TTC', aliases: ['Keelsdale', 'Keelesdale', 'Keelesdale Station'], routes: ['5'] },
   { name: 'Leaside', code: '', agency: 'TTC', aliases: ['Leaside'] },
   { name: 'Laird', code: '', agency: 'TTC', aliases: ['Laird'] },
   { name: 'Don Valley', code: '', agency: 'TTC', aliases: ['Don Valley'] },

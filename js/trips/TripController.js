@@ -54,7 +54,9 @@ export const TripController = {
 
     async confirmTrip(id) {
         return db.collection('trips').doc(id).update({
-            needs_review: firebase.firestore.FieldValue.delete()
+            needs_review: firebase.firestore.FieldValue.delete(),
+            manually_verified: true,
+            updatedAt: new Date()
         });
     },
 

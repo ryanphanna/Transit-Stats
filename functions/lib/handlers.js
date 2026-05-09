@@ -168,6 +168,12 @@ function narrowStopCandidates(candidates, route, direction) {
   return narrowed;
 }
 
+function isStopMatched(trip) {
+  if (!trip) return false;
+  if (trip.stop_matched != null) return !!trip.stop_matched;
+  return !!trip.verified;
+}
+
 async function maybeHandleStopDisambiguation({
   phoneNumber, user, activeTrip, parsedStop, route, direction, resolvedAgency, options,
 }) {
@@ -195,8 +201,7 @@ async function maybeHandleStopDisambiguation({
         startStopCode: null,
         startStopName: parsedStop.stopName || null,
         startStop: null,
-        verified: false,
-        boardingLocation: null,
+        stop_matched: false,
         agency: resolvedAgency,
         sentiment: options.sentiment || null,
         tags: options.tags || [],
@@ -638,10 +643,7 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
   if (disambiguationHandled) return;
 
   const stopData = await lookupStop(parsedStop.stopCode, parsedStop.stopName, resolvedAgency, route);
-  const verified = stopData !== null;
-  const boardingLocation = (stopData?.lat != null && stopData?.lng != null)
-    ? { lat: stopData.lat, lng: stopData.lng }
-    : null;
+  const stopMatched = stopData !== null;
 
   // Background: teach this stop which routes serve it, and promote gtfs→verified on first real trip
   if (stopData?.id && route) {
@@ -675,8 +677,7 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
         route,
         direction,
         agency,
-        verified,
-        boardingLocation,
+        stopMatched,
         sentiment: options.sentiment || null,
         tags: options.tags || [],
         parsed_by: options.parsed_by || 'manual',
@@ -726,8 +727,22 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
     const now = new Date();
     const lastTrip = history.length > 0 ? history[0] : null;
     const lastEndStopName = lastTrip?.endStopName || null;
+    const lastRoute = lastTrip?.route || null;
+    const minutesSinceLastTrip = lastTrip?.startTime?.toDate
+      ? Math.max(0, Math.round((now.getTime() - lastTrip.startTime.toDate().getTime()) / 60000))
+      : null;
     const routeContext = { stopName: startStopName, time: now, lastEndStopName, stopsLibrary };
-    const endStopContext = { route, startStopName, direction, time: now, lastEndStopName, stopsLibrary };
+    const endStopContext = {
+      route,
+      startStopName,
+      direction,
+      time: now,
+      lastEndStopName,
+      lastRoute,
+      minutesSinceLastTrip,
+      agency: resolvedAgency,
+      stopsLibrary,
+    };
 
     prediction = PredictionEngine.guess(history, {
       stopName: startStopName,
@@ -766,8 +781,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       direction: direction || null,
       startStopCode: stopData ? stopData.stopCode : parsedStop.stopCode,
       startStopName,
-      verified,
-      boardingLocation,
+      stop_matched: stopMatched,
       agency: resolvedAgency,
       sentiment: options.sentiment || null,
       tags: options.tags || [],
@@ -884,8 +898,7 @@ async function handleConfirmStart(phoneNumber, user, state) {
     direction: newTrip.direction || null,
     startStopCode: newTrip.stopCode,
     startStopName: newTrip.stopName,
-    verified: newTrip.verified || false,
-    boardingLocation: newTrip.boardingLocation || null,
+    stop_matched: newTrip.stopMatched || false,
     agency: newTrip.agency,
     timing_reliability: determineReliability(state.expiresAt),
     sentiment: newTrip.sentiment || null,
@@ -985,9 +998,6 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
   if (!endStopData) {
     endStopData = await lookupStop(parsedEndStop.stopCode, parsedEndStop.stopName, agency, tripRoute);
   }
-  const exitLocation = (endStopData?.lat != null && endStopData?.lng != null)
-    ? { lat: endStopData.lat, lng: endStopData.lng }
-    : null;
 
   const endStopDisplay = getStopDisplay(
     endStopData ? endStopData.stopCode : parsedEndStop.stopCode,
@@ -1000,10 +1010,9 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     endStopCode: endStopData ? endStopData.stopCode : parsedEndStop.stopCode,
     endStopName: endStopNameFinal,
     endTime: endTime,
-    exitLocation: exitLocation,
     duration: duration,
     notes: notes || null,
-    verified: activeTrip.verified && (endStopData !== null),
+    stop_matched: isStopMatched(activeTrip) && (endStopData !== null),
   });
 
   // Promote gtfs→verified on the end stop if this trip confirmed it
@@ -1519,8 +1528,22 @@ async function fillPredictions(user, tripId, stopName, route, direction, agency)
     const now = new Date();
     const lastTrip = history.length > 0 ? history[0] : null;
     const lastEndStopName = lastTrip?.endStopName || null;
+    const lastRoute = lastTrip?.route || null;
+    const minutesSinceLastTrip = lastTrip?.startTime?.toDate
+      ? Math.max(0, Math.round((now.getTime() - lastTrip.startTime.toDate().getTime()) / 60000))
+      : null;
     const routeContext = { stopName, time: now, lastEndStopName, stopsLibrary };
-    const endStopContext = { route, startStopName: stopName, direction, time: now, lastEndStopName, stopsLibrary };
+    const endStopContext = {
+      route,
+      startStopName: stopName,
+      direction,
+      time: now,
+      lastEndStopName,
+      lastRoute,
+      minutesSinceLastTrip,
+      agency,
+      stopsLibrary,
+    };
 
     const [rawTopV4, rawTopV5, topV4, topV5] = await Promise.all([
       Promise.resolve(PredictionEngineV4.guessTopRoutes(routeContext, 5)),

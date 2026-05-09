@@ -173,15 +173,11 @@ async function handleConfirmStopState(phoneNumber, body, upperBody, state) {
       await clearPendingState(phoneNumber);
       if (state.tripId) {
         // Trip already started — update the stop fields now that we know which stop
-        const boardingLocation = (chosen.lat != null && chosen.lng != null)
-          ? { lat: chosen.lat, lng: chosen.lng }
-          : null;
         await db.collection('trips').doc(state.tripId).update({
           startStopCode: chosen.stopCode,
           startStopName: chosen.stopName,
           startStop: chosen.stopName,
-          verified: true,
-          boardingLocation,
+          stop_matched: true,
         });
         // Run V4/V5 predictions now that the stop is known — fire-and-forget
         handlers.fillPredictions(

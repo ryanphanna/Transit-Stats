@@ -330,7 +330,7 @@ All stops below were researched this session. None have been created yet. For ea
 | Vaughan Metropolitan Centre | aliases: VMC, Vmc |
 | Richmond Hill Centre | ORANGE/PURPLE lines |
 | Uptown Core Terminal | **agency: Oakville Transit** (not TTC) |
-| Keelesdale | aliases: Keelsdale, Keelesdale |
+| Keelesdale Station | Line 5 Eglinton; aliases: Keelsdale, Keelesdale, Keelesdale Station |
 | Leaside | Line 5 Eglinton |
 | Laird | Line 5 Eglinton |
 | Don Valley | Line 5 Eglinton |

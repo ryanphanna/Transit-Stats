@@ -54,7 +54,11 @@ async function getRecentCompletedTrips(userId, limit = 50) {
 
   return snapshot.docs
     .map(doc => ({ id: doc.id, ...doc.data() }))
-    .filter(t => !t.incomplete);
+    .filter((t) => {
+      if (t.incomplete || t.discarded || t.needs_review) return false;
+      const stopMatched = t.stop_matched != null ? !!t.stop_matched : !!t.verified;
+      return stopMatched;
+    });
 }
 
 async function getPendingState(phoneNumber) {
