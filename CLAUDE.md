@@ -54,6 +54,7 @@ When fixing a bug, always provide:
 
 ## Firestore Collections
 - `trips` — user trip documents (userId, route, startStop, endStop, startTime, endTime, duration, journeyId, etc.)
+  - See [REVIEW.md](./REVIEW.md) for trip-review semantics and ML eligibility rules
 - `stops` — stop library (name, code, agency, aliases, lat, lng)
 - `stopRoutes` — GTFS stop→route mapping
 - `routes` — GTFS route library
@@ -65,6 +66,10 @@ When fixing a bug, always provide:
 ## Idempotency Pattern
 
 **Do not write `processedMessages/{MessageSid}` in `sms.js`.** `checkIdempotency()` in the dispatcher already does this atomically — it writes the doc and returns `true` if it already exists (retry). Adding a second write in `sms.js` causes `checkIdempotency` to always see `ALREADY_EXISTS` and drop every message as a duplicate. The dispatcher is the single source of truth for MessageSid deduplication.
+
+## Trip Review Policy
+
+For trip-review semantics, correction rules, and ML/history filtering, follow [REVIEW.md](./REVIEW.md).
 
 ## Auth Pattern
 

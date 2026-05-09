@@ -31,3 +31,6 @@
 ## Domain Context
 - **Stop Sign Parsing**: Stop codes vary by city/agency. Never assume a specific length (e.g., TTC uses 5-digit surface codes and 3-digit station codes). If unsure, check real-world patterns in the `stops` collection. Stop IDs are often found on small 'Next Vehicle' stickers or text-to-track instructions.
 - **MMS Logic**: MMS trips use the webhook arrival time as `startTime` to ensure accurate boarding records even if AI processing is delayed.
+
+## Trip Review & Filtering Policy
+- Follow [REVIEW.md](./REVIEW.md) for trip-review semantics, manual verification rules, and ML/history filtering.

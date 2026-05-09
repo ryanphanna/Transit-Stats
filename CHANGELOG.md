@@ -6,6 +6,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- **Multiline SMS field-order parsing** (`functions/lib/parsing.js`, `tests/parsing.test.js`): Multi-line trip logs now support both `route / stop / direction` and `route / direction / stop`, fixing cases like `506 / West / College / Spadina` that were previously misparsed with the direction stored as the stop.
+- **Live route day-of-week features** (`functions/lib/predict_v4.js`, `functions/lib/predict_v5.js`): Fixed a bug in live V4/V5 route inference where `day_cos` was derived from `day_sin` instead of the actual day index, which skewed day-of-week feature encoding at prediction time.
+
+### Changed
+- **Trip stop-text preservation**: Corrected a live trip record to preserve the rider-entered stop text `College / Spadina` while still mapping it to verified TTC stop `844` (`College St at Spadina Ave`), reinforcing the rule that trip records should retain rider wording rather than overwriting it with the official stop name.
+- **Trip stop-match semantics** (`functions/lib/handlers.js`, `functions/lib/dispatcher.js`): Renamed the automatic stop-resolution flag from `verified` to `stop_matched` for new writes, while keeping backward-compatible reads from older trip records.
+- **ML history filtering** (`functions/lib/db/trips.js`, `ml/export_trips.py`): Live prediction history and training exports now exclude trips that are incomplete, discarded, marked `needs_review`, or missing a confirmed stop match (`stop_matched`, with fallback support for older `verified` records).
+- **Manual verification signal** (`js/trips/TripController.js`, `ml/export_trips.py`): Review confirmation now stamps trips with `manually_verified: true`, and training exports carry that field so hand-reviewed trips can be identified downstream.
+- **ML route normalization** (`ml/route_normalization.py`, `ml/train_routes.py`, `ml/train_endstop.py`, `ml/calibrate_v4.py`): Added a shared agency-aware route normalization helper so TTC branch, shuttle, and short-turn labels collapse into their base route family for ML, while non-TTC labels like `Red`, `K`, and `N` retain their distinct identities.
+- **End-stop sequence features** (`ml/export_trips.py`, `ml/train_endstop.py`, `functions/lib/ml_utils.js`, `functions/lib/predict_v4.js`, `functions/lib/predict_v5.js`, `functions/lib/handlers.js`): Added `prev_route` and trip-gap features to the end-stop training pipeline and live shadow inference path so V4/V5 can use basic journey context rather than treating each trip start as fully isolated.
+- **Line 5 station normalization** (`Tools/create-normalized-stops.js`): Promoted `Keelesdale` to `Keelesdale Station` with proper aliases and Line 5 routing, and aligned Cedarvale station metadata to include Line 5 service in the normalized stop library.
+- **Trip coordinate writes deprecated** (`functions/lib/handlers.js`, `functions/lib/dispatcher.js`): New trip writes no longer copy `boardingLocation` or `exitLocation` coordinates onto trip records; canonical stop geometry now lives in the normalized stop library, with read-side fallbacks left intact.
+
 ## [1.33.0] - 2026-05-07
 
 ### Fixed
@@ -53,3 +67,7 @@ All notable changes to this project will be documented in this file.
 - **Gemini stats bucketing**: Gemini stats now bucket dates in the requested timezone rather than server-local time.
 
 ## [1.30.0] - 2026-05-05
+
+---
+
+See also: [Documents Index](./DOCUMENTS.md)

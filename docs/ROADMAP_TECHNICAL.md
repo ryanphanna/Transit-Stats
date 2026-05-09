@@ -1,7 +1,8 @@
 # Transit Stats — Technical Roadmap
 
-Feature backlog organized by theme. Items within each theme are roughly ordered
-by impact vs. effort. This is a living document — priorities shift, but themes are stable.
+Open technical backlog organized by theme. Items within each theme are roughly
+ordered by impact vs. effort. Shipped work belongs in the changelog and engine
+docs, not here.
 
 ---
 
@@ -12,14 +13,10 @@ quality and coverage improvements.
 
 - [ ] **`STATS` command improvements** — extend the structured stats reply with weekly
   and monthly comparisons, not just all-time totals.
-- [x] **Ambiguous stop handling** — when a stop name matches multiple library entries
-  (e.g. "King" on multiple routes), reply with a disambiguation prompt rather than
-  picking arbitrarily.
 - [ ] **Multi-leg journey via SMS** — the LINK command exists but is manual. Detect
   and surface the link prompt earlier, without requiring the user to know the command.
 - [ ] **International number support** — phone number normalization currently assumes
   North American format. Standardize to E.164 throughout.
-- [x] **Stop photo via MMS** — user snaps a photo of a stop sign pole and sends it via MMS. Cloud Function fetches the image from Twilio, runs Gemini Vision to extract stop code/name and routes, starts trip immediately if one route found or prompts with a numbered list if multiple. Trip start time set to photo send time, not AI processing time. `source: 'mms'`, `timing_reliability: 'approximate'`.
 - [ ] **RCS suggested reply buttons** — attach tappable quick-reply chips to key responses for Android RCS users. Priority targets: `STATUS` reply (END TRIP / DISCARD / STATS) and trip-start confirmation (predicted end stops as tappable buttons, replacing the `END 1/2/3` shortcut system). SMS users receive the plain-text version unchanged via Twilio's automatic fallback.
 - [ ] **Dynamic stale-trip handling** — stop treating trips older than a fixed age as nonexistent. Keep any `endTime == null` trip actionable, but mark unusually old trips as stale and tailor the UX (`END`, `FORGOT`, `DISCARD`) based on route context, agency, and observed duration patterns rather than a hard 6-hour cutoff.
 
@@ -38,8 +35,6 @@ quality and coverage improvements.
   once prediction accuracy clears 90%. Feeds from the engine's confidence score.
 - [ ] **Journey view** — a dedicated view for multi-leg journeys, showing transfer
   gaps, total trip time, and per-leg breakdown.
-- [x] **Public trip feed** — opt-in shareable profile showing ridership stats and recent routes. Read-only, no personal stop detail.
-- [x] **Profile-authoritative public visibility** — make `profiles.isPublic` the sole source of truth for whether a public page exists, instead of splitting authority between `profiles.isPublic` and denormalized `trips.isPublic`. Public mode should disappear immediately when toggled off.
 
 ---
 
@@ -69,11 +64,10 @@ quality and coverage improvements.
 
 ## Theme 4 — Multi-Agency
 
-Currently TTC-focused. The data model and SMS parser are largely agency-agnostic;
-the binding is in the stops library and route metadata.
+Transit Stats already handles more than one agency, but the normalization,
+analytics, and stop-layer assumptions are still uneven.
 
-- [ ] **OC Transpo support** — Ottawa stop library and route metadata.
-- [ ] **GO Transit support** — intercity rail/bus trips with origin/destination stations.
+- [ ] **Configurable multi-agency route normalization** — replace TTC-biased ML route heuristics with an explicit per-agency normalization policy layer. Keep raw trip route text unchanged, but derive a separate normalized route label for training and analytics so TTC branch/shuttle variants can collapse appropriately without hardcoding Toronto-specific assumptions into the model pipeline.
 - [ ] **Per-agency analytics** — dashboard views filterable by agency for users who
   ride multiple systems.
 - [ ] **Agency auto-detection** — infer the agency from the stop name at trip start
@@ -93,8 +87,6 @@ the binding is in the stops library and route metadata.
   environments (currently mixed).
 - [ ] **Firestore index audit** — review composite indexes against actual query patterns.
   Remove unused indexes; add missing ones surfaced by slow query logs.
-- [x] **Rate limiting on SMS handler** — per-number request throttle to prevent
-  accidental SMS loops from hammering Firestore.
 - [ ] **Error alerting** — Cloud Function errors currently surface only in logs.
   Add structured alerting for handler failures and Gemini proxy errors.
 - [ ] **End-to-end test for SMS flow** — integration test covering the full
@@ -108,18 +100,8 @@ Rocket is a standalone mobile-first web tool for high-precision transit research
 decomposes journeys into dwell time (doors open), signal delay (at red), and running
 time (in motion) with millisecond-accurate state changes and GPS-anchored events.
 
-- [x] **Core state machine** — three-state tracker (DOORS_OPEN, AT_RED, IN_MOTION) with
-  haptic feedback and live time breakdown.
-- [x] **Web form entry** — Route, Direction, Start Stop fields. End Stop captured at
-  finalize time. No SMS dependency.
-- [x] **Live Firebase sync** — every state change streams to `rocket_trips` in real time.
-- [x] **Auto-sync to Transit Stats** — finalizing a session writes a summary entry to
-  `trips` automatically. No manual step.
-- [x] **Transit Stats integration** — Research badge on trip cards; `rocketTripId` link field.
 - [ ] **Stop autocomplete** — resolve start/end stop names against the stops library.
 - [ ] **Research map view** — visualize GPS-anchored events on a route map to identify
   where dwell/signal delays cluster spatially.
 - [ ] **Aggregate analytics** — cross-trip summaries per route showing average dwell,
   signal, and running time breakdowns.
-- [x] **Session recovery** — if the page is refreshed mid-trip, reconstruct `startTime`
-  from the first event's timestamp and resume.

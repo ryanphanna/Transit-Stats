@@ -16,7 +16,8 @@ The engine's primary goal is to eliminate the "Friction" of transit tracking. Th
 - **Stop Name Resolution**: Basic library-based fuzzy matching for text-to-coordinate conversion.
 - **Trip Export Pipeline** (`ml/export_trips.py`): Pulls completed trip history from Firestore into a CSV for ML training.
 - **TTC Topology** (`ml/topology.json`): Ordered stop sequences for Lines 1, 2, 4, 5 — used to filter directionally impossible predictions.
-- **V4 Training Notebook** (`ml/predict_v4.ipynb`): Logistic regression classifier. 52% top-1 accuracy, 74% top-3 accuracy on held-out test set (385 trips, Jan–Apr 2026).
+- **Route models (V4/V5)**: Shared export + training pipeline for logistic-regression and XGBoost route prediction, with route normalization and artifact export into `functions/lib/`.
+- **End-stop models (V4/V5)**: Separate logistic-regression and XGBoost end-stop classifiers, trained from the same reviewed trip export and tracked in `ml/MODEL_LOG.md`.
 
 ---
 
@@ -25,12 +26,9 @@ The engine's primary goal is to eliminate the "Friction" of transit tracking. Th
 Building the foundation of the user's transit model.
 
 ### 1. Habit Modeling
-- [x] **Temporal Correlation**: Log trip start times to model recurring "Commute" windows.
-- [x] **Route Stickiness**: Measure frequency of specific routes per start-stop pair.
 - [ ] **Confidence-Based UI**: Implement dynamic suggestion cards once the 90% accuracy threshold is crossed in evaluation.
 
 ### 2. Semantic Stop Resolution (v2)
-- [x] **Stop Library**: Basic canonical list of agency stops.
 - [ ] **Proximity Clustering**: Grouping distinct GPS coordinates into logical "Transit Hubs" (e.g., Union Station as a single entity across various entrance coordinates).
 - [ ] **Walking Distance Inference**: Modeling the path from a "Check-in" coordinate to the actual stop platform.
 
@@ -41,32 +39,25 @@ Building the foundation of the user's transit model.
 Replacing hand-coded scoring weights with a model trained on actual trip history.
 
 ### 1. Feature Engineering
-- [x] **Trip feature matrix**: Hour (sin/cos), day-of-week (sin/cos), start stop (one-hot encoded).
-- [x] **Data export pipeline**: `ml/export_trips.py` — pulls Firestore trips to CSV.
-- [x] **Topology constraint file**: `ml/topology.json` — ordered stop sequences for Lines 1, 2, 4, 5 for direction filtering.
+- [ ] **Richer feature matrix**: Expand beyond hour/day/start-stop fundamentals with stronger sequence, context, and service-level signals while keeping export semantics stable.
 
 ### 2. Model Training — V4 (Logistic Regression)
-- [x] **Baseline logistic regression**: 52% top-1, 74% top-3 on held-out test set. Strong on dominant routes (1, 2, 510).
-- [x] **Feature importance analysis**: Model correctly learned route geography from trip history alone (e.g. Spadina Station → 510, York University → 1).
-- [x] **Topology file**: `ml/topology.json` — ordered stop sequences for Lines 1, 2, 4, 5.
+- [ ] **Model interpretability pass**: Improve tooling for understanding why route models choose one corridor over another, especially around overlapping TTC transfer hubs.
 
 ### 3. Inference Integration — V4 & V5
-- [x] **Cloud Function inference**: V4 and V5 models run on every trip start (gated by default agency).
-- [x] **GTFS-correction filter**: Predictions are cross-referenced with GTFS `stopRoutes` to ensure the suggested route actually serves the boarding stop.
-- [x] **A/B shadow scoring**: Results are logged to `predictionStats` for real-time accuracy tracking.
-- [x] **Autonomous retraining**: GitHub Action (`retrain.yml`) retrains V4 and V5 weekly from Firestore data.
-- [ ] **End stop prediction**: Train a separate classifier for end stop (not just route).
+- [ ] **End-stop inference integration**: Promote the trained end-stop models from evaluation artifacts into the live prediction path so V4/V5 can shadow or replace V3 destination voting in production.
 
 ### 4. Model Evolution — V5 (Gradient Boosted Tree)
-- [x] **XGBoost classifier**: Benchmarked on same 385-trip dataset — 60.6% top-1 / 80.3% top-3 (+8.5pp / +5.6pp over V4). Same features, better algorithm.
 - [ ] **Richer signals**: Previous route, time since last trip, week of term, holiday flag, weather, TTC service alerts — add as features and let the model determine relevance.
-- [ ] **End stop prediction**: Train a separate classifier for end stop (not just route). V3 uses weighted voting for end stop; V4 and V5 currently only predict route. A dedicated end stop model would let V4/V5 shadow V3's end stop predictions and eventually replace them.
+- [ ] **Replace hand-coded route-family heuristics with configurable agency policies**: The current ML route normalization is shared and much cleaner than before, but still needs to evolve into a fully configurable per-agency policy layer instead of relying on TTC-led assumptions.
+- [ ] **End-stop promotion**: V3 still owns the live end-stop path. Use the trained V4/V5 end-stop models to shadow, calibrate, and eventually replace the hand-coded end-stop engine where they consistently outperform it.
 - [ ] **Replace V4** once V5 consistently outperforms in shadow scoring.
 
-### 5. Model Evolution — V6 (Advanced ML)
-- [ ] **GTFS service frequencies**: Route headways by time window (e.g. Line 1 runs every 2 min, Route 26 every 30 min). Enables the model to interpret trip gaps correctly — a 22-minute gap between a 2-min line and a 30-min line is a normal wait; the same gap between two 2-min lines is probably a stopover. Unlocks accurate transfer detection, journey linking, and anomaly detection in one addition.
+### 5. Model Evolution — V6 (Journey-Context ML)
+- [ ] **Define V6 as a journey-context engine, not just a larger V5**: Model trips as connected journey state rather than isolated rows. Primary signals should be things like previous route, previous end stop, time since last trip, and whether the current start looks transfer-like.
 - [ ] **Transfer vs. stopover classifier**: Use gap duration + transfer stop identity + route frequency + time of day to learn whether a gap between trips was a connection or a deliberate stop. Replaces the current fixed-threshold journey linking logic.
-- [ ] **Autonomous retraining**: Same goal as V4/V5 — fully hands-off weekly retraining for V6.
+- [ ] **GTFS-informed constraints and features**: Use service frequency, route availability, and downstream-stop plausibility as side information or guardrails where they measurably help. Do not make raw GTFS the core model input by default.
+- [ ] **Autonomous retraining**: Same goal as V4/V5 — fully hands-off weekly retraining for V6 once the feature set and evaluation slice are stable.
 
 ---
 
