@@ -41,16 +41,25 @@ function parseMultiLineTripFormat(body, defaultAgency) {
     return null;
   }
 
-  const lines = body.split('\n').map((line) => line.trim()).filter((line) => line.length > 0);
+  let lines = body.split('\n').map((line) => line.trim()).filter((line) => line.length > 0);
 
   // Need at least route and stop (lines 1 and 2)
   if (lines.length < 2) {
     return null;
   }
 
-  // If first line is a command, don't parse as trip
+  // Support explicit START prefix:
+  // START
+  // 2
+  // Kipling
+  // West
+  if (lines[0].toUpperCase() === 'START' && lines.length >= 3) {
+    lines = lines.slice(1);
+  }
+
+  // If first line is another command, don't parse as trip
   const firstLineUpper = lines[0].toUpperCase();
-  if (['END', 'STATUS', 'DISCARD', 'INFO', '?', 'START', 'HELP', 'STOP'].includes(firstLineUpper)) {
+  if (['END', 'STATUS', 'DISCARD', 'INFO', '?', 'HELP', 'STOP'].includes(firstLineUpper)) {
     return null;
   }
 
@@ -107,6 +116,38 @@ function parseMultiLineTripFormat(body, defaultAgency) {
     direction,
     agency,
     agencyExplicit,
+  };
+}
+
+/**
+ * Parse common natural-language trip format:
+ * "I'm on the 510 from Spadina and Nassau"
+ * @param {string} body
+ * @param {string} defaultAgency
+ * @returns {object|null}
+ */
+function parseCasualTripFormat(body, defaultAgency) {
+  if (typeof body !== 'string') return null;
+
+  const trimmed = body.trim();
+  if (!trimmed || trimmed.includes('\n')) return null;
+
+  const match = trimmed.match(
+    /^(?:i\s*(?:'m|am)\s+on\s+(?:the\s+)?)((?:[a-z]{0,2}\d+[a-z]?|\d+[a-z]?))\s+from\s+(.+)$/i
+  );
+  if (!match) return null;
+
+  const route = normalizeRoute(match[1]);
+  const stop = toTitleCase(match[2]);
+
+  if (!isHeuristicLogValid(stop, route)) return null;
+
+  return {
+    route,
+    stop,
+    direction: null,
+    agency: defaultAgency,
+    agencyExplicit: false,
   };
 }
 
@@ -276,6 +317,7 @@ module.exports = {
   parseStopInput,
   parseMultiLineTripFormat,
   parseSingleLineTripFormat,
+  parseCasualTripFormat,
   parseEndTripFormat,
   parseAgencyOverride,
   isHeuristicLogValid,

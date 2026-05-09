@@ -9,6 +9,7 @@ const assert = require('node:assert/strict');
 const {
   parseMultiLineTripFormat,
   parseSingleLineTripFormat,
+  parseCasualTripFormat,
   parseEndTripFormat,
   isHeuristicLogValid,
 } = require('./lib/parsing');
@@ -44,6 +45,13 @@ test('multi-line: single line returns null', () => {
 test('multi-line: command on first line returns null', () => {
   assert.equal(parseMultiLineTripFormat('END\nSpadina', DEFAULT_AGENCY), null);
   assert.equal(parseMultiLineTripFormat('STATUS\nSpadina', DEFAULT_AGENCY), null);
+});
+
+test('multi-line: explicit START prefix is accepted', () => {
+  const result = parseMultiLineTripFormat('Start\n2\nKipling\nWest', DEFAULT_AGENCY);
+  assert.equal(result.route, '2');
+  assert.equal(result.stop, 'Kipling');
+  assert.equal(result.direction, 'Westbound');
 });
 
 test('multi-line: slash in stop name normalizes correctly', () => {
@@ -104,6 +112,16 @@ test('single-line: tonight\'s failing case', () => {
   assert.ok(result !== null, 'Should have parsed');
   assert.equal(result.route, '510');
   assert.equal(result.direction, 'Northbound');
+});
+
+// ─── parseCasualTripFormat ───────────────────────────────────────────────────
+
+test('casual: "I\'m on the [route] from [stop]"', () => {
+  const result = parseCasualTripFormat("I'm on the 510 from Spadina and Nassau", DEFAULT_AGENCY);
+  assert.ok(result !== null);
+  assert.equal(result.route, '510');
+  assert.equal(result.stop, 'Spadina & Nassau');
+  assert.equal(result.direction, null);
 });
 
 // ─── parseEndTripFormat ──────────────────────────────────────────────────────

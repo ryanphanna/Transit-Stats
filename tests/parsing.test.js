@@ -1,6 +1,7 @@
 const {
   parseStopInput,
   parseMultiLineTripFormat,
+  parseCasualTripFormat,
   parseEndTripFormat,
   parseAgencyOverride,
   isHeuristicLogValid,
@@ -63,6 +64,17 @@ describe('parseMultiLineTripFormat', () => {
     expect(parseMultiLineTripFormat('stop\nUnion', 'TTC')).toBeNull(); // case-insensitive
   });
 
+  test('explicit START prefix is accepted for multiline start messages', () => {
+    const result = parseMultiLineTripFormat('Start\n2\nKipling\nWest', 'TTC');
+    expect(result).toMatchObject({
+      route: '2',
+      stop: 'Kipling',
+      direction: 'Westbound',
+      agency: 'TTC',
+      agencyExplicit: false,
+    });
+  });
+
   test('basic two-line message parses route and stop', () => {
     const result = parseMultiLineTripFormat('501\nQueen & Spadina', 'TTC');
     expect(result).toMatchObject({ route: '501', stop: 'Queen & Spadina', agency: 'TTC' });
@@ -118,6 +130,27 @@ describe('parseMultiLineTripFormat', () => {
   test('stop name is title-cased', () => {
     const result = parseMultiLineTripFormat('501\nqueen and spadina', 'TTC');
     expect(result.stop).toBe('Queen & Spadina');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// parseCasualTripFormat
+// ---------------------------------------------------------------------------
+
+describe('parseCasualTripFormat', () => {
+  test('parses "I am on the [route] from [stop]" messages', () => {
+    const result = parseCasualTripFormat("I'm on the 510 from Spadina and Nassau", 'TTC');
+    expect(result).toMatchObject({
+      route: '510',
+      stop: 'Spadina & Nassau',
+      direction: null,
+      agency: 'TTC',
+      agencyExplicit: false,
+    });
+  });
+
+  test('returns null for unrelated casual text', () => {
+    expect(parseCasualTripFormat('Hello there', 'TTC')).toBeNull();
   });
 });
 

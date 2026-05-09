@@ -20,7 +20,7 @@ const {
 } = require('./db');
 const { sendSmsReply, getTwilioPhoneNumber } = require('./twilio');
 const { parseWithGemini, constructStopInput } = require('./gemini');
-const { parseMultiLineTripFormat, parseSingleLineTripFormat, parseEndTripFormat } = require('./parsing');
+const { parseMultiLineTripFormat, parseSingleLineTripFormat, parseCasualTripFormat, parseEndTripFormat } = require('./parsing');
 const { isValidRoute, normalizeDirection, getRouteDisplay, getStopDisplay, normalizeAgency } = require('./utils');
 const handlers = require('./handlers');
 
@@ -414,7 +414,8 @@ async function handleTripFlow(phoneNumber, user, body) {
   const defaultAgency = userProfile?.defaultAgency || 'TTC';
   const multiLineTrip = parseMultiLineTripFormat(body, defaultAgency);
   const singleLineTrip = !multiLineTrip ? parseSingleLineTripFormat(body, defaultAgency) : null;
-  const tripData = multiLineTrip || singleLineTrip;
+  const casualTrip = !multiLineTrip && !singleLineTrip ? parseCasualTripFormat(body, defaultAgency) : null;
+  const tripData = multiLineTrip || singleLineTrip || casualTrip;
 
   if (tripData) {
     await handlers.handleTripLog(
