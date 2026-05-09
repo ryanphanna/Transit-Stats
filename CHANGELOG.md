@@ -4,8 +4,6 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Prediction Engine history](docs/ENGINE.md) · [Transfer Engine history](docs/TRANSFER_ENGINE.md) · [Network Engine history](docs/NETWORK_ENGINE.md)
 
-## [Unreleased]
-
 ## [1.34.0] - 2026-05-09
 
 ### Fixed
