@@ -115,11 +115,25 @@ function isValidRoute(route) {
   if (!route) return false;
 
   // Clean up
-  const cleanRoute = route.trim().toUpperCase();
+  const cleanRoute = route.trim().replace(/\s+/g, ' ');
+  const upper = cleanRoute.toUpperCase();
 
   // Valid formats: "505", "510A", "510B", "GO1", "Line 1", "Line 2"
-  if (/^[A-Z]{0,2}\d+[A-Z]?$/.test(cleanRoute)) return true;
-  if (/^LINE\s*\d+$/.test(cleanRoute)) return true;
+  if (/^[A-Z]{0,2}\d+[A-Z]?$/.test(upper)) return true;
+  if (/^LINE\s*\d+$/.test(upper)) return true;
+
+  // Named routes across agencies: "Orange", "Green Line", "Pacific Surfliner",
+  // "Flagship Cruises & Events", "J Line", "506 Bus B", "Red Oakland-bound".
+  // Keep this permissive enough for real multi-agency labels, but reject
+  // obvious sentence fragments by limiting token count and character set.
+  if (/^[A-Z0-9&./'() -]+$/i.test(cleanRoute)) {
+    const tokens = cleanRoute.split(' ').filter(Boolean);
+    const hasAlpha = /[A-Z]/i.test(cleanRoute);
+    const hasReasonableTokenLengths = tokens.every(token => token.length <= 24);
+    if (hasAlpha && tokens.length >= 1 && tokens.length <= 5 && hasReasonableTokenLengths) {
+      return true;
+    }
+  }
 
   return false;
 }
