@@ -59,16 +59,22 @@ function parseMultiLineTripFormat(body, defaultAgency) {
   ]);
 
   // Direction is line 3 only when it resolves to a recognized canonical word.
+  // If line 3 is not a direction, treat it as an agency (matches v1.26.0 logic).
   let direction = null;
-  if (lines.length >= 3) {
-    const nd = normalizeDirection(lines[2]);
-    if (CANONICAL_DIRECTIONS.has(nd)) direction = nd;
-  }
-
   let agency = defaultAgency;
   let agencyExplicit = false;
 
-  // Line 4+ is always the agency — no direction ambiguity at this position.
+  if (lines.length >= 3) {
+    const nd = normalizeDirection(lines[2]);
+    if (CANONICAL_DIRECTIONS.has(nd)) {
+      direction = nd;
+    } else {
+      agency = normalizeAgency(lines[2]);
+      agencyExplicit = true;
+    }
+  }
+
+  // Line 4+ is always the agency — overrides line 3 if both present.
   if (lines.length > 3) {
     const potentialAgency = lines[3].trim();
     if (potentialAgency) {

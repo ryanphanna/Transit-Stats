@@ -172,8 +172,9 @@ function aggregateTripStats(trips, defaultTimezone = 'America/Toronto') {
   const dailyCounts = {};
   trips.forEach((trip) => {
     if (!trip.startTime) return;
+    const tripTimezone = trip.timezone || defaultTimezone;
     const date = trip.startTime.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
-    const key = getTimezoneDateParts(date, timezone).dateKey;
+    const key = getTimezoneDateParts(date, tripTimezone).dateKey;
     dailyCounts[key] = (dailyCounts[key] || 0) + 1;
   });
 
@@ -186,8 +187,8 @@ function aggregateTripStats(trips, defaultTimezone = 'America/Toronto') {
     total: trips.length,
     routeStats, pairStats, boardingStops, exitStops, timeOfDay, dailyCounts, allStops,
     dayOfWeek: dayOfWeekMap,
-    windowStart: windowStart ? windowStart.toLocaleDateString('en-CA', { timeZone: timezone }) : null,
-    windowEnd: windowEnd ? windowEnd.toLocaleDateString('en-CA', { timeZone: timezone }) : null,
+    windowStart: windowStart ? windowStart.toLocaleDateString('en-CA', { timeZone: defaultTimezone }) : null,
+    windowEnd: windowEnd ? windowEnd.toLocaleDateString('en-CA', { timeZone: defaultTimezone }) : null,
   };
 }
 

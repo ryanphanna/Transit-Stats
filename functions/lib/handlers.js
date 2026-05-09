@@ -1291,7 +1291,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
       batch.update(db.collection('trips').doc(activeTrip.id), { journeyId });
       await batch.commit();
       const prevEnd = prevTrip.endTime.toDate ? prevTrip.endTime.toDate() : new Date(prevTrip.endTime);
-      const gapStr = Math.round((thisStartTime - prevEnd) / 60000);
+      const gapStr = Math.round((startTime - prevEnd) / 60000);
       journeyNote = `\n\nLinked to your ${getRouteDisplay(prevTrip.route)} trip ` +
         `(${gapStr < 1 ? '<1' : gapStr} min transfer). UNLINK to separate.`;
     }

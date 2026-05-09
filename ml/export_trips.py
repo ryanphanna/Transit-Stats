@@ -73,8 +73,9 @@ def main():
     for doc in docs:
         d = doc.to_dict()
 
-        # Only use completed trips (have an end time, not discarded)
-        if not d.get("endTime") or d.get("discarded"):
+        # Only use completed trips (have an end time, an end stop, and not discarded)
+        has_end_stop = d.get("endStopName") or d.get("endStop")
+        if not d.get("endTime") or not has_end_stop or d.get("discarded"):
             skipped += 1
             continue
 

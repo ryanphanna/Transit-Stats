@@ -190,12 +190,12 @@ describe('isValidRoute', () => {
 // ---------------------------------------------------------------------------
 
 describe('getStopDisplay', () => {
-  test('stopCode takes priority', () => {
-    expect(getStopDisplay('14202', 'Queen St', 'old')).toBe('14202');
+  test('stopName takes priority', () => {
+    expect(getStopDisplay('14202', 'Queen St', 'old')).toBe('Queen St');
   });
 
-  test('stopName is used when no stopCode', () => {
-    expect(getStopDisplay(null, 'queen st', null)).toBe('Queen St');
+  test('stopCode is used when no stopName', () => {
+    expect(getStopDisplay('14202', null, null)).toBe('14202');
   });
 
   test('legacyStop is used as last fallback', () => {

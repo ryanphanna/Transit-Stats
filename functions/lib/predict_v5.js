@@ -14,7 +14,11 @@ let _session = null;
 let _endStopSession = null;
 
 let _topology = null;
-try { _topology = require('./topology.json'); } catch (e) {}
+try {
+  _topology = require('./topology.json');
+} catch (e) {
+  // topology filter disabled
+}
 
 async function getSession() {
   if (_session) return _session;

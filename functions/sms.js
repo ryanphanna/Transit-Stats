@@ -7,7 +7,6 @@ const express = require('express');
 const { defineSecret } = require('firebase-functions/params');
 
 // Modules
-const admin = require('firebase-admin');
 const logger = require('./lib/logger');
 const {
   validateTwilioSignature,

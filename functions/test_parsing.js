@@ -52,11 +52,11 @@ test('multi-line: slash in stop name normalizes correctly', () => {
   assert.equal(result.direction, 'Eastbound');
 });
 
-test('multi-line: agency on line 3 is ignored (reserved for direction)', () => {
-  const result = parseMultiLineTripFormat('47\nLansdowne / Dupont\nGO', DEFAULT_AGENCY);
-  // GO is not a direction, so it should be ignored. Agency remains default.
-  assert.equal(result.agency, DEFAULT_AGENCY);
-  assert.equal(result.agencyExplicit, false);
+test('multi-line: agency on line 3 is accepted if not a direction', () => {
+  const result = parseMultiLineTripFormat('47\nLansdowne / Dupont\nGO Transit', DEFAULT_AGENCY);
+  // GO Transit is not a direction, so it should be treated as an agency (v1.26.0 logic).
+  assert.equal(result.agency, 'GO Transit');
+  assert.equal(result.agencyExplicit, true);
 });
 
 // ─── parseSingleLineTripFormat ───────────────────────────────────────────────

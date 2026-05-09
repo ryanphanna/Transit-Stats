@@ -1,5 +1,10 @@
 # AI Guidelines & Context
 
+## Operational Protocol (Strict)
+- **Hard-Coded Authorization**: I will only execute `git push` if you use the specific phrase **"AUTHORIZE PUSH"**. I will only finalize a version bump/release if you use **"AUTHORIZE RELEASE"**.
+- **Changelog Integrity**: Released sections in `CHANGELOG.md` are immutable. All post-release fixes must reside in the `[Unreleased]` section until the next authorized version bump.
+- **Turn Partitioning**: I will not perform technical code changes and version management (editing changelog/bumping version) in the same conversational turn.
+
 ## Notion Synchronization
 - Automatically add entries to the **NewTransitStatsLog** in Notion only when the work clearly meets the bar in `TRANSITSTATSLOG.md`.
 - **NewTransitStatsLog Database ID**: `3589563c-9a49-8153-9c30-dee3bb00dc9c`

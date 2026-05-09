@@ -2,7 +2,7 @@
  * Utility functions for SMS processing
  */
 const crypto = require('crypto');
-const { BAD_ROUTE_SUFFIXES, AGENCY_CANONICAL } = require('./constants');
+const { AGENCY_CANONICAL } = require('./constants');
 
 /**
  * Convert string to Title Case

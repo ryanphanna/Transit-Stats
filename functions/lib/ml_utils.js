@@ -3,8 +3,6 @@
  * Centralizes the canonicalization logic used by both training (Python) and inference (Node).
  */
 
-const { toTitleCase } = require('./utils');
-
 /**
  * Standardize a stop name using the stops library.
  * This MUST match the behavior used in ml/train_endstop.py for feature alignment.

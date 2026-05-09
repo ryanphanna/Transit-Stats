@@ -10,7 +10,11 @@ const endStopModel = require('./model_v4_endstop.json');
 const { getStopFeature } = require('./ml_utils');
 
 let _topology = null;
-try { _topology = require('./topology.json'); } catch (e) {}
+try {
+  _topology = require('./topology.json');
+} catch (e) {
+  // topology filter disabled
+}
 
 // Shared topology helpers
 function topologyLine(routeStr) {

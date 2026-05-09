@@ -75,13 +75,9 @@ const PredictionEngine = {
     }
 
     // Determine sequence context
-    let atTransferPoint = false;
-    if (context.lastEndStopName) {
-      atTransferPoint = this._stopMatch(context.lastEndStopName, stopName);
-    } else {
-      const lastTrip = this._getLastRecentTrip(history, now);
-      atTransferPoint = lastTrip && this._stopMatch(lastTrip.endStopName, stopName);
-    }
+    const atTransferPoint = context.lastEndStopName 
+      ? this._stopMatch(context.lastEndStopName, stopName)
+      : (this._getLastRecentTrip(history, now) && this._stopMatch(this._getLastRecentTrip(history, now).endStopName, stopName));
 
     const ridesAfterMap = this._computeRidesAfter(history);
 
@@ -181,13 +177,9 @@ const PredictionEngine = {
     }
 
     // Determine sequence context
-    let atTransferPoint = false;
-    if (context.lastEndStopName) {
-      atTransferPoint = this._stopMatch(context.lastEndStopName, startStopName);
-    } else {
-      const lastTrip = this._getLastRecentTrip(history, now);
-      atTransferPoint = lastTrip && this._stopMatch(lastTrip.endStopName, startStopName);
-    }
+    const atTransferPoint = context.lastEndStopName 
+      ? this._stopMatch(context.lastEndStopName, startStopName)
+      : (this._getLastRecentTrip(history, now) && this._stopMatch(this._getLastRecentTrip(history, now).endStopName, startStopName));
 
     // Pre-filter: remove trips that ended at a topologically impossible stop.
     candidates = this._preFilterCandidatesByTopology(candidates, context.route, startStopName, context.direction);

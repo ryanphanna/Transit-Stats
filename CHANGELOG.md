@@ -6,9 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Added
-- **Conversational SMS Predictions**: Refined the end-stop prediction UX to be more natural. Single predictions now ask a direct question ("Heading to [Stop]?") while retaining the "END 1" shortcut for efficiency.
-- **Library Expansion**: Added verified stop records for **Humber College Station (Line 6)**, **Dundas/Bathurst**, and **Dundas/Dufferin** to support multi-agency travel audits.
+## [1.33.0] - 2026-05-07
 
 ### Fixed
 - **AI Stats Timezone Regression** (`functions/lib/gemini.js`): Fixed a `ReferenceError: timezone is not defined` that broke aggregate stats for ASK queries.
@@ -40,6 +38,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - **Documentation synchronized**: Updated all core guides including [README.md](./README.md), [ROADMAP_TECHNICAL.md](./docs/ROADMAP_TECHNICAL.md), [ROADMAP_NEXTGEN.md](./docs/ROADMAP_NEXTGEN.md), [CLAUDE.md](./CLAUDE.md), and [AGENTS.md](./AGENTS.md).
 - **Legacy Cleanup**: Deleted the deprecated `js/main.js` entry point.
+- **Agency mapping pruned**: Removed speculative timezone/city data for unused agencies to maintain a lean resource profile.
 
 ## [1.31.0] - 2026-05-05
 
@@ -54,22 +53,3 @@ All notable changes to this project will be documented in this file.
 - **Gemini stats bucketing**: Gemini stats now bucket dates in the requested timezone rather than server-local time.
 
 ## [1.30.0] - 2026-05-05
-
-### Added
-- **Route + direction-aware stop disambiguation**: Candidates are now filtered by route first, then direction, auto-selecting silently if only one remains.
-- **Global NetworkGraph**: Observations now dual-write to a global graph to cold-start predictions for new users.
-
-### Fixed
-- **lookupStop now route-aware**: Prevents wrong-stop assignment by checking `stopRoutes` during name-based lookup.
-
-## [1.29.1] - 2026-05-04
-### Fixed
-- **MMS stop code extraction**: Improved Gemini pass for small "Next Vehicle" sticker text.
-
----
-
-## Older Releases
-Historical changes can be found in the [Changelog Archive](./CHANGELOG_ARCHIVE.md).
-
----
-*See [migrations/](./migrations/) for scripts to address technical debt.*
