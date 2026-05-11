@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.34.1] - 2026-05-11
+
 ### Security
 - **SSRF fix**: Validate `mediaUrl` against trusted Twilio domains (`api.twilio.com`, `media.twiliocdn.com`, `mms.twilio.com`) before fetching MMS images — prevents server-side request forgery via crafted webhook payloads.
 - **ReDoS fixes**: Capped unbounded `.+` in SMS parsing regexes to `.{1,160}` (SMS max length) and made route-matching alternatives mutually exclusive to eliminate polynomial backtracking.
