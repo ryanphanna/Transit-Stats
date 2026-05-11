@@ -1034,7 +1034,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
         startStopName: startStopCanonical.stopName,
         endStopName: endStopData.stopName,
         duration,
-      }).catch(err => console.error('NetworkEngine.observe failed (non-fatal):', err.message));
+      }, activeTrip.prevRoute || null).catch(err => console.error('NetworkEngine.observe failed (non-fatal):', err.message));
     }
   }
 

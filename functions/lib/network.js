@@ -9,6 +9,9 @@
  * Changelog:
  *   v1 - Trip observation, duration-based reachability, directional filtering.
  *        Falls back to topology.json when confidence is insufficient.
+ *   v1.1 - Route-stop index (routeStopIndex): which routes serve each stop.
+ *          Transfer index (transferIndex): which route pairs connect at each stop.
+ *          Both updated in observe() alongside the main graph.
  *   v2 - Dual-write: every observation also updates a global graph (keyed by
  *        agency+route, no userId). Stop-sequence facts are objective — a route's
  *        stops don't change per rider. Global graph cold-starts new users and
@@ -16,7 +19,7 @@
  */
 
 const NetworkEngine = {
-  VERSION: '1.0.0',
+  VERSION: '1.1.0',
 
   // Minimum trips on an edge before it's trusted for prediction filtering
   MIN_TRIPS: 3,
@@ -28,8 +31,9 @@ const NetworkEngine = {
    * @param {Object} db - Firestore instance
    * @param {string} userId
    * @param {Object} trip - { route, agency, direction, startStopName, endStopName, duration }
+   * @param {string|null} prevRoute - Route of the preceding trip, if any (records a transfer)
    */
-  async observe(db, userId, trip) {
+  async observe(db, userId, trip, prevRoute = null) {
     const { route, agency, direction, startStopName, endStopName, duration } = trip;
     if (!route || !agency || !direction || !startStopName || !endStopName || !duration) return;
     if (duration <= 0 || duration > 180) return;
@@ -73,6 +77,11 @@ const NetworkEngine = {
         db.collection('networkGraph').doc(this._globalDocId(agency, route)),
         { agency, route: route.toString(), global: true }
       ),
+      // Route-stop index — which routes serve each stop
+      this._writeRouteStopIndex(db, agency, startStopName, route),
+      this._writeRouteStopIndex(db, agency, endStopName, route),
+      // Transfer index — which route pairs connect at this boarding stop
+      prevRoute ? this._writeTransferIndex(db, agency, startStopName, prevRoute, route) : Promise.resolve(),
     ]);
   },
 
@@ -107,6 +116,38 @@ const NetworkEngine = {
     if (!agency || !route) return null;
     const doc = await db.collection('networkGraph').doc(this._globalDocId(agency, route)).get();
     return doc.exists ? doc.data() : null;
+  },
+
+  /**
+   * Return the routes observed at a stop, with trip counts.
+   * { [routeKey]: count } — higher count = more observed trips through this stop.
+   *
+   * @param {Object} db
+   * @param {string} agency
+   * @param {string} stopName
+   * @returns {Object} Route→count map (empty if stop unknown)
+   */
+  async getRoutesAtStop(db, agency, stopName) {
+    if (!agency || !stopName) return {};
+    const key = `${this._key(agency)}_${this._key(stopName)}`;
+    const doc = await db.collection('routeStopIndex').doc(key).get();
+    return doc.exists ? (doc.data().routes || {}) : {};
+  },
+
+  /**
+   * Return route-pair transfers observed at a stop, with counts.
+   * { [fromRoute_to_toRoute]: count } — e.g. { '506_to_510': 3 }
+   *
+   * @param {Object} db
+   * @param {string} agency
+   * @param {string} stopName
+   * @returns {Object} Transfer pair→count map (empty if stop unknown)
+   */
+  async getConnectionsAtStop(db, agency, stopName) {
+    if (!agency || !stopName) return {};
+    const key = `${this._key(agency)}_${this._key(stopName)}`;
+    const doc = await db.collection('transferIndex').doc(key).get();
+    return doc.exists ? (doc.data().connections || {}) : {};
   },
 
   /**
@@ -237,6 +278,38 @@ const NetworkEngine = {
       }
     }
     return this._median(durations);
+  },
+
+  async _writeRouteStopIndex(db, agency, stopName, route) {
+    if (!agency || !stopName || !route) return;
+    const key = `${this._key(agency)}_${this._key(stopName)}`;
+    const routeKey = this._key(route);
+    const ref = db.collection('routeStopIndex').doc(key);
+    await db.runTransaction(async tx => {
+      const doc = await tx.get(ref);
+      const data = doc.exists ? doc.data() : { agency, stop: stopName, routes: {} };
+      data.routes[routeKey] = (data.routes[routeKey] || 0) + 1;
+      data.updatedAt = new Date().toISOString();
+      tx.set(ref, data);
+    });
+  },
+
+  async _writeTransferIndex(db, agency, stopName, fromRoute, toRoute) {
+    if (!agency || !stopName || !fromRoute || !toRoute) return;
+    const key = `${this._key(agency)}_${this._key(stopName)}`;
+    const connKey = `${this._key(fromRoute)}_to_${this._key(toRoute)}`;
+    const ref = db.collection('transferIndex').doc(key);
+    await db.runTransaction(async tx => {
+      const doc = await tx.get(ref);
+      const data = doc.exists ? doc.data() : { agency, stop: stopName, connections: {} };
+      data.connections[connKey] = (data.connections[connKey] || 0) + 1;
+      data.updatedAt = new Date().toISOString();
+      tx.set(ref, data);
+    });
+  },
+
+  _key(s) {
+    return s.toString().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
   },
 
   _docId(userId, agency, route) {
