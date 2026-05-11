@@ -148,7 +148,7 @@ const NetworkEngine = {
    *
    * @private
    */
-  _getReachableStops(graph, boardingStop, normDir) {
+  _getReachableStops(graph, boardingStop, normDir, minTrips = this.MIN_TRIPS) {
     const normBoarding = this._normalize(boardingStop);
     const reachable = new Set();
     let hasConfidentEdge = false;
@@ -157,7 +157,7 @@ const NetworkEngine = {
       if (this._normalize(edge.fromStop) !== normBoarding) continue;
       if (edge.direction !== normDir) continue;
 
-      if (edge.tripCount >= this.MIN_TRIPS) {
+      if (edge.tripCount >= minTrips) {
         reachable.add(this._normalize(edge.toStop));
         hasConfidentEdge = true;
       }
@@ -170,7 +170,7 @@ const NetworkEngine = {
       for (const edge of Object.values(graph.edges || {})) {
         if (this._normalize(edge.toStop) !== normBoarding) continue;
         if (edge.direction !== oppositeDir) continue;
-        if (edge.tripCount >= this.MIN_TRIPS) {
+        if (edge.tripCount >= minTrips) {
           reachable.add(this._normalize(edge.fromStop));
           hasConfidentEdge = true;
         }
@@ -208,11 +208,11 @@ const NetworkEngine = {
    * @param {string} direction
    * @returns {boolean[]|null}
    */
-  getMask(graph, classes, boardingStop, direction) {
+  getMask(graph, classes, boardingStop, direction, minTrips = 2) {
     if (!graph || !boardingStop || !direction) return null;
     const normDir = this._normalizeDirection(direction);
     if (!normDir) return null;
-    const reachable = this._getReachableStops(graph, boardingStop, normDir);
+    const reachable = this._getReachableStops(graph, boardingStop, normDir, minTrips);
     if (!reachable) return null;
     return classes.map(cls => {
       const norm = this._normalize(cls);
