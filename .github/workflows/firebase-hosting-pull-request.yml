@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: npm ci && npm run build
+      - run: npm ci --omit=optional && npm run build
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
