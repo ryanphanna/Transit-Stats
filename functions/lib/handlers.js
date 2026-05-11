@@ -1132,11 +1132,25 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
         `${predictedLabel} → ${actualLabel}`);
     }
 
+    // Normalize a route label the same way the ML training pipeline does,
+    // so grading compares apples to apples (e.g. "510A" → "510" for TTC).
+    const normalizeRouteForGrading = (route, agency) => {
+      const r = route.toString().trim();
+      if (agency === 'TTC') {
+        const m = r.match(/^(\d+)/);
+        return m ? m[1] : r;
+      }
+      const compact = r.match(/^(\d+)([a-zA-Z]+)$/);
+      if (compact) return `${compact[1]}${compact[2].toUpperCase()}`;
+      if (/^[a-zA-Z]$/.test(r)) return r.toUpperCase();
+      return r;
+    };
+
     // Grade V4 Prediction silently in the background
     const storedV4 = activeTrip.predictionV4;
     if (storedV4) {
-      const actualRoute = activeTrip.route.toString();
-      const predRouteV4 = storedV4.route.toString();
+      const actualRoute = normalizeRouteForGrading(activeTrip.route.toString(), activeTrip.agency);
+      const predRouteV4 = normalizeRouteForGrading(storedV4.route.toString(), activeTrip.agency);
       const routeMatchV4 = predRouteV4 === actualRoute;
       const isHitV4 = routeMatchV4; // V4 doesn't have direction
 
@@ -1179,14 +1193,11 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     // Grade V5 Prediction silently in the background
     const storedV5 = activeTrip.predictionV5;
     if (storedV5) {
-      const actualRoute = activeTrip.route.toString();
-      const predRouteV5 = storedV5.route.toString();
+      const actualRoute = normalizeRouteForGrading(activeTrip.route.toString(), activeTrip.agency);
+      const predRouteV5 = normalizeRouteForGrading(storedV5.route.toString(), activeTrip.agency);
       const isHitV5 = predRouteV5 === actualRoute;
 
-      const baseRoute = r => /^\d/.test(r) ? r.replace(/[a-zA-Z]+(\s.*)?$/, '').trim() : r;
-      const isPartialHitV5 = !isHitV5 &&
-        baseRoute(predRouteV5) === baseRoute(actualRoute) &&
-        baseRoute(predRouteV5) !== '';
+      const isPartialHitV5 = false; // normalization makes partial hits redundant
 
       const predictedLabelV5 = storedV5.route + ' from ' + (activeTrip.startStopName || '?');
       const actualLabelV5 = activeTrip.route + (activeTrip.direction ? ' ' + activeTrip.direction : '') +
