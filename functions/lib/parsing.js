@@ -133,7 +133,7 @@ function parseCasualTripFormat(body, defaultAgency) {
   if (!trimmed || trimmed.includes('\n')) return null;
 
   const match = trimmed.match(
-    /^(?:i\s*(?:'m|am)\s+on\s+(?:the\s+)?)((?:[a-z]{0,2}\d+[a-z]?|\d+[a-z]?))\s+from\s+(.+)$/i
+    /^(?:i\s*(?:'m|am)\s+on\s+(?:the\s+)?)((?:[a-z]{1,2}\d+[a-z]?|\d+[a-z]?))\s+from\s+(.{1,100})$/i
   );
   if (!match) return null;
 

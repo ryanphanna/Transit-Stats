@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Prediction Engine history](docs/ENGINE.md) · [Transfer Engine history](docs/TRANSFER_ENGINE.md) · [Network Engine history](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Security
+- **SSRF fix**: Validate `mediaUrl` against trusted Twilio domains (`api.twilio.com`, `media.twiliocdn.com`, `mms.twilio.com`) before fetching MMS images — prevents server-side request forgery via crafted webhook payloads.
+- **ReDoS fixes**: Capped unbounded `.+` in SMS parsing regexes to `.{1,160}` (SMS max length) and made route-matching alternatives mutually exclusive to eliminate polynomial backtracking.
+- **SRI hashes**: Added `integrity` + `crossorigin` attributes to Leaflet and Lucide CDN script tags in `v2.html` and `v2-home.html`; pinned Lucide to `1.14.0` (was `@latest`).
+- **Secure randomness**: Replaced `Math.random()` with `crypto.getRandomValues()` in `identity.js` username slug generation.
+
 ## [1.34.0] - 2026-05-09
 
 ### Fixed

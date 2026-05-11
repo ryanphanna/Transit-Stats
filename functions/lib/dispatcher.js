@@ -121,7 +121,7 @@ async function dispatch(phoneNumber, body, messageSid, media = {}) {
 
   // 7. Core Trip Logic (Parsing & Heuristics)
   // Strip optional "START " prefix so "Start 2 Spadina West" works the same as "2 Spadina West"
-  const startPrefixMatch = body.match(/^START\s+(.+)$/i);
+  const startPrefixMatch = body.match(/^START\s+(.{1,160})$/i);
   const tripBody = startPrefixMatch ? startPrefixMatch[1] : body;
 
   const tripHandled = await handleTripFlow(phoneNumber, user, tripBody);

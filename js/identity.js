@@ -46,7 +46,7 @@ export const Identity = {
         const used = new Set();
         
         while (triplet.length < 3) {
-            const key = keys[Math.floor(Math.random() * keys.length)];
+            const key = keys[Math.floor(crypto.getRandomValues(new Uint32Array(1))[0] / 0x100000000 * keys.length)];
             if (!used.has(key)) {
                 triplet.push(key);
                 used.add(key);
