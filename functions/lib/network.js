@@ -195,6 +195,32 @@ const NetworkEngine = {
   },
 
   /**
+   * Return a boolean mask over `classes` indicating which end stops are
+   * reachable from boardingStop in the given direction, per the learned graph.
+   *
+   * Returns null if the graph has insufficient data to filter — caller should
+   * fall back to topology.json. Unknown stops (not seen in the graph at all)
+   * are kept so the model can still predict new stops.
+   *
+   * @param {Object} graph - Loaded graph doc (from load())
+   * @param {string[]} classes - End stop class labels from the ML model
+   * @param {string} boardingStop
+   * @param {string} direction
+   * @returns {boolean[]|null}
+   */
+  getMask(graph, classes, boardingStop, direction) {
+    if (!graph || !boardingStop || !direction) return null;
+    const normDir = this._normalizeDirection(direction);
+    if (!normDir) return null;
+    const reachable = this._getReachableStops(graph, boardingStop, normDir);
+    if (!reachable) return null;
+    return classes.map(cls => {
+      const norm = this._normalize(cls);
+      return reachable.has(norm) || !this._isKnownStop(graph, norm);
+    });
+  },
+
+  /**
    * Return the median travel time from a boarding stop on a specific route.
    * Scans all edges for the route to find typical exit times.
    * @param {Object} graph - Loaded graph doc

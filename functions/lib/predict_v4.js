@@ -157,7 +157,11 @@ const PredictionEngineV4 = {
       return z;
     });
 
-    const mask = topologyMask(context.route, context.startStopName, context.direction, endStopModel.classes);
+    // NetworkEngine mask takes priority — it learns surface routes automatically.
+    // Fall back to topology.json for subway/LRT lines when NetworkEngine has no data.
+    const { NetworkEngine } = require('./network.js');
+    const networkMask = NetworkEngine.getMask(context.networkGraph, endStopModel.classes, context.startStopName, context.direction);
+    const mask = networkMask || topologyMask(context.route, context.startStopName, context.direction, endStopModel.classes);
     if (mask) mask.forEach((keep, i) => { if (!keep) logits[i] = -Infinity; });
 
     const maxL = Math.max(...logits.filter(isFinite));

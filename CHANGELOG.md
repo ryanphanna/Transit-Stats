@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - **V4/V5 route grading normalization** (`functions/lib/handlers.js`): Route grading now normalizes both the predicted and actual route labels before comparing, matching the agency-aware normalization applied during ML training. Previously, a V5 prediction of `510` against an actual trip logged as `510A` always scored as a miss — grading compared raw labels, not normalized ones.
+- **NetworkEngine wired into V4/V5 end stop prediction** (`functions/lib/network.js`, `functions/lib/predict_v4.js`, `functions/lib/predict_v5.js`, `functions/lib/handlers.js`): V4/V5 end stop predictions now filter impossible stops via NetworkEngine before falling back to topology.json — the same priority order V3 uses. Previously topology.json only covered subway lines (1, 2, 4, 5), so surface route predictions (e.g. 510 streetcar) had no impossibility filter, causing the model to over-predict dominant destinations like Spadina & Nassau regardless of direction or boarding stop.
 
 ### Added
 - **Prediction stats analysis script** (`ml/analyze_predictions.py`): Reports hit rates by model version, top confusion pairs, confidence calibration, and high-confidence misses from live `predictionStats` data.

@@ -742,6 +742,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       minutesSinceLastTrip,
       agency: resolvedAgency,
       stopsLibrary,
+      networkGraph: networkGraph || null,
     };
 
     prediction = PredictionEngine.guess(history, {
@@ -844,11 +845,12 @@ async function handleConfirmStart(phoneNumber, user, state) {
   let confirmEndStopPredictionV5 = null;
   let confirmIsAdmin = false;
   try {
-    const [history, stopsLibrary, routesAtStop, confirmProfile] = await Promise.all([
+    const [history, stopsLibrary, routesAtStop, confirmProfile, confirmNetworkGraph] = await Promise.all([
       getRecentCompletedTrips(user.userId, 100),
       getStopsLibrary(),
       getRoutesAtStop(newTrip.stopCode, newTrip.agency),
       getUserProfile(user.userId),
+      NetworkEngine.load(db, user.userId, newTrip.agency, newTrip.route),
     ]);
     PredictionEngine.stopsLibrary = stopsLibrary;
     confirmIsAdmin = !!confirmProfile?.isAdmin;
@@ -857,7 +859,7 @@ async function handleConfirmStart(phoneNumber, user, state) {
     const lastTrip = history.length > 0 ? history[0] : null;
     const lastEndStopName = lastTrip?.endStopName || null;
     const confirmRouteContext = { stopName: newTrip.stopName, time: now, lastEndStopName, stopsLibrary };
-    const confirmEndStopContext = { route: newTrip.route, startStopName: newTrip.stopName, direction: newTrip.direction, time: now, lastEndStopName, stopsLibrary };
+    const confirmEndStopContext = { route: newTrip.route, startStopName: newTrip.stopName, direction: newTrip.direction, time: now, lastEndStopName, stopsLibrary, networkGraph: confirmNetworkGraph || null };
     confirmPrediction = PredictionEngine.guess(history, {
       stopName: newTrip.stopName,
       time: now,

@@ -176,7 +176,11 @@ const PredictionEngineV5 = {
       const results = await session.run({ float_input: tensor });
       const probs = Array.from(results.probabilities.data);
 
-      const mask = topologyMask(context.route, context.startStopName, context.direction, endStopMeta.classes);
+      // NetworkEngine mask takes priority — it learns surface routes automatically.
+      // Fall back to topology.json for subway/LRT lines when NetworkEngine has no data.
+      const { NetworkEngine } = require('./network.js');
+      const networkMask = NetworkEngine.getMask(context.networkGraph, endStopMeta.classes, context.startStopName, context.direction);
+      const mask = networkMask || topologyMask(context.route, context.startStopName, context.direction, endStopMeta.classes);
       if (mask) mask.forEach((keep, i) => { if (!keep) probs[i] = 0; });
 
       const total = probs.reduce((s, p) => s + p, 0);
