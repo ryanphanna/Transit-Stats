@@ -46,6 +46,7 @@
     "prev_route_83",
     "prev_route_94",
     "prev_route_none",
+    "prev_route_stouffville",
     "stop_bay station",
     "stop_bloor-yonge station",
     "stop_carlton / church",
@@ -96,10 +97,9 @@
     "last_stop_st george station",
     "last_stop_st patrick station",
     "last_stop_union station",
-    "last_stop_vaughan metropolitan centre",
     "last_stop_york university"
   ],
-  "top1_accuracy": 0.7872,
+  "top1_accuracy": 0.766,
   "top3_accuracy": 0.8936,
   "n_trips": 234
 }

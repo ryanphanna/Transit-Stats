@@ -5,6 +5,72 @@ One entry per trained version. See `docs/ENGINE.md` for full engineering notes.
 
 ---
 
+## V5.3 — XGBoost End Stop
+
+| Field | Value |
+|---|---|
+| **Date trained** | 2026-05-11 |
+| **Algorithm** | XGBoost (`n_estimators=200`, `max_depth=4`, `learning_rate=0.1`) |
+| **Trip count** | 234 (after cleaning — routes+stops with ≥5 trips, end stops with ≥3 occurrences) |
+| **Top-1 accuracy** | 76.6% |
+| **Top-3 accuracy** | 89.4% |
+| **Classes** | 15 end stops |
+| **Features** | hour_sin/cos, day_sin/cos, start_stop (one-hot), route (one-hot), prev_route (one-hot), last_end_stop (one-hot), trip gap (`gap_log`, `gap_missing`) |
+| **Status** | Shadow mode |
+
+**Notes:** Marginal dip vs V5.2 (78.7% → 76.6%) on the same 234-trip cleaning slice despite 54 more raw trips exported (483 vs 429). Likely test split variance — the cleaned end stop dataset didn't grow. Route classes expanded from 18 to 20 with new Yonge arm trips starting today, which may shift the feature distribution slightly over time.
+
+---
+
+## V4.3 — Logistic Regression End Stop
+
+| Field | Value |
+|---|---|
+| **Date trained** | 2026-05-11 |
+| **Algorithm** | Logistic Regression (scikit-learn, `class_weight='balanced'`, `max_iter=1000`) |
+| **Trip count** | 234 (same dataset as V5.3) |
+| **Top-1 accuracy** | 68.1% |
+| **Top-3 accuracy** | 93.6% |
+| **Classes** | 15 end stops |
+| **Features** | Same as V5.3 |
+| **Status** | Shadow mode |
+
+**Notes:** Identical to V4.2 — end stop dataset unchanged.
+
+---
+
+## V5.3 — XGBoost Route
+
+| Field | Value |
+|---|---|
+| **Date trained** | 2026-05-11 |
+| **Algorithm** | XGBoost (`n_estimators=200`, `max_depth=4`, `learning_rate=0.1`) |
+| **Trip count** | 438 (after cleaning) |
+| **Top-1 accuracy** | 67.0% |
+| **Top-3 accuracy** | 81.8% |
+| **Classes** | 20 routes |
+| **Features** | hour_sin/cos, day_sin/cos, start_stop (one-hot), last_end_stop (one-hot) |
+| **Status** | Shadow mode |
+
+**Notes:** Slight dip vs V5.2 (70.9% → 67.0%) with 2 new route classes from the Yonge arm commute starting today. More classes + same dataset size = harder classification problem. Expect accuracy to recover as Yonge arm trips accumulate.
+
+---
+
+## V4.3 — Logistic Regression Route
+
+| Field | Value |
+|---|---|
+| **Date trained** | 2026-05-11 |
+| **Algorithm** | Logistic Regression (scikit-learn, `class_weight='balanced'`, `max_iter=1000`) |
+| **Trip count** | 438 (same dataset as V5.3) |
+| **Top-1 accuracy** | 60.2% |
+| **Top-3 accuracy** | 80.7% |
+| **Classes** | 20 routes |
+| **Features** | Same as V5.3 |
+| **Status** | Shadow mode |
+
+---
+
 ## V5.2 — XGBoost End Stop
 
 | Field | Value |

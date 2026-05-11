@@ -234,6 +234,16 @@ def export_v5(model, le, feature_names, top1, top3, n_trips):
     with open(os.path.join(OUT_DIR, "model_v5_endstop_meta.json"), "w") as f:
         json.dump(meta, f, indent=2)
 
+def mirror_to_lib():
+    import shutil
+    lib_dir = os.path.join(OUT_DIR, "..", "functions", "lib")
+    for fname in ["model_v4_endstop.json", "model_v5_endstop.onnx", "model_v5_endstop_meta.json"]:
+        src = os.path.join(OUT_DIR, fname)
+        dst = os.path.join(lib_dir, fname)
+        if os.path.exists(src):
+            shutil.copy2(src, dst)
+            print(f"  {fname} → functions/lib/")
+
 def main():
     from sklearn.model_selection import train_test_split
     df = load_data()
@@ -254,6 +264,8 @@ def main():
     v5_m, v5_le = train_v5(X_train, y_train, classes, weights_train=w_train)
     v5_t1, v5_t3 = evaluate(v5_m, X_test, y_test, v5_le, "V5")
     export_v5(v5_m, v5_le, feature_names, v5_t1, v5_t3, len(df))
+    mirror_to_lib()
+    print("\nDone. Models copied to functions/lib/.")
 
 if __name__ == "__main__":
     main()
