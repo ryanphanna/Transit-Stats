@@ -229,18 +229,18 @@ async function maybeHandleStopDisambiguation({
  */
 function getPredictionPrompt(predictions) {
   if (!predictions || predictions.length === 0) {
-    return '\n\nEND [stop] to finish. FORGOT if you forgot to end.';
+    return '\n\nEND [stop] to finish. FORGOT to end without stop.';
   }
 
   const shortcutNums = predictions.map((_, i) => i + 1).join('/');
 
   if (predictions.length === 1) {
     const p = predictions[0];
-    return `\n\nHeading to ${p.stop}? END 1 to end there.\n\nEND [stop] to finish. FORGOT if you forgot to end.`;
+    return `\n\nHeading to ${p.stop}? END 1 to end there.\n\nEND [stop] to finish. FORGOT to end without stop.`;
   }
 
   const predLines = predictions.map((p, i) => `${i + 1}. ${p.stop} — END ${i + 1}`).join('\n');
-  return `\n\nWhere to?\n${predLines}\n\nEND [stop] to finish. FORGOT if you forgot to end.`;
+  return `\n\nWhere to?\n${predLines}\n\nEND [stop] to finish. FORGOT to end without stop.`;
 }
 
 /**
