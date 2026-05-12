@@ -848,7 +848,31 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     .then(allTrips => HabitEngine.rebuild(db, user.userId, allTrips))
     .catch(err => console.error('HabitEngine.rebuild failed (non-fatal):', err.message));
 
-  await sendSmsReply(phoneNumber, `Ended ${routeDisplay} at ${endStopDisplay}${agencySuffix(agency, endDefaultAgency)} (${duration} min trip)${journeyNote}`);
+  // Next-leg suggestion: surface the most likely next route if this stop is a known transfer point.
+  // Skip when a journey was already auto-linked — the user is already in a multi-leg trip.
+  let nextLegNote = '';
+  if (!journeyNote && endStopNameFinal && agency) {
+    try {
+      const connections = await NetworkEngine.getConnectionsAtStop(db, agency, endStopNameFinal);
+      const fromKey = NetworkEngine._key(activeTrip.route.toString());
+      const prefix = `${fromKey}_to_`;
+      let bestRouteKey = null;
+      let bestCount = 0;
+      for (const [k, count] of Object.entries(connections)) {
+        if (k.startsWith(prefix) && count > bestCount) {
+          bestCount = count;
+          bestRouteKey = k.slice(prefix.length);
+        }
+      }
+      if (bestRouteKey && bestCount >= 2) {
+        nextLegNote = `\n\nUsually take the ${bestRouteKey} from here.`;
+      }
+    } catch (err) {
+      // non-fatal
+    }
+  }
+
+  await sendSmsReply(phoneNumber, `Ended ${routeDisplay} at ${endStopDisplay}${agencySuffix(agency, endDefaultAgency)} (${duration} min trip)${journeyNote}${nextLegNote}`);
 }
 
 module.exports = {

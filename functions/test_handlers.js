@@ -137,6 +137,9 @@ function loadHandlers(overrides = {}) {
         serverTimestamp: () => new Date(),
         arrayUnion: (...vals) => ({ _op: 'arrayUnion', vals }),
       },
+      Timestamp: {
+        now: () => ({ toDate: () => new Date() }),
+      },
     },
   };
 
@@ -164,6 +167,8 @@ function loadHandlers(overrides = {}) {
       load: async () => null,
       observe: async () => {},
       filterCandidates: () => null,
+      getConnectionsAtStop: async () => ({}),
+      _key: (s) => s.toString().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
       ...(overrides.network?.NetworkEngine || {}),
     },
   };
@@ -330,4 +335,89 @@ test('handleTripLog: GTFS correction picks route supported by routesAtStop for V
   assert.equal(calls.createTrip.length, 1);
   assert.equal(calls.createTrip[0].predictionV4.route, '510');
   assert.equal(calls.createTrip[0].predictionV5.route, '510');
+});
+
+test('handleEndTrip: next-leg suggestion appended when transfer index has known connection', async () => {
+  const { handlers, calls, restore } = loadHandlers({
+    dbModule: {
+      getActiveTrip: async () => ({
+        id: 'trip_1',
+        userId: 'u5',
+        route: '510',
+        direction: 'Westbound',
+        agency: 'TTC',
+        startStopName: 'King / Spadina',
+        startStopCode: '11985',
+        startTime: { toDate: () => new Date(Date.now() - 20 * 60000) },
+        prediction: null,
+        predictionV4: null,
+        predictionV5: null,
+        habitPrediction: null,
+        endStopPrediction: null,
+        endStopPredictionV4: null,
+        endStopPredictionV5: null,
+        endStopPredictions: null,
+        stop_matched: true,
+      }),
+    },
+    network: {
+      NetworkEngine: {
+        load: async () => null,
+        observe: async () => {},
+        filterCandidates: () => null,
+        getMedianDuration: () => null,
+        getConnectionsAtStop: async () => ({ '510_to_2': 4, '510_to_504': 1 }),
+        _key: (s) => s.toString().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
+      },
+    },
+  });
+
+  try {
+    await handlers.handleEndTrip('+14165550005', { userId: 'u5' }, 'Spadina Station');
+  } finally {
+    restore();
+  }
+
+  const reply = calls.sendSmsReply[0]?.message || '';
+  assert.match(reply, /Usually take the 2 from here/);
+});
+
+test('handleEndTrip: next-leg suggestion suppressed when connection count below threshold', async () => {
+  const { handlers, calls, restore } = loadHandlers({
+    dbModule: {
+      getActiveTrip: async () => ({
+        id: 'trip_1',
+        userId: 'u6',
+        route: '510',
+        direction: 'Westbound',
+        agency: 'TTC',
+        startStopName: 'King / Spadina',
+        startStopCode: '11985',
+        startTime: { toDate: () => new Date(Date.now() - 20 * 60000) },
+        prediction: null, predictionV4: null, predictionV5: null,
+        habitPrediction: null, endStopPrediction: null,
+        endStopPredictionV4: null, endStopPredictionV5: null,
+        endStopPredictions: null, stop_matched: true,
+      }),
+    },
+    network: {
+      NetworkEngine: {
+        load: async () => null,
+        observe: async () => {},
+        filterCandidates: () => null,
+        getMedianDuration: () => null,
+        getConnectionsAtStop: async () => ({ '510_to_2': 1 }), // below threshold
+        _key: (s) => s.toString().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
+      },
+    },
+  });
+
+  try {
+    await handlers.handleEndTrip('+14165550006', { userId: 'u6' }, 'Spadina Station');
+  } finally {
+    restore();
+  }
+
+  const reply = calls.sendSmsReply[0]?.message || '';
+  assert.doesNotMatch(reply, /Usually take/);
 });
