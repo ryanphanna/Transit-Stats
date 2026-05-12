@@ -19,7 +19,7 @@
  */
 
 const NetworkEngine = {
-  VERSION: '1.1.0',
+  VERSION: '1.2.0',
 
   // Minimum trips on an edge before it's trusted for prediction filtering
   MIN_TRIPS: 3,
@@ -42,6 +42,7 @@ const NetworkEngine = {
     if (!normDir) return;
 
     const edgeKey = this._edgeKey(startStopName, normDir, endStopName);
+    const hourKey = new Date().getHours().toString();
 
     const writeGraph = async (docRef, baseData) => {
       await db.runTransaction(async tx => {
@@ -53,10 +54,15 @@ const NetworkEngine = {
           toStop: endStopName,
           direction: normDir,
           durations: [],
+          durationsByHour: {},
           tripCount: 0,
         };
 
-        edge.durations = [...edge.durations.slice(-49), Math.round(duration)];
+        const roundedDuration = Math.round(duration);
+        edge.durations = [...(edge.durations || []).slice(-49), roundedDuration];
+        edge.durationsByHour = edge.durationsByHour || {};
+        const bucket = edge.durationsByHour[hourKey] || [];
+        edge.durationsByHour[hourKey] = [...bucket.slice(-19), roundedDuration];
         edge.tripCount = (edge.tripCount || 0) + 1;
         edge.medianMinutes = this._median(edge.durations);
         edge.updatedAt = new Date().toISOString();
@@ -263,17 +269,26 @@ const NetworkEngine = {
 
   /**
    * Return the median travel time from a boarding stop on a specific route.
-   * Scans all edges for the route to find typical exit times.
+   * When `hour` is provided and the edge has ≥3 observations in that hour bucket,
+   * uses the hour-specific durations instead of the aggregate. Falls back to the
+   * aggregate when the bucket is sparse (cold-start).
+   *
    * @param {Object} graph - Loaded graph doc
    * @param {string} boardingStop
+   * @param {number} [hour] - Hour of day (0–23); uses aggregate if omitted
    * @returns {number|null} Median minutes
    */
-  getMedianDuration(graph, boardingStop) {
+  getMedianDuration(graph, boardingStop, hour = null) {
     if (!graph || !boardingStop) return null;
     const normBoarding = this._normalize(boardingStop);
     const durations = [];
     for (const edge of Object.values(graph.edges || {})) {
-      if (this._normalize(edge.fromStop) === normBoarding && edge.medianMinutes) {
+      if (this._normalize(edge.fromStop) !== normBoarding) continue;
+      const hourKey = hour !== null ? hour.toString() : null;
+      const hourBucket = hourKey && edge.durationsByHour?.[hourKey];
+      if (hourBucket && hourBucket.length >= 3) {
+        durations.push(this._median(hourBucket));
+      } else if (edge.medianMinutes) {
         durations.push(edge.medianMinutes);
       }
     }

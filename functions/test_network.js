@@ -340,3 +340,90 @@ test('getMask: infers reachability from reverse edges', () => {
   assert.ok(mask !== null);
   assert.equal(mask[0], true, 'Stop B reachable via reverse southbound edge');
 });
+
+// ─── hour-slot travel time buckets ─────────────────────────────────────────
+
+test('getMedianDuration: returns aggregate median when no hour specified', () => {
+  const graph = {
+    edges: {
+      e1: {
+        fromStop: 'King / Spadina',
+        toStop: 'Spadina Station',
+        direction: 'Westbound',
+        durations: [10, 12, 14],
+        medianMinutes: 12,
+        durationsByHour: { '8': [8, 9, 10], '17': [15, 16, 17] },
+        tripCount: 3,
+      },
+    },
+  };
+  assert.equal(NetworkEngine.getMedianDuration(graph, 'King / Spadina'), 12);
+});
+
+test('getMedianDuration: prefers hour bucket when it has ≥3 observations', () => {
+  const graph = {
+    edges: {
+      e1: {
+        fromStop: 'King / Spadina',
+        toStop: 'Spadina Station',
+        direction: 'Westbound',
+        durations: [8, 10, 12, 14, 16],
+        medianMinutes: 12,
+        durationsByHour: { '8': [8, 9, 10] }, // median 9
+        tripCount: 5,
+      },
+    },
+  };
+  // Hour 8 bucket has 3 observations — should use its median (9), not aggregate (12)
+  assert.equal(NetworkEngine.getMedianDuration(graph, 'King / Spadina', 8), 9);
+});
+
+test('getMedianDuration: falls back to aggregate when hour bucket has <3 observations', () => {
+  const graph = {
+    edges: {
+      e1: {
+        fromStop: 'King / Spadina',
+        toStop: 'Spadina Station',
+        direction: 'Westbound',
+        durations: [10, 12, 14],
+        medianMinutes: 12,
+        durationsByHour: { '8': [9] }, // only 1 observation — sparse
+        tripCount: 3,
+      },
+    },
+  };
+  assert.equal(NetworkEngine.getMedianDuration(graph, 'King / Spadina', 8), 12);
+});
+
+test('getMedianDuration: falls back to aggregate when hour bucket missing entirely', () => {
+  const graph = {
+    edges: {
+      e1: {
+        fromStop: 'King / Spadina',
+        toStop: 'Spadina Station',
+        direction: 'Westbound',
+        durations: [10, 12, 14],
+        medianMinutes: 12,
+        durationsByHour: {},
+        tripCount: 3,
+      },
+    },
+  };
+  assert.equal(NetworkEngine.getMedianDuration(graph, 'King / Spadina', 22), 12);
+});
+
+test('observe: writes durationsByHour alongside flat durations', async () => {
+  const db = makeWriteableDb();
+  await NetworkEngine.observe(db, 'u1', {
+    route: '510', agency: 'TTC', direction: 'Westbound',
+    startStopName: 'King / Spadina', endStopName: 'Spadina Station', duration: 12,
+  });
+
+  const graphDoc = Object.values(db._store).find(d => d && d.edges);
+  assert.ok(graphDoc, 'graph doc should have been written');
+  const edge = Object.values(graphDoc.edges)[0];
+  assert.ok(edge.durationsByHour, 'durationsByHour should exist on edge');
+  const hourKey = new Date().getHours().toString();
+  assert.ok(Array.isArray(edge.durationsByHour[hourKey]), 'current hour bucket should be an array');
+  assert.ok(edge.durationsByHour[hourKey].includes(12), 'duration should be in hour bucket');
+});

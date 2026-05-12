@@ -60,7 +60,7 @@ async function determineStaleness(db, userId, activeTrip) {
   // Try route-aware staleness
   try {
     const graph = await NetworkEngine.load(db, userId, activeTrip.agency, activeTrip.route);
-    const median = NetworkEngine.getMedianDuration(graph, activeTrip.startStopName);
+    const median = NetworkEngine.getMedianDuration(graph, activeTrip.startStopName, new Date().getHours());
 
     if (median) {
       // If elapsed time is > 2x the median duration AND at least 45 minutes
