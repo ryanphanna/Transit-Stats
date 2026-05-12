@@ -91,6 +91,7 @@ analytics, and stop-layer assumptions are still uneven.
   Add structured alerting for handler failures and Gemini proxy errors.
 - [ ] **End-to-end test for SMS flow** — integration test covering the full
   START → END → STATS command sequence against a real (or emulated) Firestore instance.
+- [ ] **Split `handlers.js`** — at 1700+ lines the file is functional but large. Natural split: `handlers/trip.js` (handleTripLog, handleConfirmStart, handleEndTrip), `handlers/commands.js` (simple SMS commands), `handlers/intelligence.js` (fillPredictions, handleMmsTrip), with shared helpers extracted to `handlers/utils.js`. Do when a specific section becomes actively painful to work in — not before.
 
 ---
 
