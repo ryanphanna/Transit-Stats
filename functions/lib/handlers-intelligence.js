@@ -89,22 +89,25 @@ async function fillPredictions(user, tripId, stopName, route, direction, agency)
  * the photo was sent, not when AI processing finishes.
  */
 async function handleMmsTrip(phoneNumber, user, mediaUrl, receivedAt) {
-  const TRUSTED_TWILIO_HOSTS = ['api.twilio.com', 'media.twiliocdn.com', 'mms.twilio.com'];
-
   // Validate and fetch in a single block so the allowlist check directly guards fetch().
   // CodeQL requires the guard and the sink to be in the same try block to resolve js/request-forgery.
   let imageBase64, mimeType;
   try {
     const parsedUrl = new URL(mediaUrl);
-    if (parsedUrl.protocol !== 'https:' || !TRUSTED_TWILIO_HOSTS.some(h => parsedUrl.hostname === h || parsedUrl.hostname.endsWith('.' + h))) {
-      logger.warn('Rejected untrusted MMS media URL', { hostname: parsedUrl.hostname });
+    const TRUSTED_TWILIO_HOSTS = ['api.twilio.com', 'media.twiliocdn.com', 'mms.twilio.com', 'mms.twiliocdn.com'];
+    const isTwilioHost = TRUSTED_TWILIO_HOSTS.includes(parsedUrl.hostname);
+
+    if (parsedUrl.protocol !== 'https:' || !isTwilioHost) {
+      console.warn(`Rejected untrusted MMS media URL: ${parsedUrl.hostname}`);
       await sendSmsReply(phoneNumber, 'Could not load your photo. Try again or log by text:\n[Route]\n[Stop]');
       return;
     }
 
+    // Re-construct the URL to ensure no bypass via components (js/request-forgery)
+    const targetUrl = `https://${parsedUrl.hostname}${parsedUrl.pathname}${parsedUrl.search}`;
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
-    const response = await fetch(parsedUrl.href, {
+    const response = await fetch(targetUrl, {
       headers: {
         Authorization: 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64'),
       },
