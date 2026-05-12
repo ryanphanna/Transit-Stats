@@ -848,6 +848,21 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     .then(allTrips => HabitEngine.rebuild(db, user.userId, allTrips))
     .catch(err => console.error('HabitEngine.rebuild failed (non-fatal):', err.message));
 
+  // Anomaly detection: flag trips that took significantly longer than the hour-specific median.
+  let anomalyNote = '';
+  try {
+    const startHour = startTime.getHours();
+    const graph = await NetworkEngine.load(db, user.userId, agency, tripRoute);
+    const typicalMinutes = graph
+      ? NetworkEngine.getMedianDuration(graph, activeTrip.startStopName, startHour)
+      : null;
+    if (typicalMinutes && typicalMinutes >= 5 && duration >= typicalMinutes * 2) {
+      anomalyNote = `\n\nThis trip took longer than usual (${duration} min vs. typical ${typicalMinutes} min).`;
+    }
+  } catch (err) {
+    // non-fatal
+  }
+
   // Next-leg suggestion: surface the most likely next route if this stop is a known transfer point.
   // Skip when a journey was already auto-linked — the user is already in a multi-leg trip.
   let nextLegNote = '';
@@ -872,7 +887,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     }
   }
 
-  await sendSmsReply(phoneNumber, `Ended ${routeDisplay} at ${endStopDisplay}${agencySuffix(agency, endDefaultAgency)} (${duration} min trip)${journeyNote}${nextLegNote}`);
+  await sendSmsReply(phoneNumber, `Ended ${routeDisplay} at ${endStopDisplay}${agencySuffix(agency, endDefaultAgency)} (${duration} min trip)${journeyNote}${anomalyNote}${nextLegNote}`);
 }
 
 module.exports = {

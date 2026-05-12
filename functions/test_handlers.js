@@ -421,3 +421,90 @@ test('handleEndTrip: next-leg suggestion suppressed when connection count below 
   const reply = calls.sendSmsReply[0]?.message || '';
   assert.doesNotMatch(reply, /Usually take/);
 });
+
+function makeEndTripHandlers(networkOverride) {
+  return loadHandlers({
+    dbModule: {
+      getActiveTrip: async () => ({
+        id: 'trip_1',
+        userId: 'u7',
+        route: '510',
+        direction: 'Westbound',
+        agency: 'TTC',
+        startStopName: 'King / Spadina',
+        startStopCode: '11985',
+        startTime: { toDate: () => new Date(Date.now() - 40 * 60000) },
+        prediction: null, predictionV4: null, predictionV5: null,
+        habitPrediction: null, endStopPrediction: null,
+        endStopPredictionV4: null, endStopPredictionV5: null,
+        endStopPredictions: null, stop_matched: true,
+      }),
+    },
+    network: { NetworkEngine: networkOverride },
+  });
+}
+
+test('handleEndTrip: anomaly note appended when trip duration >= 2x hour-specific median', async () => {
+  const { handlers, calls, restore } = makeEndTripHandlers({
+    load: async () => ({
+      edges: {
+        e1: {
+          fromStop: 'King / Spadina',
+          toStop: 'Spadina Station',
+          direction: 'Westbound',
+          durations: [10, 10, 10],
+          medianMinutes: 10,
+          durationsByHour: { [new Date().getHours().toString()]: [10, 10, 10] },
+          tripCount: 3,
+        },
+      },
+    }),
+    observe: async () => {},
+    filterCandidates: () => null,
+    getMedianDuration: (graph, stop, hour) => 10, // typical = 10 min; trip took 40 min
+    getConnectionsAtStop: async () => ({}),
+    _key: (s) => s.toString().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
+  });
+
+  try {
+    await handlers.handleEndTrip('+14165550007', { userId: 'u7' }, 'Spadina Station');
+  } finally {
+    restore();
+  }
+
+  const reply = calls.sendSmsReply[0]?.message || '';
+  assert.match(reply, /took longer than usual/);
+  assert.match(reply, /40 min vs\. typical 10 min/);
+});
+
+test('handleEndTrip: anomaly note suppressed when duration is within normal range', async () => {
+  const { handlers, calls, restore } = makeEndTripHandlers({
+    load: async () => ({
+      edges: {
+        e1: {
+          fromStop: 'King / Spadina',
+          toStop: 'Spadina Station',
+          direction: 'Westbound',
+          durations: [35, 38, 40],
+          medianMinutes: 38,
+          durationsByHour: { [new Date().getHours().toString()]: [35, 38, 40] },
+          tripCount: 3,
+        },
+      },
+    }),
+    observe: async () => {},
+    filterCandidates: () => null,
+    getMedianDuration: (graph, stop, hour) => 38, // typical = 38 min; trip took 40 min (within 2x)
+    getConnectionsAtStop: async () => ({}),
+    _key: (s) => s.toString().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
+  });
+
+  try {
+    await handlers.handleEndTrip('+14165550008', { userId: 'u8' }, 'Spadina Station');
+  } finally {
+    restore();
+  }
+
+  const reply = calls.sendSmsReply[0]?.message || '';
+  assert.doesNotMatch(reply, /took longer than usual/);
+});
