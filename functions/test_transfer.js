@@ -141,3 +141,34 @@ test('_stopMatch: null inputs return false', () => {
   assert.equal(TransferEngine._stopMatch(null, 'Spadina Station'), false);
   assert.equal(TransferEngine._stopMatch('Spadina Station', null), false);
 });
+
+// ─── score: NetworkEngine signal (v1.1) ──────────────────────────────────────
+
+test('score: cold start + network connection extends window to 20 min', () => {
+  // 17 min gap — would not link without network evidence (cold start limit is 15)
+  const prev = trip({ route: '510', endStop: 'Spadina Station', endTime: new Date('2026-04-15T20:00:00Z') });
+  const next = trip({ route: '2', startStop: 'Spadina Station', startTime: new Date('2026-04-15T20:17:00Z') });
+  const noNetwork = TransferEngine.score(prev, next, []);
+  assert.ok(noNetwork < TransferEngine.CONFIDENCE_THRESHOLD, `17 min with no network should not link, got ${noNetwork}`);
+  const withNetwork = TransferEngine.score(prev, next, [], { '510_to_2': 3 });
+  assert.ok(withNetwork >= TransferEngine.CONFIDENCE_THRESHOLD, `17 min with known network connection should link, got ${withNetwork}`);
+});
+
+test('score: no-pattern + strong network connection links at short gap', () => {
+  // Has history but no matching stop or route pair — network connection should push over threshold
+  const history = linkedPair({ routeA: '47', routeB: '506', endStop: 'Lansdowne / Dupont', startStop: 'Lansdowne / Dupont' });
+  const prev = trip({ route: '510', endStop: 'Spadina Station', endTime: new Date('2026-04-15T20:00:00Z') });
+  const next = trip({ route: '2', startStop: 'Spadina Station', startTime: new Date('2026-04-15T20:08:00Z') });
+  const noNetwork = TransferEngine.score(prev, next, history);
+  assert.ok(noNetwork < TransferEngine.CONFIDENCE_THRESHOLD, `No-pattern with no network should not link, got ${noNetwork}`);
+  const withNetwork = TransferEngine.score(prev, next, history, { '510_to_2': 4 });
+  assert.ok(withNetwork >= TransferEngine.CONFIDENCE_THRESHOLD, `No-pattern with known connection + 8 min gap should link, got ${withNetwork}`);
+});
+
+test('score: network connection count < 2 does not boost', () => {
+  // Only 1 observation — not enough to trust
+  const prev = trip({ route: '510', endStop: 'Spadina Station', endTime: new Date('2026-04-15T20:00:00Z') });
+  const next = trip({ route: '2', startStop: 'Spadina Station', startTime: new Date('2026-04-15T20:17:00Z') });
+  const confidence = TransferEngine.score(prev, next, [], { '510_to_2': 1 });
+  assert.ok(confidence < TransferEngine.CONFIDENCE_THRESHOLD, `Single observation should not boost cold start, got ${confidence}`);
+});
