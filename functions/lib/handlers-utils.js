@@ -236,7 +236,7 @@ function getPredictionPrompt(predictions) {
 
   if (predictions.length === 1) {
     const p = predictions[0];
-    return `\n\nHeading to ${p.stop}? END 1 to confirm.\n\nEND [stop] to finish. FORGOT if you forgot to end.`;
+    return `\n\nHeading to ${p.stop}? END 1 to end there.\n\nEND [stop] to finish. FORGOT if you forgot to end.`;
   }
 
   const predLines = predictions.map((p, i) => `${i + 1}. ${p.stop} — END ${i + 1}`).join('\n');
