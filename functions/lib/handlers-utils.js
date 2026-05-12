@@ -236,11 +236,11 @@ function getPredictionPrompt(predictions) {
 
   if (predictions.length === 1) {
     const p = predictions[0];
-    return `\n\nHeading to ${p.stop}?\n\nEND 1 or END [stop] to finish. FORGOT if you forgot to end.`;
+    return `\n\nHeading to ${p.stop}? END 1 to confirm.\n\nEND [stop] to finish. FORGOT if you forgot to end.`;
   }
 
-  const predLines = predictions.map((p, i) => `${i + 1}. ${p.stop}`).join('\n');
-  return `\n\nWhere to?\n${predLines}\n\nEND ${shortcutNums} or END [stop] to finish. FORGOT if you forgot to end.`;
+  const predLines = predictions.map((p, i) => `${i + 1}. ${p.stop} — END ${i + 1}`).join('\n');
+  return `\n\nWhere to?\n${predLines}\n\nEND [stop] to finish. FORGOT if you forgot to end.`;
 }
 
 /**
