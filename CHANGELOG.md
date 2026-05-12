@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Prediction Engine history](docs/ENGINE.md) · [Transfer Engine history](docs/TRANSFER_ENGINE.md) · [Network Engine history](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Fixed
+- **SSRF CodeQL Alert**: Hardened MMS URL processing in `functions/lib/handlers-intelligence.js` by expanding the trusted Twilio domain whitelist, fully reconstructing target URLs to prevent bypasses, and ensuring guards and the `fetch` sink occur in the same try-block to resolve CodeQL alert #44.
+
 ## [1.35.0] - 2026-05-12
 
 ### Fixed
