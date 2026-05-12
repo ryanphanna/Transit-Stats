@@ -82,7 +82,7 @@ function topologyMask(route, boardingStop, direction, classes) {
 }
 
 const PredictionEngineV5 = {
-  VERSION: '5.3',
+  VERSION: '5.4',
 
   /**
    * Guess top N routes using the V5 XGBoost model.
