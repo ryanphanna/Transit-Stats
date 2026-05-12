@@ -412,6 +412,185 @@ test('getMedianDuration: falls back to aggregate when hour bucket missing entire
   assert.equal(NetworkEngine.getMedianDuration(graph, 'King / Spadina', 22), 12);
 });
 
+// ─── getConnectionLabels ─────────────────────────────────────────────────────
+
+test('getConnectionLabels: returns empty object for unknown stop', async () => {
+  const db = makeWriteableDb();
+  assert.deepEqual(await NetworkEngine.getConnectionLabels(db, 'TTC', 'Unknown Stop'), {});
+});
+
+test('getConnectionLabels: returns original route label as written', async () => {
+  const db = makeWriteableDb();
+  await NetworkEngine._writeTransferIndex(db, 'TTC', 'Spadina Station', '510A', '2');
+  const labels = await NetworkEngine.getConnectionLabels(db, 'TTC', 'Spadina Station');
+  const key = `${NetworkEngine._key('510A')}_to_${NetworkEngine._key('2')}`;
+  assert.equal(labels[key], '2', 'toLabel should preserve original route string');
+});
+
+test('getConnectionLabels: preserves original capitalization and spacing', async () => {
+  const db = makeWriteableDb();
+  await NetworkEngine._writeTransferIndex(db, 'TTC', 'Union Station', 'Green Line', 'Red');
+  const labels = await NetworkEngine.getConnectionLabels(db, 'TTC', 'Union Station');
+  const key = `${NetworkEngine._key('Green Line')}_to_${NetworkEngine._key('Red')}`;
+  assert.equal(labels[key], 'Red');
+});
+
+// ─── getEdgeMedianDuration ────────────────────────────────────────────────────
+
+test('getEdgeMedianDuration: returns null when pair has no observations', () => {
+  const graph = {
+    edges: {
+      e1: { fromStop: 'A', toStop: 'B', direction: 'Northbound', medianMinutes: 12 },
+    },
+  };
+  assert.equal(NetworkEngine.getEdgeMedianDuration(graph, 'A', 'C'), null);
+});
+
+test('getEdgeMedianDuration: returns aggregate median for matching pair', () => {
+  const graph = {
+    edges: {
+      e1: { fromStop: 'King', toStop: 'Queen', direction: 'Westbound', medianMinutes: 8, durationsByHour: {} },
+      e2: { fromStop: 'King', toStop: 'Bloor', direction: 'Westbound', medianMinutes: 25, durationsByHour: {} },
+    },
+  };
+  assert.equal(NetworkEngine.getEdgeMedianDuration(graph, 'King', 'Queen'), 8);
+  assert.equal(NetworkEngine.getEdgeMedianDuration(graph, 'King', 'Bloor'), 25);
+});
+
+test('getEdgeMedianDuration: prefers hour bucket when ≥3 observations', () => {
+  const graph = {
+    edges: {
+      e1: {
+        fromStop: 'King', toStop: 'Queen', direction: 'Westbound',
+        medianMinutes: 12,
+        durationsByHour: { '8': [7, 8, 9] }, // median 8
+      },
+    },
+  };
+  assert.equal(NetworkEngine.getEdgeMedianDuration(graph, 'King', 'Queen', 8), 8);
+});
+
+test('getEdgeMedianDuration: falls back to aggregate when hour bucket sparse', () => {
+  const graph = {
+    edges: {
+      e1: {
+        fromStop: 'King', toStop: 'Queen', direction: 'Westbound',
+        medianMinutes: 12,
+        durationsByHour: { '8': [7] }, // only 1 — sparse
+      },
+    },
+  };
+  assert.equal(NetworkEngine.getEdgeMedianDuration(graph, 'King', 'Queen', 8), 12);
+});
+
+// ─── transitive reachability ──────────────────────────────────────────────────
+
+test('_getTransitiveEdges: infers A→C from A→B + B→C in same direction', () => {
+  const graph = {
+    edges: {
+      e1: { fromStop: 'A', toStop: 'B', direction: 'Northbound', tripCount: 4, medianMinutes: 5, inferred: false },
+      e2: { fromStop: 'B', toStop: 'C', direction: 'Northbound', tripCount: 6, medianMinutes: 8, inferred: false },
+    },
+  };
+  const inferred = NetworkEngine._getTransitiveEdges(graph);
+  assert.equal(inferred.length, 1);
+  assert.equal(inferred[0].fromStop, 'A');
+  assert.equal(inferred[0].toStop, 'C');
+  assert.equal(inferred[0].direction, 'Northbound');
+  assert.equal(inferred[0].tripCount, 4); // min(4, 6)
+  assert.equal(inferred[0].medianMinutes, 13); // 5 + 8
+  assert.equal(inferred[0].inferred, true);
+});
+
+test('_getTransitiveEdges: does not infer across direction mismatch', () => {
+  const graph = {
+    edges: {
+      e1: { fromStop: 'A', toStop: 'B', direction: 'Eastbound', tripCount: 4, medianMinutes: 5 },
+      e2: { fromStop: 'B', toStop: 'C', direction: 'Westbound', tripCount: 4, medianMinutes: 5 },
+    },
+  };
+  assert.equal(NetworkEngine._getTransitiveEdges(graph).length, 0);
+});
+
+test('_getTransitiveEdges: does not infer A→A cycles', () => {
+  const graph = {
+    edges: {
+      e1: { fromStop: 'A', toStop: 'B', direction: 'Northbound', tripCount: 4, medianMinutes: 5 },
+      e2: { fromStop: 'B', toStop: 'A', direction: 'Northbound', tripCount: 4, medianMinutes: 5 },
+    },
+  };
+  const inferred = NetworkEngine._getTransitiveEdges(graph);
+  // A→B→A is a cycle — should be excluded. B→A→B is also a cycle.
+  assert.ok(inferred.every(e => !(e.fromStop === 'A' && e.toStop === 'A')));
+  assert.ok(inferred.every(e => !(e.fromStop === 'B' && e.toStop === 'B')));
+});
+
+test('_getTransitiveEdges: does not use inferred edges as inputs', () => {
+  const graph = {
+    edges: {
+      e1: { fromStop: 'A', toStop: 'B', direction: 'Northbound', tripCount: 4, medianMinutes: 5 },
+      e2: { fromStop: 'B', toStop: 'C', direction: 'Northbound', tripCount: 4, medianMinutes: 5, inferred: true },
+      e3: { fromStop: 'C', toStop: 'D', direction: 'Northbound', tripCount: 4, medianMinutes: 5 },
+    },
+  };
+  // e2 is already inferred — only real edges chain. A→B is real, B→C is inferred (skipped as source).
+  // So we should get A→B chains with C→D only if B→C were real, which it isn't.
+  // We also get nothing from B→C (inferred) → C→D.
+  const inferred = NetworkEngine._getTransitiveEdges(graph);
+  // Only real→real chains: A→B + (no real edge from B), C→D has nothing feeding into it from a real B→C
+  assert.ok(!inferred.some(e => e.fromStop === 'B' && e.toStop === 'D'),
+    'should not chain through inferred edge');
+});
+
+test('_withTransitiveEdges: inferred edges fill gaps without overwriting real edges', () => {
+  // Use real edgeKey format (as observe() does) so the key-lookup guard works
+  const abKey = NetworkEngine._edgeKey('A', 'Northbound', 'B');
+  const bcKey = NetworkEngine._edgeKey('B', 'Northbound', 'C');
+  const acKey = NetworkEngine._edgeKey('A', 'Northbound', 'C');
+  const graph = {
+    edges: {
+      [abKey]: { fromStop: 'A', toStop: 'B', direction: 'Northbound', tripCount: 5, medianMinutes: 10 },
+      [bcKey]: { fromStop: 'B', toStop: 'C', direction: 'Northbound', tripCount: 5, medianMinutes: 10 },
+      [acKey]: { fromStop: 'A', toStop: 'C', direction: 'Northbound', tripCount: 99, medianMinutes: 25 },
+    },
+  };
+  const augGraph = NetworkEngine._withTransitiveEdges(graph);
+  // Real A→C edge should survive unchanged; inferred A→C (tripCount 5) must not overwrite it
+  assert.equal(augGraph.edges[acKey].tripCount, 99);
+});
+
+test('getMask: includes transitively reachable stops', () => {
+  // A→B + B→C are real edges; boarding at A should include C in the mask
+  const graph = {
+    edges: {
+      e1: { fromStop: 'A', toStop: 'B', direction: 'Eastbound', tripCount: 5 },
+      e2: { fromStop: 'B', toStop: 'C', direction: 'Eastbound', tripCount: 5 },
+    },
+  };
+  const mask = NetworkEngine.getMask(graph, ['B', 'C', 'D'], 'A', 'Eastbound');
+  assert.ok(mask !== null, 'mask should not be null');
+  assert.equal(mask[0], true,  'B directly reachable');
+  assert.equal(mask[1], true,  'C transitively reachable via B');
+  assert.equal(mask[2], true,  'D unknown to graph — kept');
+});
+
+test('filterCandidates: includes trips ending at transitively reachable stops', () => {
+  const graph = {
+    edges: {
+      e1: { fromStop: 'King', toStop: 'Queen', direction: 'Westbound', tripCount: 4 },
+      e2: { fromStop: 'Queen', toStop: 'Dundas', direction: 'Westbound', tripCount: 4 },
+    },
+  };
+  const candidates = [
+    { endStopName: 'Queen' },
+    { endStopName: 'Dundas' },   // reachable transitively
+    { endStopName: 'Bloor' },    // unknown to graph — kept
+  ];
+  const filtered = NetworkEngine.filterCandidates(candidates, graph, 'King', 'Westbound');
+  assert.ok(filtered !== null);
+  assert.equal(filtered.length, 3, 'all three should pass: Queen direct, Dundas transitive, Bloor unknown');
+});
+
 test('observe: writes durationsByHour alongside flat durations', async () => {
   const db = makeWriteableDb();
   await NetworkEngine.observe(db, 'u1', {

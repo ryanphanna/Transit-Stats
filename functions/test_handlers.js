@@ -167,7 +167,10 @@ function loadHandlers(overrides = {}) {
       load: async () => null,
       observe: async () => {},
       filterCandidates: () => null,
+      getEdgeMedianDuration: () => null,
+      getMedianDuration: () => null,
       getConnectionsAtStop: async () => ({}),
+      getConnectionLabels: async () => ({}),
       _key: (s) => s.toString().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
       ...(overrides.network?.NetworkEngine || {}),
     },
@@ -367,6 +370,7 @@ test('handleEndTrip: next-leg suggestion appended when transfer index has known 
         filterCandidates: () => null,
         getMedianDuration: () => null,
         getConnectionsAtStop: async () => ({ '510_to_2': 4, '510_to_504': 1 }),
+        getConnectionLabels: async () => ({ '510_to_2': '2', '510_to_504': '504' }),
         _key: (s) => s.toString().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
       },
     },
@@ -407,6 +411,7 @@ test('handleEndTrip: next-leg suggestion suppressed when connection count below 
         filterCandidates: () => null,
         getMedianDuration: () => null,
         getConnectionsAtStop: async () => ({ '510_to_2': 1 }), // below threshold
+        getConnectionLabels: async () => ({ '510_to_2': '2' }),
         _key: (s) => s.toString().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
       },
     },
@@ -461,8 +466,10 @@ test('handleEndTrip: anomaly note appended when trip duration >= 2x hour-specifi
     }),
     observe: async () => {},
     filterCandidates: () => null,
-    getMedianDuration: (graph, stop, hour) => 10, // typical = 10 min; trip took 40 min
+    getEdgeMedianDuration: () => 10, // specific edge: King→Spadina Station typical = 10 min
+    getMedianDuration: () => 10,
     getConnectionsAtStop: async () => ({}),
+    getConnectionLabels: async () => ({}),
     _key: (s) => s.toString().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
   });
 
@@ -494,8 +501,10 @@ test('handleEndTrip: anomaly note suppressed when duration is within normal rang
     }),
     observe: async () => {},
     filterCandidates: () => null,
-    getMedianDuration: (graph, stop, hour) => 38, // typical = 38 min; trip took 40 min (within 2x)
+    getEdgeMedianDuration: () => 38, // specific edge: typical = 38 min; trip took 40 min (within 2x)
+    getMedianDuration: () => 38,
     getConnectionsAtStop: async () => ({}),
+    getConnectionLabels: async () => ({}),
     _key: (s) => s.toString().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
   });
 

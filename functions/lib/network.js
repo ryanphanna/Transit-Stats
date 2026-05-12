@@ -19,7 +19,7 @@
  */
 
 const NetworkEngine = {
-  VERSION: '1.2.0',
+  VERSION: '1.3.0',
 
   // Minimum trips on an edge before it's trusted for prediction filtering
   MIN_TRIPS: 3,
@@ -157,6 +157,49 @@ const NetworkEngine = {
   },
 
   /**
+   * Return the original route labels for transfer pairs observed at a stop.
+   * { [connKey]: toRouteLabel } — preserves original capitalization/spacing.
+   * Complements getConnectionsAtStop() which returns only counts.
+   */
+  async getConnectionLabels(db, agency, stopName) {
+    if (!agency || !stopName) return {};
+    const key = `${this._key(agency)}_${this._key(stopName)}`;
+    const doc = await db.collection('transferIndex').doc(key).get();
+    return doc.exists ? (doc.data().toLabels || {}) : {};
+  },
+
+  /**
+   * Return the median travel time for a specific start→end stop pair.
+   * Uses the hour-specific bucket when ≥3 observations exist, otherwise
+   * the edge's aggregate median. Returns null if the pair has no observations.
+   *
+   * More accurate than getMedianDuration() for anomaly detection because it
+   * compares against the actual destination rather than all edges from the stop.
+   *
+   * @param {Object} graph - Loaded graph doc
+   * @param {string} fromStop
+   * @param {string} toStop
+   * @param {number} [hour]
+   * @returns {number|null}
+   */
+  getEdgeMedianDuration(graph, fromStop, toStop, hour = null) {
+    if (!graph || !fromStop || !toStop) return null;
+    const normFrom = this._normalize(fromStop);
+    const normTo = this._normalize(toStop);
+    for (const edge of Object.values(graph.edges || {})) {
+      if (this._normalize(edge.fromStop) !== normFrom) continue;
+      if (this._normalize(edge.toStop) !== normTo) continue;
+      const hourKey = hour !== null ? hour.toString() : null;
+      const hourBucket = hourKey && edge.durationsByHour?.[hourKey];
+      if (hourBucket && hourBucket.length >= 3) {
+        return this._median(hourBucket);
+      }
+      return edge.medianMinutes || null;
+    }
+    return null;
+  },
+
+  /**
    * Filter a set of historical trip candidates to only those that ended at a
    * directionally reachable stop, per the learned graph.
    *
@@ -175,14 +218,15 @@ const NetworkEngine = {
     const normDir = this._normalizeDirection(direction);
     if (!normDir) return null;
 
-    const reachable = this._getReachableStops(graph, boardingStop, normDir);
+    const augGraph = this._withTransitiveEdges(graph);
+    const reachable = this._getReachableStops(augGraph, boardingStop, normDir);
     if (!reachable) return null; // Insufficient data — don't filter
 
     const filtered = candidates.filter(t => {
       if (!t.endStopName) return false;
       const normEnd = this._normalize(t.endStopName);
       // Keep if we've confirmed it's reachable, or if it's unknown to the graph
-      return reachable.has(normEnd) || !this._isKnownStop(graph, normEnd);
+      return reachable.has(normEnd) || !this._isKnownStop(augGraph, normEnd);
     });
 
     return filtered;
@@ -259,11 +303,12 @@ const NetworkEngine = {
     if (!graph || !boardingStop || !direction) return null;
     const normDir = this._normalizeDirection(direction);
     if (!normDir) return null;
-    const reachable = this._getReachableStops(graph, boardingStop, normDir, minTrips);
+    const augGraph = this._withTransitiveEdges(graph);
+    const reachable = this._getReachableStops(augGraph, boardingStop, normDir, minTrips);
     if (!reachable) return null;
     return classes.map(cls => {
       const norm = this._normalize(cls);
-      return reachable.has(norm) || !this._isKnownStop(graph, norm);
+      return reachable.has(norm) || !this._isKnownStop(augGraph, norm);
     });
   },
 
@@ -295,6 +340,68 @@ const NetworkEngine = {
     return this._median(durations);
   },
 
+  /**
+   * Synthesize inferred A→C edges from A→B + B→C pairs in the same direction.
+   * Only real (non-inferred) edges are used as inputs — no chaining of transitives.
+   * Caps at one hop (2-edge chains) to avoid over-inference.
+   *
+   * @private
+   */
+  _getTransitiveEdges(graph) {
+    const realEdges = Object.values(graph.edges || {}).filter(e => !e.inferred);
+
+    // Build a lookup: normalized fromStop → edges starting there
+    const byFromStop = {};
+    for (const e of realEdges) {
+      const key = this._normalize(e.fromStop);
+      if (!byFromStop[key]) byFromStop[key] = [];
+      byFromStop[key].push(e);
+    }
+
+    const inferred = [];
+    for (const e1 of realEdges) {
+      const midKey = this._normalize(e1.toStop);
+      const continuations = byFromStop[midKey] || [];
+      for (const e2 of continuations) {
+        if (e1.direction !== e2.direction) continue;
+        // Prevent A→B→A cycles
+        if (this._normalize(e1.fromStop) === this._normalize(e2.toStop)) continue;
+
+        inferred.push({
+          fromStop: e1.fromStop,
+          toStop: e2.toStop,
+          direction: e1.direction,
+          tripCount: Math.min(e1.tripCount || 0, e2.tripCount || 0),
+          medianMinutes: (e1.medianMinutes != null && e2.medianMinutes != null)
+            ? e1.medianMinutes + e2.medianMinutes
+            : null,
+          inferred: true,
+        });
+      }
+    }
+
+    return inferred;
+  },
+
+  /**
+   * Return an augmented graph with inferred transitive edges merged in.
+   * Real edges are never overwritten — inferred edges only fill gaps.
+   *
+   * @private
+   */
+  _withTransitiveEdges(graph) {
+    if (!graph) return graph;
+    const inferred = this._getTransitiveEdges(graph);
+    const augmentedEdges = { ...graph.edges };
+    for (const edge of inferred) {
+      const key = this._edgeKey(edge.fromStop, edge.direction, edge.toStop);
+      if (!augmentedEdges[key]) {
+        augmentedEdges[key] = edge;
+      }
+    }
+    return { ...graph, edges: augmentedEdges };
+  },
+
   async _writeRouteStopIndex(db, agency, stopName, route) {
     if (!agency || !stopName || !route) return;
     const key = `${this._key(agency)}_${this._key(stopName)}`;
@@ -316,8 +423,10 @@ const NetworkEngine = {
     const ref = db.collection('transferIndex').doc(key);
     await db.runTransaction(async tx => {
       const doc = await tx.get(ref);
-      const data = doc.exists ? doc.data() : { agency, stop: stopName, connections: {} };
+      const data = doc.exists ? doc.data() : { agency, stop: stopName, connections: {}, toLabels: {} };
       data.connections[connKey] = (data.connections[connKey] || 0) + 1;
+      data.toLabels = data.toLabels || {};
+      data.toLabels[connKey] = toRoute.toString();
       data.updatedAt = new Date().toISOString();
       tx.set(ref, data);
     });

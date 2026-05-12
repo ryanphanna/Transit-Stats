@@ -849,12 +849,14 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     .catch(err => console.error('HabitEngine.rebuild failed (non-fatal):', err.message));
 
   // Anomaly detection: flag trips that took significantly longer than the hour-specific median.
+  // Uses the specific start→end edge duration so routes with diverse destinations don't cross-contaminate.
   let anomalyNote = '';
   try {
     const startHour = startTime.getHours();
     const graph = await NetworkEngine.load(db, user.userId, agency, tripRoute);
     const typicalMinutes = graph
-      ? NetworkEngine.getMedianDuration(graph, activeTrip.startStopName, startHour)
+      ? (NetworkEngine.getEdgeMedianDuration(graph, activeTrip.startStopName, endStopNameFinal, startHour)
+         ?? NetworkEngine.getMedianDuration(graph, activeTrip.startStopName, startHour))
       : null;
     if (typicalMinutes && typicalMinutes >= 5 && duration >= typicalMinutes * 2) {
       anomalyNote = `\n\nThis trip took longer than usual (${duration} min vs. typical ${typicalMinutes} min).`;
@@ -868,19 +870,23 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
   let nextLegNote = '';
   if (!journeyNote && endStopNameFinal && agency) {
     try {
-      const connections = await NetworkEngine.getConnectionsAtStop(db, agency, endStopNameFinal);
+      const [connections, connLabels] = await Promise.all([
+        NetworkEngine.getConnectionsAtStop(db, agency, endStopNameFinal),
+        NetworkEngine.getConnectionLabels(db, agency, endStopNameFinal),
+      ]);
       const fromKey = NetworkEngine._key(activeTrip.route.toString());
       const prefix = `${fromKey}_to_`;
-      let bestRouteKey = null;
+      let bestConnKey = null;
       let bestCount = 0;
       for (const [k, count] of Object.entries(connections)) {
         if (k.startsWith(prefix) && count > bestCount) {
           bestCount = count;
-          bestRouteKey = k.slice(prefix.length);
+          bestConnKey = k;
         }
       }
-      if (bestRouteKey && bestCount >= 2) {
-        nextLegNote = `\n\nUsually take the ${bestRouteKey} from here.`;
+      if (bestConnKey && bestCount >= 2) {
+        const toLabel = connLabels[bestConnKey] || bestConnKey.slice(prefix.length);
+        nextLegNote = `\n\nUsually take the ${toLabel} from here.`;
       }
     } catch (err) {
       // non-fatal
