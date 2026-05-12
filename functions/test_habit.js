@@ -355,3 +355,56 @@ test('rebuild: returns empty array when trips dont meet threshold', async () => 
   const result = await HabitEngine.rebuild(db, 'user1', trips);
   assert.deepEqual(result, []);
 });
+
+// ─── habit change detection ─────────────────────────────────────────────────
+
+test('rebuild: marks habit stale when different route emerges in same slot recently', async () => {
+  const db = makeDb(null);
+
+  // Old habit: 5 trips on the 510, taken 9-13 weeks ago (all Mondays, outside 30-day window)
+  const oldTrips = Array.from({ length: 5 }, (_, i) => {
+    const d = makeDate(1, 8);
+    d.setDate(d.getDate() - (9 + i) * 7);
+    return { route: '510', startStopName: 'King / Spadina', direction: 'Westbound', startTime: d, endStopName: 'Spadina Station' };
+  });
+
+  // New pattern: 3 trips on the 29, taken in the last 3 weeks (all Mondays, inside 30-day window)
+  const newTrips = Array.from({ length: 3 }, (_, i) => {
+    const d = makeDate(1, 8);
+    d.setDate(d.getDate() - (1 + i) * 7);
+    return { route: '29', startStopName: 'King / Spadina', direction: 'Northbound', startTime: d, endStopName: 'Lawrence Station' };
+  });
+
+  const result = await HabitEngine.rebuild(db, 'user1', [...oldTrips, ...newTrips]);
+  const staleHabit = result.find(h => h.route === '510');
+  assert.ok(staleHabit, '510 habit should still exist in results');
+  assert.equal(staleHabit.stale, true, '510 habit should be marked stale');
+  assert.equal(staleHabit.replacedBy.route, '29');
+});
+
+test('rebuild: does not mark habit stale when recent trips match it', async () => {
+  const db = makeDb(null);
+  const trips = makeTripHistory(8, '510', 'King / Spadina', 'Westbound', 1, 8);
+  const result = await HabitEngine.rebuild(db, 'user1', trips);
+  assert.equal(result[0].stale, false);
+});
+
+test('match: stale habits are filtered out', async () => {
+  const db = makeDb(null);
+
+  const oldTrips = Array.from({ length: 5 }, (_, i) => {
+    const d = makeDate(1, 8);
+    d.setDate(d.getDate() - (9 + i) * 7);
+    return { route: '510', startStopName: 'King / Spadina', direction: 'Westbound', startTime: d, endStopName: 'Spadina Station' };
+  });
+  const newTrips = Array.from({ length: 3 }, (_, i) => {
+    const d = makeDate(1, 8);
+    d.setDate(d.getDate() - (1 + i) * 7);
+    return { route: '29', startStopName: 'King / Spadina', direction: 'Northbound', startTime: d, endStopName: 'Lawrence Station' };
+  });
+
+  const habits = await HabitEngine.rebuild(db, 'user1', [...oldTrips, ...newTrips]);
+  const now = makeDate(1, 8);
+  // 510 is stale — match with 510 filter should return null
+  assert.equal(HabitEngine.match(habits, 'King / Spadina', now, { route: '510' }), null);
+});

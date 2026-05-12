@@ -25,7 +25,7 @@ const HabitEngine = {
    * @param {Array} trips - Completed trips with startStopName, route, direction, startTime, endStopName
    * @returns {Array} Habit records
    */
-  extractHabits(trips) {
+  extractHabits(trips, since = null) {
     const groups = {};
 
     for (const trip of trips) {
@@ -33,6 +33,7 @@ const HabitEngine = {
 
       const time = trip.startTime?.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
       if (isNaN(time.getTime())) continue;
+      if (since && time.getTime() < since) continue;
 
       const day = time.getDay();
       const hour = time.getHours();
@@ -86,6 +87,7 @@ const HabitEngine = {
         count: group.observations.length,
         lastSeen,
         confidence: this._confidence(group.observations.length, lastSeen, hourMax - hourMin),
+        stale: false,
       });
     }
 
@@ -111,6 +113,7 @@ const HabitEngine = {
     const hour = now.getHours();
 
     const candidates = habits.filter(h => {
+      if (h.stale) return false;
       if (!this._stopMatch(h.stop, stop)) return false;
       if (h.day !== day) return false;
       // Allow ±1 hour flexibility outside the observed window
@@ -165,6 +168,31 @@ const HabitEngine = {
    */
   async rebuild(db, userId, trips) {
     const habits = this.extractHabits(trips);
+
+    // Detect stale habits: if a different route/direction is emerging in the same
+    // (stop, day, bucket) slot within the last 30 days, the old habit is being replaced.
+    const thirtyDaysAgo = Date.now() - 30 * 86400000;
+    const recentHabits = this.extractHabits(trips, thirtyDaysAgo);
+    const recentBySlot = {};
+    for (const h of recentHabits) {
+      const slot = `${this._norm(h.stop)}|${h.day}|${h.bucket}`;
+      if (!recentBySlot[slot]) recentBySlot[slot] = [];
+      recentBySlot[slot].push(h);
+    }
+    for (const habit of habits) {
+      const slot = `${this._norm(habit.stop)}|${habit.day}|${habit.bucket}`;
+      const recent = recentBySlot[slot] || [];
+      const replacement = recent.find(r =>
+        (this._norm(r.route) !== this._norm(habit.route) ||
+         this._norm(r.direction) !== this._norm(habit.direction)) &&
+        r.count >= this.MIN_OBSERVATIONS
+      );
+      if (replacement) {
+        habit.stale = true;
+        habit.replacedBy = { route: replacement.route, direction: replacement.direction };
+      }
+    }
+
     await this.save(db, userId, habits);
     return habits;
   },
