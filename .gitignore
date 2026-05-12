@@ -28,6 +28,12 @@ AGENTS.md
 CLAUDE.md
 GEMINI.md
 .github/copilot-instructions.md
+.claude/
+.gemini/
+SESSION_CONTEXT.md
+handoff.md
+TRANSITSTATSLOG*
+Gemini.md
 
 # IDE
 .idea/

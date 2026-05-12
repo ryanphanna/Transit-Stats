@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Prediction Engine history](docs/ENGINE.md) · [Transfer Engine history](docs/TRANSFER_ENGINE.md) · [Network Engine history](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Fixed
+- **Dependabot Alerts**: Resolved 8 high/moderate security vulnerabilities in `functions` by updating the `protobufjs` dependency tree to `7.5.8` via `npm audit fix`.
+- **Git Hygiene**: Untracked accidental cache directories (`.npm-cache/`), session logs (`TRANSITSTATSLOG*`, `SESSION_CONTEXT.md`, `handoff.md`), and added `.claude/` and `.gemini/` directories to `.gitignore` to prevent agent context from bleeding into the repository.
+
 ## [1.35.1] - 2026-05-12
 
 ### Fixed
