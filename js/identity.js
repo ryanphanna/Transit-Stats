@@ -44,15 +44,22 @@ export const Identity = {
         const keys = Object.keys(this.LIBRARY);
         const triplet = [];
         const used = new Set();
-        
         while (triplet.length < 3) {
-            const key = keys[Math.floor(crypto.getRandomValues(new Uint32Array(1))[0] / 0x100000000 * keys.length)];
+            const key = keys[this._randomIndex(keys.length)];
             if (!used.has(key)) {
                 triplet.push(key);
                 used.add(key);
             }
         }
         return triplet;
+    },
+
+    // Rejection sampling — unbiased random index in [0, max)
+    _randomIndex(max) {
+        const limit = Math.floor(0x100000000 / max) * max;
+        let r;
+        do { r = crypto.getRandomValues(new Uint32Array(1))[0]; } while (r >= limit);
+        return r % max;
     },
 
     /**

@@ -251,7 +251,7 @@ test('handleMmsTrip: missing stop sets mms_stop_needed with receivedAt', async (
   });
 
   try {
-    await handlers.handleMmsTrip('+14165550002', { userId: 'u2' }, 'https://example.com/stop.jpg', 1710000000001);
+    await handlers.handleMmsTrip('+14165550002', { userId: 'u2' }, 'https://api.twilio.com/test/stop.jpg', 1710000000001);
   } finally {
     restore();
   }
@@ -274,7 +274,7 @@ test('handleMmsTrip: single-route snap-to-start preserves startTime/source metad
   });
 
   try {
-    await handlers.handleMmsTrip('+14165550003', { userId: 'u3' }, 'https://example.com/stop.jpg', 1710000000002);
+    await handlers.handleMmsTrip('+14165550003', { userId: 'u3' }, 'https://api.twilio.com/test/stop.jpg', 1710000000002);
   } finally {
     restore();
   }
