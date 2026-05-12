@@ -273,6 +273,34 @@ test('match: returns highest-confidence habit among multiple candidates', () => 
   assert.equal(result.route, '510');
 });
 
+test('match: route filter rejects habit for different route', () => {
+  const habits = HabitEngine.extractHabits(makeTripHistory(10, '510', 'King / Spadina', 'Westbound', 1, 8));
+  const now = makeDate(1, 8);
+  // User is at same stop/time but on route 29 — habit for 510 should not fire
+  assert.equal(HabitEngine.match(habits, 'King / Spadina', now, { route: '29' }), null);
+});
+
+test('match: route filter accepts habit for matching route', () => {
+  const habits = HabitEngine.extractHabits(makeTripHistory(10, '510', 'King / Spadina', 'Westbound', 1, 8));
+  const now = makeDate(1, 8);
+  const result = HabitEngine.match(habits, 'King / Spadina', now, { route: '510' });
+  assert.ok(result !== null);
+  assert.equal(result.route, '510');
+});
+
+test('match: direction filter rejects habit for different direction', () => {
+  const habits = HabitEngine.extractHabits(makeTripHistory(10, '510', 'King / Spadina', 'Westbound', 1, 8));
+  const now = makeDate(1, 8);
+  assert.equal(HabitEngine.match(habits, 'King / Spadina', now, { route: '510', direction: 'Eastbound' }), null);
+});
+
+test('match: no filters still returns best habit (backward-compatible)', () => {
+  const habits = HabitEngine.extractHabits(makeTripHistory(10, '510', 'King / Spadina', 'Westbound', 1, 8));
+  const now = makeDate(1, 8);
+  const result = HabitEngine.match(habits, 'King / Spadina', now);
+  assert.ok(result !== null);
+});
+
 // ─── load / save ───────────────────────────────────────────────────────────
 
 test('load: returns empty array when no doc exists', async () => {

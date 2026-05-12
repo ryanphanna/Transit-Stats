@@ -198,7 +198,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
     isAdmin = !!profile?.isAdmin;
     defaultAgency = profile?.defaultAgency || 'TTC';
     const now = new Date();
-    const habitMatch = HabitEngine.match(habits, startStopName, now);
+    const habitMatch = HabitEngine.match(habits, startStopName, now, { route, direction });
     habitPrediction = habitMatch ? {
       stop: habitMatch.stop,
       route: habitMatch.route,
@@ -208,6 +208,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       count: habitMatch.count,
       version: 'habit_v1',
     } : null;
+    const habitFired = habitPrediction !== null;
     const lastTrip = history.length > 0 ? history[0] : null;
     const lastEndStopName = lastTrip?.endStopName || null;
     const lastRoute = lastTrip?.route || null;
@@ -228,31 +229,35 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       networkGraph: networkGraph || null,
     };
 
-    prediction = PredictionEngine.guess(history, {
-      stopName: startStopName,
-      time: now,
-      routesAtStop: routesAtStop || undefined,
-      lastEndStopName,
-    });
-    // V4/V5 only run when the trip is on the user's default agency —
-    // the models are trained on one agency's data and produce garbage elsewhere.
-    if (resolvedAgency === defaultAgency) {
-      const [rawTopV4, rawTopV5, topEndV4, topEndV5] = await Promise.all([
-        Promise.resolve(PredictionEngineV4.guessTopRoutes(routeContext, 5)),
-        PredictionEngineV5.guessTopRoutes(routeContext, 5),
-        PredictionEngineV4.guessTopEndStops(endStopContext, 1),
-        PredictionEngineV5.guessTopEndStops(endStopContext, 1),
-      ]);
-      // Correct: pick best prediction that GTFS confirms serves this stop; floor at 25%
-      predictionV4 = correctPredictionByGtfs(rawTopV4, routesAtStop);
-      predictionV5 = correctPredictionByGtfs(rawTopV5, routesAtStop);
-      if (topEndV4.length > 0) endStopPredictionV4 = topEndV4[0];
-      if (topEndV5.length > 0) endStopPredictionV5 = topEndV5[0];
-    }
-    endStopPrediction = PredictionEngine.guessEndStop(history, endStopContext);
-    if (isAdmin) {
-      const top = PredictionEngine.guessTopEndStops(history, endStopContext, 3);
-      if (top.length > 0) endStopPredictions = top;
+    // When a habit fires with sufficient confidence, skip the full ML stack —
+    // the habit is a memorized pattern and is more reliable than inference on routine trips.
+    if (!habitFired) {
+      prediction = PredictionEngine.guess(history, {
+        stopName: startStopName,
+        time: now,
+        routesAtStop: routesAtStop || undefined,
+        lastEndStopName,
+      });
+      // V4/V5 only run when the trip is on the user's default agency —
+      // the models are trained on one agency's data and produce garbage elsewhere.
+      if (resolvedAgency === defaultAgency) {
+        const [rawTopV4, rawTopV5, topEndV4, topEndV5] = await Promise.all([
+          Promise.resolve(PredictionEngineV4.guessTopRoutes(routeContext, 5)),
+          PredictionEngineV5.guessTopRoutes(routeContext, 5),
+          PredictionEngineV4.guessTopEndStops(endStopContext, 1),
+          PredictionEngineV5.guessTopEndStops(endStopContext, 1),
+        ]);
+        // Correct: pick best prediction that GTFS confirms serves this stop; floor at 25%
+        predictionV4 = correctPredictionByGtfs(rawTopV4, routesAtStop);
+        predictionV5 = correctPredictionByGtfs(rawTopV5, routesAtStop);
+        if (topEndV4.length > 0) endStopPredictionV4 = topEndV4[0];
+        if (topEndV5.length > 0) endStopPredictionV5 = topEndV5[0];
+      }
+      endStopPrediction = PredictionEngine.guessEndStop(history, endStopContext);
+      if (isAdmin) {
+        const top = PredictionEngine.guessTopEndStops(history, endStopContext, 3);
+        if (top.length > 0) endStopPredictions = top;
+      }
     }
   } catch (err) {
     console.error('Error generating prediction at trip start:', err);
@@ -299,7 +304,11 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
   if (resolvedAgency) lookupAgencyTimezone(resolvedAgency).catch(() => {});
 
   let replyBody = `Started ${routeDisplay} from ${finalStopDisplay}${agencySuffix(resolvedAgency, defaultAgency)}.`;
-  replyBody += getPredictionPrompt(isAdmin ? endStopPredictions : null);
+  if (habitPrediction?.endStop) {
+    replyBody += `\n\nUsual trip to ${habitPrediction.endStop}.`;
+  } else {
+    replyBody += getPredictionPrompt(isAdmin ? endStopPredictions : null);
+  }
 
   // Add achievement note if applicable
   const achievementNote = await getAchievementNote(user.userId);
@@ -773,6 +782,35 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
         lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
       }, { merge: true });
       console.log(`End stop V5 graded for ${user.userId}: ${endStopHitV5 ? 'HIT' : 'MISS'} | predicted ${storedEndStopV5.stop} → actual ${actualEndStopForGrading}`);
+    }
+
+    // Grade habit end stop prediction
+    const storedHabit = activeTrip.habitPrediction;
+    if (storedHabit?.endStop) {
+      const habitEndStopHit = PredictionEngine._stopMatch(storedHabit.endStop, actualEndStopForGrading);
+      await db.collection('predictionStats').add({
+        userId: user.userId,
+        agency: activeTrip.agency || null,
+        isHit: null,
+        isPartialHit: null,
+        predicted: null,
+        actual: null,
+        confidence: storedHabit.confidence,
+        version: storedHabit.version,
+        route: activeTrip.route,
+        endStopPredicted: storedHabit.endStop,
+        endStopActual: actualEndStopForGrading,
+        endStopHit: habitEndStopHit,
+        endStopConfidence: storedHabit.confidence,
+        source: 'sms',
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      await db.collection('predictionAccuracy').doc(user.userId).set({
+        habitEndStopTotal: admin.firestore.FieldValue.increment(1),
+        habitEndStopHits: admin.firestore.FieldValue.increment(habitEndStopHit ? 1 : 0),
+        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+      console.log(`Habit end stop graded for ${user.userId}: ${habitEndStopHit ? 'HIT' : 'MISS'} | predicted ${storedHabit.endStop} → actual ${actualEndStopForGrading}`);
     }
   } catch (predictionErr) {
     console.error('Error grading prediction:', predictionErr);

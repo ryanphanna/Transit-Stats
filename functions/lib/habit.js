@@ -99,9 +99,12 @@ const HabitEngine = {
    * @param {Array} habits - Loaded habits (from load())
    * @param {string} stop - Current boarding stop name
    * @param {Date} now - Current time
+   * @param {Object} [filters] - Optional route/direction filters
+   * @param {string} [filters.route] - Only match habits for this route
+   * @param {string} [filters.direction] - Only match habits for this direction
    * @returns {Object|null} Best matching habit, or null if none qualify
    */
-  match(habits, stop, now) {
+  match(habits, stop, now, { route = null, direction = null } = {}) {
     if (!habits || !habits.length || !stop || !now) return null;
 
     const day = now.getDay();
@@ -113,6 +116,8 @@ const HabitEngine = {
       // Allow ±1 hour flexibility outside the observed window
       if (hour < h.hourMin - 1 || hour > h.hourMax + 1) return false;
       if (h.confidence < this.CONFIDENCE_THRESHOLD) return false;
+      if (route && this._norm(h.route) !== this._norm(route.toString())) return false;
+      if (direction && this._norm(h.direction) !== this._norm(direction)) return false;
       return true;
     });
 
