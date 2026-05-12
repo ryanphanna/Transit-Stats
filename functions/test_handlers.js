@@ -9,7 +9,16 @@ const Module = require('node:module');
 
 function loadHandlers(overrides = {}) {
   const handlersPath = require.resolve('./lib/handlers');
-  delete require.cache[handlersPath];
+  const handlerPaths = new Set([
+    handlersPath,
+    require.resolve('./lib/handlers-utils'),
+    require.resolve('./lib/handlers-commands'),
+    require.resolve('./lib/handlers-trip'),
+    require.resolve('./lib/handlers-query'),
+    require.resolve('./lib/handlers-intelligence'),
+  ]);
+  // Bust the entire handler module graph so mocks take effect
+  for (const p of handlerPaths) delete require.cache[p];
 
   const calls = {
     setPendingState: [],
@@ -184,7 +193,7 @@ function loadHandlers(overrides = {}) {
 
   const originalLoad = Module._load;
   Module._load = function patchedLoad(request, parent, isMain) {
-    if (parent && parent.id === handlersPath) {
+    if (parent && handlerPaths.has(parent.id)) {
       if (request === './db') return dbModule;
       if (request === './twilio') return twilio;
       if (request === './utils') return utils;
@@ -197,6 +206,7 @@ function loadHandlers(overrides = {}) {
       if (request === './predict_v5.js') return predictV5;
       if (request === './constants') return constants;
       if (request === 'firebase-admin') return firebaseAdmin;
+      if (request === './logger') return { warn: () => {}, info: () => {}, error: () => {} };
     }
     return originalLoad(request, parent, isMain);
   };
@@ -251,7 +261,7 @@ test('handleMmsTrip: missing stop sets mms_stop_needed with receivedAt', async (
   });
 
   try {
-    await handlers.handleMmsTrip('+14165550002', { userId: 'u2' }, 'https://api.twilio.com/test/stop.jpg', 1710000000001);
+    await handlers.handleMmsTrip('+14165550002', { userId: 'u2' }, 'https://api.twilio.com/2010-04-01/Accounts/ACtest/Messages/MMtest/Media/MEtest', 1710000000001);
   } finally {
     restore();
   }
@@ -274,7 +284,7 @@ test('handleMmsTrip: single-route snap-to-start preserves startTime/source metad
   });
 
   try {
-    await handlers.handleMmsTrip('+14165550003', { userId: 'u3' }, 'https://api.twilio.com/test/stop.jpg', 1710000000002);
+    await handlers.handleMmsTrip('+14165550003', { userId: 'u3' }, 'https://api.twilio.com/2010-04-01/Accounts/ACtest/Messages/MMtest/Media/MEtest', 1710000000002);
   } finally {
     restore();
   }
