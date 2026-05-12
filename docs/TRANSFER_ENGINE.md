@@ -6,7 +6,7 @@ Not a roadmap. Not a feature changelog. This is the internal notebook for the en
 
 ---
 
-## Current Version: v1.0.0
+## Current Version: v1.1.0
 
 **Problem it solved:** Journey linking used a single hardcoded rule — link any two trips within 60 minutes at the same stop. This linked unrelated trips (e.g. two separate 47 trips 31 minutes apart at the same stop) with no way to know whether the gap was a normal transfer or time between independent outings.
 
@@ -51,6 +51,18 @@ CONFIDENCE_THRESHOLD: 0.55  // Minimum to auto-link
 |---|---|
 | `functions/lib/transfer.js` | Engine + scoring logic |
 | `functions/test_transfer.js` | 15 tests covering extractTransfers, score, _stopMatch |
+
+---
+
+## Version History
+
+### v1.1.0
+**What changed:** NetworkEngine transfer index wired in as a possibility signal. When `score()` falls into the "no historical pattern" branch, it now checks `routeStopIndex`/`transferIndex` (via `networkConnections` passed from handlers.js) for population-level evidence that this route pair connects at the boarding stop. A count ≥ 2 pushes the no-pattern confidence from 0.5 → 0.60 (gap ≤ 10 min) and 0.3 → 0.45 (gap ≤ 20 min), and extends the cold-start window from 15 → 20 minutes. Indexes build automatically — gets smarter with every trip.
+
+**Files changed:** `functions/lib/transfer.js`, `functions/lib/handlers.js`
+
+### v1.0.0 — *initial*
+See above.
 
 ---
 

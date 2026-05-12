@@ -6,10 +6,13 @@
  *   v1 - Confidence scoring from historical transfers. Signals: stop pair match,
  *        route pair match, gap time vs historical average, time-of-day similarity.
  *        Cold start fallback: 15-minute hard limit when no history exists.
+ *   v1.1 - NetworkEngine transfer index as a possibility signal. When no personal
+ *          history matches, known network connections at the boarding stop boost
+ *          confidence and extend the cold-start window from 15 → 20 min.
  */
 
 const TransferEngine = {
-  VERSION: '1.0.0',
+  VERSION: '1.1.0',
 
   CONFIDENCE_THRESHOLD: 0.55, // Minimum confidence to auto-link
 
@@ -72,9 +75,11 @@ const TransferEngine = {
    * @param {Object} prevTrip - The trip that just ended
    * @param {Object} nextTrip - The trip that just started
    * @param {Array} history - Recent completed trips to learn from (ideally 50+)
+   * @param {Object|null} networkConnections - Transfer index for nextTrip's boarding stop
+   *   ({ [fromRoute_to_toRoute]: count }) from NetworkEngine.getConnectionsAtStop()
    * @returns {number} Confidence score 0–1
    */
-  score(prevTrip, nextTrip, history) {
+  score(prevTrip, nextTrip, history, networkConnections = null) {
     if (!prevTrip.endTime || !nextTrip.startTime) return 0;
 
     const prevEnd = prevTrip.endTime?.toDate ? prevTrip.endTime.toDate() : new Date(prevTrip.endTime);
@@ -94,7 +99,11 @@ const TransferEngine = {
 
     // Cold start — no history to learn from
     if (transfers.length === 0) {
-      return gap <= 15 ? 0.6 : 0;
+      const connKey = `${this._normalizeKey(routeA)}_to_${this._normalizeKey(routeB)}`;
+      const networkCount = networkConnections ? (networkConnections[connKey] || 0) : 0;
+      // Known network connection extends the window slightly
+      const limit = networkCount >= 2 ? 20 : 15;
+      return gap <= limit ? 0.6 : 0;
     }
 
     // Stop pair matches
@@ -135,13 +144,29 @@ const TransferEngine = {
       if (gap <= avgGap * 1.5) confidence += 0.15;
 
     } else {
-      // No historical pattern — conservative
-      if (gap <= 10) confidence = 0.5;
-      else if (gap <= 20) confidence = 0.3;
-      else confidence = 0;
+      // No historical pattern — check NetworkEngine transfer index
+      const connKey = `${this._normalizeKey(routeA)}_to_${this._normalizeKey(routeB)}`;
+      const networkCount = networkConnections ? (networkConnections[connKey] || 0) : 0;
+
+      if (networkCount >= 2) {
+        // This route pair is known to connect at this stop — population-level prior
+        if (gap <= 10) confidence = 0.60;
+        else if (gap <= 20) confidence = 0.45;
+        else if (gap <= 30) confidence = 0.25;
+        else confidence = 0;
+      } else {
+        if (gap <= 10) confidence = 0.5;
+        else if (gap <= 20) confidence = 0.3;
+        else confidence = 0;
+      }
     }
 
     return Math.min(confidence, 1.0);
+  },
+
+  _normalizeKey(s) {
+    if (!s) return '';
+    return s.toString().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
   },
 
   /**

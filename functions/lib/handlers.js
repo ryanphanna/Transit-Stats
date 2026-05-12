@@ -1297,12 +1297,15 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
   // Auto-link journey: use TransferEngine to decide if the previous trip is a transfer
   let journeyNote = '';
   try {
-    const transferHistory = await getRecentCompletedTrips(user.userId, 100);
+    const [transferHistory, networkConnections] = await Promise.all([
+      getRecentCompletedTrips(user.userId, 100),
+      NetworkEngine.getConnectionsAtStop(db, agency, activeTrip.startStopName).catch(() => null),
+    ]);
 
     const prevTrip = transferHistory.find(t => {
       if (t.id === activeTrip.id) return false;
       if (!t.endTime || !t.endStopName) return false;
-      const confidence = TransferEngine.score(t, activeTrip, transferHistory);
+      const confidence = TransferEngine.score(t, activeTrip, transferHistory, networkConnections);
       return confidence >= TransferEngine.CONFIDENCE_THRESHOLD;
     });
 
