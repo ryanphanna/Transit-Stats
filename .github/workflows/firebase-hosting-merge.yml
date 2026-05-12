@@ -14,7 +14,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: npm ci --omit=optional && npm run build && cd functions && npm ci --omit=optional && cd ..
+      - run: npm install --omit=optional && npm run build && cd functions && npm install --omit=optional && cd ..
         env:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
