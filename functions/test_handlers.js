@@ -234,6 +234,7 @@ function loadHandlers(overrides = {}) {
 }
 
 test('handleTripLog: disambiguation prompt includes direction labels', async () => {
+  const startTime = 1778770440000;
   const { handlers, calls, restore } = loadHandlers({
     dbModule: {
       findMatchingStops: async () => [
@@ -244,12 +245,21 @@ test('handleTripLog: disambiguation prompt includes direction labels', async () 
   });
 
   try {
-    await handlers.handleTripLog('+14165550001', { userId: 'u1' }, 'Dufferin / Lawrence', '29', null, 'TTC');
+    await handlers.handleTripLog(
+      '+14165550001',
+      { userId: 'u1' },
+      'Dufferin / Lawrence',
+      '29',
+      null,
+      'TTC',
+      { startTime }
+    );
   } finally {
     restore();
   }
 
   assert.equal(calls.createTrip.length, 1);
+  assert.equal(calls.createTrip[0].startTime, startTime);
   assert.equal(calls.setPendingState.length, 1);
   assert.equal(calls.setPendingState[0].type, 'confirm_stop');
   const msg = calls.sendSmsReply[0]?.message || '';
@@ -425,6 +435,73 @@ test('handleEndTrip: next-leg suggestion suppressed when connection count below 
 
   const reply = calls.sendSmsReply[0]?.message || '';
   assert.doesNotMatch(reply, /Usually take/);
+});
+
+test('handleEndTrip: transfer scoring uses network connections and observe receives prevRoute', async () => {
+  const scoreCalls = [];
+  const observeCalls = [];
+  const prevTrip = {
+    id: 'prev_trip',
+    route: '2',
+    endStopName: 'Bloor-Yonge Station',
+    endTime: { toDate: () => new Date(Date.now() - 5 * 60000) },
+    startTime: { toDate: () => new Date(Date.now() - 9 * 60000) },
+  };
+
+  const { handlers, restore } = loadHandlers({
+    dbModule: {
+      getActiveTrip: async () => ({
+        id: 'trip_1',
+        userId: 'u7',
+        route: '1',
+        direction: 'Northbound',
+        agency: 'TTC',
+        startStopName: 'Bloor-Yonge Station',
+        startStopCode: '',
+        startTime: { toDate: () => new Date(Date.now() - 4 * 60000) },
+        prediction: null, predictionV4: null, predictionV5: null,
+        habitPrediction: null, endStopPrediction: null,
+        endStopPredictionV4: null, endStopPredictionV5: null,
+        endStopPredictions: null, stop_matched: true,
+      }),
+      getRecentCompletedTrips: async () => [prevTrip],
+      lookupStop: async (_code, name) => ({
+        id: 'stop_1',
+        stopCode: '',
+        stopName: name === 'Davisville' ? 'Davisville' : 'Bloor-Yonge Station',
+        source: 'verified',
+      }),
+    },
+    network: {
+      NetworkEngine: {
+        load: async () => null,
+        observe: async (_db, _userId, trip, prevRoute) => { observeCalls.push({ trip, prevRoute }); },
+        filterCandidates: () => null,
+        getMedianDuration: () => null,
+        getConnectionsAtStop: async () => ({ '2_to_1': 3 }),
+        getConnectionLabels: async () => ({}),
+        _key: (s) => s.toString().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
+      },
+    },
+    transfer: {
+      TransferEngine: {
+        score: (_prev, _next, _history, connections) => {
+          scoreCalls.push(connections);
+          return 0.8;
+        },
+        CONFIDENCE_THRESHOLD: 0.55,
+      },
+    },
+  });
+
+  try {
+    await handlers.handleEndTrip('+14165550007', { userId: 'u7' }, 'Davisville');
+  } finally {
+    restore();
+  }
+
+  assert.deepEqual(scoreCalls[0], { '2_to_1': 3 });
+  assert.equal(observeCalls[0].prevRoute, '2');
 });
 
 function makeEndTripHandlers(networkOverride) {

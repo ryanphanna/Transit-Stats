@@ -194,12 +194,16 @@ describe('getStopDisplay', () => {
     expect(getStopDisplay('14202', 'Queen St', 'old')).toBe('Queen St');
   });
 
+  test('canonical stopName is preserved as-is', () => {
+    expect(getStopDisplay('14500', 'Bloor-Yonge Station', 'old')).toBe('Bloor-Yonge Station');
+  });
+
   test('stopCode is used when no stopName', () => {
     expect(getStopDisplay('14202', null, null)).toBe('14202');
   });
 
   test('legacyStop is used as last fallback', () => {
-    expect(getStopDisplay(null, null, 'union station')).toBe('Union Station');
+    expect(getStopDisplay(null, null, 'union station')).toBe('union station');
   });
 
   test('returns "Unknown" when all fields are null', () => {

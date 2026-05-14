@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Prediction Engine history](docs/ENGINE.md) · [Transfer Engine history](docs/TRANSFER_ENGINE.md) · [Network Engine history](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Fixed
+- **SMS start-time preservation through stop/agency disambiguation** (`functions/lib/dispatcher.js`, `functions/lib/handlers-utils.js`, `functions/test_handlers.js`): Text trip starts now preserve the timestamp of the original inbound SMS even when the rider is prompted with follow-up clarification like `Which Bay?`. The provisional trip created during stop disambiguation now honors the original `startTime` instead of defaulting to the clarification reply time, preventing bogus `0 min` trips after short clarification loops.
+- **Canonical stop names preserved in SMS replies** (`functions/lib/utils.js`, `tests/utils.test.js`): `getStopDisplay()` now uses matched `stopName` values from the normalized stop library as-is instead of re-running them through `toTitleCase()`. Fixes display regressions like `Bloor-Yonge Station` being degraded to `Bloor-yonge Station` after canonical lookup.
+- **TransferEngine network hints actually wired through live trip-end flow** (`functions/lib/handlers-trip.js`, `functions/test_handlers.js`): `handleEndTrip()` now passes `NetworkEngine.getConnectionsAtStop()` into `TransferEngine.score()`, restoring the intended population-level transfer prior during auto-link decisions.
+- **Transfer index feedback loop restored** (`functions/lib/handlers-trip.js`, `functions/test_handlers.js`): When a prior trip is identified as a transfer, `handleEndTrip()` now forwards `prevTrip.route` into `NetworkEngine.observe()`, allowing successful journey detections to populate `transferIndex` for future transfer suggestions and auto-link scoring.
+- **Stop trust falls back to topology for covered routes** (`functions/lib/db/stops.js`, `tests/stops.test.js`): Stop resolution now checks the vetted normalized stop library first, then falls back to `topology.json` for route-covered subway/LRT stops before failing unresolved. This lets stops like `Davisville` on TTC Line 1 remain trusted for trip learning even when the normalized stop library is incomplete.
+
+### Changed
+- **Vetted TTC stop library expanded** (Firestore `stops` collection): Added `Davisville` as a manual TTC stop record so current Line 1 commute trips can resolve cleanly against the canonical stop library instead of falling through to unresolved raw text.
+
 ## [1.35.2] - 2026-05-12
 
 ### Fixed

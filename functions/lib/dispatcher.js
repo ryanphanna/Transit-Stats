@@ -124,11 +124,11 @@ async function dispatch(phoneNumber, body, messageSid, media = {}) {
   const startPrefixMatch = body.match(/^START\s+(.{1,160})$/i);
   const tripBody = startPrefixMatch ? startPrefixMatch[1] : body;
 
-  const tripHandled = await handleTripFlow(phoneNumber, user, tripBody);
+  const tripHandled = await handleTripFlow(phoneNumber, user, tripBody, receivedAt);
   if (tripHandled) return '';
 
   // 8. AI Intent Recognition (Gemini)
-  const aiHandled = await handleAIIntent(phoneNumber, user, tripBody);
+  const aiHandled = await handleAIIntent(phoneNumber, user, tripBody, receivedAt);
   if (aiHandled) return '';
 
   // 9. Final Fallback
@@ -393,7 +393,7 @@ async function handlePrivateCommands(phoneNumber, user, upperBody, rawBody) {
 /**
  * Handles explicit stop/start formats
  */
-async function handleTripFlow(phoneNumber, user, body) {
+async function handleTripFlow(phoneNumber, user, body, receivedAt = Date.now()) {
   // End Trip check
   const endTripData = parseEndTripFormat(body);
   const singleLineEndMatch = body.match(/^(END|STOP)\s+(\S.*)$/i);
@@ -425,7 +425,7 @@ async function handleTripFlow(phoneNumber, user, body) {
       tripData.route,
       tripData.direction,
       tripData.agency,
-      { agencyExplicit: tripData.agencyExplicit },
+      { agencyExplicit: tripData.agencyExplicit, startTime: receivedAt },
     );
     return true;
   }
@@ -436,7 +436,7 @@ async function handleTripFlow(phoneNumber, user, body) {
 /**
  * AI fallback for unstructured messages
  */
-async function handleAIIntent(phoneNumber, user, body) {
+async function handleAIIntent(phoneNumber, user, body, receivedAt = Date.now()) {
   const geminiResult = await parseWithGemini(body);
 
   // If Gemini missed a query (returned OTHER/null), fall back to a word-count
@@ -472,7 +472,7 @@ async function handleAIIntent(phoneNumber, user, body) {
         geminiResult.route,
         safeDir,
         aiAgency || defaultAgency,
-        { parsed_by: 'ai', agencyExplicit: !!aiAgency },
+        { parsed_by: 'ai', agencyExplicit: !!aiAgency, startTime: receivedAt },
       );
       return true;
     }

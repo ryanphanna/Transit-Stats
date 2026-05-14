@@ -515,6 +515,25 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     db.collection('stops').doc(endStopData.id).update({ source: 'verified' }).catch(() => {});
   }
 
+  let transferHistory = null;
+  let prevTrip = null;
+  try {
+    transferHistory = await getRecentCompletedTrips(user.userId, 100);
+    const boardingStop = activeTrip.startStopName || activeTrip.startStop || null;
+    const networkConnections = (agency && boardingStop)
+      ? await NetworkEngine.getConnectionsAtStop(db, agency, boardingStop)
+      : null;
+
+    prevTrip = transferHistory.find(t => {
+      if (t.id === activeTrip.id) return false;
+      if (!t.endTime || !t.endStopName) return false;
+      const confidence = TransferEngine.score(t, activeTrip, transferHistory, networkConnections);
+      return confidence >= TransferEngine.CONFIDENCE_THRESHOLD;
+    }) || null;
+  } catch (transferErr) {
+    console.error('Error preparing transfer context:', transferErr);
+  }
+
   // Teach the network graph — only if both stops are canonical. Raw names are
   // skipped entirely; they'll be picked up by the top-up script once normalized.
   if (activeTrip.startStopName && activeTrip.direction && endStopData) {
@@ -527,7 +546,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
         startStopName: startStopCanonical.stopName,
         endStopName: endStopData.stopName,
         duration,
-      }).catch(err => console.error('NetworkEngine.observe failed (non-fatal):', err.message));
+      }, prevTrip?.route || null).catch(err => console.error('NetworkEngine.observe failed (non-fatal):', err.message));
     }
   }
 
@@ -819,15 +838,6 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
   // Auto-link journey: use TransferEngine to decide if the previous trip is a transfer
   let journeyNote = '';
   try {
-    const transferHistory = await getRecentCompletedTrips(user.userId, 100);
-
-    const prevTrip = transferHistory.find(t => {
-      if (t.id === activeTrip.id) return false;
-      if (!t.endTime || !t.endStopName) return false;
-      const confidence = TransferEngine.score(t, activeTrip, transferHistory);
-      return confidence >= TransferEngine.CONFIDENCE_THRESHOLD;
-    });
-
     if (prevTrip) {
       const journeyId = prevTrip.journeyId || activeTrip.journeyId || randomUUID();
       const batch = db.batch();

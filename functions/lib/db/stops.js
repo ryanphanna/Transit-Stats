@@ -4,6 +4,8 @@
 const admin = require('firebase-admin');
 const { db } = require('./core');
 const { AGENCY_CITY } = require('../constants');
+let _topology = null;
+try { _topology = require('../topology.json'); } catch (_) { /* optional */ }
 
 async function lookupStop(stopCode, stopName, agency, route = null) {
   try {
@@ -84,11 +86,68 @@ async function lookupStop(stopCode, stopName, agency, route = null) {
       if (found) return found;
     }
 
+    // Trusted topology fallback: for routes covered by topology.json, treat a
+    // route-specific stop/alias match as verified enough for trip trust even if
+    // the normalized stop library is missing the station.
+    if (stopName && route) {
+      const topologyMatch = _lookupStopInTopology(stopName, agency, route);
+      if (topologyMatch) return topologyMatch;
+    }
+
     return null;
   } catch (error) {
     console.error('Error looking up stop:', error);
     return null;
   }
+}
+
+function _lookupStopInTopology(stopName, agency, route) {
+  const line = _topologyLine(route, agency);
+  if (!line || !stopName) return null;
+
+  const lower = stopName.trim().toLowerCase();
+  for (const canon of line.stops || []) {
+    if (canon.toLowerCase() === lower) {
+      return _topologyStop(canon, agency, route, line);
+    }
+    const aliases = (line.aliases && line.aliases[canon]) || [];
+    if (aliases.some(a => a.toLowerCase() === lower)) {
+      return _topologyStop(canon, agency, route, line);
+    }
+  }
+  return null;
+}
+
+function _topologyLine(route, agency) {
+  if (!_topology || !route || !agency) return null;
+  const routeStr = route.toString().trim();
+  const lines = _topology.lines || {};
+
+  const exact = lines[routeStr];
+  if (exact && exact.network === agency) return exact;
+
+  const lower = routeStr.toLowerCase();
+  for (const line of Object.values(lines)) {
+    if (line.network !== agency) continue;
+    const aliases = line.route_aliases || [];
+    if (aliases.some(a => a.toLowerCase() === lower)) return line;
+  }
+  return null;
+}
+
+function _topologyStop(canon, agency, route, line) {
+  return {
+    id: null,
+    agency,
+    code: '',
+    stopCode: '',
+    name: canon,
+    stopName: canon,
+    aliases: (line.aliases && line.aliases[canon]) || [],
+    routes: [route.toString()],
+    source: 'topology',
+    topologyMatched: true,
+  };
 }
 
 // Search all stops by name, alias, or code. Scoped to the same city as the
@@ -184,4 +243,10 @@ async function findMatchingStops(stopName, agency) {
   return matches;
 }
 
-module.exports = { lookupStop, findMatchingStops, getRoutesAtStop, getStopsLibrary };
+module.exports = {
+  lookupStop,
+  findMatchingStops,
+  getRoutesAtStop,
+  getStopsLibrary,
+  _lookupStopInTopology,
+};

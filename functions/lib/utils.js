@@ -146,9 +146,9 @@ function isValidRoute(route) {
  * @returns {string} Display string for the stop
  */
 function getStopDisplay(stopCode, stopName, legacyStop = null) {
-  if (stopName) return toTitleCase(stopName);
+  if (stopName) return stopName;
   if (stopCode) return stopCode;
-  if (legacyStop) return toTitleCase(legacyStop);
+  if (legacyStop) return legacyStop;
   return 'Unknown';
 }
 
