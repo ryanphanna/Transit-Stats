@@ -6,7 +6,7 @@ Not a roadmap. Not a feature changelog. This is the internal notebook for the en
 
 ---
 
-## Current Version: v1.0.0
+## Current Version
 
 **Problem it solved:** topology.json required hand-curated stop sequences for every line. Branchy networks like BART couldn't be represented as a single linear sequence, so directional filtering either broke or required per-station workarounds. The engine would bleed wrong-direction predictions (e.g. westbound stops when heading eastbound) whenever historical trips in that direction were absent.
 
@@ -57,7 +57,7 @@ One document per user/agency/route combination. Edges are keyed by normalized `f
 
 ## Version History
 
-### v1.0.0 — *current*
+### v1.0.0
 **What changed:** Initial implementation. Replaces topology.json filtering for any route with sufficient trip history. Falls back to topology.json when data is sparse.
 
 **Files:**
@@ -67,15 +67,4 @@ One document per user/agency/route combination. Edges are keyed by normalized `f
 | `functions/lib/predict.js` | Calls NetworkEngine before topology.json in `_preFilterCandidatesByTopology` |
 | `functions/lib/handlers.js` | Calls `NetworkEngine.load()` at trip start, `NetworkEngine.observe()` at trip end |
 
----
-
-## Planned Improvements
-
-### v2 — Duration-based stop ordering
-Build a positional index from observed durations. If Spadina→St. George is 3 min and Spadina→Bloor-Yonge is 8 min, infer St. George is closer (lower position). This lets the engine order stops it hasn't boarded from directly — e.g. infer that Sherbourne is between Bloor-Yonge and Castle Frank without a direct Spadina→Sherbourne trip.
-
-### v3 — Branch detection
-Detect when a stop is a junction: if trips departing the same stop in the "same direction" diverge to two different end-stop clusters, flag it as a branch point and skip directional filtering there (same treatment as Union Station on Line 1). Reduces false negatives at branchy stations like BART's MacArthur or 12th St Oakland.
-
-### v4 — Transfer Engine integration
-TransferEngine's cold-start fallback uses a flat 15-minute gap threshold. Once NetworkEngine knows typical travel times between stop pairs, TransferEngine can use that as a more precise window — e.g. if Spadina→Bloor-Yonge is typically 3 minutes, a 25-minute gap there is suspicious.
+Future work for network learning lives in [ROADMAP_NEXTGEN.md](./ROADMAP_NEXTGEN.md).

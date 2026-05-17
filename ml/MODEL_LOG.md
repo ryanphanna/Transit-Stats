@@ -1,7 +1,7 @@
 # Model Log
 
-Accuracy history for each version of the TransitStats Prediction Engine.
-One entry per trained version. See `docs/ENGINE.md` for full engineering notes.
+Accuracy history for each trained TransitStats prediction model generation.
+One entry per trained version. See `docs/INTELLIGENCE.md` for full engineering notes.
 
 ---
 

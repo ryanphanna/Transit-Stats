@@ -6,7 +6,7 @@ Not a roadmap. Not a feature changelog. This is the internal notebook for the en
 
 ---
 
-## Current Version: v1.1.0
+## Current Version
 
 **Problem it solved:** Journey linking used a single hardcoded rule — link any two trips within 60 minutes at the same stop. This linked unrelated trips (e.g. two separate 47 trips 31 minutes apart at the same stop) with no way to know whether the gap was a normal transfer or time between independent outings.
 
@@ -43,7 +43,12 @@ CONFIDENCE_THRESHOLD: 0.55  // Minimum to auto-link
 
 ## Version History
 
-### v1.0.0 — *current*
+### v1.1.0
+**What changed:** NetworkEngine transfer index wired in as a possibility signal. When `score()` falls into the "no historical pattern" branch, it now checks `routeStopIndex`/`transferIndex` (via `networkConnections` passed from handlers.js) for population-level evidence that this route pair connects at the boarding stop. A count ≥ 2 pushes the no-pattern confidence from 0.5 → 0.60 (gap ≤ 10 min) and 0.3 → 0.45 (gap ≤ 20 min), and extends the cold-start window from 15 → 20 minutes. Indexes build automatically — gets smarter with every trip.
+
+**Files changed:** `functions/lib/transfer.js`, `functions/lib/handlers.js`
+
+### v1.0.0
 **What changed:** Initial implementation. Replaced the hardcoded `gapMinutes <= 60` check in `handlers.js`. Fetches 100 recent completed trips (up from 5) to give the engine enough history to learn from.
 
 **Files:**
@@ -52,32 +57,4 @@ CONFIDENCE_THRESHOLD: 0.55  // Minimum to auto-link
 | `functions/lib/transfer.js` | Engine + scoring logic |
 | `functions/test_transfer.js` | 15 tests covering extractTransfers, score, _stopMatch |
 
----
-
-## Version History
-
-### v1.1.0
-**What changed:** NetworkEngine transfer index wired in as a possibility signal. When `score()` falls into the "no historical pattern" branch, it now checks `routeStopIndex`/`transferIndex` (via `networkConnections` passed from handlers.js) for population-level evidence that this route pair connects at the boarding stop. A count ≥ 2 pushes the no-pattern confidence from 0.5 → 0.60 (gap ≤ 10 min) and 0.3 → 0.45 (gap ≤ 20 min), and extends the cold-start window from 15 → 20 minutes. Indexes build automatically — gets smarter with every trip.
-
-**Files changed:** `functions/lib/transfer.js`, `functions/lib/handlers.js`
-
-### v1.0.0 — *initial*
-See above.
-
----
-
-## Planned Improvements
-
-### v2 — Day-of-week awareness
-Transfers that make sense on weekday commutes (Mon–Fri 8–10am, 5–7pm) are likely real. Same route pair on a Sunday afternoon with a 30-minute gap is more likely two separate trips. Add day-of-week signal.
-
-### v3 — Multi-leg journeys
-Currently only looks at the most recent completed trip as a candidate. A journey could be 3+ legs. Need to find the best-scoring candidate across all recent trips, not just the first one that clears the threshold.
-
-### v4 — External data
-Transfer scoring informed by external signals:
-- **TTC service disruptions**: a 25-minute gap at a station is expected if there's a signal delay
-- **Weather**: longer gaps in bad weather are more plausible (waiting for shelter)
-- **Time since last trip**: a 30-minute gap at 11pm is different from the same gap at 9am
-
-See also: Prediction Engine v6 concept in ENGINE.md, which pursues external data integration for route prediction.
+Future work for transfer reasoning lives in [ROADMAP_NEXTGEN.md](./ROADMAP_NEXTGEN.md).

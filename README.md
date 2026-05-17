@@ -1,27 +1,26 @@
 # Transit Stats
 
-A premium transit trip tracker for enthusiasts to analyze ridership patterns and visualize personal transit usage using Google Gemini.
+A premium transit trip tracker for enthusiasts to analyze and visualize personal ridership.
 
 ## Problem
 
-Transit riders lack a unified, personal way to track their journeys across multiple agencies. Official apps are often siloed, focus only on real-time arrivals, and provide no long-term historical analysis or visualization of personal transit habits.
+Transit riders have almost no personal tracking tools built for transit. There is still no simple way to build and explore a detailed record of routes, stops, and travel patterns over time.
 
 ## Features
 
-- **SMS Trip Logging**: Text a route and stop to start a trip; text END to finish. Supports stop names, stop codes, and direction shorthands (NB, EB, etc.).
-- **Snap-to-Start (MMS)**: Send a photo of a stop sign pole — Gemini Vision extracts the route and stop code and starts the trip automatically.
-- **Route + Direction-Aware Stop Resolution**: When a stop name matches multiple physical stops, the system filters candidates by route then direction and auto-selects.
-- **Public Profiles & Analytics**: Share your ridership stats and streaks via a public-facing profile page. Visualize usage through heatmaps and personal records.
-- **AI Trip Queries**: Ask natural-language questions about your ride history via Gemini.
-- **Multi-Agency Support**: Native support for TTC, OC Transpo, GO Transit, and other North American transit agencies.
-- **Self-Learning Network Graph**: Each completed trip teaches the system stop sequences and travel times per route.
+- **SMS + MMS Logging**: Start and end trips by text, stop code, stop name, direction shorthand, or stop-sign photo, with route- and direction-aware stop matching.
+- **History + AI Queries**: Build a personal trip history over time, visualize ridership patterns, and ask natural-language questions about your rides.
+- **Predictions + Journey Intelligence**: Get route-aware destination guesses and automatic journey linking that use learned trip patterns without ignoring the physical transit network.
+- **Transit-Specific Learning**: Each completed trip teaches the system stop sequences, travel times, route-stop service, and transfer connections, improving the app over time.
+- **Public Profiles**: Share ridership stats, streaks, and personal transit records through a public-facing profile page.
 
 ## Stack
 
-- **AI**: Google Gemini (Flash & Pro)
-- **Frontend**: Vanilla JS (ES Modules), Vite, Leaflet (Mapping)
-- **Backend**: Firebase (Auth, Firestore, Hosting, Cloud Functions)
-- **Communications**: Twilio Messaging API (SMS/MMS)
+- **Frontend**: Vanilla JS (ES modules), Vite, Leaflet
+- **Backend**: Firebase Auth, Firestore, Hosting, and Cloud Functions
+- **Messaging**: Twilio SMS/MMS
+- **AI + Models**: Google Gemini, V4 logistic regression models, and V5 XGBoost models running through ONNX Runtime
+- **Transit Intelligence**: Custom Prediction, Network, Transfer, and Habit engines
 
 ---
 

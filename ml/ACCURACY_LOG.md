@@ -1,11 +1,11 @@
 # Production Accuracy Log
 
-Live shadow mode accuracy snapshots from the `predictionAccuracy` Firestore collection.
+Live and candidate accuracy snapshots from the `predictionAccuracy` Firestore collection.
 Each entry is recorded before a counter reset. Complements [MODEL_LOG.md](./MODEL_LOG.md) (training accuracy).
 
 **V3 counters are never reset** — V3 has no known accuracy bugs and its running total is a reliable cumulative record.
 
-**Current evaluation rule:** Do not use raw lifetime shadow counters by themselves to decide whether V4/V5 should replace V3. Historical dirty labels and non-TTC rows can pollute the broad totals. Promotion decisions should use a scoped shadow slice first:
+**Current evaluation rule:** Do not use raw lifetime candidate counters by themselves to decide whether V4/V5 should replace V3. Historical dirty labels and non-TTC rows can pollute the broad totals. Promotion decisions should use a scoped candidate slice first:
 - recent rows
 - TTC only
 - `source=sms`
@@ -17,13 +17,13 @@ Each entry is recorded before a counter reset. Complements [MODEL_LOG.md](./MODE
 
 **Status: Not enough evidence to promote V5 yet.**
 
-This snapshot reflects the new scoped shadow-evaluation workflow using:
+This snapshot reflects the new scoped candidate-evaluation workflow using:
 - `agency=TTC`
 - `source=sms`
 - `since=2026-05-01`
 - paired trip windows where V3, V4, and V5 all logged an end-stop prediction
 
-The paired slice matters because broad historical shadow totals still include older dirty labels and non-TTC noise that are not relevant to the "should V5 replace V3 for live TTC end-stop suggestions?" decision.
+The paired slice matters because broad historical candidate totals still include older dirty labels and non-TTC noise that are not relevant to the "should V5 replace V3 for live TTC end-stop suggestions?" decision.
 
 **Audit command used:**
 ```bash
@@ -42,7 +42,7 @@ node ../Tools/audit-prediction-shadow.js N8f5vS0sLjgjwxMCSUZUkVFv7ax2 --agency=T
 - V4 is still useful as a baseline, but not a promotion candidate.
 - The paired TTC slice makes V5 look much healthier than the noisy lifetime stats, but the sample is still too small to justify promotion.
 
-**Action:** Keep V3 live. Keep V5 shadowing. Re-run this TTC paired slice after more reviewed TTC trips accumulate before considering promotion.
+**Action:** Keep V3 live. Keep V5 in candidate evaluation. Re-run this TTC paired slice after more reviewed TTC trips accumulate before considering promotion.
 
 ---
 

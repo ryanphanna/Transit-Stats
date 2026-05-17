@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-**See also:** [Prediction Engine history](docs/ENGINE.md) · [Transfer Engine history](docs/TRANSFER_ENGINE.md) · [Network Engine history](docs/NETWORK_ENGINE.md)
+**See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
 ## [Unreleased]
 
@@ -101,11 +101,11 @@ All notable changes to this project will be documented in this file.
 - **ML history filtering** (`functions/lib/db/trips.js`, `ml/export_trips.py`): Live prediction history and training exports now exclude trips that are incomplete, discarded, marked `needs_review`, or missing a confirmed stop match (`stop_matched`, with fallback support for older `verified` records).
 - **Manual verification signal** (`js/trips/TripController.js`, `ml/export_trips.py`): Review confirmation now stamps trips with `manually_verified: true`, and training exports carry that field so hand-reviewed trips can be identified downstream.
 - **ML route normalization** (`ml/route_normalization.py`, `ml/train_routes.py`, `ml/train_endstop.py`, `ml/calibrate_v4.py`): Added a shared agency-aware route normalization helper so TTC branch, shuttle, and short-turn labels collapse into their base route family for ML, while non-TTC labels like `Red`, `K`, and `N` retain their distinct identities.
-- **End-stop sequence features** (`ml/export_trips.py`, `ml/train_endstop.py`, `functions/lib/ml_utils.js`, `functions/lib/predict_v4.js`, `functions/lib/predict_v5.js`, `functions/lib/handlers.js`): Added `prev_route` and trip-gap features to the end-stop training pipeline and live shadow inference path so V4/V5 can use basic journey context rather than treating each trip start as fully isolated.
+- **End-stop sequence features** (`ml/export_trips.py`, `ml/train_endstop.py`, `functions/lib/ml_utils.js`, `functions/lib/predict_v4.js`, `functions/lib/predict_v5.js`, `functions/lib/handlers.js`): Added `prev_route` and trip-gap features to the end-stop training pipeline and live candidate-evaluation path so V4/V5 can use basic journey context rather than treating each trip start as fully isolated.
 - **Line 5 station normalization** (`Tools/create-normalized-stops.js`): Promoted `Keelesdale` to `Keelesdale Station` with proper aliases and Line 5 routing, and aligned Cedarvale station metadata to include Line 5 service in the normalized stop library.
 - **Trip coordinate writes deprecated** (`functions/lib/handlers.js`, `functions/lib/dispatcher.js`): New trip writes no longer copy `boardingLocation` or `exitLocation` coordinates onto trip records; canonical stop geometry now lives in the normalized stop library, with read-side fallbacks left intact.
 - **Multi-agency route validation** (`functions/lib/utils.js`): Route validation now accepts legitimate named/non-TTC route labels like `Orange`, `Green Line`, `Pacific Surfliner`, and `Flagship Cruises & Events` instead of incorrectly flagging them for review.
-- **Review/audit tooling** (`Tools/*.js`): Added reusable scripts for duplicate manual-verification candidates, shadow prediction audits, route-review cleanup, trip-context inspection, and review-queue triage.
+- **Review/audit tooling** (`Tools/*.js`): Added reusable scripts for duplicate manual-verification candidates, candidate-prediction audits, route-review cleanup, trip-context inspection, and review-queue triage.
 - **Fallback recovery policy**: Confirmed `sms_fallback` records with clear trip-start text can be backfilled into real trip starts while preserving the original `raw_text`.
 
 ## [1.33.0] - 2026-05-07
@@ -133,7 +133,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - **ML Stop Blindness**: Fixed a major bug where V4 and V5 models were blind to stop aliases; all data is now passed through `stopsLibrary` canonicalization.
 - **ML Sequence Amnesia**: Upgraded V4 and V5 to use the `last_end_stop` feature to understand transfers and journey context.
-- **ML Route/End-Stop Mismatch**: Separated the training pipelines so models are properly trained for their specific shadow-mode tasks.
+- **ML Route/End-Stop Mismatch**: Separated the training pipelines so models are properly trained for their specific candidate-evaluation tasks.
 - **SMS Acronym Preservation**: Updated `toTitleCase` to respect capitalization for transit acronyms (TMU, TTC, GO).
 - **SMS Stop Name Prioritization**: Confirmation replies now prefer canonical stop names over numeric codes.
 

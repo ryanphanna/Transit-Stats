@@ -1,26 +1,68 @@
-# Prediction Engine
+# Intelligence
 
-Engineering record for the TransitStats prediction and inference engines. Tracks what changed, why, and what signals are currently active.
+Engineering record for the TransitStats inference, decision, and learning systems. Tracks what changed, why, and what signals are currently active.
 
-Not a roadmap (see [ROADMAP_NEXTGEN.md](./ROADMAP_NEXTGEN.md)). Not a feature changelog (see [CHANGELOG.md](../CHANGELOG.md)). This is the internal notebook for the engines themselves.
-
----
-
-## Engine Inventory
-
-| Engine | File | Type | What it does | Status |
-|---|---|---|---|---|
-| **PredictionEngine V3** | `functions/lib/predict.js` | Heuristic weighted voting | Predicts next route and end stop at trip start using recency, time-of-day, and day-of-week signals. Hand-coded weights. | Live (production) |
-| **PredictionEngine V4** | `functions/lib/predict_v4.js` | Logistic regression (trained) | Shadow route and end-stop predictions learned from trip history. Artifacts in `ml/model_v4.json` and `ml/model_v4_endstop.json`. | Shadow mode |
-| **PredictionEngine V5** | `functions/lib/predict_v5.js` | XGBoost (trained, ONNX) | Shadow route and end-stop predictions using ONNX-exported XGBoost models. Artifacts in `ml/model_v5.onnx` and `ml/model_v5_endstop.onnx`. | Shadow mode |
-| **NetworkEngine** | `functions/lib/network.js` | Observed graph (Firestore) | Builds a stop-connection graph from completed trips. Filters directionally impossible end stop candidates. Primary filter — topology.json is the cold-start fallback only. Auto-updates at trip end. | Live |
-| **TransferEngine** | `functions/lib/transfer.js` | Heuristic confidence scoring | Determines whether two consecutive trips are a transfer within one journey or two separate trips, using historical transfer patterns (stop pairs, route pairs, gap time, time-of-day). | Live |
-
-**Retraining:** V4 and V5 retrain from the Python pipeline in `ml/export_trips.py`, `ml/train_routes.py`, and `ml/train_endstop.py`. NetworkEngine and TransferEngine update passively from trip data — no retrain needed. See `ml/CLAUDE.md` for the retrain workflow.
+This document complements the [roadmap](./ROADMAP_NEXTGEN.md) and the [feature changelog](../CHANGELOG.md). It is the internal notebook for the app's intelligence systems.
 
 ---
 
-## Current Version: v3.3.0
+## How To Read This
+
+- Start with **Intelligence Families** to understand the major moving parts.
+- Read **Prediction Models** if you care about route and end-stop inference.
+- Use the dedicated docs for deeper details on:
+  - [Network Engine](./NETWORK_ENGINE.md)
+  - [Transfer Engine](./TRANSFER_ENGINE.md)
+
+---
+
+## Intelligence Families
+
+### 1. Prediction Models
+
+This family handles route and end-stop inference at trip start.
+
+- **V3** — `functions/lib/predict.js`
+  Live heuristic weighted-voting model for route and end-stop guesses.
+- **V4** — `functions/lib/predict_v4.js`
+  Candidate logistic-regression route and end-stop models trained from trip history.
+- **V5** — `functions/lib/predict_v5.js`
+  Candidate XGBoost route and end-stop models exported to ONNX for live inference.
+
+**Retraining:** V4 and V5 retrain from the Python pipeline in `ml/export_trips.py`, `ml/train_routes.py`, and `ml/train_endstop.py`. See `ml/CLAUDE.md` for the retrain workflow.
+
+### 2. Habit Intelligence
+
+This family handles recurring trip patterns that are strong enough to beat generic inference.
+
+- **HabitEngine** — `functions/lib/habit.js`
+  Learns recurring trip patterns from completed history and can short-circuit the full prediction stack when a high-confidence habit matches.
+
+### 3. Network Intelligence
+
+This family learns the structure of the transit network from observed trips.
+
+- **NetworkEngine** — `functions/lib/network.js`
+  Builds a stop-connection graph from completed trips, learns route-stop service and transfer connections, and filters directionally impossible end-stop candidates.
+
+### 4. Journey Intelligence
+
+This family reasons about whether multiple trips belong to the same journey.
+
+- **TransferEngine** — `functions/lib/transfer.js`
+  Scores whether two consecutive trips are a real transfer using stop pairs, route pairs, gap time, and time-of-day patterns.
+
+---
+
+## Prediction Models
+
+### V3
+
+**Role:** Live route and end-stop inference.
+
+**What it does:** Predicts the next route and likely end stop at trip start using heuristic weighted voting over trip history, plus route/topology/network constraints.
+
+**Current version:** See the version history below.
 
 ### Active Signals
 
@@ -46,9 +88,7 @@ SEQUENCE_WINDOW_HOURS: 3     // How recent a prior trip must be to trigger seque
 SEQUENCE_BOOST: 1.5          // Multiplier applied at transfer points
 ```
 
----
-
-## Version History
+### Version History
 
 ### v1
 **Problem it solved:** Initial working prototype. Needed something to produce a route guess at trip start.
@@ -68,13 +108,13 @@ SEQUENCE_BOOST: 1.5          // Multiplier applied at transfer points
 
 ---
 
-### v3.3.0 — *current*
+### v3.3.0
 **What changed from v3.2:** Recency decay axis changed from calendar time to same-agency ride count. Previously, a week travelling in LA decayed TTC predictions — the engine treated elapsed time as evidence of pattern change, even when the pattern hadn't changed at all. Now each trip's weight decays based on how many same-agency rides occurred after it. `DECAY_HALFLIFE_RIDES: 100` means a trip 100 TTC rides ago votes at half the weight of the most recent trip. Being in a different city no longer ages your home network predictions.
 
 ### v3.2.0
 **What changed from v3.1.1:** NetworkEngine integrated as a higher-priority directional filter. At trip start, the learned graph for the current route is loaded and used to pre-filter end stop candidates before topology.json. Falls back to topology.json when fewer than 3 trips observed on an edge. Reverse-edge inference: B→A westbound implies A is reachable from B eastbound.
 
-### v3.1.1 — *previously current*
+### v3.1.1
 **What changed from v3.1:** Topology filter moved upstream — candidate trips are now pre-filtered by topology before voting, not post-filtered after. Impossible destinations are eliminated before the model scores anything. Same fallback behaviour (unfiltered if no candidates survive).
 
 ### v3.1
@@ -99,18 +139,26 @@ SEQUENCE_BOOST: 1.5          // Multiplier applied at transfer points
 
 ---
 
----
+### V4
 
-### v4.3 — *shadow mode*
-**What changed from v4.2:** Shadow model version bumped so post-fix results are distinguishable in `predictionStats`. Shared ML helpers now cover route normalization, stop canonicalization, and trip-gap encoding. Live route inference also fixed a day-of-week feature bug (`day_cos` was being derived from `day_sin` instead of the actual day index).
+**Role:** Candidate route and end-stop model family.
 
-### v4.2 — *shadow mode*
+**What it does:** Uses trained logistic-regression models to predict routes and end stops from trip history instead of relying on hand-tuned weights.
+
+**Current version:** `v4.3`
+
+**Status:** Candidate. Evaluated in parallel against the live V3 path.
+
+### v4.3 — *candidate*
+**What changed from v4.2:** Candidate model version bumped so post-fix results are distinguishable in `predictionStats`. Shared ML helpers now cover route normalization, stop canonicalization, and trip-gap encoding. Live route inference also fixed a day-of-week feature bug (`day_cos` was being derived from `day_sin` instead of the actual day index).
+
+### v4.2 — *candidate*
 **What changed from v4.1:** Route training migrated to the shared export/training pipeline. Agency-aware route normalization added for ML so TTC branch/shuttle/short-turn labels collapse to their base route family while non-TTC labels like `Red`, `K`, and `N` retain their identity. Current route benchmark: 62.8% top-1 / 84.9% top-3 on 429 trips. End-stop model expanded to use `prev_route`, `last_end_stop`, and trip-gap features; benchmark: 68.1% top-1 / 93.6% top-3 on 234 trips.
 
-### v4.1 — *shadow mode*
+### v4.1 — *candidate*
 **What changed from v4:** End stop prediction added (`guessTopEndStops`). Trained a separate logistic regression classifier on 114 trips (11 end stop classes). Features: route (one-hot), start stop (one-hot), hour (sin/cos), day (sin/cos). Topology pre-filter applied before softmax — impossible stops zeroed out before probabilities are computed. Top-1: 39%, Top-3: 87%.
 
-### v4 — *shadow mode*
+### v4 — *candidate*
 **Problem it solved:** V3's scoring weights are hand-coded constants (`TIME_SIGMA_HOURS: 1.5`, `DECAY_HALFLIFE_DAYS: 20`, etc.) chosen by intuition, not learned from actual trip data. The model cannot discover signals it wasn't explicitly told to look for.
 
 **Approach:** Logistic regression classifier trained on historical trip data. Features: hour-of-day (sin/cos encoded), day-of-week (sin/cos encoded), start stop (one-hot encoded). Trained on 385 trips (Jan–Apr 2026) using scikit-learn. Weights exported to JSON and loaded by a Cloud Function at inference time.
@@ -144,16 +192,26 @@ SEQUENCE_BOOST: 1.5          // Multiplier applied at transfer points
 
 ---
 
-### v5.3 — *shadow mode*
-**What changed from v5.2:** Shadow model version bumped so post-fix results are distinguishable in `predictionStats`. Shares the same route normalization, stop canonicalization, and trip-gap helper layer as V4. Route model still outperforms V4 overall; end-stop model remains the strongest ML challenger to V3, but has not yet beaten V3 in live shadow accuracy.
+### V5
 
-### v5.2 — *shadow mode*
+**Role:** Candidate route and end-stop model family.
+
+**What it does:** Uses XGBoost models exported to ONNX for richer feature interactions and stronger learned route/end-stop inference than V4.
+
+**Current version:** `v5.3`
+
+**Status:** Candidate. Evaluated in parallel against the live V3 path.
+
+### v5.3 — *candidate*
+**What changed from v5.2:** Candidate model version bumped so post-fix results are distinguishable in `predictionStats`. Shares the same route normalization, stop canonicalization, and trip-gap helper layer as V4. Route model still outperforms V4 overall; end-stop model remains the strongest ML challenger to V3, but has not yet beaten V3 in live candidate accuracy.
+
+### v5.2 — *candidate*
 **What changed from v5.1:** Route training moved to the shared Python pipeline and gained agency-aware route normalization. This removed blank/malformed route classes from non-TTC data and sharply improved route metrics. Current route benchmark: 70.9% top-1 / 82.6% top-3 on 429 trips. End-stop model now uses the same route normalization plus `prev_route`, `last_end_stop`, and trip-gap features, but those extra sequence features did not improve V5 on the current held-out split; benchmark remains 78.7% top-1 / 89.4% top-3 on 234 trips.
 
-### v5.1 — *shadow mode*
+### v5.1 — *candidate*
 **What changed from v5:** End stop prediction added (`guessTopEndStops`). Trained a separate XGBoost classifier on same 114-trip dataset (11 end stop classes). Same features as V4.1. Topology pre-filter applied before reading ONNX probabilities — zeroed out, renormalized, then ranked. Top-1: 48%, Top-3: 96%.
 
-### v5 — *shadow mode*
+### v5 — *candidate*
 **Problem it solved:** Logistic regression can't find feature interactions or discover signals we haven't thought of.
 
 **Approach:** XGBoost gradient boosted tree. Drop-in replacement — same features, same data pipeline. Discovers combinations like "York University + Monday morning = almost certainly Line 1 southbound" without being told.
@@ -164,19 +222,19 @@ SEQUENCE_BOOST: 1.5          // Multiplier applied at transfer points
 - Config: n_estimators=200, max_depth=4, learning_rate=0.1
 
 **What's built:**
-- ONNX route model (`ml/model_v5.onnx`) running in shadow mode alongside V3 and V4
-- ONNX end-stop model (`ml/model_v5_endstop.onnx`) running in shadow mode alongside V3 and V4
+- ONNX route model (`ml/model_v5.onnx`) running in parallel evaluation alongside V3 and V4
+- ONNX end-stop model (`ml/model_v5_endstop.onnx`) running in parallel evaluation alongside V3 and V4
 - Graded and logged to `predictionStats` at trip end
 
 **Still to build:**
-- Promote V5 into the live user-facing path only after it clearly beats V3 on relevant shadow slices
+- Promote V5 into the live user-facing path only after it clearly beats V3 on relevant candidate-evaluation slices
 - Richer signals: week of term, holiday flag, weather, TTC service alerts, route/service-frequency context
 - Retrain audit log to Firestore
-- Replace V4 once V5 consistently outperforms in shadow scoring
+- Replace V4 once V5 consistently outperforms in candidate evaluation
 
 ---
 
-## Files
+## Shared Prediction Files
 
 | File | Module format | Use |
 |---|---|---|
@@ -184,6 +242,28 @@ SEQUENCE_BOOST: 1.5          // Multiplier applied at transfer points
 | `js/predict.js` | ESM | Browser client |
 
 Both files implement the same engine. Changes must be applied to both. The CJS version is the reference — apply changes there first, then mirror to ESM.
+
+---
+
+## Other Families
+
+### Habit Intelligence
+
+- **HabitEngine** short-circuits generic inference when a recurring trip pattern is strong enough to trust directly.
+- Lives in `functions/lib/habit.js`.
+- Best thought of as memorized recurring behavior, not a general-purpose prediction model.
+
+### Network Intelligence
+
+- **NetworkEngine** learns stop sequences, travel times, route-stop service, and transfer connections from completed trips.
+- Lives in `functions/lib/network.js`.
+- See [NETWORK_ENGINE.md](./NETWORK_ENGINE.md) for the detailed notebook.
+
+### Journey Intelligence
+
+- **TransferEngine** decides whether consecutive trips belong to one journey or two separate outings.
+- Lives in `functions/lib/transfer.js`.
+- See [TRANSFER_ENGINE.md](./TRANSFER_ENGINE.md) for the detailed notebook.
 
 ---
 

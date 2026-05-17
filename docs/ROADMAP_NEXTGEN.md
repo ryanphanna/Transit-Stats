@@ -11,7 +11,7 @@ The engine's primary goal is to eliminate the "Friction" of transit tracking. Th
 ## What Exists
 
 - **`PredictionEngine` (V3)**: Weighted voting with recency decay, time-of-day similarity (Gaussian), and day-of-week similarity. Hand-coded scoring weights.
-- **Silent Evaluation**: Real-time accuracy tracking for "Shadow Predictions" via the `predictionStats` collection.
+- **Parallel Evaluation**: Real-time accuracy tracking for candidate predictions via the `predictionStats` collection.
 - **`AccuracyDashboard`**: Internal tooling to monitor hit rates against the 90% production-readiness goal.
 - **Stop Name Resolution**: Basic library-based fuzzy matching for text-to-coordinate conversion.
 - **Trip Export Pipeline** (`ml/export_trips.py`): Pulls completed trip history from Firestore into a CSV for ML training.
@@ -48,13 +48,13 @@ Replacing hand-coded scoring weights with a model trained on actual trip history
 - [ ] **Model interpretability pass**: Improve tooling for understanding why route models choose one corridor over another, especially around overlapping TTC transfer hubs.
 
 ### 3. Inference Integration — V4 & V5
-- [ ] **End-stop inference integration**: Promote the trained end-stop models from evaluation artifacts into the live prediction path so V4/V5 can shadow or replace V3 destination voting in production.
+- [ ] **End-stop inference integration**: Promote the trained end-stop models from evaluation artifacts into the live prediction path so V4/V5 can run in parallel evaluation against or replace V3 destination voting in production.
 
 ### 4. Model Evolution — V5 (Gradient Boosted Tree)
 - [ ] **Richer signals**: Previous route, time since last trip, week of term, holiday flag, weather, TTC service alerts — add as features and let the model determine relevance.
 - [ ] **Replace hand-coded route-family heuristics with configurable agency policies**: The current ML route normalization is shared and much cleaner than before, but still needs to evolve into a fully configurable per-agency policy layer instead of relying on TTC-led assumptions.
-- [ ] **End-stop promotion**: V3 still owns the live end-stop path. Use the trained V4/V5 end-stop models to shadow, calibrate, and eventually replace the hand-coded end-stop engine where they consistently outperform it.
-- [ ] **Replace V4** once V5 consistently outperforms in shadow scoring.
+- [ ] **End-stop promotion**: V3 still owns the live end-stop path. Use the trained V4/V5 end-stop models to run in parallel evaluation, calibrate, and eventually replace the hand-coded end-stop engine where they consistently outperform it.
+- [ ] **Replace V4** once V5 consistently outperforms in candidate evaluation.
 
 ### 5. Model Evolution — V6 (Journey-Context ML)
 - [ ] **Define V6 as a journey-context engine, not just a larger V5**: Model trips as connected journey state rather than isolated rows. Primary signals should be things like previous route, previous end stop, time since last trip, and whether the current start looks transfer-like.
