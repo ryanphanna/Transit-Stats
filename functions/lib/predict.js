@@ -26,7 +26,7 @@ try { _topology = require('./topology.json'); } catch (e) { /* topology filter d
 const { NetworkEngine } = require('./network');
 
 const PredictionEngine = {
-  VERSION: '3.3.0',
+  VERSION: '3.4.0',
 
   CONFIG: {
     TIME_SIGMA_HOURS: 1.5,
@@ -181,7 +181,7 @@ const PredictionEngine = {
       ? this._stopMatch(context.lastEndStopName, startStopName)
       : (this._getLastRecentTrip(history, now) && this._stopMatch(this._getLastRecentTrip(history, now).endStopName, startStopName));
 
-    // Pre-filter: remove trips that ended at a topologically impossible stop.
+    // Pre-filter: remove trips that ended at a physically impossible stop.
     candidates = this._preFilterCandidatesByTopology(candidates, context.route, startStopName, context.direction);
 
     const ridesAfterMap = this._computeRidesAfter(history);
@@ -355,46 +355,17 @@ const PredictionEngine = {
   _preFilterCandidatesByTopology: function (candidates, route, boardingStop, direction) {
     if (!boardingStop || !direction) return candidates;
 
-    // NetworkEngine takes priority over topology.json — it learns from real trips
-    // and handles branchy networks (BART, etc.) without manual curation.
-    if (this.networkGraph) {
+    const constraint = this.getEndStopConstraint({ route, startStopName: boardingStop, direction });
+    if (constraint.source === 'network') {
       const filtered = NetworkEngine.filterCandidates(candidates, this.networkGraph, boardingStop, direction);
-      if (filtered !== null) return filtered;
-      // null means insufficient data — fall through to topology.json
+      return filtered !== null ? filtered : candidates;
     }
+    if (constraint.source !== 'topology' || !constraint.legalStops) return candidates;
 
-    if (!_topology) return candidates;
-
-    const routeStr = this._baseRoute(route.toString());
-    const line = this._topologyLine(routeStr);
-    if (!line) return candidates; // Route not in topology — can't filter
-
-    const normDir = this._normalizeDirection(direction);
-    if (!normDir) return candidates;
-
-    const boardingIdx = this._topologyStopIndex(line, this._canonicalizeStop(boardingStop) || boardingStop);
-    if (boardingIdx === -1) return candidates; // Boarding stop not in topology — can't filter
-
-    // Topology fully covers this route/stop/direction. Return filtered set even if empty —
-    // empty means no valid history exists for this direction, which is correct (don't
-    // bleed wrong-direction trips through when the user travels a new direction).
-    let goingHigher;
-    if (line.name === 'Yonge-University') {
-      const unionIdx = this._topologyStopIndex(line, this._canonicalizeStop('Union') || 'Union');
-      if (unionIdx === -1) return candidates;
-      // Union is the branch pivot — either branch is valid from here, so topology can't
-      // constrain direction. Fall back to unfiltered candidates.
-      if (boardingIdx === unionIdx) return candidates;
-      goingHigher = boardingIdx <= unionIdx ? normDir === 'Southbound' : normDir === 'Northbound';
-    } else {
-      goingHigher = normDir === 'Eastbound' || normDir === 'Northbound';
-    }
-
-    return candidates.filter(t => {
-      const endIdx = this._topologyStopIndex(line, this._canonicalizeStop(t.endStopName) || t.endStopName);
-      if (endIdx === -1) return true; // Unknown stop — keep
-      return goingHigher ? endIdx > boardingIdx : endIdx < boardingIdx;
-    });
+    // Topology coverage is curated ground truth for covered routes. Once we can
+    // resolve the route/boarding stop/direction, destinations outside that
+    // downstream menu are physically impossible and must be removed.
+    return candidates.filter(t => constraint.legalStops.has(this._canonicalizeStop(t.endStopName)));
   },
 
   /**
@@ -408,47 +379,60 @@ const PredictionEngine = {
    * @returns {Array}
    */
   _applyTopologyFilter: function (candidates, route, boardingStop, direction) {
-    if (!_topology || !boardingStop || !direction) return candidates;
+    const constraint = this.getEndStopConstraint({ route, startStopName: boardingStop, direction });
+    if (constraint.source !== 'topology' || !constraint.legalStops) return candidates;
+    return candidates.filter(c => constraint.legalStops.has(this._canonicalizeStop(c.stop)));
+  },
 
-    const routeStr = this._baseRoute(route.toString());
-
-    const line = this._topologyLine(routeStr);
-    if (!line) return candidates;
+  /**
+   * Describe the physical destination constraint for a given boarding context.
+   * Returns the source that would constrain predictions and the legal downstream
+   * stop set when that source is authoritative.
+   *
+   * @param {Object} context - { route, startStopName, direction }
+   * @returns {{source: string, legalStops: Set<string>|null, routeCovered?: boolean}}
+   */
+  getEndStopConstraint: function (context) {
+    const boardingStop = context?.startStopName;
+    const direction = context?.direction;
+    const route = context?.route;
+    if (!boardingStop || !direction || !route) return { source: 'none', legalStops: null };
 
     const normDir = this._normalizeDirection(direction);
-    if (!normDir) return candidates;
+    if (!normDir) return { source: 'none', legalStops: null };
+
+    if (this.networkGraph) {
+      const augGraph = NetworkEngine._withTransitiveEdges(this.networkGraph);
+      const reachable = NetworkEngine._getReachableStops(augGraph, boardingStop, normDir);
+      if (reachable) return { source: 'network', legalStops: reachable, routeCovered: true };
+    }
+
+    if (!_topology) return { source: 'none', legalStops: null };
+
+    const routeStr = this._baseRoute(route.toString());
+    const line = this._topologyLine(routeStr);
+    if (!line) return { source: 'none', legalStops: null };
 
     const boardingIdx = this._topologyStopIndex(line, this._canonicalizeStop(boardingStop) || boardingStop);
-    if (boardingIdx === -1) return candidates;
+    if (boardingIdx === -1) return { source: 'none', legalStops: null };
 
-    // Line 1 is U-shaped: Finch(0)→Union(16)→VMC(35).
-    // Direction meaning depends on which branch you're on.
-    // Yonge branch (0–16): southbound = toward Union = higher index.
-    // University branch (16–35): northbound = toward VMC = higher index.
     let goingHigher;
     if (line.name === 'Yonge-University') {
       const unionIdx = this._topologyStopIndex(line, this._canonicalizeStop('Union') || 'Union');
-      if (unionIdx === -1) return candidates;
-      // Union is the branch pivot — either branch is valid from here, so topology can't
-      // constrain direction. Fall back to unfiltered candidates.
-      if (boardingIdx === unionIdx) return candidates;
-      if (boardingIdx < unionIdx) {
-        // Yonge branch: southbound → higher (toward Union), northbound → lower (toward Finch)
-        goingHigher = normDir === 'Southbound';
-      } else {
-        // University branch: northbound → higher (toward VMC), southbound → lower (toward Union)
-        goingHigher = normDir === 'Northbound';
-      }
+      if (unionIdx === -1 || boardingIdx === unionIdx) return { source: 'none', legalStops: null };
+      goingHigher = boardingIdx <= unionIdx ? normDir === 'Southbound' : normDir === 'Northbound';
     } else {
       goingHigher = normDir === 'Eastbound' || normDir === 'Northbound';
     }
 
-    // Topology fully covers this route/stop/direction. Return filtered set even if empty.
-    return candidates.filter(c => {
-      const endIdx = this._topologyStopIndex(line, this._canonicalizeStop(c.stop) || c.stop);
-      if (endIdx === -1) return true; // Unknown stop — keep (don't over-filter)
-      return goingHigher ? endIdx > boardingIdx : endIdx < boardingIdx;
-    });
+    const legalStops = new Set();
+    for (let i = 0; i < line.stops.length; i++) {
+      if (goingHigher ? i > boardingIdx : i < boardingIdx) {
+        legalStops.add(this._canonicalizeStop(line.stops[i]));
+      }
+    }
+
+    return { source: 'topology', legalStops, routeCovered: true };
   },
 
   /**
@@ -476,12 +460,12 @@ const PredictionEngine = {
    */
   _topologyStopIndex: function (line, stopName) {
     if (!stopName) return -1;
-    const lower = stopName.trim().toLowerCase();
+    const normalized = this._canonicalizeStop(stopName) || stopName.trim().toLowerCase();
     for (let i = 0; i < line.stops.length; i++) {
       const canon = line.stops[i];
-      if (canon.toLowerCase() === lower) return i;
+      if ((this._canonicalizeStop(canon) || canon.toLowerCase()) === normalized) return i;
       const aliases = (line.aliases && line.aliases[canon]) || [];
-      if (aliases.some(a => a.toLowerCase() === lower)) return i;
+      if (aliases.some(a => (this._canonicalizeStop(a) || a.toLowerCase()) === normalized)) return i;
     }
     return -1;
   },

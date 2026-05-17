@@ -25,6 +25,7 @@ const { NetworkEngine } = require('./network.js');
 const { HabitEngine } = require('./habit');
 const { PredictionEngineV4 } = require('./predict_v4.js');
 const { PredictionEngineV5 } = require('./predict_v5.js');
+const logger = require('./logger');
 const {
   getStopDisplay,
   getRouteDisplay,
@@ -74,6 +75,33 @@ async function determineStaleness(db, userId, activeTrip) {
   }
 
   return { stale: false, elapsedMin };
+}
+
+async function detectProvisionalTransfer(userId, nextTrip, agency, boardingStop) {
+  try {
+    const history = await getRecentCompletedTrips(userId, 100);
+    const networkConnections = (agency && boardingStop)
+      ? await NetworkEngine.getConnectionsAtStop(db, agency, boardingStop)
+      : null;
+
+    let best = null;
+    for (const trip of history) {
+      if (!trip.endTime || !trip.endStopName) continue;
+      const confidence = TransferEngine.score(trip, nextTrip, history, networkConnections);
+      if (confidence < TransferEngine.CONFIDENCE_THRESHOLD) continue;
+      if (!best || confidence > best.confidence) best = { trip, confidence };
+    }
+
+    if (!best) return null;
+    return {
+      prevTripId: best.trip.id,
+      confidence: best.confidence,
+      prevRoute: best.trip.route || null,
+    };
+  } catch (err) {
+    console.error('Error detecting provisional transfer:', err);
+    return null;
+  }
 }
 
 /**
@@ -180,6 +208,8 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
   let endStopPredictions = null;
   let endStopPredictionV4 = null;
   let endStopPredictionV5 = null;
+  let endStopConstraintSource = 'none';
+  let provisionalTransfer = null;
   const startStopName = stopData ? stopData.stopName : parsedStop.stopName;
   const startStopCode = stopData ? stopData.stopCode : parsedStop.stopCode;
   let isAdmin = false;
@@ -228,6 +258,30 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       stopsLibrary,
       networkGraph: networkGraph || null,
     };
+    const endStopConstraint = PredictionEngine.getEndStopConstraint(endStopContext);
+    endStopConstraintSource = endStopConstraint.source;
+    logger.info('Trip-start end-stop constraint', {
+      route,
+      startStopName,
+      direction,
+      constraintSource: endStopConstraint.source,
+      legalStopCount: endStopConstraint.legalStops ? endStopConstraint.legalStops.size : null,
+    });
+    provisionalTransfer = await detectProvisionalTransfer(user.userId, {
+      route,
+      startStopName,
+      startStop: startStopName,
+      startTime: now,
+    }, resolvedAgency, startStopName);
+    if (provisionalTransfer) {
+      logger.info('Trip-start provisional transfer detected', {
+        route,
+        startStopName,
+        prevTripId: provisionalTransfer.prevTripId,
+        prevRoute: provisionalTransfer.prevRoute,
+        confidence: provisionalTransfer.confidence,
+      });
+    }
 
     // When a habit fires with sufficient confidence, skip the full ML stack —
     // the habit is a memorized pattern and is more reliable than inference on routine trips.
@@ -286,6 +340,10 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       endStopPredictions: endStopPredictions || null,
       endStopPredictionV4: endStopPredictionV4 || null,
       endStopPredictionV5: endStopPredictionV5 || null,
+      endStopConstraintSource,
+      provisionalTransfer: !!provisionalTransfer,
+      provisionalPrevTripId: provisionalTransfer?.prevTripId || null,
+      provisionalJourneyConfidence: provisionalTransfer?.confidence || null,
       needs_review: !isValidRoute(route) || null,
     });
   } catch (err) {
@@ -336,7 +394,9 @@ async function handleConfirmStart(phoneNumber, user, state) {
   let confirmEndStopPredictions = null;
   let confirmEndStopPredictionV4 = null;
   let confirmEndStopPredictionV5 = null;
+  let confirmEndStopConstraintSource = 'none';
   let confirmIsAdmin = false;
+  let confirmProvisionalTransfer = null;
   try {
     const [history, stopsLibrary, routesAtStop, confirmProfile, confirmNetworkGraph] = await Promise.all([
       getRecentCompletedTrips(user.userId, 100),
@@ -353,6 +413,30 @@ async function handleConfirmStart(phoneNumber, user, state) {
     const lastEndStopName = lastTrip?.endStopName || null;
     const confirmRouteContext = { stopName: newTrip.stopName, time: now, lastEndStopName, stopsLibrary };
     const confirmEndStopContext = { route: newTrip.route, startStopName: newTrip.stopName, direction: newTrip.direction, time: now, lastEndStopName, stopsLibrary, networkGraph: confirmNetworkGraph || null };
+    const confirmEndStopConstraint = PredictionEngine.getEndStopConstraint(confirmEndStopContext);
+    confirmEndStopConstraintSource = confirmEndStopConstraint.source;
+    logger.info('Confirm-start end-stop constraint', {
+      route: newTrip.route,
+      startStopName: newTrip.stopName,
+      direction: newTrip.direction,
+      constraintSource: confirmEndStopConstraint.source,
+      legalStopCount: confirmEndStopConstraint.legalStops ? confirmEndStopConstraint.legalStops.size : null,
+    });
+    confirmProvisionalTransfer = await detectProvisionalTransfer(user.userId, {
+      route: newTrip.route,
+      startStopName: newTrip.stopName,
+      startStop: newTrip.stopName,
+      startTime: now,
+    }, newTrip.agency, newTrip.stopName);
+    if (confirmProvisionalTransfer) {
+      logger.info('Confirm-start provisional transfer detected', {
+        route: newTrip.route,
+        startStopName: newTrip.stopName,
+        prevTripId: confirmProvisionalTransfer.prevTripId,
+        prevRoute: confirmProvisionalTransfer.prevRoute,
+        confidence: confirmProvisionalTransfer.confidence,
+      });
+    }
     confirmPrediction = PredictionEngine.guess(history, {
       stopName: newTrip.stopName,
       time: now,
@@ -406,6 +490,10 @@ async function handleConfirmStart(phoneNumber, user, state) {
     endStopPredictions: confirmEndStopPredictions || null,
     endStopPredictionV4: confirmEndStopPredictionV4 || null,
     endStopPredictionV5: confirmEndStopPredictionV5 || null,
+    endStopConstraintSource: confirmEndStopConstraintSource,
+    provisionalTransfer: !!confirmProvisionalTransfer,
+    provisionalPrevTripId: confirmProvisionalTransfer?.prevTripId || null,
+    provisionalJourneyConfidence: confirmProvisionalTransfer?.confidence || null,
   });
   await clearPendingState(phoneNumber);
 
@@ -517,6 +605,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
 
   let transferHistory = null;
   let prevTrip = null;
+  let provisionalPrevTrip = null;
   try {
     transferHistory = await getRecentCompletedTrips(user.userId, 100);
     const boardingStop = activeTrip.startStopName || activeTrip.startStop || null;
@@ -524,12 +613,24 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
       ? await NetworkEngine.getConnectionsAtStop(db, agency, boardingStop)
       : null;
 
-    prevTrip = transferHistory.find(t => {
-      if (t.id === activeTrip.id) return false;
-      if (!t.endTime || !t.endStopName) return false;
-      const confidence = TransferEngine.score(t, activeTrip, transferHistory, networkConnections);
-      return confidence >= TransferEngine.CONFIDENCE_THRESHOLD;
-    }) || null;
+    if (activeTrip.provisionalPrevTripId) {
+      provisionalPrevTrip = transferHistory.find(t => t.id === activeTrip.provisionalPrevTripId) || null;
+      if (provisionalPrevTrip && provisionalPrevTrip.endTime && provisionalPrevTrip.endStopName) {
+        const provisionalConfidence = TransferEngine.score(provisionalPrevTrip, activeTrip, transferHistory, networkConnections);
+        if (provisionalConfidence >= TransferEngine.CONFIDENCE_THRESHOLD) {
+          prevTrip = provisionalPrevTrip;
+        }
+      }
+    }
+
+    if (!prevTrip) {
+      prevTrip = transferHistory.find(t => {
+        if (t.id === activeTrip.id) return false;
+        if (!t.endTime || !t.endStopName) return false;
+        const confidence = TransferEngine.score(t, activeTrip, transferHistory, networkConnections);
+        return confidence >= TransferEngine.CONFIDENCE_THRESHOLD;
+      }) || null;
+    }
   } catch (transferErr) {
     console.error('Error preparing transfer context:', transferErr);
   }
@@ -543,8 +644,8 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
         route: activeTrip.route,
         agency: activeTrip.agency,
         direction: activeTrip.direction,
-        startStopName: startStopCanonical.stopName,
-        endStopName: endStopData.stopName,
+        startStop: startStopCanonical,
+        endStop: endStopData,
         duration,
       }, prevTrip?.route || null).catch(err => console.error('NetworkEngine.observe failed (non-fatal):', err.message));
     }

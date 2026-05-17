@@ -1,3 +1,5 @@
+import topology from '../functions/lib/topology.json';
+
 /**
  * TransitStats V2 - Prediction Engine
  * Ported from Legacy V3 with weighted voting, sequence boosting, and fuzzy matching.
@@ -106,7 +108,12 @@ export const PredictionEngine = {
      * Predict the most likely exit stop given a known route and boarding stop.
      */
     guessEndStop(history, context) {
-        if (!history || history.length === 0) return null;
+        const top = this.guessTopEndStops(history, context, 1);
+        return top.length > 0 ? top[0] : null;
+    },
+
+    guessTopEndStops(history, context, topN = 3) {
+        if (!history || history.length === 0) return [];
 
         const now = context.time instanceof Date ? context.time : new Date(context.time);
         const routeFamily = this._baseRoute(context.route);
@@ -114,13 +121,12 @@ export const PredictionEngine = {
 
         let candidates = history.filter(t => {
             if (!this._isValidTrip(t)) return false;
-            // Trip must have a destination to be a candidate for end stop prediction
             if (!t.endStop && !t.endStopName) return false;
             return this._baseRoute(t.route) === routeFamily &&
                 this._stopMatch(t.startStop || t.startStopName, context.startStopName);
         });
 
-        if (candidates.length === 0) return null;
+        if (candidates.length === 0) return [];
 
         if (normDir) {
             const withDir = candidates.filter(t => {
@@ -128,6 +134,11 @@ export const PredictionEngine = {
                 return !tDir || tDir === normDir;
             });
             if (withDir.length > 0) candidates = withDir;
+        }
+
+        const constraint = this.getEndStopConstraint(context);
+        if (constraint.source === 'topology' && constraint.legalStops) {
+            candidates = candidates.filter(t => constraint.legalStops.has(this._canonicalizeStop(t.endStop || t.endStopName)));
         }
 
         const votes = {};
@@ -150,20 +161,49 @@ export const PredictionEngine = {
             totalWeight += weight;
         }
 
-        if (totalWeight === 0) return null;
+        if (totalWeight === 0) return [];
 
-        const top = Object.values(votes).sort((a, b) => b.weight - a.weight)[0];
-        
-        // Find average duration for this corridor to predict "Arrival Time"
-        const durations = candidates.filter(t => this._stopMatch(t.endStop || t.endStopName, top.stop)).map(t => t.duration);
-        const avgDuration = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : null;
+        return Object.values(votes)
+            .sort((a, b) => b.weight - a.weight)
+            .slice(0, topN)
+            .map(v => ({
+                stop: v.stop,
+                confidence: Math.round((v.weight / totalWeight) * 100),
+                version: this.VERSION,
+            }));
+    },
 
-        return {
-            stop: top.stop,
-            avgDuration,
-            confidence: Math.round((top.weight / totalWeight) * 100),
-            version: this.VERSION,
-        };
+    getEndStopConstraint(context) {
+        const route = context?.route;
+        const boardingStop = context?.startStopName;
+        const direction = context?.direction;
+        if (!route || !boardingStop || !direction) return { source: 'none', legalStops: null };
+
+        const line = this._topologyLine(this._baseRoute(route));
+        if (!line) return { source: 'none', legalStops: null };
+
+        const normDir = this._normalizeDirection(direction);
+        if (!normDir) return { source: 'none', legalStops: null };
+
+        const boardingIdx = this._topologyStopIndex(line, this._canonicalizeStop(boardingStop) || boardingStop);
+        if (boardingIdx === -1) return { source: 'none', legalStops: null };
+
+        let goingHigher;
+        if (line.name === 'Yonge-University') {
+            const unionIdx = this._topologyStopIndex(line, this._canonicalizeStop('Union') || 'Union');
+            if (unionIdx === -1 || boardingIdx === unionIdx) return { source: 'none', legalStops: null };
+            goingHigher = boardingIdx <= unionIdx ? normDir === 'Southbound' : normDir === 'Northbound';
+        } else {
+            goingHigher = normDir === 'Eastbound' || normDir === 'Northbound';
+        }
+
+        const legalStops = new Set();
+        for (let i = 0; i < line.stops.length; i++) {
+            if (goingHigher ? i > boardingIdx : i < boardingIdx) {
+                legalStops.add(this._canonicalizeStop(line.stops[i]));
+            }
+        }
+        return { source: 'topology', legalStops };
     },
 
     _isValidTrip(trip) {
@@ -287,5 +327,27 @@ export const PredictionEngine = {
 
         // Return original if no match (e.g. specific destination name)
         return input.toString().trim();
+    },
+
+    _topologyLine(routeStr) {
+        const lines = topology?.lines || {};
+        if (lines[routeStr]) return lines[routeStr];
+        const lower = routeStr.toLowerCase();
+        for (const line of Object.values(lines)) {
+            if ((line.route_aliases || []).some(a => a.toLowerCase() === lower)) return line;
+        }
+        return null;
+    },
+
+    _topologyStopIndex(line, stopName) {
+        if (!stopName) return -1;
+        const normalized = this._canonicalizeStop(stopName) || stopName.trim().toLowerCase();
+        for (let i = 0; i < line.stops.length; i++) {
+            const canon = line.stops[i];
+            if ((this._canonicalizeStop(canon) || canon.toLowerCase()) === normalized) return i;
+            const aliases = (line.aliases && line.aliases[canon]) || [];
+            if (aliases.some(a => (this._canonicalizeStop(a) || a.toLowerCase()) === normalized)) return i;
+        }
+        return -1;
     }
 };

@@ -27,6 +27,7 @@ function makeTrip({
 // Ensure the engine starts with a clean stops library for each test
 beforeEach(() => {
   PredictionEngine.stopsLibrary = [];
+  PredictionEngine.networkGraph = null;
 });
 
 // ---------------------------------------------------------------------------
@@ -453,5 +454,85 @@ describe('PredictionEngine.guessEndStop', () => {
     });
     expect(result).not.toBeNull();
     expect(result.stop).toBe('Spadina');
+  });
+
+  test('constraint rule exposes legal downstream stops for covered topology routes', () => {
+    const constraint = PredictionEngine.getEndStopConstraint({
+      route: '506',
+      startStopName: 'College Station',
+      direction: 'Westbound',
+    });
+
+    expect(constraint.source).toBe('topology');
+    expect(constraint.legalStops).toBeTruthy();
+    expect(constraint.legalStops.has(PredictionEngine._canonicalizeStop('College St at Spadina Ave'))).toBe(true);
+    expect(constraint.legalStops.has(PredictionEngine._canonicalizeStop('Main Street Station'))).toBe(false);
+    expect(constraint.legalStops.has(PredictionEngine._canonicalizeStop('Spadina Station'))).toBe(false);
+  });
+
+  test('popularity does not override legal downstream stop set on covered routes', () => {
+    const history = [
+      ...Array.from({ length: 12 }, (_, i) => makeTrip({
+        route: '506',
+        startStopName: 'College Station',
+        endStopName: 'Spadina Station',
+        direction: 'Westbound',
+        daysAgo: i + 1,
+      })),
+      makeTrip({
+        route: '506',
+        startStopName: 'College Station',
+        endStopName: 'College / Spadina',
+        direction: 'Westbound',
+        daysAgo: 1,
+      }),
+      makeTrip({
+        route: '506',
+        startStopName: 'College Station',
+        endStopName: 'College St at Bathurst St',
+        direction: 'Westbound',
+        daysAgo: 2,
+      }),
+    ];
+
+    const result = PredictionEngine.guessEndStop(history, {
+      route: '506',
+      startStopName: 'College Station',
+      direction: 'Westbound',
+      time: new Date(),
+    });
+    const top = PredictionEngine.guessTopEndStops(history, {
+      route: '506',
+      startStopName: 'College Station',
+      direction: 'Westbound',
+      time: new Date(),
+    }, 3);
+    const constraint = PredictionEngine.getEndStopConstraint({
+      route: '506',
+      startStopName: 'College Station',
+      direction: 'Westbound',
+    });
+
+    expect(result).not.toBeNull();
+    expect(result.stop).not.toBe('Spadina Station');
+    expect(top.map(p => p.stop)).not.toContain('Spadina Station');
+    expect(top.length).toBeGreaterThan(0);
+    expect(top.every(p => constraint.legalStops.has(PredictionEngine._canonicalizeStop(p.stop)))).toBe(true);
+  });
+
+  test('topology aliases cover the 506 start-stop names used by prediction', () => {
+    const fromStation = PredictionEngine.getEndStopConstraint({
+      route: '506',
+      startStopName: 'College Station',
+      direction: 'Westbound',
+    });
+    const fromIntersection = PredictionEngine.getEndStopConstraint({
+      route: '506',
+      startStopName: 'Spadina / College',
+      direction: 'Eastbound',
+    });
+
+    expect(fromStation.source).toBe('topology');
+    expect(fromIntersection.source).toBe('topology');
   });
 });

@@ -11,6 +11,8 @@
  *          confidence and extend the cold-start window from 15 → 20 min.
  */
 
+const { areConnectedStops } = require('./transfer-connections');
+
 const TransferEngine = {
   VERSION: '1.1.0',
 
@@ -176,7 +178,7 @@ const TransferEngine = {
   _stopMatch(a, b) {
     if (!a || !b) return false;
     const normalize = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-    return normalize(a) === normalize(b);
+    return normalize(a) === normalize(b) || areConnectedStops(a, b);
   },
 };
 

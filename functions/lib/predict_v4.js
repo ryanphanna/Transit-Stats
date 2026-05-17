@@ -8,6 +8,7 @@
 const model = require('./model_v4.json');
 const endStopModel = require('./model_v4_endstop.json');
 const { getStopFeature, normalizeRouteForMl, getGapFeatures } = require('./ml_utils');
+const logger = require('./logger');
 
 let _topology = null;
 try {
@@ -30,11 +31,14 @@ function topologyLine(routeStr) {
 
 function topologyStopIndex(line, stopName) {
   if (!stopName) return -1;
-  const lower = stopName.trim().toLowerCase();
+  const norm = s => s.trim().toLowerCase()
+    .replace(/\s*[\/&@]\s*/g, '/')
+    .replace(/\s+at\s+/g, '/');
+  const lower = norm(stopName);
   for (let i = 0; i < line.stops.length; i++) {
-    if (line.stops[i].toLowerCase() === lower) return i;
+    if (norm(line.stops[i]) === lower) return i;
     const aliases = (line.aliases && line.aliases[line.stops[i]]) || [];
-    if (aliases.some(a => a.toLowerCase() === lower)) return i;
+    if (aliases.some(a => norm(a) === lower)) return i;
   }
   return -1;
 }
@@ -57,7 +61,7 @@ function topologyMask(route, boardingStop, direction, classes) {
   }
   const mask = classes.map(cls => {
     const idx = topologyStopIndex(line, cls);
-    if (idx === -1) return true;
+    if (idx === -1) return false;
     return goingHigher ? idx > boardingIdx : idx < boardingIdx;
   });
   return mask.some(Boolean) ? mask : null;
@@ -156,13 +160,34 @@ const PredictionEngineV4 = {
       for (let f = 0; f < x.length; f++) z += endStopModel.coef[c][f] * x[f];
       return z;
     });
+    const rawTopIdx = logits.reduce((best, value, idx, arr) => value > arr[best] ? idx : best, 0);
 
     // NetworkEngine mask takes priority — it learns surface routes automatically.
     // Fall back to topology.json for subway/LRT lines when NetworkEngine has no data.
     const { NetworkEngine } = require('./network.js');
     const networkMask = NetworkEngine.getMask(context.networkGraph, endStopModel.classes, context.startStopName, context.direction);
-    const mask = networkMask || topologyMask(context.route, context.startStopName, context.direction, endStopModel.classes);
+    const topology = networkMask ? null : topologyMask(context.route, context.startStopName, context.direction, endStopModel.classes);
+    const mask = networkMask || topology;
+    const constraintSource = networkMask ? 'network' : (topology ? 'topology' : 'none');
     if (mask) mask.forEach((keep, i) => { if (!keep) logits[i] = -Infinity; });
+    logger.info('End-stop constraint evaluated', {
+      version: this.VERSION,
+      constraintSource,
+      route: context.route,
+      startStopName: context.startStopName,
+      direction: context.direction,
+      legalClassCount: mask ? mask.filter(Boolean).length : null,
+    });
+    if (mask && !mask[rawTopIdx]) {
+      logger.info('End-stop raw top masked', {
+        version: this.VERSION,
+        constraintSource,
+        route: context.route,
+        startStopName: context.startStopName,
+        direction: context.direction,
+        rawTopStop: endStopModel.classes[rawTopIdx],
+      });
+    }
 
     const maxL = Math.max(...logits.filter(isFinite));
     let sumExp = 0;

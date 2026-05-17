@@ -24,6 +24,10 @@ function loadHandlers(overrides = {}) {
     setPendingState: [],
     sendSmsReply: [],
     createTrip: [],
+    batchUpdates: [],
+    loggerInfo: [],
+    loggerWarn: [],
+    loggerError: [],
   };
 
   const dbModule = {
@@ -73,7 +77,11 @@ function loadHandlers(overrides = {}) {
           get: async () => ({ docs: [] }),
         }),
       }),
-      batch: () => ({ update: () => {}, delete: () => {}, commit: async () => {} }),
+      batch: () => ({
+        update: (ref, data) => { calls.batchUpdates.push({ type: 'update', ref, data }); },
+        delete: (ref) => { calls.batchUpdates.push({ type: 'delete', ref }); },
+        commit: async () => {},
+      }),
     },
     isGeminiRateLimited: async () => false,
     createTrip: async (payload) => {
@@ -150,6 +158,7 @@ function loadHandlers(overrides = {}) {
       guess: () => null,
       guessEndStop: () => null,
       guessTopEndStops: () => [],
+      getEndStopConstraint: () => ({ source: 'none', legalStops: null }),
       _stopMatch: () => false,
     },
     ...overrides.predict,
@@ -214,7 +223,13 @@ function loadHandlers(overrides = {}) {
       if (request === './predict_v5.js') return predictV5;
       if (request === './constants') return constants;
       if (request === 'firebase-admin') return firebaseAdmin;
-      if (request === './logger') return { warn: () => {}, info: () => {}, error: () => {} };
+      if (request === './logger') {
+        return {
+          warn: (message, data) => { calls.loggerWarn.push({ message, data }); },
+          info: (message, data) => { calls.loggerInfo.push({ message, data }); },
+          error: (message, data) => { calls.loggerError.push({ message, data }); },
+        };
+      }
     }
     return originalLoad(request, parent, isMain);
   };
@@ -348,6 +363,114 @@ test('handleTripLog: GTFS correction picks route supported by routesAtStop for V
   assert.equal(calls.createTrip.length, 1);
   assert.equal(calls.createTrip[0].predictionV4.route, '510');
   assert.equal(calls.createTrip[0].predictionV5.route, '510');
+});
+
+test('handleTripLog: end-to-end prediction prompt does not surface illegal 506 destinations', async () => {
+  const { PredictionEngine } = require('./lib/predict.js');
+  const now = new Date();
+  const makeTrip = ({ endStopName, daysAgo }) => {
+    const startTime = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+    const endTime = new Date(startTime.getTime() + 25 * 60 * 1000);
+    return {
+      route: '506',
+      startStopName: 'College Station',
+      endStopName,
+      direction: 'Westbound',
+      startTime,
+      endTime,
+    };
+  };
+
+  const history = [
+    ...Array.from({ length: 8 }, (_, i) => makeTrip({ endStopName: 'Spadina Station', daysAgo: i + 1 })),
+    makeTrip({ endStopName: 'College / Spadina', daysAgo: 1 }),
+    makeTrip({ endStopName: 'College St at Bathurst St', daysAgo: 2 }),
+  ];
+
+  const { handlers, calls, restore } = loadHandlers({
+    dbModule: {
+      getRecentCompletedTrips: async () => history,
+      getUserProfile: async () => ({ defaultAgency: 'TTC', isAdmin: true }),
+      lookupStop: async () => ({
+        id: 'stop_506',
+        stopCode: '14400',
+        stopName: 'College Station',
+        source: 'verified',
+      }),
+    },
+    predict: { PredictionEngine },
+    predictV4: {
+      PredictionEngineV4: {
+        guessTopRoutes: () => [],
+        guessTopEndStops: () => [],
+      },
+    },
+    predictV5: {
+      PredictionEngineV5: {
+        guessTopRoutes: async () => [],
+        guessTopEndStops: async () => [],
+      },
+    },
+  });
+
+  try {
+    await handlers.handleTripLog('+14165550004', { userId: 'u4' }, '14400', '506', 'Westbound', 'TTC');
+  } finally {
+    restore();
+    PredictionEngine.networkGraph = null;
+    PredictionEngine.stopsLibrary = [];
+  }
+
+  const reply = calls.sendSmsReply[0]?.message || '';
+  assert.doesNotMatch(reply, /Spadina Station/);
+  assert.match(reply, /College \/ Spadina|College St at Bathurst St/);
+  assert.equal(calls.createTrip[0].endStopConstraintSource, 'topology');
+  assert.notEqual(calls.createTrip[0].endStopPrediction?.stop, 'Spadina Station');
+  assert.match(calls.createTrip[0].endStopPrediction?.stop || '', /College \/ Spadina|College St at Bathurst St/);
+  assert.ok(calls.loggerInfo.some(entry =>
+    entry.message === 'Trip-start end-stop constraint' &&
+    entry.data?.constraintSource === 'topology'
+  ));
+});
+
+test('handleTripLog: writes provisional transfer metadata at second-leg start', async () => {
+  const { TransferEngine } = require('./lib/transfer.js');
+  const now = Date.now();
+  const prevTrip = {
+    id: 'prev_506',
+    route: '506',
+    endStopName: 'College Station',
+    endTime: new Date(now - 4 * 60000),
+    startTime: new Date(now - 14 * 60000),
+  };
+
+  const { handlers, calls, restore } = loadHandlers({
+    dbModule: {
+      getRecentCompletedTrips: async () => [prevTrip],
+      lookupStop: async () => ({
+        id: 'stop_college',
+        stopCode: '1234',
+        stopName: 'College Station',
+        source: 'verified',
+      }),
+    },
+    transfer: { TransferEngine },
+  });
+
+  try {
+    await handlers.handleTripLog('+14165550009', { userId: 'u9' }, '1234', '1', 'Northbound', 'TTC');
+  } finally {
+    restore();
+  }
+
+  assert.equal(calls.createTrip.length, 1);
+  assert.equal(calls.createTrip[0].provisionalTransfer, true);
+  assert.equal(calls.createTrip[0].provisionalPrevTripId, 'prev_506');
+  assert.ok(calls.createTrip[0].provisionalJourneyConfidence >= 0.55);
+  assert.ok(calls.loggerInfo.some(entry =>
+    entry.message === 'Trip-start provisional transfer detected' &&
+    entry.data?.prevTripId === 'prev_506'
+  ));
 });
 
 test('handleEndTrip: next-leg suggestion appended when transfer index has known connection', async () => {
@@ -502,6 +625,74 @@ test('handleEndTrip: transfer scoring uses network connections and observe recei
 
   assert.deepEqual(scoreCalls[0], { '2_to_1': 3 });
   assert.equal(observeCalls[0].prevRoute, '2');
+});
+
+test('handleEndTrip: final journey reconciliation prefers provisional previous trip', async () => {
+  const { TransferEngine } = require('./lib/transfer.js');
+  const now = Date.now();
+  const trip504 = {
+    id: 'prev_504',
+    route: '504',
+    endStopName: 'College Station',
+    endTime: { toDate: () => new Date(now - 8 * 60000) },
+    startTime: { toDate: () => new Date(now - 23 * 60000) },
+  };
+  const trip506 = {
+    id: 'prev_506',
+    route: '506',
+    endStopName: 'College Station',
+    endTime: { toDate: () => new Date(now - 3 * 60000) },
+    startTime: { toDate: () => new Date(now - 14 * 60000) },
+  };
+
+  const { handlers, calls, restore } = loadHandlers({
+    dbModule: {
+      getActiveTrip: async () => ({
+        id: 'trip_1',
+        userId: 'u10',
+        route: '1',
+        direction: 'Northbound',
+        agency: 'TTC',
+        startStopName: 'College Station',
+        startStopCode: '1234',
+        startTime: { toDate: () => new Date(now) },
+        prediction: null, predictionV4: null, predictionV5: null,
+        habitPrediction: null, endStopPrediction: null,
+        endStopPredictionV4: null, endStopPredictionV5: null,
+        endStopPredictions: null, stop_matched: true,
+        provisionalPrevTripId: 'prev_506',
+      }),
+      getRecentCompletedTrips: async () => [trip504, trip506],
+      lookupStop: async (_code, stopName) => ({
+        id: `stop_${String(stopName || 'college').toLowerCase().replace(/[^a-z0-9]+/g, '_')}`,
+        stopCode: '1234',
+        stopName: stopName || 'Davisville',
+        source: 'verified',
+      }),
+    },
+    network: {
+      NetworkEngine: {
+        load: async () => null,
+        observe: async () => {},
+        filterCandidates: () => null,
+        getEdgeMedianDuration: () => null,
+        getMedianDuration: () => null,
+        getConnectionsAtStop: async () => ({}),
+        getConnectionLabels: async () => ({}),
+        _key: (s) => s.toString().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
+      },
+    },
+    transfer: { TransferEngine },
+  });
+
+  try {
+    await handlers.handleEndTrip('+14165550010', { userId: 'u10' }, 'Davisville');
+  } finally {
+    restore();
+  }
+
+  const reply = calls.sendSmsReply[0]?.message || '';
+  assert.match(reply, /Linked to your 506 trip/);
 });
 
 function makeEndTripHandlers(networkOverride) {

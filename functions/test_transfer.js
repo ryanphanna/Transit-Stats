@@ -142,6 +142,13 @@ test('_stopMatch: null inputs return false', () => {
   assert.equal(TransferEngine._stopMatch('Spadina Station', null), false);
 });
 
+test('_stopMatch: connected transfer-complex stops match', () => {
+  assert.equal(
+    TransferEngine._stopMatch('College St at Yonge St - College Station', 'College Station'),
+    true
+  );
+});
+
 // ─── score: NetworkEngine signal (v1.1) ──────────────────────────────────────
 
 test('score: cold start + network connection extends window to 20 min', () => {
@@ -171,4 +178,28 @@ test('score: network connection count < 2 does not boost', () => {
   const next = trip({ route: '2', startStop: 'Spadina Station', startTime: new Date('2026-04-15T20:17:00Z') });
   const confidence = TransferEngine.score(prev, next, [], { '510_to_2': 1 });
   assert.ok(confidence < TransferEngine.CONFIDENCE_THRESHOLD, `Single observation should not boost cold start, got ${confidence}`);
+});
+
+test('score: connected transfer-complex stop pair links from history', () => {
+  const history = [
+    ...linkedPair({
+      routeA: '506',
+      routeB: '1',
+      endStop: 'College St at Yonge St - College Station',
+      startStop: 'College Station',
+      gap: 3,
+    }),
+  ];
+  const prev = trip({
+    route: '506',
+    endStop: 'College St at Yonge St - College Station',
+    endTime: new Date('2026-04-15T20:10:00Z'),
+  });
+  const next = trip({
+    route: '1',
+    startStop: 'College Station',
+    startTime: new Date('2026-04-15T20:13:00Z'),
+  });
+  const confidence = TransferEngine.score(prev, next, history);
+  assert.ok(confidence >= TransferEngine.CONFIDENCE_THRESHOLD, `Expected connected stop pair to link, got ${confidence}`);
 });
