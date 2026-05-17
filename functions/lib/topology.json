@@ -1,6 +1,235 @@
 {
   "note": "Ordered stop sequences for direction constraint filtering. Add route_aliases to match how routes are logged in trips. Add stop aliases to match stop name variants.",
   "lines": {
+    "510": {
+      "name": "Spadina",
+      "network": "TTC",
+      "route_aliases": ["510A", "510B", "510a", "510b", "510 Shuttle"],
+      "stops": [
+        "Spadina Station",
+        "Spadina Ave at Sussex Ave",
+        "Spadina Ave at Harbord St",
+        "Spadina Ave at Willcocks St",
+        "Spadina Ave at College St",
+        "Spadina Ave at Nassau St",
+        "Spadina Ave at Dundas St West",
+        "Spadina Ave at Sullivan St",
+        "Spadina Ave at Queen St West",
+        "Spadina Ave at King St West",
+        "Spadina Ave at Front St West",
+        "Spadina Ave at Bremner Blvd",
+        "Queens Quay West at Lower Spadina Ave",
+        "Queens Quay West at Rees St",
+        "Queens Quay West at Harbourfront Centre",
+        "Queens Quay/Ferry Docks Station",
+        "Union Station"
+      ],
+      "aliases": {
+        "Spadina Ave at Sussex Ave": ["Spadina / Sussex"],
+        "Spadina Ave at Harbord St": ["Spadina / Harbord"],
+        "Spadina Ave at Willcocks St": ["Spadina / Willcocks"],
+        "Spadina Ave at College St": ["Spadina / College", "College / Spadina", "Spadina Ave at College St North Side", "Spadina Ave at College St South Side"],
+        "Spadina Ave at Nassau St": ["Spadina / Nassau", "Spadina Ave at Nassau St South Side"],
+        "Spadina Ave at Dundas St West": ["Spadina / Dundas"],
+        "Spadina Ave at Queen St West": ["Spadina / Queen", "Queen / Spadina", "Spadina Ave at Queen St West North Side", "Spadina Ave at Queen St West South Side"],
+        "Spadina Ave at King St West": ["Spadina / King", "King / Spadina"],
+        "Queens Quay West at Lower Spadina Ave": ["Spadina / Queens Quay West", "Queens Quay West at Lower Spadina Ave East Side"],
+        "Queens Quay West at Harbourfront Centre": ["Harbourfront Centre", "Queens Quay / Harbourfront Centre"]
+      }
+    },
+    "506": {
+      "name": "Carlton",
+      "network": "TTC",
+      "route_aliases": ["506B", "506 Bus B"],
+      "stops": [
+        "High Park Loop",
+        "Howard Park Ave at Dundas St West",
+        "College St at Lansdowne Ave",
+        "College St at Dufferin St",
+        "College St at Ossington Ave",
+        "College St at Crawford St",
+        "College St at Bathurst St",
+        "College St at Spadina Ave",
+        "College St at University Ave - Queen's Park Station",
+        "College St at Yonge St - College Station",
+        "Carlton St at Church St",
+        "Carlton St at Sherbourne St",
+        "Carlton St at Parliament St",
+        "Gerrard St East at Broadview Ave",
+        "Gerrard St East at Pape Ave",
+        "Gerrard St East at Greenwood Ave",
+        "Gerrard St East at Coxwell Ave",
+        "Gerrard St East at Woodbine Ave",
+        "Main Street Station"
+      ],
+      "aliases": {
+        "College St at Spadina Ave": ["College / Spadina", "Spadina / College"],
+        "College St at University Ave - Queen's Park Station": ["Queen's Park Station", "College / University"],
+        "College St at Yonge St - College Station": ["College Station", "College / Yonge"],
+        "Carlton St at Church St": ["Carlton / Church", "Church / Carlton"],
+        "Gerrard St East at Broadview Ave": ["Gerrard / Broadview", "Broadview / Gerrard"]
+      }
+    },
+    "504": {
+      "name": "King",
+      "network": "TTC",
+      "route_aliases": ["504A", "504B", "504a", "504b"],
+      "stops": [
+        "Broadview Ave at Langley Ave-Hennick Bridgepoint Hospital",
+        "King St East at Sumach St",
+        "King St East at Ontario St",
+        "King Station"
+      ],
+      "aliases": {
+        "Broadview Ave at Langley Ave-Hennick Bridgepoint Hospital": ["Broadview / Langley", "Bridgepoint Hospital"],
+        "King St East at Sumach St": ["King / Sumach"],
+        "King St East at Ontario St": ["King / Ontario"]
+      }
+    },
+    "512": {
+      "name": "St Clair",
+      "network": "TTC",
+      "stops": [
+        "Gunns Loop at St Clair Ave West",
+        "St Clair Ave West at Old Stock Yards Rd",
+        "St Clair Ave West at Keele St/ Weston Rd",
+        "St Clair Ave West at Old Weston Rd",
+        "St Clair Ave West at Caledonia Rd",
+        "St Clair Ave West at Dufferin St",
+        "St Clair Ave West at Oakwood Ave",
+        "St Clair Ave West at Christie St",
+        "St Clair Ave West at Bathurst St",
+        "St Clair West Station",
+        "St Clair Ave West at Spadina Rd",
+        "St Clair Ave West at Avenue Rd",
+        "St Clair Station"
+      ],
+      "aliases": {
+        "St Clair Ave West at Keele St/ Weston Rd": ["Keele / St Clair", "St Clair / Keele"],
+        "St Clair Ave West at Dufferin St": ["Dufferin / St Clair", "St Clair / Dufferin"],
+        "St Clair Ave West at Oakwood Ave": ["Oakwood / St Clair", "St Clair / Oakwood"],
+        "St Clair Ave West at Bathurst St": ["Bathurst / St Clair", "St Clair / Bathurst"],
+        "St Clair Ave West at Spadina Rd": ["Spadina / St Clair", "St Clair / Spadina"],
+        "St Clair Ave West at Avenue Rd": ["Avenue / St Clair", "St Clair / Avenue"]
+      }
+    },
+    "505": {
+      "name": "Dundas",
+      "network": "TTC",
+      "stops": [
+        "Dundas West Station",
+        "Dundas St West at Roncesvalles Ave",
+        "Dundas St West at Lansdowne Ave",
+        "Dundas St West at Dufferin St",
+        "Dundas St West at Ossington Ave",
+        "Dundas St West at Bathurst St - Toronto Western Hospital",
+        "Dundas St West at Spadina Ave",
+        "Dundas St West at University Ave - St Patrick Station",
+        "Dundas St West at Yonge St - TMU Station",
+        "Dundas St East at Sherbourne St",
+        "Dundas St East at Parliament St",
+        "Dundas St East at Broadview Ave",
+        "Broadview Station"
+      ],
+      "aliases": {
+        "Dundas St West at Roncesvalles Ave": ["Dundas / Roncesvalles"],
+        "Dundas St West at Lansdowne Ave": ["Dundas / Lansdowne"],
+        "Dundas St West at Dufferin St": ["Dundas / Dufferin"],
+        "Dundas St West at Ossington Ave": ["Dundas / Ossington"],
+        "Dundas St West at Bathurst St - Toronto Western Hospital": ["Dundas / Bathurst", "Toronto Western Hospital"],
+        "Dundas St West at Spadina Ave": ["Dundas / Spadina", "Spadina / Dundas"],
+        "Dundas St West at University Ave - St Patrick Station": ["St Patrick Station", "Dundas / University"],
+        "Dundas St West at Yonge St - TMU Station": ["TMU Station", "Dundas / Yonge", "Dundas Square"],
+        "Dundas St East at Sherbourne St": ["Dundas / Sherbourne"],
+        "Dundas St East at Parliament St": ["Dundas / Parliament"]
+      }
+    },
+    "501": {
+      "name": "Queen",
+      "network": "TTC",
+      "stops": [
+        "Humber Loop at The Queensway",
+        "The Queensway at Parkside Dr",
+        "Queen St West at Roncesvalles Ave",
+        "Queen St West at Dufferin St",
+        "Queen St West at Ossington Ave",
+        "Queen St West at Bathurst St",
+        "Queen St West at Spadina Ave",
+        "Queen St West at University Ave - Osgoode Station",
+        "Adelaide St West at Yonge St - King Station",
+        "Queen St East at Sherbourne St",
+        "Queen St East at Parliament St",
+        "Dundas St East at Broadview Ave",
+        "Queen St East at Carlaw Ave",
+        "Queen St East at Pape Ave",
+        "Queen St East at Greenwood Ave",
+        "Queen St East at Woodbine Ave",
+        "Queen St East at Neville Park Blvd"
+      ],
+      "aliases": {
+        "Queen St West at Roncesvalles Ave": ["Queen / Roncesvalles"],
+        "Queen St West at Dufferin St": ["Queen / Dufferin"],
+        "Queen St West at Ossington Ave": ["Queen / Ossington"],
+        "Queen St West at Bathurst St": ["Queen / Bathurst"],
+        "Queen St West at Spadina Ave": ["Queen / Spadina", "Spadina / Queen"],
+        "Queen St West at University Ave - Osgoode Station": ["Osgoode Station", "Queen / University"],
+        "Adelaide St West at Yonge St - King Station": ["King Station", "Queen / Yonge"],
+        "Queen St East at Sherbourne St": ["Queen / Sherbourne"],
+        "Queen St East at Parliament St": ["Queen / Parliament"]
+      }
+    },
+    "41": {
+      "name": "Keele",
+      "network": "TTC",
+      "stops": [
+        "Pioneer Village Station",
+        "Keele St at Finch Ave West - Finch West Station",
+        "Keele St at Sheppard Ave West",
+        "Keele St at Wilson Ave",
+        "Keele St at Lawrence Ave West",
+        "Keele St at Eglinton Ave West",
+        "Keele St at Rogers Rd",
+        "Weston Rd at St Clair Ave West",
+        "Keele St at Dundas St West",
+        "Keele Station"
+      ],
+      "aliases": {
+        "Keele St at Finch Ave West - Finch West Station": ["Finch West Station", "Keele / Finch"],
+        "Keele St at Sheppard Ave West": ["Keele / Sheppard"],
+        "Keele St at Wilson Ave": ["Keele / Wilson"],
+        "Keele St at Lawrence Ave West": ["Keele / Lawrence"],
+        "Keele St at Eglinton Ave West": ["Keele / Eglinton"],
+        "Keele St at Rogers Rd": ["Keele / Rogers"],
+        "Weston Rd at St Clair Ave West": ["St Clair / Weston", "Keele / St Clair"],
+        "Keele St at Dundas St West": ["Keele / Dundas"]
+      }
+    },
+    "511": {
+      "name": "Bathurst",
+      "network": "TTC",
+      "stops": [
+        "Bathurst Station",
+        "Bathurst St at Harbord St",
+        "Bathurst St at College St",
+        "Bathurst St at Nassau St - Toronto Western Hospital",
+        "Bathurst St at Dundas St West - Toronto Western Hospital",
+        "Bathurst St at Queen St West",
+        "Bathurst St at King St West",
+        "Bathurst St at Fort York Blvd",
+        "Fleet St at Bathurst St",
+        "Exhibition Loop"
+      ],
+      "aliases": {
+        "Bathurst St at Harbord St": ["Bathurst / Harbord", "Harbord / Bathurst"],
+        "Bathurst St at College St": ["Bathurst / College", "College / Bathurst"],
+        "Bathurst St at Nassau St - Toronto Western Hospital": ["Bathurst / Nassau", "Nassau / Bathurst", "Toronto Western Hospital"],
+        "Bathurst St at Dundas St West - Toronto Western Hospital": ["Bathurst / Dundas", "Dundas / Bathurst"],
+        "Bathurst St at Queen St West": ["Bathurst / Queen", "Queen / Bathurst"],
+        "Bathurst St at King St West": ["Bathurst / King", "King / Bathurst"],
+        "Bathurst St at Fort York Blvd": ["Bathurst / Fort York", "Fort York / Bathurst"],
+        "Fleet St at Bathurst St": ["Fleet / Bathurst", "Bathurst / Fleet"]
+      }
+    },
     "1": {
       "network": "TTC",
       "city": "Toronto",

@@ -559,6 +559,63 @@ test('_withTransitiveEdges: inferred edges fill gaps without overwriting real ed
   assert.equal(augGraph.edges[acKey].tripCount, 99);
 });
 
+// ─── Phase 3: Temporal Deduction ─────────────────────────────────────────────
+
+test('observe: deduces surface route adjacency from durations', async () => {
+  const db = makeWriteableDb();
+  
+  // Trip 1: A -> C (20 mins)
+  await NetworkEngine.observe(db, 'u1', {
+    route: '510',
+    agency: 'TTC',
+    direction: 'Northbound',
+    startStopName: 'Stop A',
+    endStopName: 'Stop C',
+    duration: 20,
+  });
+
+  // Trip 2: A -> B (10 mins)
+  await NetworkEngine.observe(db, 'u1', {
+    route: '510',
+    agency: 'TTC',
+    direction: 'Northbound',
+    startStopName: 'Stop A',
+    endStopName: 'Stop B',
+    duration: 10,
+  });
+
+  const globalKey = NetworkEngine._globalDocId('TTC', '510');
+  const graph = db._store[`networkGraph/${globalKey}`];
+  
+  // Should have inferred B -> C because B is 10m from A and C is 20m from A
+  const edges = Object.values(graph.edges);
+  const temporal = edges.find(e => e.edgeType === 'inferred_temporal');
+  assert.ok(temporal, 'should have inferred a temporal edge');
+  assert.equal(temporal.fromStop, 'Stop B');
+  assert.equal(temporal.toStop, 'Stop C');
+  assert.equal(temporal.medianMinutes, 10);
+});
+
+// ─── Phase 4: Confidence Model ───────────────────────────────────────────────
+
+test('_getConfidence: verified source boosts score', () => {
+  const edge = { tripCount: 1, fromStopSource: 'verified' };
+  assert.equal(NetworkEngine._getConfidence(edge), 3); // 1 + 2
+});
+
+test('_getConfidence: topology edges get major boost', () => {
+  const edge = { tripCount: 1, edgeType: 'inferred_topology' };
+  assert.equal(NetworkEngine._getConfidence(edge), 6); // 1 + 5
+});
+
+test('_getConfidence: old edges are penalized', () => {
+  const edge = { 
+    tripCount: 10, 
+    lastObservedAt: new Date(Date.now() - 100 * 24 * 60 * 60 * 1000).toISOString() // 100 days old
+  };
+  assert.equal(NetworkEngine._getConfidence(edge), 5); // 10 * 0.5
+});
+
 test('getMask: includes transitively reachable stops', () => {
   // A→B + B→C are real edges; boarding at A should include C in the mask
   const graph = {

@@ -19,7 +19,7 @@
  */
 
 const NetworkEngine = {
-  VERSION: '1.3.0',
+  VERSION: '2.1.0',
 
   // Minimum trips on an edge before it's trusted for prediction filtering
   MIN_TRIPS: 3,
@@ -30,11 +30,14 @@ const NetworkEngine = {
    *
    * @param {Object} db - Firestore instance
    * @param {string} userId
-   * @param {Object} trip - { route, agency, direction, startStopName, endStopName, duration }
+   * @param {Object} trip - { route, agency, direction, startStopName, endStopName, duration, startStop, endStop }
    * @param {string|null} prevRoute - Route of the preceding trip, if any (records a transfer)
    */
   async observe(db, userId, trip, prevRoute = null) {
-    const { route, agency, direction, startStopName, endStopName, duration } = trip;
+    const { route, agency, direction, duration, startStop, endStop } = trip;
+    const startStopName = startStop?.stopName || trip.startStopName;
+    const endStopName = endStop?.stopName || trip.endStopName;
+
     if (!route || !agency || !direction || !startStopName || !endStopName || !duration) return;
     if (duration <= 0 || duration > 180) return;
 
@@ -49,9 +52,14 @@ const NetworkEngine = {
         const doc = await tx.get(docRef);
         const data = doc.exists ? doc.data() : { ...baseData, edges: {} };
 
+        // 1. Record the primary observed edge
         const edge = data.edges[edgeKey] || {
           fromStop: startStopName,
           toStop: endStopName,
+          fromStopId: startStop?.id || null,
+          toStopId: endStop?.id || null,
+          fromStopSource: startStop?.source || null,
+          toStopSource: endStop?.source || null,
           direction: normDir,
           durations: [],
           durationsByHour: {},
@@ -66,8 +74,47 @@ const NetworkEngine = {
         edge.tripCount = (edge.tripCount || 0) + 1;
         edge.medianMinutes = this._median(edge.durations);
         edge.updatedAt = new Date().toISOString();
+        edge.lastObservedAt = edge.updatedAt;
+        edge.edgeType = 'observed';
 
         data.edges[edgeKey] = edge;
+
+        // 2. Temporal Deduction (Phase 3)
+        // Use duration to infer adjacency. If A->C takes 30m and A->B takes 15m, B likely precedes C.
+        if (edge.medianMinutes) {
+          const otherEdges = Object.values(data.edges).filter(e => 
+            e.fromStop === startStopName && 
+            e.direction === normDir && 
+            e.edgeType === 'observed' &&
+            e.toStop !== endStopName &&
+            e.medianMinutes
+          );
+
+          for (const other of otherEdges) {
+            const tCurrent = edge.medianMinutes;
+            const tOther = other.medianMinutes;
+            const diff = Math.abs(tCurrent - tOther);
+            
+            if (diff >= 1) {
+              const [closer, farther] = tOther < tCurrent ? [other, edge] : [edge, other];
+              const infKey = this._edgeKey(closer.toStop, normDir, farther.toStop);
+              
+              if (!data.edges[infKey]) {
+                data.edges[infKey] = {
+                  fromStop: closer.toStop,
+                  toStop: farther.toStop,
+                  direction: normDir,
+                  edgeType: 'inferred_temporal',
+                  tripCount: 1,
+                  medianMinutes: Math.round(diff),
+                  updatedAt: edge.updatedAt,
+                  lastObservedAt: edge.updatedAt,
+                };
+              }
+            }
+          }
+        }
+
         tx.set(docRef, data);
       });
     };
@@ -248,7 +295,7 @@ const NetworkEngine = {
       if (this._normalize(edge.fromStop) !== normBoarding) continue;
       if (edge.direction !== normDir) continue;
 
-      if (edge.tripCount >= minTrips) {
+      if (this._getConfidence(edge) >= minTrips) {
         reachable.add(this._normalize(edge.toStop));
         hasConfidentEdge = true;
       }
@@ -261,7 +308,7 @@ const NetworkEngine = {
       for (const edge of Object.values(graph.edges || {})) {
         if (this._normalize(edge.toStop) !== normBoarding) continue;
         if (edge.direction !== oppositeDir) continue;
-        if (edge.tripCount >= minTrips) {
+        if (this._getConfidence(edge) >= minTrips) {
           reachable.add(this._normalize(edge.fromStop));
           hasConfidentEdge = true;
         }
@@ -269,6 +316,30 @@ const NetworkEngine = {
     }
 
     return hasConfidentEdge ? reachable : null;
+  },
+
+  _getConfidence(edge) {
+    let score = edge.tripCount || 0;
+    
+    // Boost score if the source is trusted
+    if (edge.fromStopSource === 'verified' || edge.toStopSource === 'verified') score += 2;
+    if (edge.fromStopSource === 'gtfs' || edge.toStopSource === 'gtfs') score += 1;
+    
+    // Topology edges are highly trusted (pre-built sequences)
+    if (edge.edgeType === 'inferred_topology') score += 5;
+    
+    // Penalty for old edges (simple linear decay over 90 days)
+    if (edge.lastObservedAt) {
+      const msOld = Date.now() - new Date(edge.lastObservedAt).getTime();
+      const daysOld = msOld / (1000 * 60 * 60 * 24);
+      if (daysOld > 90) {
+        score *= 0.5;
+      } else if (daysOld > 30) {
+        score *= 0.8;
+      }
+    }
+
+    return score;
   },
 
   /**

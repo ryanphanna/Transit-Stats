@@ -24,15 +24,15 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-// Returns canonical stop name, or null if not found in library
+// Returns canonical stop object, or null if not found in library
 function canonicalize(stopsLib, stopCode, stopName, agency) {
   if (!stopName) return null;
   const lower = stopName.toString().toLowerCase().trim();
   for (const stop of stopsLib) {
     if (stop.agency && agency && stop.agency !== agency) continue;
-    if (stop.name?.toLowerCase() === lower) return stop.name;
-    if (stop.code && stop.code === stopCode) return stop.name;
-    if ((stop.aliases || []).some(a => a.toLowerCase() === lower)) return stop.name;
+    if (stop.name?.toLowerCase() === lower) return { ...stop, stopName: stop.name };
+    if (stop.code && stop.code === stopCode) return { ...stop, stopName: stop.name };
+    if ((stop.aliases || []).some(a => a.toLowerCase() === lower)) return { ...stop, stopName: stop.name };
   }
   return null;
 }
@@ -68,8 +68,8 @@ async function run() {
         route: trip.route,
         agency: trip.agency,
         direction: trip.direction,
-        startStopName: startCanonical,
-        endStopName: endCanonical,
+        startStop: startCanonical,
+        endStop: endCanonical,
         duration: trip.duration,
       });
       processed++;

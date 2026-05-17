@@ -149,6 +149,153 @@ test('_stopMatch: connected transfer-complex stops match', () => {
   );
 });
 
+test('_stopMatch: king complex connected stops match', () => {
+  assert.equal(
+    TransferEngine._stopMatch('Adelaide St West at Yonge St - King Station', 'King'),
+    true
+  );
+});
+
+test('_stopMatch: dundas west complex connected stops match', () => {
+  assert.equal(
+    TransferEngine._stopMatch('Dundas West Station', 'Dundas West'),
+    true
+  );
+});
+
+test('_stopMatch: bloor-yonge complex connected stops match', () => {
+  assert.equal(
+    TransferEngine._stopMatch('Bloor-Yonge Station', 'Bloor-Yonge'),
+    true
+  );
+});
+
+test('_stopMatch: cedarvale complex connected stops match', () => {
+  assert.equal(
+    TransferEngine._stopMatch('Cedarvale Station', 'Cedarvale'),
+    true
+  );
+});
+
+test('_stopMatch: keelesdale complex connected stops match', () => {
+  assert.equal(
+    TransferEngine._stopMatch('Keelesdale Station', 'Keelesdale'),
+    true
+  );
+});
+
+test('_stopMatch: st george complex connected stops match', () => {
+  assert.equal(
+    TransferEngine._stopMatch('St George Station', 'Stgeorge'),
+    true
+  );
+});
+
+test('_stopMatch: lawrence west complex connected stops match', () => {
+  assert.equal(
+    TransferEngine._stopMatch('LAWRENCE W STATION', 'Lawrence West'),
+    true
+  );
+});
+
+test('_stopMatch: sheppard-yonge complex connected stops match', () => {
+  assert.equal(
+    TransferEngine._stopMatch('SHEPPARD-YONGE', 'Sheppard-Yonge Station'),
+    true
+  );
+});
+
+test('_stopMatch: osgoode complex connected stops match', () => {
+  assert.equal(
+    TransferEngine._stopMatch('OSGOODE', 'Osgoode Station'),
+    true
+  );
+});
+
+test('_stopMatch: college bay pair matches college station', () => {
+  assert.equal(
+    TransferEngine._stopMatch('College / Bay', 'College Station'),
+    true
+  );
+});
+
+test('_stopMatch: college station pair matches college yonge', () => {
+  assert.equal(
+    TransferEngine._stopMatch('College Station', 'College / Yonge'),
+    true
+  );
+});
+
+test('_stopMatch: queens quay spadina pair matches', () => {
+  assert.equal(
+    TransferEngine._stopMatch('Spadina / Queens Quay', 'Spadina / Queens Quay West'),
+    true
+  );
+});
+
+test('_stopMatch: queen and spadina corner pair matches', () => {
+  assert.equal(
+    TransferEngine._stopMatch('Queen St West at Spadina Ave', 'Spadina Ave at Queen St West North Side'),
+    true
+  );
+});
+
+test('_stopMatch: dufferin lawrence pair matches', () => {
+  assert.equal(
+    TransferEngine._stopMatch('Dufferin / Lawrence', 'Lawrence / Dufferin'),
+    true
+  );
+});
+
+test('_stopMatch: harbord spadina pair matches', () => {
+  assert.equal(
+    TransferEngine._stopMatch('Harbord / Spadina', '8124 Spadina and Harbord'),
+    true
+  );
+});
+
+test('_stopMatch: spadina harbord reverse pair matches', () => {
+  assert.equal(
+    TransferEngine._stopMatch('Spadina / Harbord', 'Harbord / Spadina'),
+    true
+  );
+});
+
+test('_stopMatch: spadina king numbered stop pair matches', () => {
+  assert.equal(
+    TransferEngine._stopMatch('Spadina / King', '13161 Spadina / King'),
+    true
+  );
+});
+
+test('_stopMatch: carlaw queen numbered stop pair matches', () => {
+  assert.equal(
+    TransferEngine._stopMatch('Queen St E / Carlaw Av', '4858 Carlaw & Queen St E'),
+    true
+  );
+});
+
+test('_stopMatch: dufferin college drift matches', () => {
+  assert.equal(
+    TransferEngine._stopMatch('Dufferin&college', '826 College & Dufferin'),
+    true
+  );
+});
+
+test('_stopMatch: dundas sterling typo matches', () => {
+  assert.equal(
+    TransferEngine._stopMatch('Dundas/Sterling', 'Dundas/Sterlingp'),
+    true
+  );
+});
+
+test('_stopMatch: keelsdale typo matches keelesdale', () => {
+  assert.equal(
+    TransferEngine._stopMatch('Keelsdale', 'Keelesdale'),
+    true
+  );
+});
+
 // ─── score: NetworkEngine signal (v1.1) ──────────────────────────────────────
 
 test('score: cold start + network connection extends window to 20 min', () => {
@@ -202,4 +349,100 @@ test('score: connected transfer-complex stop pair links from history', () => {
   });
   const confidence = TransferEngine.score(prev, next, history);
   assert.ok(confidence >= TransferEngine.CONFIDENCE_THRESHOLD, `Expected connected stop pair to link, got ${confidence}`);
+});
+
+test('score: bloor-yonge complex stop pair links from history', () => {
+  const history = [
+    ...linkedPair({
+      routeA: '1',
+      routeB: '2',
+      endStop: 'Bloor-Yonge Station',
+      startStop: 'Bloor-Yonge',
+      gap: 4,
+    }),
+  ];
+  const prev = trip({
+    route: '1',
+    endStop: 'Bloor-Yonge Station',
+    endTime: new Date('2026-04-15T20:10:00Z'),
+  });
+  const next = trip({
+    route: '2',
+    startStop: 'Bloor-Yonge',
+    startTime: new Date('2026-04-15T20:14:00Z'),
+  });
+  const confidence = TransferEngine.score(prev, next, history);
+  assert.ok(confidence >= TransferEngine.CONFIDENCE_THRESHOLD, `Expected Bloor-Yonge stop pair to link, got ${confidence}`);
+});
+
+test('score: sheppard-yonge complex stop pair links from history', () => {
+  const history = [
+    ...linkedPair({
+      routeA: '1',
+      routeB: '84A',
+      endStop: 'SHEPPARD-YONGE',
+      startStop: 'Sheppard-Yonge Station',
+      gap: 6,
+    }),
+  ];
+  const prev = trip({
+    route: '1',
+    endStop: 'SHEPPARD-YONGE',
+    endTime: new Date('2026-04-15T20:10:00Z'),
+  });
+  const next = trip({
+    route: '84A',
+    startStop: 'Sheppard-Yonge Station',
+    startTime: new Date('2026-04-15T20:16:00Z'),
+  });
+  const confidence = TransferEngine.score(prev, next, history);
+  assert.ok(confidence >= TransferEngine.CONFIDENCE_THRESHOLD, `Expected Sheppard-Yonge stop pair to link, got ${confidence}`);
+});
+
+test('score: connected stop pair links from history for intersection-style transfer', () => {
+  const history = [
+    ...linkedPair({
+      routeA: '509',
+      routeB: '510',
+      endStop: 'Spadina / Queens Quay',
+      startStop: 'Spadina / Queens Quay West',
+      gap: 5,
+    }),
+  ];
+  const prev = trip({
+    route: '509',
+    endStop: 'Spadina / Queens Quay',
+    endTime: new Date('2026-04-15T20:10:00Z'),
+  });
+  const next = trip({
+    route: '510',
+    startStop: 'Spadina / Queens Quay West',
+    startTime: new Date('2026-04-15T20:15:00Z'),
+  });
+  const confidence = TransferEngine.score(prev, next, history);
+  assert.ok(confidence >= TransferEngine.CONFIDENCE_THRESHOLD, `Expected connected stop pair to link, got ${confidence}`);
+});
+
+test('score: typo-cleaned stop pair links from history', () => {
+  const history = [
+    ...linkedPair({
+      routeA: '41',
+      routeB: '5',
+      endStop: 'Keelsdale',
+      startStop: 'Keelesdale',
+      gap: 6,
+    }),
+  ];
+  const prev = trip({
+    route: '41',
+    endStop: 'Keelsdale',
+    endTime: new Date('2026-04-15T20:10:00Z'),
+  });
+  const next = trip({
+    route: '5',
+    startStop: 'Keelesdale',
+    startTime: new Date('2026-04-15T20:16:00Z'),
+  });
+  const confidence = TransferEngine.score(prev, next, history);
+  assert.ok(confidence >= TransferEngine.CONFIDENCE_THRESHOLD, `Expected typo-cleaned stop pair to link, got ${confidence}`);
 });
