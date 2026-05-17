@@ -6,6 +6,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Firestore privilege-boundary rules tests** (`tests/firestore.rules.test.js`, `package.json`): Added emulator-backed security tests covering normal profile creation, blocked self-promotion to `isPremium`/`isAdmin`, and admin-only privileged profile updates.
+
+### Fixed
+- **Profile privilege escalation via user-writable flags** (`firestore.rules`, `functions/lib/db/users.js`, `functions/lib/handlers-query.js`, `functions/lib/handlers-trip.js`, `functions/test_handlers.js`, `functions/test_dispatcher.js`): Users can no longer promote themselves by editing `profiles/{userId}`. Profile writes now preserve `isPremium` and `isAdmin` unless performed by an actual admin from `allowedUsers`, and backend admin-only behavior now checks `allowedUsers` directly instead of trusting mutable profile fields.
+- **Twilio webhook validation logs exposed auth-derived material** (`functions/lib/twilio.js`): Removed `secretPrefix` and full `X-Twilio-Signature` values from production logs while keeping request-shape diagnostics for webhook debugging.
+
 ## [1.36.0] - 2026-05-17
 
 ### Added

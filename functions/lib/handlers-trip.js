@@ -11,6 +11,7 @@ const {
   setPendingState,
   clearPendingState,
   getUserProfile,
+  isEmailAdmin,
   lookupStop,
   findMatchingStops,
   getRoutesAtStop,
@@ -215,17 +216,18 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
   let isAdmin = false;
   let defaultAgency = 'TTC';
   try {
-    const [history, stopsLibrary, routesAtStop, profile, networkGraph, habits] = await Promise.all([
+    const [history, stopsLibrary, routesAtStop, profile, networkGraph, habits, adminStatus] = await Promise.all([
       getRecentCompletedTrips(user.userId, 100),
       getStopsLibrary(),
       getRoutesAtStop(startStopCode, resolvedAgency),
       getUserProfile(user.userId),
       NetworkEngine.load(db, user.userId, resolvedAgency, route),
       HabitEngine.load(db, user.userId),
+      isEmailAdmin(user.email),
     ]);
     PredictionEngine.stopsLibrary = stopsLibrary;
     PredictionEngine.networkGraph = networkGraph || null;
-    isAdmin = !!profile?.isAdmin;
+    isAdmin = adminStatus;
     defaultAgency = profile?.defaultAgency || 'TTC';
     const now = new Date();
     const habitMatch = HabitEngine.match(habits, startStopName, now, { route, direction });
@@ -398,15 +400,16 @@ async function handleConfirmStart(phoneNumber, user, state) {
   let confirmIsAdmin = false;
   let confirmProvisionalTransfer = null;
   try {
-    const [history, stopsLibrary, routesAtStop, confirmProfile, confirmNetworkGraph] = await Promise.all([
+    const [history, stopsLibrary, routesAtStop, confirmProfile, confirmNetworkGraph, confirmAdminStatus] = await Promise.all([
       getRecentCompletedTrips(user.userId, 100),
       getStopsLibrary(),
       getRoutesAtStop(newTrip.stopCode, newTrip.agency),
       getUserProfile(user.userId),
       NetworkEngine.load(db, user.userId, newTrip.agency, newTrip.route),
+      isEmailAdmin(user.email),
     ]);
     PredictionEngine.stopsLibrary = stopsLibrary;
-    confirmIsAdmin = !!confirmProfile?.isAdmin;
+    confirmIsAdmin = confirmAdminStatus;
     confirmDefaultAgency = confirmProfile?.defaultAgency || 'TTC';
     const now = new Date();
     const lastTrip = history.length > 0 ? history[0] : null;
@@ -534,12 +537,15 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     }
   }
 
-  const endProfile = await getUserProfile(user.userId);
+  const [endProfile, endIsAdmin] = await Promise.all([
+    getUserProfile(user.userId),
+    isEmailAdmin(user.email),
+  ]);
   const endDefaultAgency = endProfile?.defaultAgency || 'TTC';
 
   // Resolve numbered shortcut (admin only): END 1/2/3 → predicted stop name
   if (/^[123]$/.test((endStopInput || '').trim())) {
-    if (endProfile?.isAdmin && activeTrip.endStopPredictions?.length) {
+    if (endIsAdmin && activeTrip.endStopPredictions?.length) {
       const idx = parseInt(endStopInput.trim(), 10) - 1;
       const predicted = activeTrip.endStopPredictions[idx];
       if (predicted) endStopInput = predicted.stop;

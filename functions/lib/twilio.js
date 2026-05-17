@@ -134,7 +134,6 @@ function validateTwilioSignature(req) {
 
   console.info('Auth check:', {
     hasSecret: !!authToken,
-    secretPrefix: authToken ? authToken.substring(0, 4) : 'none'
   });
 
   if (!authToken) {
@@ -159,7 +158,6 @@ function validateTwilioSignature(req) {
     originalUrl: req.originalUrl,
     host,
     xForwardedHost: req.headers['x-forwarded-host'],
-    twilioSignature,
     bodyKeys: Object.keys(req.body || {}),
   });
 

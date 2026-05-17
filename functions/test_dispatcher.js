@@ -67,6 +67,7 @@ function buildHarness({
     getPendingState: async () => pendingState,
     getUserByPhone: async () => user,
     getUserProfile: async () => ({ defaultAgency: 'TTC' }),
+    isEmailAdmin: async () => false,
     shouldRespondToUnknown: async () => shouldRespondToUnknown,
     clearPendingState: async () => { calls.clearPendingState++; },
     setPendingState: async (_phoneNumber, state) => { calls.setPendingState.push(state); },

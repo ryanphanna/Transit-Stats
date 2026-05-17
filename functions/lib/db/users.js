@@ -20,6 +20,12 @@ async function isEmailAllowed(email) {
   return allowedDoc.exists;
 }
 
+async function isEmailAdmin(email) {
+  if (!email) return false;
+  const allowedDoc = await db.collection('allowedUsers').doc(email.toLowerCase()).get();
+  return allowedDoc.exists && allowedDoc.data()?.isAdmin === true;
+}
+
 async function storeVerificationCode(phoneNumber, email, code) {
   const expiresAt = admin.firestore.Timestamp.fromDate(new Date(Date.now() + 15 * 60 * 1000));
   await db.collection('smsVerification').doc(phoneNumber).set({ email, code, expiresAt, attempts: 0 });
@@ -40,6 +46,7 @@ module.exports = {
   getUserByPhone,
   getUserProfile,
   isEmailAllowed,
+  isEmailAdmin,
   storeVerificationCode,
   getVerificationData,
 };

@@ -37,7 +37,8 @@ function loadHandlers(overrides = {}) {
     storeVerificationCode: async () => {},
     getVerificationData: async () => null,
     isEmailAllowed: async () => true,
-    getUserByPhone: async () => ({ userId: 'u1' }),
+    isEmailAdmin: async () => false,
+    getUserByPhone: async () => ({ userId: 'u1', email: 'user@example.com' }),
     getUserProfile: async () => ({ defaultAgency: 'TTC', isAdmin: false }),
     lookupStop: async () => ({
       id: 'stop_1',
@@ -390,6 +391,7 @@ test('handleTripLog: end-to-end prediction prompt does not surface illegal 506 d
   const { handlers, calls, restore } = loadHandlers({
     dbModule: {
       getRecentCompletedTrips: async () => history,
+      isEmailAdmin: async () => true,
       getUserProfile: async () => ({ defaultAgency: 'TTC', isAdmin: true }),
       lookupStop: async () => ({
         id: 'stop_506',

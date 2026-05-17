@@ -9,6 +9,7 @@ const {
 const {
   getActiveTrip,
   getUserProfile,
+  isEmailAdmin,
   db,
   isGeminiRateLimited,
   getRecentCompletedTrips,
@@ -29,6 +30,7 @@ const {
  */
 async function handleQuery(phoneNumber, user, question) {
   const profile = await getUserProfile(user.userId);
+  const isAdmin = await isEmailAdmin(user.email);
   if (!profile?.isPremium) {
     await sendSmsReply(phoneNumber,
       'AI Stats is a premium feature. Text STATS for your 30-day summary.',
@@ -61,7 +63,7 @@ async function handleQuery(phoneNumber, user, question) {
   const recentAgency = trips[0]?.agency || null;
   const timezone = await lookupAgencyTimezone(recentAgency);
   const stats = aggregateTripStats(trips, timezone);
-  if (await isGeminiRateLimited(phoneNumber, !!profile?.isPremium, !!profile?.isAdmin)) {
+  if (await isGeminiRateLimited(phoneNumber, !!profile?.isPremium, isAdmin)) {
     await sendSmsReply(phoneNumber, 'AI limit reached. Try again later.');
     return;
   }
