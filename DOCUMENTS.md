@@ -26,7 +26,6 @@ Exhaustive index of the project’s Markdown documentation.
 
 ## ML
 
-- [ml/CLAUDE.md](./ml/CLAUDE.md) — ML retraining workflow and environment notes
 - [ml/ACCURACY_LOG.md](./ml/ACCURACY_LOG.md) — candidate/live accuracy notes
 - [ml/MODEL_LOG.md](./ml/MODEL_LOG.md) — model-version training log
 
