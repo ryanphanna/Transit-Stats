@@ -98,6 +98,57 @@ test('lookupStop: prefers candidate whose stopRoutes serves the requested route'
   assert.equal(result.stopCode, '5360');
 });
 
+test('lookupStop: uses transfer complex plus direction to resolve a generic stop name', async () => {
+  const { lookupStop } = loadStopsModule({
+    stops: [
+      {
+        id: 'line1_college',
+        data: { agencies: ['TTC'], code: '9001', name: 'College', aliases: ['College Station'] },
+      },
+      {
+        id: 'ttc_760',
+        data: { agencies: ['TTC'], code: '760', name: 'College Station', aliases: ['College / Yonge'], direction: 'Westbound' },
+      },
+      {
+        id: 'ttc_761',
+        data: { agencies: ['TTC'], code: '761', name: 'College Station', aliases: ['College / Yonge'], direction: 'Eastbound' },
+      },
+    ],
+    stopRoutes: {
+      TTC_9001: ['1'],
+      TTC_760: ['506'],
+      TTC_761: ['506'],
+    },
+  });
+
+  const result = await lookupStop(null, 'College', 'TTC', '506', 'Westbound');
+  assert.ok(result);
+  assert.equal(result.stopCode, '760');
+});
+
+test('lookupStop: generic subway stop still resolves to the line stop', async () => {
+  const { lookupStop } = loadStopsModule({
+    stops: [
+      {
+        id: 'line1_college',
+        data: { agencies: ['TTC'], code: '9001', name: 'College', aliases: ['College Station'] },
+      },
+      {
+        id: 'ttc_760',
+        data: { agencies: ['TTC'], code: '760', name: 'College Station', aliases: ['College / Yonge'], direction: 'Westbound' },
+      },
+    ],
+    stopRoutes: {
+      TTC_9001: ['1'],
+      TTC_760: ['506'],
+    },
+  });
+
+  const result = await lookupStop(null, 'College', 'TTC', '1', 'Northbound');
+  assert.ok(result);
+  assert.equal(result.stopCode, '9001');
+});
+
 test('lookupStop: returns null when multiple same-name candidates are unconfirmed for route', async () => {
   const { lookupStop } = loadStopsModule({
     stops: [
@@ -117,5 +168,27 @@ test('lookupStop: returns null when multiple same-name candidates are unconfirme
   });
 
   const result = await lookupStop(null, 'Main / King', 'TTC', '999');
+  assert.equal(result, null);
+});
+
+test('lookupStop: transfer-complex ambiguity stays unresolved without direction', async () => {
+  const { lookupStop } = loadStopsModule({
+    stops: [
+      {
+        id: 'ttc_760',
+        data: { agencies: ['TTC'], code: '760', name: 'College Station', aliases: ['College / Yonge'], direction: 'Westbound' },
+      },
+      {
+        id: 'ttc_761',
+        data: { agencies: ['TTC'], code: '761', name: 'College Station', aliases: ['College / Yonge'], direction: 'Eastbound' },
+      },
+    ],
+    stopRoutes: {
+      TTC_760: ['506'],
+      TTC_761: ['506'],
+    },
+  });
+
+  const result = await lookupStop(null, 'College', 'TTC', '506');
   assert.equal(result, null);
 });

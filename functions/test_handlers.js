@@ -279,8 +279,117 @@ test('handleTripLog: disambiguation prompt includes direction labels', async () 
   assert.equal(calls.setPendingState.length, 1);
   assert.equal(calls.setPendingState[0].type, 'confirm_stop');
   const msg = calls.sendSmsReply[0]?.message || '';
-  assert.match(msg, /\(Northbound\)/);
-  assert.match(msg, /\(Southbound\)/);
+  assert.match(msg, /\(Northbound, stop 2069\)/);
+  assert.match(msg, /\(Southbound, stop 2070\)/);
+});
+
+test('handleTripLog: 506 College Westbound auto-resolves to one surface stop', async () => {
+  const { handlers, calls, restore } = loadHandlers({
+    dbModule: {
+      findMatchingStops: async () => [
+        { id: 's760', stopCode: '760', stopName: 'College Station', routes: ['506'], direction: 'Westbound' },
+        { id: 's761', stopCode: '761', stopName: 'College Station', routes: ['506'], direction: 'Eastbound' },
+      ],
+      lookupStop: async (_code, stopName, _agency, route, direction) => {
+        if (stopName === 'College' && route === '506' && direction === 'Westbound') {
+          return { id: 's760', stopCode: '760', stopName: 'College Station', source: 'verified' };
+        }
+        return null;
+      },
+    },
+  });
+
+  try {
+    await handlers.handleTripLog('+14165550011', { userId: 'u11' }, 'College', '506', 'Westbound', 'TTC');
+  } finally {
+    restore();
+  }
+
+  assert.equal(calls.setPendingState.length, 0);
+  assert.equal(calls.createTrip.length, 1);
+  assert.equal(calls.createTrip[0].startStopCode, '760');
+  assert.equal(calls.createTrip[0].startStopName, 'College Station');
+});
+
+test('handleTripLog: 506 College with no direction falls back to disambiguation prompt', async () => {
+  const { handlers, calls, restore } = loadHandlers({
+    dbModule: {
+      findMatchingStops: async () => [
+        { id: 's760', stopCode: '760', stopName: 'College Station', routes: ['506'], direction: 'Westbound' },
+        { id: 's761', stopCode: '761', stopName: 'College Station', routes: ['506'], direction: 'Eastbound' },
+      ],
+      lookupStop: async () => null,
+    },
+  });
+
+  try {
+    await handlers.handleTripLog('+14165550012', { userId: 'u12' }, 'College', '506', null, 'TTC');
+  } finally {
+    restore();
+  }
+
+  assert.equal(calls.createTrip.length, 1);
+  assert.equal(calls.setPendingState.length, 1);
+  assert.equal(calls.setPendingState[0].type, 'confirm_stop');
+  const msg = calls.sendSmsReply[0]?.message || '';
+  assert.match(msg, /Multiple stops match "College"/);
+  assert.match(msg, /stop 760/);
+  assert.match(msg, /stop 761/);
+});
+
+test('handleTripLog: Line 1 College auto-resolves to subway station', async () => {
+  const { handlers, calls, restore } = loadHandlers({
+    dbModule: {
+      findMatchingStops: async () => [
+        { id: 'line1_college', stopCode: '9001', stopName: 'College', routes: ['1'] },
+      ],
+      lookupStop: async (_code, stopName, _agency, route, direction) => {
+        if (stopName === 'College' && route === '1' && direction === 'Northbound') {
+          return { id: 'line1_college', stopCode: '9001', stopName: 'College', source: 'verified' };
+        }
+        return null;
+      },
+    },
+  });
+
+  try {
+    await handlers.handleTripLog('+14165550013', { userId: 'u13' }, 'College', '1', 'Northbound', 'TTC');
+  } finally {
+    restore();
+  }
+
+  assert.equal(calls.setPendingState.length, 0);
+  assert.equal(calls.createTrip.length, 1);
+  assert.equal(calls.createTrip[0].startStopCode, '9001');
+  assert.equal(calls.createTrip[0].startStopName, 'College');
+});
+
+test('handleTripLog: 506 College Station Westbound auto-resolves to westbound surface stop', async () => {
+  const { handlers, calls, restore } = loadHandlers({
+    dbModule: {
+      findMatchingStops: async () => [
+        { id: 's760', stopCode: '760', stopName: 'College Station', routes: ['506'], direction: 'Westbound' },
+        { id: 's761', stopCode: '761', stopName: 'College Station', routes: ['506'], direction: 'Eastbound' },
+      ],
+      lookupStop: async (_code, stopName, _agency, route, direction) => {
+        if (stopName === 'College Station' && route === '506' && direction === 'Westbound') {
+          return { id: 's760', stopCode: '760', stopName: 'College Station', source: 'verified' };
+        }
+        return null;
+      },
+    },
+  });
+
+  try {
+    await handlers.handleTripLog('+14165550014', { userId: 'u14' }, 'College Station', '506', 'Westbound', 'TTC');
+  } finally {
+    restore();
+  }
+
+  assert.equal(calls.setPendingState.length, 0);
+  assert.equal(calls.createTrip.length, 1);
+  assert.equal(calls.createTrip[0].startStopCode, '760');
+  assert.equal(calls.createTrip[0].startStopName, 'College Station');
 });
 
 test('handleMmsTrip: missing stop sets mms_stop_needed with receivedAt', async () => {

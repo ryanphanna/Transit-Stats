@@ -423,6 +423,104 @@ test('score: connected stop pair links from history for intersection-style trans
   assert.ok(confidence >= TransferEngine.CONFIDENCE_THRESHOLD, `Expected connected stop pair to link, got ${confidence}`);
 });
 
+// ─── suggestConnectedPairs ───────────────────────────────────────────────────
+
+test('suggestConnectedPairs: surfaces repeated short-gap unknown pairs', () => {
+  const history = [
+    ...linkedPair({
+      routeA: '506',
+      routeB: '1',
+      endStop: 'College St at Spadina Ave',
+      startStop: 'Spadina Station',
+      gap: 4,
+    }),
+    ...linkedPair({
+      routeA: '506',
+      routeB: '1',
+      endStop: 'College St at Spadina Ave',
+      startStop: 'Spadina Station',
+      gap: 5,
+      baseTime: new Date('2026-04-16T20:00:00Z'),
+    }),
+    ...linkedPair({
+      routeA: '506',
+      routeB: '1',
+      endStop: 'College St at Spadina Ave',
+      startStop: 'Spadina Station',
+      gap: 6,
+      baseTime: new Date('2026-04-17T20:00:00Z'),
+    }),
+  ];
+
+  const suggestions = TransferEngine.suggestConnectedPairs(history);
+  assert.equal(suggestions.length, 1);
+  assert.equal(suggestions[0].count, 3);
+  assert.equal(suggestions[0].medianGap, 5);
+  assert.equal(suggestions[0].topRoutePairs[0].routePair, '506 -> 1');
+});
+
+test('suggestConnectedPairs: ignores pairs already in transfer connections', () => {
+  const history = [
+    ...linkedPair({
+      routeA: '506',
+      routeB: '1',
+      endStop: 'College Station',
+      startStop: 'College / Yonge',
+      gap: 3,
+    }),
+    ...linkedPair({
+      routeA: '506',
+      routeB: '1',
+      endStop: 'College Station',
+      startStop: 'College / Yonge',
+      gap: 4,
+      baseTime: new Date('2026-04-16T20:00:00Z'),
+    }),
+    ...linkedPair({
+      routeA: '506',
+      routeB: '1',
+      endStop: 'College Station',
+      startStop: 'College / Yonge',
+      gap: 5,
+      baseTime: new Date('2026-04-17T20:00:00Z'),
+    }),
+  ];
+
+  const suggestions = TransferEngine.suggestConnectedPairs(history);
+  assert.equal(suggestions.length, 0);
+});
+
+test('suggestConnectedPairs: filters out weak or slow pairs', () => {
+  const history = [
+    ...linkedPair({
+      routeA: '47',
+      routeB: '29',
+      endStop: 'Lansdowne / Dupont',
+      startStop: 'Dufferin / Lawrence',
+      gap: 20,
+    }),
+    ...linkedPair({
+      routeA: '47',
+      routeB: '29',
+      endStop: 'Lansdowne / Dupont',
+      startStop: 'Dufferin / Lawrence',
+      gap: 18,
+      baseTime: new Date('2026-04-16T20:00:00Z'),
+    }),
+    ...linkedPair({
+      routeA: '47',
+      routeB: '29',
+      endStop: 'Lansdowne / Dupont',
+      startStop: 'Dufferin / Lawrence',
+      gap: 16,
+      baseTime: new Date('2026-04-17T20:00:00Z'),
+    }),
+  ];
+
+  const suggestions = TransferEngine.suggestConnectedPairs(history);
+  assert.equal(suggestions.length, 0);
+});
+
 test('score: typo-cleaned stop pair links from history', () => {
   const history = [
     ...linkedPair({

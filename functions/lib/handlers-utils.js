@@ -20,6 +20,7 @@ const {
   isValidRoute,
 } = require('./utils');
 const { AGENCY_CITY } = require('./constants');
+const { getConnectionGroup } = require('./transfer-connections');
 
 /**
  * Pick the best V4/V5 route prediction that GTFS confirms actually serves this stop.
@@ -90,8 +91,8 @@ async function resolveTripAgency(
   if (!lastAgency || lastAgency === agency) return { resolvedAgency, handled: false };
 
   const [stopInDefault, stopInLast] = await Promise.all([
-    lookupStop(parsedStop.stopCode, parsedStop.stopName, agency, route),
-    lookupStop(parsedStop.stopCode, parsedStop.stopName, lastAgency, route),
+    lookupStop(parsedStop.stopCode, parsedStop.stopName, agency, route, direction),
+    lookupStop(parsedStop.stopCode, parsedStop.stopName, lastAgency, route, direction),
   ]);
 
   if (stopInDefault && stopInLast) {
@@ -130,8 +131,9 @@ function narrowStopCandidates(candidates, route, direction) {
   }
   // Further narrow by direction if provided and candidates still ambiguous
   if (narrowed.length > 1 && direction) {
+    const normalize = value => value?.toString().trim().toLowerCase().replace(/bound$/, '');
     const dirFiltered = narrowed.filter(c =>
-      !c.direction || c.direction.toLowerCase() === direction.toLowerCase()
+      !c.direction || normalize(c.direction) === normalize(direction)
     );
     if (dirFiltered.length >= 1) narrowed = dirFiltered;
   }
@@ -144,22 +146,43 @@ function isStopMatched(trip) {
   return !!trip.verified;
 }
 
+function buildStopChoiceList(candidates) {
+  const names = new Map();
+  const groups = new Map();
+
+  for (const candidate of candidates) {
+    names.set(candidate.stopName, (names.get(candidate.stopName) || 0) + 1);
+    const group = getConnectionGroup(candidate.stopName);
+    if (group) groups.set(group, (groups.get(group) || 0) + 1);
+  }
+
+  return candidates.map((candidate, i) => {
+    const extras = [];
+    if (candidate.direction) extras.push(candidate.direction);
+
+    const sameName = (names.get(candidate.stopName) || 0) > 1;
+    const group = getConnectionGroup(candidate.stopName);
+    const sameGroup = group && (groups.get(group) || 0) > 1;
+    if ((sameName || sameGroup) && candidate.stopCode) extras.push(`stop ${candidate.stopCode}`);
+
+    const suffix = extras.length > 0 ? ` (${extras.join(', ')})` : '';
+    return `${i + 1}. ${candidate.stopName}${suffix}`;
+  }).join('\n');
+}
+
 async function maybeHandleStopDisambiguation({
   phoneNumber, user, activeTrip, parsedStop, route, direction, resolvedAgency, options,
 }) {
   if (parsedStop.stopCode || !parsedStop.stopName) return false;
 
   const candidates = narrowStopCandidates(
-    await findMatchingStops(parsedStop.stopName, resolvedAgency),
+    await findMatchingStops(parsedStop.stopName, resolvedAgency, route, direction),
     route,
     direction
   );
   if (candidates.length <= 1) return false;
 
-  const list = candidates.map((c, i) => {
-    const dir = c.direction ? ` (${c.direction})` : '';
-    return `${i + 1}. ${c.stopName}${dir}`;
-  }).join('\n');
+  const list = buildStopChoiceList(candidates);
 
   if (!activeTrip) {
     let tripId;

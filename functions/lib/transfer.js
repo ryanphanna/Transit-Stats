@@ -72,6 +72,68 @@ const TransferEngine = {
   },
 
   /**
+   * Suggest candidate connected stop pairs from repeated real transfers.
+   * This is evidence only — callers can review/promote candidates into the
+   * canonical transfer-complex map later.
+   *
+   * @param {Array} trips - Completed trips with journeyId, endTime, startTime, etc.
+   * @param {Object} [options]
+   * @param {number} [options.minCount=3] - Minimum repeated observations
+   * @param {number} [options.maxMedianGap=12] - Maximum median gap in minutes
+   * @returns {Array} Sorted suggestions with count/gap/route-pair evidence
+   */
+  suggestConnectedPairs(trips, { minCount = 3, maxMedianGap = 12 } = {}) {
+    const transfers = this.extractTransfers(trips);
+    const groups = new Map();
+
+    for (const transfer of transfers) {
+      const a = transfer.endStop;
+      const b = transfer.startStop;
+      if (!a || !b) continue;
+      if (this._stopMatch(a, b)) continue;
+
+      const key = this._pairKey(a, b);
+      let group = groups.get(key);
+      if (!group) {
+        const [stopA, stopB] = this._sortedPair(a, b);
+        group = {
+          stopA,
+          stopB,
+          counts: 0,
+          gaps: [],
+          routePairs: new Map(),
+        };
+        groups.set(key, group);
+      }
+
+      group.counts += 1;
+      group.gaps.push(transfer.gap);
+      const routeKey = `${transfer.routeA || '?'} -> ${transfer.routeB || '?'}`;
+      group.routePairs.set(routeKey, (group.routePairs.get(routeKey) || 0) + 1);
+    }
+
+    return Array.from(groups.values())
+      .map(group => {
+        const sortedGaps = group.gaps.slice().sort((a, b) => a - b);
+        const medianGap = this._median(sortedGaps);
+        const topRoutePairs = Array.from(group.routePairs.entries())
+          .sort((a, b) => b[1] - a[1])
+          .map(([routePair, count]) => ({ routePair, count }));
+        return {
+          stopA: group.stopA,
+          stopB: group.stopB,
+          count: group.counts,
+          medianGap,
+          minGap: sortedGaps[0],
+          maxGap: sortedGaps[sortedGaps.length - 1],
+          topRoutePairs,
+        };
+      })
+      .filter(row => row.count >= minCount && row.medianGap <= maxMedianGap)
+      .sort((a, b) => b.count - a.count || a.medianGap - b.medianGap);
+  },
+
+  /**
    * Score whether a candidate (prevTrip → nextTrip) is a journey transfer.
    *
    * @param {Object} prevTrip - The trip that just ended
@@ -169,6 +231,23 @@ const TransferEngine = {
   _normalizeKey(s) {
     if (!s) return '';
     return s.toString().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+  },
+
+  _sortedPair(a, b) {
+    return [a, b].sort((x, y) => this._normalizeKey(x).localeCompare(this._normalizeKey(y)));
+  },
+
+  _pairKey(a, b) {
+    const [left, right] = this._sortedPair(a, b);
+    return `${this._normalizeKey(left)}::${this._normalizeKey(right)}`;
+  },
+
+  _median(values) {
+    if (!values || values.length === 0) return 0;
+    const mid = Math.floor(values.length / 2);
+    return values.length % 2 === 0
+      ? (values[mid - 1] + values[mid]) / 2
+      : values[mid];
   },
 
   /**

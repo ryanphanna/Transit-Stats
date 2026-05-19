@@ -142,7 +142,7 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
   });
   if (disambiguationHandled) return;
 
-  const stopData = await lookupStop(parsedStop.stopCode, parsedStop.stopName, resolvedAgency, route);
+  const stopData = await lookupStop(parsedStop.stopCode, parsedStop.stopName, resolvedAgency, route, direction);
   const stopMatched = stopData !== null;
 
   // Background: teach this stop which routes serve it, and promote gtfs→verified on first real trip
@@ -565,7 +565,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
   // active trip already has both, so we can almost always auto-select with no prompt.
   let endStopData = null;
   if (!parsedEndStop.stopCode && parsedEndStop.stopName) {
-    let endCandidates = await findMatchingStops(parsedEndStop.stopName, agency);
+    let endCandidates = await findMatchingStops(parsedEndStop.stopName, agency, tripRoute, null);
     if (endCandidates.length > 1 && tripRoute) {
       const routeFiltered = endCandidates.filter(c =>
         !c.routes || c.routes.length === 0 ||
@@ -581,11 +581,11 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     }
     if (endCandidates.length === 1) {
       const c = endCandidates[0];
-      endStopData = await lookupStop(c.stopCode, null, agency, tripRoute);
+      endStopData = await lookupStop(c.stopCode, null, agency, tripRoute, null);
     }
   }
   if (!endStopData) {
-    endStopData = await lookupStop(parsedEndStop.stopCode, parsedEndStop.stopName, agency, tripRoute);
+    endStopData = await lookupStop(parsedEndStop.stopCode, parsedEndStop.stopName, agency, tripRoute, null);
   }
 
   const endStopDisplay = getStopDisplay(
