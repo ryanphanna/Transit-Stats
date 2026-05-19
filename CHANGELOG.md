@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
-## [Unreleased]
+## [1.37.0] - 2026-05-18
 
 ### Added
 - **Transfer-pair candidate audit tool** (`Tools/audit-transfer-pair-candidates.js`, `functions/lib/transfer.js`, `functions/test_transfer.js`):
