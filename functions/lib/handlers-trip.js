@@ -686,6 +686,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
         : null;
 
       await db.collection('predictionStats').add({
+        tripId: activeTrip.id,
         userId: user.userId,
         agency: activeTrip.agency || null,
         isHit: !!isHit,
@@ -785,6 +786,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
         ' from ' + (activeTrip.startStopName || '?');
 
       await db.collection('predictionStats').add({
+        tripId: activeTrip.id,
         userId: user.userId,
         agency: activeTrip.agency || null,
         isHit: !!isHitV4,
@@ -825,6 +827,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
         ' from ' + (activeTrip.startStopName || '?');
 
       await db.collection('predictionStats').add({
+        tripId: activeTrip.id,
         userId: user.userId,
         agency: activeTrip.agency || null,
         isHit: !!isHitV5,
@@ -857,6 +860,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     if (storedEndStopV4) {
       const endStopHitV4 = PredictionEngine._stopMatch(storedEndStopV4.stop, actualEndStopForGrading);
       await db.collection('predictionStats').add({
+        tripId: activeTrip.id,
         userId: user.userId,
         agency: activeTrip.agency || null,
         isHit: null,
@@ -886,6 +890,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     if (storedEndStopV5) {
       const endStopHitV5 = PredictionEngine._stopMatch(storedEndStopV5.stop, actualEndStopForGrading);
       await db.collection('predictionStats').add({
+        tripId: activeTrip.id,
         userId: user.userId,
         agency: activeTrip.agency || null,
         isHit: null,
@@ -915,6 +920,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     if (storedHabit?.endStop) {
       const habitEndStopHit = PredictionEngine._stopMatch(storedHabit.endStop, actualEndStopForGrading);
       await db.collection('predictionStats').add({
+        tripId: activeTrip.id,
         userId: user.userId,
         agency: activeTrip.agency || null,
         isHit: null,
