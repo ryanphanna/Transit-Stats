@@ -7,6 +7,7 @@ Exhaustive index of the project’s Markdown documentation.
 - [README](./README.md) — product overview and entry point
 - [Changelog](./CHANGELOG.md) and [Changelog Archive](./CHANGELOG_ARCHIVE.md) — current and archived release history
 - [Roadmap](./ROADMAP.md) — top-level product roadmap
+- [Tools Index](./Tools/README.md) — operational scripts and frequently used utilities
 
 ## Data Model & Review
 
