@@ -12,6 +12,7 @@ Exhaustive index of the project’s Markdown documentation.
 ## Data Model & Review
 
 - [Trip Data Model](./docs/TRIP_DATA_MODEL.md) — what lives in `trips` vs `stops`, raw vs derived fields
+- [Trip Corrections](./docs/TRIP_CORRECTIONS.md) — design notes for post-trip edits, correction safety, and delayed finalization
 - [Review Policy](./REVIEW.md) — manual review rules and ML/history filtering policy
 - [Admin Setup](./setup-admin.md) — admin bootstrap and access setup
 
