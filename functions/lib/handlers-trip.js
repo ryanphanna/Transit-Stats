@@ -580,8 +580,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
       if (dirFiltered.length >= 1) endCandidates = dirFiltered;
     }
     if (endCandidates.length === 1) {
-      const c = endCandidates[0];
-      endStopData = await lookupStop(c.stopCode, null, agency, tripRoute, null);
+      endStopData = endCandidates[0];
     }
   }
   if (!endStopData) {
@@ -1016,7 +1015,11 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     }
   }
 
-  await sendSmsReply(phoneNumber, `Ended ${routeDisplay} at ${endStopDisplay}${agencySuffix(agency, endDefaultAgency)} (${duration} min trip)${journeyNote}${anomalyNote}${nextLegNote}`);
+  await sendSmsReply(
+    phoneNumber,
+    `Ended ${routeDisplay} at ${endStopDisplay}${agencySuffix(agency, endDefaultAgency)} (${duration} min trip)` +
+    `${journeyNote}${anomalyNote}${nextLegNote}\n\nReply NOTES (your note) to add a note.`
+  );
 }
 
 module.exports = {

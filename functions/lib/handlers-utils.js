@@ -137,7 +137,47 @@ function narrowStopCandidates(candidates, route, direction) {
     );
     if (dirFiltered.length >= 1) narrowed = dirFiltered;
   }
+  if (narrowed.length > 1 && route) {
+    const modePreferred = preferCandidatesByRouteMode(narrowed, route);
+    if (modePreferred.length >= 1) narrowed = modePreferred;
+  }
   return narrowed;
+}
+
+function preferCandidatesByRouteMode(candidates, route) {
+  const routeMode = inferRouteMode(route);
+  if (routeMode === 'unknown') return candidates;
+
+  const preferred = candidates.filter(candidate => candidateMatchesRouteMode(candidate, routeMode));
+  return preferred.length > 0 ? preferred : candidates;
+}
+
+function inferRouteMode(route) {
+  const routeStr = route?.toString().trim();
+  if (!routeStr) return 'unknown';
+  if (/^[1-6]$/.test(routeStr)) return 'rapid';
+  if (/^5\d\d/.test(routeStr)) return 'surface';
+  if (/^\d+/.test(routeStr)) return 'surface';
+  return 'unknown';
+}
+
+function candidateMatchesRouteMode(candidate, routeMode) {
+  const stopName = candidate?.stopName?.toString() || '';
+  const hasDirection = !!candidate?.direction;
+  const isStationLike = /\bstation\b/i.test(stopName);
+  const isSurfaceNamed = /\/| at |&/i.test(stopName);
+
+  if (routeMode === 'rapid') {
+    return isStationLike || !hasDirection;
+  }
+
+  if (routeMode === 'surface') {
+    if (hasDirection) return true;
+    if (isSurfaceNamed) return true;
+    return !isStationLike;
+  }
+
+  return true;
 }
 
 function isStopMatched(trip) {

@@ -7,6 +7,7 @@ const {
 } = require('./twilio');
 const {
   getActiveTrip,
+  getRecentCompletedTrips,
   setPendingState,
   clearPendingState,
   storeVerificationCode,
@@ -137,6 +138,27 @@ async function handleDiscard(phoneNumber, user) {
   await clearPendingState(phoneNumber);
 
   await sendSmsReply(phoneNumber, `Deleted ${routeDisplay}.`);
+}
+
+async function handleAddNotes(phoneNumber, user, notes) {
+  const cleanNotes = notes?.trim();
+  if (!cleanNotes) {
+    await sendSmsReply(phoneNumber, 'Send NOTES followed by your note text.');
+    return;
+  }
+
+  const [latestTrip] = await getRecentCompletedTrips(user.userId, 1);
+  if (!latestTrip) {
+    await sendSmsReply(phoneNumber, 'No recent completed trip to attach notes to.');
+    return;
+  }
+
+  await db.collection('trips').doc(latestTrip.id).update({
+    notes: cleanNotes,
+  });
+
+  const routeDisplay = getRouteDisplay(latestTrip.route, latestTrip.direction);
+  await sendSmsReply(phoneNumber, `Added notes to ${routeDisplay}.`);
 }
 
 /**
@@ -307,6 +329,7 @@ module.exports = {
   handleHelp,
   handleStatus,
   handleDiscard,
+  handleAddNotes,
   handleUnlink,
   handleIncomplete,
   handleRegister,

@@ -25,6 +25,8 @@ function loadHandlers(overrides = {}) {
     sendSmsReply: [],
     createTrip: [],
     batchUpdates: [],
+    docUpdates: [],
+    docGets: [],
     loggerInfo: [],
     loggerWarn: [],
     loggerError: [],
@@ -54,9 +56,9 @@ function loadHandlers(overrides = {}) {
       collection: () => ({
         add: async () => {},
         doc: () => ({
-          update: async () => {},
+          update: async (data) => { calls.docUpdates.push(data); },
           set: async () => {},
-          get: async () => ({ exists: false, data: () => ({}) }),
+          get: async () => { calls.docGets.push(true); return { exists: false, data: () => ({}) }; },
           delete: async () => {},
         }),
         where: () => ({
@@ -287,6 +289,7 @@ test('handleTripLog: 506 College Westbound auto-resolves to one surface stop', a
   const { handlers, calls, restore } = loadHandlers({
     dbModule: {
       findMatchingStops: async () => [
+        { id: 'station', stopCode: null, stopName: 'College Station', routes: ['1', '506'], direction: null },
         { id: 's760', stopCode: '760', stopName: 'College Station', routes: ['506'], direction: 'Westbound' },
         { id: 's761', stopCode: '761', stopName: 'College Station', routes: ['506'], direction: 'Eastbound' },
       ],
@@ -342,6 +345,8 @@ test('handleTripLog: Line 1 College auto-resolves to subway station', async () =
     dbModule: {
       findMatchingStops: async () => [
         { id: 'line1_college', stopCode: '9001', stopName: 'College', routes: ['1'] },
+        { id: 'surface_west', stopCode: '760', stopName: 'College Station', routes: ['506'], direction: 'Westbound' },
+        { id: 'surface_east', stopCode: '761', stopName: 'College Station', routes: ['506'], direction: 'Eastbound' },
       ],
       lookupStop: async (_code, stopName, _agency, route, direction) => {
         if (stopName === 'College' && route === '1' && direction === 'Northbound') {
@@ -738,6 +743,53 @@ test('handleEndTrip: transfer scoring uses network connections and observe recei
   assert.equal(observeCalls[0].prevRoute, '2');
 });
 
+test('handleEndTrip: single text-matched end candidate without a stop code still counts as matched', async () => {
+  const { handlers, calls, restore } = loadHandlers({
+    dbModule: {
+      getActiveTrip: async () => ({
+        id: 'trip_code_less_end',
+        userId: 'u11',
+        route: '1',
+        direction: 'Southbound',
+        agency: 'TTC',
+        startStopName: 'Davisville',
+        startStopCode: null,
+        startTime: { toDate: () => new Date(Date.now() - 10 * 60000) },
+        prediction: null,
+        predictionV4: null,
+        predictionV5: null,
+        habitPrediction: null,
+        endStopPrediction: null,
+        endStopPredictionV4: null,
+        endStopPredictionV5: null,
+        endStopPredictions: null,
+        stop_matched: true,
+      }),
+      findMatchingStops: async (name) => (
+        name === 'College Station'
+          ? [{ id: 'stop_college', stopCode: null, stopName: 'College Station', routes: ['1'], direction: null, source: 'manual' }]
+          : []
+      ),
+      lookupStop: async (code, name) => {
+        if (code === null && name === 'College Station') {
+          return { id: 'stop_college', stopCode: null, stopName: 'College Station', source: 'manual' };
+        }
+        return null;
+      },
+    },
+  });
+
+  try {
+    await handlers.handleEndTrip('+14165550011', { userId: 'u11' }, 'College Station');
+  } finally {
+    restore();
+  }
+
+  assert.ok(calls.docUpdates.length > 0);
+  assert.equal(calls.docUpdates[0].endStopName, 'College Station');
+  assert.equal(calls.docUpdates[0].stop_matched, true);
+});
+
 test('handleEndTrip: final journey reconciliation prefers provisional previous trip', async () => {
   const { TransferEngine } = require('./lib/transfer.js');
   const now = Date.now();
@@ -895,4 +947,67 @@ test('handleEndTrip: anomaly note suppressed when duration is within normal rang
 
   const reply = calls.sendSmsReply[0]?.message || '';
   assert.doesNotMatch(reply, /took longer than usual/);
+});
+
+test('handleEndTrip: completion reply advertises NOTES follow-up', async () => {
+  const { handlers, calls, restore } = loadHandlers({
+    dbModule: {
+      getActiveTrip: async () => ({
+        id: 'trip_notes_prompt',
+        userId: 'u12',
+        route: '510',
+        direction: 'Westbound',
+        agency: 'TTC',
+        startStopName: 'Spadina Station',
+        startStopCode: '11985',
+        startTime: { toDate: () => new Date(Date.now() - 12 * 60000) },
+        prediction: null,
+        predictionV4: null,
+        predictionV5: null,
+        habitPrediction: null,
+        endStopPrediction: null,
+        endStopPredictionV4: null,
+        endStopPredictionV5: null,
+        endStopPredictions: null,
+        stop_matched: true,
+      }),
+      lookupStop: async (_code, name) => ({
+        id: 'stop_notes',
+        stopCode: '844',
+        stopName: name || 'College St at Spadina Ave',
+        source: 'verified',
+      }),
+    },
+  });
+
+  try {
+    await handlers.handleEndTrip('+14165550012', { userId: 'u12' }, 'College St at Spadina Ave');
+  } finally {
+    restore();
+  }
+
+  const reply = calls.sendSmsReply[0]?.message || '';
+  assert.match(reply, /Reply NOTES \(your note\) to add a note\./);
+});
+
+test('handleAddNotes: updates most recent completed trip notes', async () => {
+  const { handlers, calls, restore } = loadHandlers({
+    dbModule: {
+      getRecentCompletedTrips: async () => [{
+        id: 'recent_trip_1',
+        route: '510',
+        direction: 'Southbound',
+      }],
+    },
+  });
+
+  try {
+    await handlers.handleAddNotes('+14165550013', { userId: 'u13' }, 'crowded but fast');
+  } finally {
+    restore();
+  }
+
+  assert.equal(calls.docUpdates.length, 1);
+  assert.deepEqual(calls.docUpdates[0], { notes: 'crowded but fast' });
+  assert.equal(calls.sendSmsReply[0]?.message, 'Added notes to 510 Southbound.');
 });

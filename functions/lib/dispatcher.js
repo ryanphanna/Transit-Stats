@@ -381,6 +381,16 @@ async function handlePrivateCommands(phoneNumber, user, upperBody, rawBody) {
     'UNLINK': handlers.handleUnlink,
   };
 
+  if (upperBody === 'NOTES') {
+    await handlers.handleAddNotes(phoneNumber, user, '');
+    return true;
+  }
+
+  if (upperBody.startsWith('NOTES ')) {
+    await handlers.handleAddNotes(phoneNumber, user, rawBody.substring(6));
+    return true;
+  }
+
   // Strict whitelist to avoid unvalidated dynamic method invocation
   if (['STATUS', 'STATS', 'FORGOT', 'DISCARD', 'UNLINK'].includes(upperBody)) {
     await commands[upperBody](phoneNumber, user);

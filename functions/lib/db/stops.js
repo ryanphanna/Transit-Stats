@@ -249,6 +249,10 @@ async function _resolveCandidates(candidates, agency, route, direction, rawStopN
     if (dirFiltered.length > 1) narrowed = dirFiltered;
   }
 
+  const modePreferred = _preferCandidatesByRouteMode(narrowed, agency, route);
+  if (modePreferred.length === 1) return modePreferred[0];
+  if (modePreferred.length > 1 && modePreferred.length < narrowed.length) narrowed = modePreferred;
+
   // Keep ambiguity explicit unless route+direction leave only one valid stop.
   return narrowed.length === 1 ? narrowed[0] : null;
 }
@@ -293,6 +297,48 @@ function _directionMatches(candidateDirection, requestedDirection) {
   return normalize(candidateDirection) === normalize(requestedDirection);
 }
 
+function _preferCandidatesByRouteMode(candidates, agency, route) {
+  if (!Array.isArray(candidates) || candidates.length <= 1) return candidates;
+
+  const routeMode = _inferRouteMode(route, agency);
+  if (routeMode === 'unknown') return candidates;
+
+  const preferred = candidates.filter(candidate => _candidateMatchesRouteMode(candidate, routeMode));
+  return preferred.length > 0 ? preferred : candidates;
+}
+
+function _inferRouteMode(route, agency) {
+  const routeStr = route?.toString().trim();
+  if (!routeStr) return 'unknown';
+
+  if (agency === 'TTC') {
+    if (/^[1-6]$/.test(routeStr)) return 'rapid';
+    if (/^5\d\d/.test(routeStr)) return 'surface';
+    if (/^\d+/.test(routeStr)) return 'surface';
+  }
+
+  return 'unknown';
+}
+
+function _candidateMatchesRouteMode(candidate, routeMode) {
+  const stopName = candidate?.stopName?.toString() || '';
+  const hasDirection = !!candidate?.direction;
+  const isStationLike = /\bstation\b/i.test(stopName);
+  const isSurfaceNamed = /\/| at |&/i.test(stopName);
+
+  if (routeMode === 'rapid') {
+    return isStationLike || !hasDirection;
+  }
+
+  if (routeMode === 'surface') {
+    if (hasDirection) return true;
+    if (isSurfaceNamed) return true;
+    return !isStationLike;
+  }
+
+  return true;
+}
+
 module.exports = {
   lookupStop,
   findMatchingStops,
@@ -300,4 +346,5 @@ module.exports = {
   getStopsLibrary,
   _lookupStopInTopology,
   _findStopCandidates,
+  _preferCandidatesByRouteMode,
 };

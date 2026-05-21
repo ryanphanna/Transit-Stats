@@ -21,6 +21,7 @@ function buildHarness({
     handleEndTrip: 0,
     handleTripLog: 0,
     handleQuery: 0,
+    handleAddNotes: [],
     handleMmsTrip: [],
     sendSmsReply: [],
     setPendingState: [],
@@ -36,6 +37,9 @@ function buildHarness({
     handleIncomplete: async () => {},
     handleDiscard: async () => {},
     handleUnlink: async () => {},
+    handleAddNotes: async (phoneNumber, userData, notes) => {
+      calls.handleAddNotes.push({ phoneNumber, userData, notes });
+    },
     handleMmsTrip: async (phoneNumber, userData, mediaUrl, receivedAt) => {
       calls.handleMmsTrip.push({ phoneNumber, userData, mediaUrl, receivedAt });
     },
@@ -205,6 +209,18 @@ test('dispatcher: non-END duplicate content is dropped before parsing', async ()
   assert.equal(calls.handleEndTrip, 0);
   assert.equal(calls.handleTripLog, 0);
   assert.equal(calls.handleQuery, 0);
+});
+
+test('dispatcher: NOTES command routes note text to add-notes handler', async () => {
+  const { dispatch, calls } = buildHarness();
+  await dispatch('+14165551234', 'NOTES train was packed', 'SM_NOTES_1');
+
+  assert.equal(calls.handleAddNotes.length, 1);
+  assert.equal(calls.handleAddNotes[0].phoneNumber, '+14165551234');
+  assert.equal(calls.handleAddNotes[0].userData.userId, 'user_1');
+  assert.equal(calls.handleAddNotes[0].notes, 'train was packed');
+  assert.equal(calls.handleTripLog, 0);
+  assert.equal(calls.handleEndTrip, 0);
 });
 
 test('dispatcher: MMS from known user triggers Snap-to-Start handler', async () => {
