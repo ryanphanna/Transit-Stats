@@ -1,20 +1,23 @@
-# Transit Stats — Technical Roadmap
+# Technical Roadmap
 
-Open technical backlog organized by theme. Items within each theme are roughly
+Open technical backlog organized by area. Items within each section are roughly
 ordered by impact vs. effort. Shipped work belongs in the changelog and engine
-docs, not here.
+docs, not here. Deferred feature ideas that need heavier rationale belong in
+focused design notes, not as vague backlog entries.
 
 ---
 
-## Theme 1 — Messaging System (RCS / SMS)
+## Messaging System (RCS / SMS)
 
 The messaging layer is the primary trip logging interface. Core commands work; these are
 quality and coverage improvements.
 
 - [ ] **`STATS` command improvements** — extend the structured stats reply with weekly
   and monthly comparisons, not just all-time totals.
-- [ ] **Multi-leg journey via SMS** — the LINK command exists but is manual. Detect
-  and surface the link prompt earlier, without requiring the user to know the command.
+- [ ] **Multi-leg journey via SMS** — journey linking is automatic, but the SMS flow
+  still has no explicit user-facing way to review or confirm multi-leg grouping before
+  it lands in history. Improve how linked journeys are surfaced and corrected without
+  relying on hidden/internal commands.
 - [ ] **International number support** — phone number normalization currently assumes
   North American format. Standardize to E.164 throughout.
 - [ ] **RCS suggested reply buttons** — attach tappable quick-reply chips to key responses for Android RCS users. Priority targets: `STATUS` reply (END TRIP / DISCARD / STATS) and trip-start confirmation (predicted end stops as tappable buttons, replacing the `END 1/2/3` shortcut system). SMS users receive the plain-text version unchanged via Twilio's automatic fallback.
@@ -23,7 +26,7 @@ quality and coverage improvements.
 
 ---
 
-## Theme 2 — Dashboard & UI
+## Dashboard & UI
 
 - [ ] **Transit Wrapped** — visual year-in-review with personal records, most-used
   routes and stops, and shareable summary cards. Requires a full calendar year of data
@@ -39,7 +42,7 @@ quality and coverage improvements.
 
 ---
 
-## Theme 3 — Stop & Route Data
+## Stop & Route Data
 
 - [ ] **Broader GTFS stop import** — current stop library covers stops you've actually
   boarded or alighted at (`source: "manual"` or `source: "gtfs"` seeded from trip history).
@@ -63,7 +66,7 @@ quality and coverage improvements.
 
 ---
 
-## Theme 4 — Multi-Agency
+## Multi-Agency
 
 Transit Stats already handles more than one agency, but the normalization,
 analytics, and stop-layer assumptions are still uneven.
@@ -73,30 +76,25 @@ analytics, and stop-layer assumptions are still uneven.
   ride multiple systems.
 - [ ] **Agency auto-detection** — infer the agency from the stop name at trip start
   rather than requiring the user to specify.
-- [ ] **Per-trip timezone storage** — store the IANA timezone on each trip document at
-  log time (derived from the agency via `lookupAgencyTimezone`). Currently, ASK queries
-  that span multiple cities (e.g. "how many trips this month" after returning from LA)
-  use the most recent trip's timezone for the entire date window, which misattributes
-  trips taken near midnight in the other city. Storing timezone per-trip allows correct
-  date bucketing across any query window regardless of city-switching history.
+- [ ] **Per-trip timezone semantics audit** — trip documents already store a timezone,
+  but cross-city ASK queries still need an explicit audit to ensure every date-bucketing
+  path actually respects per-trip timezone data rather than assuming one recent timezone
+  for the whole query window.
 
 ---
 
-## Theme 5 — Infrastructure
+## Infrastructure
 
-- [ ] **Cloud Functions Node upgrade** — standardize on Node 22 across all functions
-  environments (currently mixed).
 - [ ] **Firestore index audit** — review composite indexes against actual query patterns.
   Remove unused indexes; add missing ones surfaced by slow query logs.
 - [ ] **Error alerting** — Cloud Function errors currently surface only in logs.
   Add structured alerting for handler failures and Gemini proxy errors.
 - [ ] **End-to-end test for SMS flow** — integration test covering the full
   START → END → STATS command sequence against a real (or emulated) Firestore instance.
-- [ ] **Split `handlers.js`** — at 1700+ lines the file is functional but large. Natural split: `handlers/trip.js` (handleTripLog, handleConfirmStart, handleEndTrip), `handlers/commands.js` (simple SMS commands), `handlers/intelligence.js` (fillPredictions, handleMmsTrip), with shared helpers extracted to `handlers/utils.js`. Do when a specific section becomes actively painful to work in — not before.
 
 ---
 
-## Theme 6 — Rocket Research Instrument
+## Rocket Research Instrument
 
 Rocket is a standalone mobile-first web tool for high-precision transit research. It
 decomposes journeys into dwell time (doors open), signal delay (at red), and running

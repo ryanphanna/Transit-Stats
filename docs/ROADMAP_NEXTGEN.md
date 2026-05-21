@@ -12,7 +12,7 @@ The engine's primary goal is to eliminate the "Friction" of transit tracking. Th
 
 - **`PredictionEngine` (V3)**: Weighted voting with recency decay, time-of-day similarity (Gaussian), and day-of-week similarity. Hand-coded scoring weights.
 - **Parallel Evaluation**: Real-time accuracy tracking for candidate predictions via the `predictionStats` collection.
-- **`AccuracyDashboard`**: Internal tooling to monitor hit rates against the 90% production-readiness goal.
+- **Accuracy analysis tooling**: `predictionStats`, export scripts, and audit tools for monitoring hit rates during model evaluation.
 - **Stop Name Resolution**: Basic library-based fuzzy matching for text-to-coordinate conversion.
 - **Trip Export Pipeline** (`ml/export_trips.py`): Pulls completed trip history from Firestore into a CSV for ML training.
 - **TTC Topology** (`ml/topology.json`): Ordered stop sequences for Lines 1, 2, 4, 5 — used to filter directionally impossible predictions.
@@ -26,9 +26,7 @@ The engine's primary goal is to eliminate the "Friction" of transit tracking. Th
 Building the foundation of the user's transit model.
 
 ### 1. Habit Engine
-- [ ] **Habit detector**: Learn named recurring trip patterns ("weekday morning 510 from Spadina/Nassau") from trip history. When a new trip start matches a known habit with high confidence, predict immediately without running the full ML stack. Habits are memorized patterns — they beat inference on routine trips.
 - [ ] **Habit change detection**: When observed trips start diverging from a known habit (new route, new start stop, different time window), flag the habit as stale and begin learning the replacement. Your Yonge arm commute starting today is exactly this — the model should notice the shift and adapt within a week of new trips.
-- [ ] **Habit-first prediction pipeline**: Run habit matching as a pre-filter before V4/V5. If a habit fires with sufficient confidence, return it directly. Only fall through to ML when no habit applies. This gives near-certain predictions on routine days and reserves the model for novel trips.
 - [ ] **Confidence-based UI**: Surface habit-matched predictions differently than ML predictions in the app — they warrant higher confidence display.
 
 ### 2. Semantic Stop Resolution (v2)
