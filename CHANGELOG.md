@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
-## [Unreleased]
+## [1.38.0] - 2026-05-20
 
 ### Added
 - **Post-trip SMS notes command** (`functions/lib/dispatcher.js`, `functions/lib/handlers-commands.js`, `functions/lib/handlers-trip.js`, `functions/test_dispatcher.js`, `functions/test_handlers.js`): Trip-end replies now advertise `Reply NOTES (your note) to add a note.`, and `NOTES ...` attaches text to the most recent completed trip.
