@@ -2,7 +2,6 @@ import { requireAuth } from '../shared/auth-guard.js';
 import { initHeader } from '../shared/header.js';
 import { Profile } from '../profile.js';
 import { Auth } from '../auth.js';
-import { SettingsView } from '../shared/settings-view.js';
 import { UI } from '../ui-utils.js';
 
 function refreshIcons() {
@@ -28,11 +27,6 @@ async function init() {
         await Auth.sendPasswordReset(user.email);
         UI.showNotification('Password reset email sent.');
     });
-
-    if (isAdmin) {
-        document.getElementById('section-prediction-accuracy')?.classList.remove('hidden');
-        SettingsView.renderTelemetry();
-    }
 
     refreshIcons();
 }

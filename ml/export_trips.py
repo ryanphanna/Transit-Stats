@@ -65,6 +65,25 @@ def is_stop_matched(trip):
     return bool(trip.get("verified"))
 
 
+def has_blocking_correction(trip):
+    """Exclude high-impact corrected trips until they are explicitly reprocessed."""
+    if trip.get("exclude_from_training") or trip.get("exclude_from_accuracy") or trip.get("needs_reprocess"):
+        return True
+    corrected_fields = trip.get("correctedFields") or []
+    high_impact = {
+        "route",
+        "direction",
+        "agency",
+        "startStop",
+        "startStopCode",
+        "startStopName",
+        "endStop",
+        "endStopCode",
+        "endStopName",
+    }
+    return any(field in high_impact for field in corrected_fields)
+
+
 def main():
     if not os.path.exists(KEY_PATH):
         print(f"ERROR: Service account key not found at {KEY_PATH}")
@@ -91,6 +110,7 @@ def main():
             or d.get("discarded")
             or d.get("incomplete")
             or d.get("needs_review")
+            or has_blocking_correction(d)
             or not is_stop_matched(d)
         ):
             skipped += 1

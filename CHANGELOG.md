@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Added
+- **Post-trip SMS notes command** (`functions/lib/dispatcher.js`, `functions/lib/handlers-commands.js`, `functions/lib/handlers-trip.js`, `functions/test_dispatcher.js`, `functions/test_handlers.js`): Trip-end replies now advertise `Reply NOTES (your note) to add a note.`, and `NOTES ...` attaches text to the most recent completed trip.
+- **Correction metadata foundation** (`functions/lib/db/trips.js`, `functions/lib/db/index.js`, `ml/export_trips.py`, `ml/analyze_predictions.py`): High-impact trip corrections can now be marked for reprocessing/exclusion so corrected trips do not silently remain in training and accuracy-analysis paths as if they were untouched.
+
+### Changed
+- **Transfer-complex stop resolution now prefers the right physical stop class by route mode** (`functions/lib/db/stops.js`, `functions/lib/handlers-utils.js`, `functions/test_handlers.js`): Resolver narrowing now uses TTC route-mode heuristics to prefer station-like candidates for rapid transit and surface-platform candidates for streetcar/bus routes, reducing needless ambiguity across shorthand like `College`.
+
+### Fixed
+- **End-trip text resolution no longer drops single matched candidates that lack a stop code** (`functions/lib/handlers-trip.js`, `functions/test_handlers.js`): When the end-stop matcher narrows text input to one stop-library candidate, that candidate is now used directly instead of being lost on a second code-only lookup.
+- **Admin prediction-accuracy panel removed from Settings** (`settings.html`, `js/pages/settings.js`): Stale incremental accuracy counters are no longer surfaced in the Settings UI; raw `predictionStats` remains the truth source for manual model evaluation.
+
 ## [1.37.1] - 2026-05-20
 
 ### Fixed

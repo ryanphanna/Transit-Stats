@@ -5,6 +5,25 @@ const { admin, db } = require('./core');
 const { getUserProfile } = require('./users');
 const { AGENCY_TIMEZONE } = require('../constants');
 
+const HIGH_IMPACT_CORRECTION_FIELDS = new Set([
+  'route',
+  'direction',
+  'agency',
+  'startStop',
+  'startStopCode',
+  'startStopName',
+  'endStop',
+  'endStopCode',
+  'endStopName',
+]);
+
+function hasBlockingCorrection(trip) {
+  if (!trip) return false;
+  if (trip.exclude_from_training || trip.exclude_from_accuracy || trip.needs_reprocess) return true;
+  const correctedFields = Array.isArray(trip.correctedFields) ? trip.correctedFields : [];
+  return correctedFields.some(field => HIGH_IMPACT_CORRECTION_FIELDS.has(field));
+}
+
 async function getActiveTrip(userId) {
   const now = new Date();
   const sixHoursAgo = admin.firestore.Timestamp.fromDate(new Date(now.getTime() - 6 * 60 * 60 * 1000));
@@ -56,6 +75,7 @@ async function getRecentCompletedTrips(userId, limit = 50) {
     .map(doc => ({ id: doc.id, ...doc.data() }))
     .filter((t) => {
       if (t.incomplete || t.discarded || t.needs_review) return false;
+      if (hasBlockingCorrection(t)) return false;
       const stopMatched = t.stop_matched != null ? !!t.stop_matched : !!t.verified;
       return stopMatched;
     });
@@ -103,6 +123,7 @@ module.exports = {
   createTrip,
   getTripCount,
   getRecentCompletedTrips,
+  hasBlockingCorrection,
   getPendingState,
   setPendingState,
   clearPendingState,

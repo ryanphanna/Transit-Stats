@@ -16,10 +16,30 @@ from firebase_admin import credentials, firestore
 KEY_PATH = os.path.expanduser(
     "~/Desktop/Dev/Credentials/Firebase for Transit Stats.json"
 )
+HIGH_IMPACT_FIELDS = {
+    "route",
+    "direction",
+    "agency",
+    "startStop",
+    "startStopCode",
+    "startStopName",
+    "endStop",
+    "endStopCode",
+    "endStopName",
+}
 
 
 def pct(n, total):
     return f"{100 * n / total:.1f}%" if total else "—"
+
+
+def trip_has_blocking_correction(trip):
+    if not trip:
+        return False
+    if trip.get("exclude_from_training") or trip.get("exclude_from_accuracy") or trip.get("needs_reprocess"):
+        return True
+    corrected_fields = trip.get("correctedFields") or []
+    return any(field in HIGH_IMPACT_FIELDS for field in corrected_fields)
 
 
 def main():
@@ -41,6 +61,18 @@ def main():
         return
 
     rows = [d.to_dict() for d in docs]
+    trip_ids = {r.get("tripId") for r in rows if r.get("tripId")}
+    trip_lookup = {}
+    for trip_id in trip_ids:
+        trip_doc = db.collection("trips").document(trip_id).get()
+        if trip_doc.exists:
+            trip_lookup[trip_id] = trip_doc.to_dict()
+
+    rows = [
+        r for r in rows
+        if not trip_has_blocking_correction(trip_lookup.get(r.get("tripId")))
+    ]
+    print(f"Usable prediction records after correction filter: {len(rows)}\n")
 
     # ── Route predictions ──────────────────────────────────────────────────
     route_rows = [r for r in rows if r.get("predicted") and r.get("actual")]
