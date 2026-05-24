@@ -181,6 +181,7 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
         sentiment: options.sentiment || null,
         tags: options.tags || [],
         parsed_by: options.parsed_by || 'manual',
+        vehicle: options.vehicle || null,
       },
     });
 
@@ -331,6 +332,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       sentiment: options.sentiment || null,
       tags: options.tags || [],
       parsed_by: options.parsed_by || 'manual',
+      vehicle: options.vehicle || null,
       startTime: options.startTime || null,
       source: options.source || null,
       timing_reliability: options.timing_reliability || null,
@@ -486,6 +488,7 @@ async function handleConfirmStart(phoneNumber, user, state) {
     sentiment: newTrip.sentiment || null,
     tags: newTrip.tags || [],
     parsed_by: newTrip.parsed_by || 'manual',
+    vehicle: newTrip.vehicle || null,
     prediction: confirmPrediction || null,
     predictionV4: confirmPredictionV4 || null,
     predictionV5: confirmPredictionV5 || null,

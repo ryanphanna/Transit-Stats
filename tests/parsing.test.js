@@ -131,6 +131,26 @@ describe('parseMultiLineTripFormat', () => {
     const result = parseMultiLineTripFormat('501\nqueen and spadina', 'TTC');
     expect(result.stop).toBe('Queen & Spadina');
   });
+
+  test('extracts vehicle from a separate line', () => {
+    const result = parseMultiLineTripFormat('506\nCollege\nWest\nVehicle 4412', 'TTC');
+    expect(result).toMatchObject({
+      route: '506',
+      stop: 'College',
+      direction: 'Westbound',
+      vehicle: '4412',
+    });
+  });
+
+  test('extracts vehicle from stop name in multiline', () => {
+    const result = parseMultiLineTripFormat('506\nCollege (v: 4412)\nWest', 'TTC');
+    expect(result).toMatchObject({
+      route: '506',
+      stop: 'College',
+      direction: 'Westbound',
+      vehicle: '4412',
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------

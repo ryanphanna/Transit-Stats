@@ -67,6 +67,22 @@ test('multi-line: agency on line 3 is accepted if not a direction', () => {
   assert.equal(result.agencyExplicit, true);
 });
 
+test('multi-line: extracts vehicle from separate line', () => {
+  const result = parseMultiLineTripFormat('506\nCollege\nWest\nVehicle 4412', DEFAULT_AGENCY);
+  assert.equal(result.route, '506');
+  assert.equal(result.stop, 'College');
+  assert.equal(result.direction, 'Westbound');
+  assert.equal(result.vehicle, '4412');
+});
+
+test('multi-line: extracts vehicle from stop name', () => {
+  const result = parseMultiLineTripFormat('506\nCollege (v: 4412)\nWest', DEFAULT_AGENCY);
+  assert.equal(result.route, '506');
+  assert.equal(result.stop, 'College');
+  assert.equal(result.direction, 'Westbound');
+  assert.equal(result.vehicle, '4412');
+});
+
 // ─── parseSingleLineTripFormat ───────────────────────────────────────────────
 
 test('single-line: route + stop + direction', () => {
@@ -74,6 +90,14 @@ test('single-line: route + stop + direction', () => {
   assert.equal(result.route, '510');
   assert.equal(result.stop, 'Spadina / College'); // toTitleCase adds spaces around slashes
   assert.equal(result.direction, 'Northbound');
+});
+
+test('single-line: extracts vehicle from stop name', () => {
+  const result = parseSingleLineTripFormat('506 College (Vehicle 4412) West', DEFAULT_AGENCY);
+  assert.equal(result.route, '506');
+  assert.equal(result.stop, 'College');
+  assert.equal(result.direction, 'Westbound');
+  assert.equal(result.vehicle, '4412');
 });
 
 test('single-line: stop with spaces and slash', () => {

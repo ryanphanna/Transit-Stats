@@ -95,6 +95,7 @@ export const Trips = {
             start: document.getElementById('edit-start-stop'),
             end: document.getElementById('edit-end-stop'),
             dir: document.getElementById('edit-direction'),
+            vehicle: document.getElementById('edit-vehicle'),
             agency: document.getElementById('edit-agency')
         };
 
@@ -103,6 +104,7 @@ export const Trips = {
         if (form.start) form.start.value = trip.startStopName || trip.startStop || '';
         if (form.end) form.end.value = trip.endStopName || trip.endStop || '';
         if (form.dir) form.dir.value = trip.direction || '';
+        if (form.vehicle) form.vehicle.value = trip.vehicle || '';
         if (form.agency) form.agency.value = trip.agency || 'TTC';
 
         ModalManager.open('modal-edit-trip');

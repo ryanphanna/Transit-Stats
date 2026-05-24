@@ -64,6 +64,20 @@ function parseMultiLineTripFormat(body, defaultAgency) {
   }
 
   const route = normalizeRoute(lines[0]);
+  let vehicle = null;
+
+  // Extract vehicle if explicitly provided on any line (e.g. "Vehicle 7109")
+  const vehicleRegex = /^(?:v|vehicle)[:\s]+(.+)$/i;
+  lines = lines.filter((line, index) => {
+    if (index === 0) return true; // First line is always route
+    const vMatch = line.match(vehicleRegex);
+    if (vMatch) {
+      vehicle = vMatch[1].trim();
+      return false;
+    }
+    return true;
+  });
+
   const line2Direction = normalizeDirection(lines[1]);
   const line3Direction = lines.length >= 3 ? normalizeDirection(lines[2]) : null;
 
@@ -110,13 +124,38 @@ function parseMultiLineTripFormat(body, defaultAgency) {
     return null;
   }
 
+  let finalStop = stop;
+
+  // If vehicle wasn't found as a line, check if it's in the stop name
+  if (!vehicle) {
+    const inlineV = extractVehicleFromStop(stop);
+    finalStop = inlineV.cleanStop;
+    vehicle = inlineV.vehicle;
+  }
+
   return {
     route,
-    stop,
+    stop: finalStop,
     direction,
     agency,
     agencyExplicit,
+    vehicle,
   };
+}
+
+/**
+ * Helper to extract vehicle info from within a stop name string (e.g. "Union (Vehicle 123)")
+ */
+function extractVehicleFromStop(stopName) {
+  const vehicleRegex = /\s*\((?:v|vehicle)(?:\s+number)?[:\s]+([^)]+)\)/i;
+  const match = stopName.match(vehicleRegex);
+  if (match) {
+    return {
+      cleanStop: stopName.replace(vehicleRegex, '').trim(),
+      vehicle: match[1].trim()
+    };
+  }
+  return { cleanStop: stopName, vehicle: null };
 }
 
 /**
@@ -306,11 +345,17 @@ function parseSingleLineTripFormat(body, defaultAgency) {
   const stopWords = words.slice(1, -1);
   if (stopWords.length === 0) return null;
 
-  const stop = toTitleCase(stopWords.join(' '));
+  let stop = toTitleCase(stopWords.join(' '));
+  let vehicle = null;
+
+  // Check for vehicle info in single-line stop text
+  const inlineV = extractVehicleFromStop(stop);
+  stop = inlineV.cleanStop;
+  vehicle = inlineV.vehicle;
 
   if (!isHeuristicLogValid(stop, route)) return null;
 
-  return { route, stop, direction, agency: defaultAgency, agencyExplicit: false };
+  return { route, stop, direction, agency: defaultAgency, agencyExplicit: false, vehicle };
 }
 
 module.exports = {

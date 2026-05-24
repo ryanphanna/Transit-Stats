@@ -435,7 +435,7 @@ async function handleTripFlow(phoneNumber, user, body, receivedAt = Date.now()) 
       tripData.route,
       tripData.direction,
       tripData.agency,
-      { agencyExplicit: tripData.agencyExplicit, startTime: receivedAt },
+      { agencyExplicit: tripData.agencyExplicit, startTime: receivedAt, vehicle: tripData.vehicle },
     );
     return true;
   }
@@ -482,7 +482,7 @@ async function handleAIIntent(phoneNumber, user, body, receivedAt = Date.now()) 
         geminiResult.route,
         safeDir,
         aiAgency || defaultAgency,
-        { parsed_by: 'ai', agencyExplicit: !!aiAgency, startTime: receivedAt },
+        { parsed_by: 'ai', agencyExplicit: !!aiAgency, startTime: receivedAt, vehicle: geminiResult.vehicle },
       );
       return true;
     }

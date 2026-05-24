@@ -29,6 +29,7 @@ const tripEdit = {
     startStop: document.getElementById('edit-start-stop'),
     endStop: document.getElementById('edit-end-stop'),
     direction: document.getElementById('edit-direction'),
+    vehicle: document.getElementById('edit-vehicle'),
     agency: document.getElementById('edit-agency'),
     btnSave: document.getElementById('btn-save-edit'),
     btnDelete: document.getElementById('btn-delete-trip')
@@ -42,6 +43,7 @@ function setupTripEditListeners() {
             startStop: tripEdit.startStop.value.trim(),
             endStop: tripEdit.endStop.value.trim(),
             direction: tripEdit.direction.value.trim(),
+            vehicle: tripEdit.vehicle.value.trim(),
             agency: tripEdit.agency.value
         };
         if (!data.route) return UI.showNotification('Route number or name is required.');

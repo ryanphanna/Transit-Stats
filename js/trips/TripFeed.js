@@ -81,6 +81,7 @@ export const TripFeed = {
                 <div class="trip-meta text-right">
                     <div class="trip-date">${Utils.hide(dateStr)}</div>
                     ${direction ? `<div class="trip-direction font-bold text-xxs">${Utils.hide(direction)}</div>` : ''}
+                    ${trip.vehicle ? `<div class="trip-vehicle text-xxs opacity-70">${Utils.hide(trip.vehicle)}</div>` : ''}
                     <div class="trip-duration text-secondary text-xs">${parseInt(trip.duration) || 0} min</div>
                     ${trip.rocketTripId ? `<div class="trip-rocket-badge text-accent" title="Rocket Instrument Sampling"><i data-lucide="microscope" class="icon-inline"></i></div>` : ''}
                 </div>

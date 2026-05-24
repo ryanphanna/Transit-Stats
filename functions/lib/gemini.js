@@ -864,11 +864,13 @@ async function parseWithGemini(text) {
       If not mentioned, return null — do not guess.
     - Sentiment: Determine if POSITIVE, NEGATIVE, or NEUTRAL.
     - Tags: Extract 1-3 keyword tags (e.g., "crowded", "delayed", "clean").
+    - Vehicle: Extract the vehicle number or identifier if explicitly mentioned (e.g. "bus 7109", "car 123", "vehicle 456").
 
     Examples:
     - "Just boarded Route 1 NB" -> intent: "START_TRIP", route: "1", direction: "Northbound"
     - "B Line Wilshire/Vermont LA Metro" -> intent: "START_TRIP", route: "B", stop_name: "Wilshire/Vermont", agency: "LA Metro"
     - "Packed 504 from King" -> intent: "START_TRIP", route: "504", tags: ["crowded"]
+    - "Boarded 510 from Spadina (Vehicle 4412)" -> intent: "START_TRIP", route: "510", stop_name: "Spadina", vehicle: "4412"
     - "How many trips have I taken in total ever?" -> intent: "QUERY", question: "How many trips have I taken in total ever?"
     - "How many trips have I taken in 2026 so far?" -> intent: "QUERY", question: "How many trips have I taken in 2026 so far?"
     - "How many trips have I made between Queens Park and York University?" -> intent: "QUERY", question: "How many trips have I made between Queens Park and York University?"
@@ -886,6 +888,7 @@ async function parseWithGemini(text) {
       "stop_id": "string" | null,
       "direction": "string" | null,
       "agency": "string" | null,
+      "vehicle": "string" | null,
       "sentiment": "POSITIVE" | "NEGATIVE" | "NEUTRAL",
       "tags": ["string"],
       "question": "string" | null
