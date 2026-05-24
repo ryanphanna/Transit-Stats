@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - **Route validation now rejects obvious direction/street/transit fragments without breaking legitimate named services** (`functions/lib/utils.js`, `tests/utils.test.js`, `functions/test_utils.js`): Tightened the permissive named-route fallback so generic tokens like `NB`, `BUS`, `ST`, and `TRAIN` no longer pass as valid routes, while keeping support for real labels such as `Orange`, `Green Line`, and `Pacific Surfliner`.
 - **Default Vitest discovery now stays inside the real repo test surface** (`vite.config.js`): Scoped the default test run to `tests/**/*.test.js`, excluded agent/worktree folders, and left Firestore rules coverage on the explicit emulator-backed `npm run test:rules` path so `npm test` remains a local unit-test command.
+- **Habit confidence and stale-pattern detection now anchor to trip context instead of wall-clock drift** (`functions/lib/habit.js`): Habit extraction scores against the latest trip in the snapshot, matching re-scores confidence against the attempted boarding time, and stale-habit replacement checks use the dataset’s own recency window so long-lived tests and offline rebuilds do not silently decay or miss emerging replacements just because real time passed.
 
 ## [1.38.0] - 2026-05-20
 

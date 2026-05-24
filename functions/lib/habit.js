@@ -27,11 +27,12 @@ const HabitEngine = {
    */
   extractHabits(trips, since = null) {
     const groups = {};
+    const referenceMs = this._latestTripTime(trips);
 
     for (const trip of trips) {
       if (!trip.startStopName || !trip.route || !trip.direction || !trip.startTime) continue;
 
-      const time = trip.startTime?.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
+      const time = this._coerceTime(trip.startTime);
       if (isNaN(time.getTime())) continue;
       if (since && time.getTime() < since) continue;
 
@@ -86,7 +87,12 @@ const HabitEngine = {
         hourMax,
         count: group.observations.length,
         lastSeen,
-        confidence: this._confidence(group.observations.length, lastSeen, hourMax - hourMin),
+        confidence: this._confidence(
+          group.observations.length,
+          lastSeen,
+          hourMax - hourMin,
+          referenceMs
+        ),
         stale: false,
       });
     }
@@ -111,6 +117,7 @@ const HabitEngine = {
 
     const day = now.getDay();
     const hour = now.getHours();
+    const nowMs = now.getTime();
 
     const candidates = habits.filter(h => {
       if (h.stale) return false;
@@ -118,14 +125,20 @@ const HabitEngine = {
       if (h.day !== day) return false;
       // Allow ±1 hour flexibility outside the observed window
       if (hour < h.hourMin - 1 || hour > h.hourMax + 1) return false;
-      if (h.confidence < this.CONFIDENCE_THRESHOLD) return false;
+      const confidence = this._confidence(h.count, h.lastSeen, h.hourMax - h.hourMin, nowMs);
+      if (confidence < this.CONFIDENCE_THRESHOLD) return false;
       if (route && this._norm(h.route) !== this._norm(route.toString())) return false;
       if (direction && this._norm(h.direction) !== this._norm(direction)) return false;
       return true;
     });
 
     if (!candidates.length) return null;
-    return candidates.sort((a, b) => b.confidence - a.confidence)[0];
+    return candidates
+      .map((habit) => ({
+        ...habit,
+        confidence: this._confidence(habit.count, habit.lastSeen, habit.hourMax - habit.hourMin, nowMs),
+      }))
+      .sort((a, b) => b.confidence - a.confidence)[0];
   },
 
   /**
@@ -171,7 +184,8 @@ const HabitEngine = {
 
     // Detect stale habits: if a different route/direction is emerging in the same
     // (stop, day, bucket) slot within the last 30 days, the old habit is being replaced.
-    const thirtyDaysAgo = Date.now() - 30 * 86400000;
+    const referenceMs = this._latestTripTime(trips);
+    const thirtyDaysAgo = referenceMs - 30 * 86400000;
     const recentHabits = this.extractHabits(trips, thirtyDaysAgo);
     const recentBySlot = {};
     for (const h of recentHabits) {
@@ -206,12 +220,27 @@ const HabitEngine = {
    *
    * @private
    */
-  _confidence(count, lastSeenMs, hourSpread) {
+  _confidence(count, lastSeenMs, hourSpread, referenceMs = Date.now()) {
     const countScore = Math.min(count / 10, 1.0);
-    const daysSince = (Date.now() - lastSeenMs) / 86400000;
+    const daysSince = Math.max(0, (referenceMs - lastSeenMs) / 86400000);
     const recency = Math.exp(-(Math.log(2) / 30) * daysSince);
     const precision = hourSpread <= 1 ? 1.0 : hourSpread <= 2 ? 0.9 : 0.8;
     return Math.round(countScore * recency * precision * 1000) / 1000;
+  },
+
+  _coerceTime(value) {
+    return value?.toDate ? value.toDate() : new Date(value);
+  },
+
+  _latestTripTime(trips) {
+    let latest = 0;
+    for (const trip of trips || []) {
+      if (!trip?.startTime) continue;
+      const time = this._coerceTime(trip.startTime);
+      if (isNaN(time.getTime())) continue;
+      latest = Math.max(latest, time.getTime());
+    }
+    return latest || Date.now();
   },
 
   _norm(s) {
