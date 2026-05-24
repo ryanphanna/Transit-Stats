@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Security
+- **Dependency updates** (`package.json`, `package-lock.json`): Resolved 9 security vulnerabilities identified by Dependabot and `npm audit`.
+  - Updated `firebase-admin` to `^13.10.0`.
+  - Updated `playwright` to `^1.60.0`.
+  - Updated `vitest` and `@vitest/ui` to `^4.1.7`.
+  - Updated `vite` to `^8.0.14`.
+  - Added `uuid@^11.1.1` override to resolve buffer bounds check vulnerability (GHSA-w5hq-g745-h8pq) across transitive dependencies (`@google-cloud/storage`, `google-gax`, etc.).
+
 ## [1.39.0] - 2026-05-24
 
 ### Added
