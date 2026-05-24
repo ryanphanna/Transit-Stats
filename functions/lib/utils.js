@@ -4,6 +4,18 @@
 const crypto = require('crypto');
 const { AGENCY_CANONICAL } = require('./constants');
 
+const INVALID_ROUTE_WORDS = new Set([
+  'N', 'S', 'E', 'W',
+  'NB', 'SB', 'EB', 'WB',
+  'N/B', 'S/B', 'E/B', 'W/B',
+  'NORTH', 'SOUTH', 'EAST', 'WEST',
+  'NORTHBOUND', 'SOUTHBOUND', 'EASTBOUND', 'WESTBOUND',
+  'IN', 'OUT', 'IB', 'OB', 'INBOUND', 'OUTBOUND',
+  'ST', 'STREET', 'RD', 'ROAD', 'AVE', 'AV', 'AVENUE',
+  'BLVD', 'BOULEVARD', 'DR', 'DRIVE',
+  'BUS', 'TRAIN', 'TRAM', 'SUBWAY', 'METRO', 'STOP', 'STATION',
+]);
+
 /**
  * Convert string to Title Case
  * Also normalizes " and " to " & " for intersections
@@ -118,6 +130,8 @@ function isValidRoute(route) {
   const cleanRoute = route.trim().replace(/\s+/g, ' ');
   const upper = cleanRoute.toUpperCase();
 
+  if (INVALID_ROUTE_WORDS.has(upper)) return false;
+
   // Valid formats: "505", "510A", "510B", "GO1", "Line 1", "Line 2"
   if (/^[A-Z]{0,2}\d+[A-Z]?$/.test(upper)) return true;
   if (/^LINE\s*\d+$/.test(upper)) return true;
@@ -130,7 +144,14 @@ function isValidRoute(route) {
     const tokens = cleanRoute.split(' ').filter(Boolean);
     const hasAlpha = /[A-Z]/i.test(cleanRoute);
     const hasReasonableTokenLengths = tokens.every(token => token.length <= 24);
-    if (hasAlpha && tokens.length >= 1 && tokens.length <= 5 && hasReasonableTokenLengths) {
+    const isShortWordOnlyToken = tokens.length === 1 && /^[A-Z]+$/i.test(cleanRoute) && cleanRoute.length <= 2;
+    if (
+      hasAlpha &&
+      tokens.length >= 1 &&
+      tokens.length <= 5 &&
+      hasReasonableTokenLengths &&
+      !isShortWordOnlyToken
+    ) {
       return true;
     }
   }

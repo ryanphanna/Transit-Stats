@@ -48,6 +48,14 @@ export default defineConfig({
         globals: true,
         environment: 'jsdom',
         // setupFiles: ['./tests/setup.js'],
-        exclude: ['**/node_modules/**', '**/_legacy_v1/**', '**/dist/**'],
+        include: ['tests/**/*.test.js'],
+        exclude: [
+            '**/node_modules/**',
+            '**/_legacy_v1/**',
+            '**/dist/**',
+            '**/.claude/**',
+            '**/.agent/**',
+            'tests/firestore.rules.test.js',
+        ],
     },
 });

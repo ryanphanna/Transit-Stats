@@ -177,11 +177,19 @@ describe('isValidRoute', () => {
     expect(isValidRoute('BUS')).toBe(false);
     expect(isValidRoute('STOP')).toBe(false);
     expect(isValidRoute('NORTHBOUND')).toBe(false);
+    expect(isValidRoute('TRAIN')).toBe(false);
   });
 
   test('alphanumeric route codes are valid', () => {
     expect(isValidRoute('510A')).toBe(true);
     expect(isValidRoute('GO1')).toBe(true);
+  });
+
+  test('legitimate named routes remain valid', () => {
+    expect(isValidRoute('Orange')).toBe(true);
+    expect(isValidRoute('Green Line')).toBe(true);
+    expect(isValidRoute('Pacific Surfliner')).toBe(true);
+    expect(isValidRoute('Red Oakland-bound')).toBe(true);
   });
 });
 

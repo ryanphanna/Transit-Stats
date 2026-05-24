@@ -21,6 +21,9 @@ test('isValidRoute accepts legitimate named multi-agency routes', () => {
 test('isValidRoute rejects obvious garbage', () => {
   assert.equal(isValidRoute(''), false);
   assert.equal(isValidRoute(null), false);
+  assert.equal(isValidRoute('NB'), false);
+  assert.equal(isValidRoute('BUS'), false);
+  assert.equal(isValidRoute('TRAIN'), false);
   assert.equal(isValidRoute('Need To Correct Origin To Keelesdale'), false);
   assert.equal(isValidRoute('This is definitely not a route name at all'), false);
 });

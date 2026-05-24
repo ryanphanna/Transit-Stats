@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Changed
+- **Route validation now rejects obvious direction/street/transit fragments without breaking legitimate named services** (`functions/lib/utils.js`, `tests/utils.test.js`, `functions/test_utils.js`): Tightened the permissive named-route fallback so generic tokens like `NB`, `BUS`, `ST`, and `TRAIN` no longer pass as valid routes, while keeping support for real labels such as `Orange`, `Green Line`, and `Pacific Surfliner`.
+- **Default Vitest discovery now stays inside the real repo test surface** (`vite.config.js`): Scoped the default test run to `tests/**/*.test.js`, excluded agent/worktree folders, and left Firestore rules coverage on the explicit emulator-backed `npm run test:rules` path so `npm test` remains a local unit-test command.
+
 ## [1.38.0] - 2026-05-20
 
 ### Added
