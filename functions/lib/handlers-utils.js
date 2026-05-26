@@ -8,6 +8,7 @@ const {
   setPendingState,
   lookupStop,
   findMatchingStops,
+  getRoutesAtStop,
   getUserProfile,
   createTrip,
   getLastTripAgency,
@@ -119,8 +120,8 @@ async function resolveTripAgency(
   return { resolvedAgency, handled: false };
 }
 
-function narrowStopCandidates(candidates, route, direction) {
-  let narrowed = candidates;
+async function narrowStopCandidates(candidates, route, direction, agency = null) {
+  let narrowed = await enrichStopCandidatesWithRoutes(candidates, agency);
   if (narrowed.length > 1 && route) {
     // Filter by route — keep stops that serve this route (or have no route data)
     const routeFiltered = narrowed.filter(c =>
@@ -132,9 +133,7 @@ function narrowStopCandidates(candidates, route, direction) {
   // Further narrow by direction if provided and candidates still ambiguous
   if (narrowed.length > 1 && direction) {
     const normalize = value => value?.toString().trim().toLowerCase().replace(/bound$/, '');
-    const dirFiltered = narrowed.filter(c =>
-      !c.direction || normalize(c.direction) === normalize(direction)
-    );
+    const dirFiltered = narrowed.filter(c => normalize(c.direction) === normalize(direction));
     if (dirFiltered.length >= 1) narrowed = dirFiltered;
   }
   if (narrowed.length > 1 && route) {
@@ -142,6 +141,21 @@ function narrowStopCandidates(candidates, route, direction) {
     if (modePreferred.length >= 1) narrowed = modePreferred;
   }
   return narrowed;
+}
+
+async function enrichStopCandidatesWithRoutes(candidates, agency) {
+  if (!agency || !Array.isArray(candidates) || candidates.length === 0) return candidates;
+
+  return Promise.all(candidates.map(async (candidate) => {
+    if (!candidate.stopCode || (candidate.routes && candidate.routes.length > 0)) return candidate;
+
+    try {
+      const routes = await getRoutesAtStop(candidate.stopCode, agency);
+      return routes && routes.length > 0 ? { ...candidate, routes } : candidate;
+    } catch (_) {
+      return candidate;
+    }
+  }));
 }
 
 function preferCandidatesByRouteMode(candidates, route) {
@@ -215,10 +229,11 @@ async function maybeHandleStopDisambiguation({
 }) {
   if (parsedStop.stopCode || !parsedStop.stopName) return false;
 
-  const candidates = narrowStopCandidates(
+  const candidates = await narrowStopCandidates(
     await findMatchingStops(parsedStop.stopName, resolvedAgency, route, direction),
     route,
-    direction
+    direction,
+    resolvedAgency
   );
   if (candidates.length <= 1) return false;
 
@@ -268,7 +283,7 @@ async function maybeHandleStopDisambiguation({
     const routeDisplay = getRouteDisplay(route, direction);
     await sendSmsReply(
       phoneNumber,
-      `${routeDisplay} started. Multiple stops match "${parsedStop.stopName}":\n${list}\n` +
+      `${routeDisplay} started.\n\nMultiple stops match "${parsedStop.stopName}":\n\n${list}\n\n` +
       'Reply with a number to set your stop, or DISCARD to cancel.'
     );
     return true;
@@ -285,7 +300,7 @@ async function maybeHandleStopDisambiguation({
   });
   await sendSmsReply(
     phoneNumber,
-    `Multiple stops match "${parsedStop.stopName}":\n${list}\nReply with a number or DISCARD to cancel.`
+    `Multiple stops match "${parsedStop.stopName}":\n\n${list}\n\nReply with a number or DISCARD to cancel.`
   );
   return true;
 }

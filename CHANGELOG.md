@@ -4,7 +4,10 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
-## [Unreleased]
+## [1.39.1] - 2026-05-26
+
+### Fixed
+- **SMS stop disambiguation now uses route metadata before prompting** (`functions/lib/handlers-utils.js`, `functions/test_handlers.js`): Named-stop trip starts now enrich ambiguous candidates from `stopRoutes` before deciding whether to ask for clarification, and direction narrowing now prefers explicit direction matches over generic directionless candidates. This reduces unnecessary prompts for cases like `506 + Dufferin / College + Eastbound` once normalized stop records include the correct physical stop direction. Multi-stop SMS prompts also now include blank lines around the choice list for better readability.
 
 ### Security
 - **Dependency updates** (`package.json`, `package-lock.json`): Resolved 9 security vulnerabilities identified by Dependabot and `npm audit`.

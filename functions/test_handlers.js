@@ -340,6 +340,41 @@ test('handleTripLog: 506 College with no direction falls back to disambiguation 
   assert.match(msg, /stop 761/);
 });
 
+test('handleTripLog: 506 Dufferin / College Eastbound uses stopRoutes before prompting', async () => {
+  const { handlers, calls, restore } = loadHandlers({
+    dbModule: {
+      findMatchingStops: async () => [
+        { id: 's2033', stopCode: '2033', stopName: 'Dufferin / College', routes: ['29'], direction: null },
+        { id: 's827', stopCode: '827', stopName: 'Dufferin / College', routes: [], direction: 'Westbound' },
+        { id: 's826', stopCode: '826', stopName: 'Dufferin / College', routes: [], direction: 'Eastbound' },
+        { id: 's2034', stopCode: '2034', stopName: 'Dufferin / College', routes: [], direction: null },
+      ],
+      getRoutesAtStop: async (code) => ({
+        827: ['506'],
+        826: ['506'],
+        2034: ['29'],
+      }[code] || []),
+      lookupStop: async (_code, stopName, _agency, route, direction) => {
+        if (stopName === 'Dufferin / College' && route === '506' && direction === 'Eastbound') {
+          return { id: 's826', stopCode: '826', stopName: 'Dufferin / College', source: 'verified' };
+        }
+        return null;
+      },
+    },
+  });
+
+  try {
+    await handlers.handleTripLog('+14165550014', { userId: 'u14' }, 'Dufferin / College', '506', 'Eastbound', 'TTC');
+  } finally {
+    restore();
+  }
+
+  assert.equal(calls.setPendingState.length, 0);
+  assert.equal(calls.createTrip.length, 1);
+  assert.equal(calls.createTrip[0].startStopCode, '826');
+  assert.equal(calls.createTrip[0].startStopName, 'Dufferin / College');
+});
+
 test('handleTripLog: Line 1 College auto-resolves to subway station', async () => {
   const { handlers, calls, restore } = loadHandlers({
     dbModule: {
