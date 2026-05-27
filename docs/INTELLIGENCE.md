@@ -28,6 +28,8 @@ This family handles route and end-stop inference at trip start.
   Candidate logistic-regression route and end-stop models trained from trip history.
 - **V5** — `functions/lib/predict_v5.js`
   Candidate XGBoost route and end-stop models exported to ONNX for live inference.
+- **V6** — (in design)
+  Next-generation model focused on journey/sequence context. See the [V6 design spike](./V6_DESIGN_SPIKE.md).
 
 **Retraining:** V4 and V5 retrain from the Python pipeline in `ml/export_trips.py`, `ml/train_routes.py`, and `ml/train_endstop.py`. See `ml/CLAUDE.md` for the retrain workflow.
 
@@ -267,9 +269,15 @@ Both files implement the same engine. Changes must be applied to both. The CJS v
 
 ---
 
-## Concept: v6 — Journey-Context Engine
+### V6
 
-**Core idea:** V6 should be the first model generation that treats trips as connected journey state rather than isolated starts. The main step up from V5 is not "more trees" or "more random features." It is sequence and transfer context.
+**Role:** Next-generation route and end-stop model family (not yet built).
+
+**What it does:** Early concept phase. Primary goal is to move from single-trip prediction to explicit journey/sequence context. See the dedicated spike document for current thinking.
+
+**Status:** Concept / spike phase. See [V6 Design Spike](./V6_DESIGN_SPIKE.md) for the latest analysis and direction.
+
+**Core idea (current thinking):** V6 should be the first model generation that treats trips as connected journey state rather than isolated starts. The main step up from V5 is not "more trees" or "more random features." It is sequence and transfer context.
 
 **Primary signal families:**
 - **Previous trip context** — previous route, previous end stop, and time since last trip
