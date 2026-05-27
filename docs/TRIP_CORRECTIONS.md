@@ -105,6 +105,35 @@ This approach records the user's actual intent while still giving the trip a pro
 
 The same pattern applies to other high-impact fields (route, direction, agency, etc.): record the intended raw/corrected value, ensure the canonical form is correct, set `stop_matched` / equivalent where applicable, apply full metadata + exclusion flags.
 
+### Scenarios
+
+**Scenario 1: Stop name typo on a transfer-heavy route**  
+User rode the 506 Westbound and typed "collegea" instead of "College".  
+- Set `startStop = "College"`.  
+- Set `startStopName = "College St at Spadina Ave"` (canonical).  
+- Set `stop_matched = true` (route + direction context supports clean resolution).  
+- `correctedFields`, `originalValues`, `correctedAt`, and all three exclusion flags (`needs_reprocess`, `exclude_from_training`, `exclude_from_accuracy`) are applied.  
+Result: The trip records the user's actual intent while remaining properly matched and excluded from training/accuracy.
+
+**Scenario 2: Route mistyped (high-impact route correction)**  
+User meant to log a trip on the 510 but typed "51".  
+- Set `route = "510"`.  
+- `correctedFields` includes "route".  
+- `originalValues.route = "51"`.  
+- Apply full exclusion flags.  
+- No `stop_matched` change unless the stop was also affected.  
+This prevents the bad route from polluting NetworkEngine observations and training data.
+
+**Scenario 3: Ambiguous input with low confidence**  
+User typed a vague stop name on a complex corridor. Even after correction to the intended text, route + direction context is not strong enough for automatic matching.  
+- Record the intended raw value in `startStop`.  
+- Set the best available `startStopName`.  
+- Leave `stop_matched = false`.  
+- Still apply all correction metadata + exclusion flags.  
+This flags the trip for later review or manual reprocessing.
+
+These scenarios show how the same core principles (record intent + proper metadata + exclusions) adapt to different situations while protecting long-term model quality.
+
 ## Why Not Full Delayed Finalization Yet
 
 The cleaner architecture would be to separate:
