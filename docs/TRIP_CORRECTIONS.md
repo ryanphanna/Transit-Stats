@@ -47,6 +47,22 @@ Current correction metadata / guardrails:
 
 Background finalization (via `onTripFinalized` trigger + `runPostEndFinalization`) only runs on first `endTime`. Corrections set the exclusion flags and are skipped by the idempotency guard even if `needs_reprocess` is true; only explicit `triggerManualFinalization` (force) re-runs learning/grading.
 
+## Recording User Intent in Corrections
+
+When correcting a trip, the goal is not always to immediately produce "perfect" canonical data.
+
+A deliberate approach is to record **what the user actually meant to enter** (the raw or near-raw intent) rather than jumping straight to the fully normalized stop/route name. This has several benefits:
+
+- Future matching and prediction logic (especially V6 and beyond) can learn to handle realistic imperfect user input.
+- Route + direction context can often disambiguate and auto-match from a corrected but still "human" input.
+- It preserves signal about common user mistakes and phrasing, which is valuable training data.
+
+Example: Changing a bad entry like "collegea" to the user's intended "College" (rather than directly to "College St at Spadina Ave") lets the system demonstrate that it can resolve from context.
+
+This does **not** remove the need for proper correction metadata (`correctedFields`, `originalValues`, exclusion flags). The trip is still marked as corrected and excluded from training/accuracy until explicitly reprocessed.
+
+The tension is intentional: we want both (a) clean data for immediate use and (b) realistic imperfect examples that strengthen the matching system over time.
+
 ## Why Not Full Delayed Finalization Yet
 
 The cleaner architecture would be to separate:

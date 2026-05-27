@@ -11,6 +11,19 @@ It follows a deliberate "scientist" approach:
 
 This is separate from the main design thinking in `V6_DESIGN_SPIKE.md` and from live accuracy tracking in `ACCURACY_LOG.md` / `MODEL_LOG.md`.
 
+## Experimental Philosophy
+
+V6 development is approached as a series of small, deliberate scientific experiments rather than traditional feature work.
+
+Core principles:
+- Start with a clear **hypothesis**, not a solution.
+- Run the smallest possible **experiment** that can test the hypothesis.
+- Record **results with sample sizes (n)** and context.
+- Interpret honestly, including negative results.
+- Let data (not intuition) drive the next hypothesis.
+
+This reduces risk and ensures we only invest in real model work once we have evidence that a direction is worth pursuing.
+
 ---
 
 ## How to Add a New Experiment
