@@ -13,6 +13,8 @@ This is separate from the main design thinking in `V6_DESIGN_SPIKE.md` and from 
 
 See also the [V6 section in INTELLIGENCE.md](../INTELLIGENCE.md#v6) for the high-level overview.
 
+**Data quality note:** V6 experiments depend heavily on high-quality training and evaluation data. We are actively evolving correction practices to better record user intent rather than immediately sanitizing data (see [Trip Corrections > Recording User Intent](../TRIP_CORRECTIONS.md#recording-user-intent-in-corrections)). This philosophy directly affects what signals we can measure in future experiments.
+
 ## Experimental Philosophy
 
 V6 development is approached as a series of small, deliberate scientific experiments rather than traditional feature work.

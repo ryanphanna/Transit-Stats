@@ -15,6 +15,16 @@ Editing a trip after it ends is not just a UI concern. A corrected trip may alre
 
 That means a post-hoc correction can make some derived data stale even if the trip document itself is now right.
 
+## Guiding Philosophy
+
+When correcting trips, we prioritize recording the user's actual intent over immediately forcing perfectly normalized canonical data.
+
+This approach has two goals:
+- Preserve realistic examples of imperfect user input so future models (especially V6) can learn to handle real-world phrasing and mistakes.
+- Still maintain strong data hygiene for training and accuracy by applying proper correction metadata and exclusion flags.
+
+In practice, this often means correcting the raw input field toward what the user meant to type (e.g. "College" instead of "Collegea"), while ensuring the canonical `startStopName` is correct and the trip is properly flagged.
+
 ## Current Practical Rule
 
 For now, the simplest safe model is:

@@ -305,4 +305,8 @@ Both files implement the same engine. Changes must be applied to both. The CJS v
 - V6 should reason about what stage of a journey the user is currently in.
 - That likely changes both the feature schema and the evaluation logic.
 
+**Data Quality Note:**
+
+High-quality training data is critical for V6. We are evolving our correction practices (see [Trip Corrections](./TRIP_CORRECTIONS.md#recording-user-intent-in-corrections)) to record the user's actual intent during fixes rather than immediately sanitizing everything to perfect canonical names. This preserves realistic imperfect examples for future models to learn from, while still applying proper exclusion flags so bad data does not pollute training or accuracy.
+
 **Status:** Concept only. The practical path is to prove V6-style signals incrementally inside V5 experiments first, then promote the successful pattern into a distinct V6 generation.
