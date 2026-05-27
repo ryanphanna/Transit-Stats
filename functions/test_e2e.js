@@ -39,6 +39,7 @@ const db = admin.firestore();
 
 const { dispatch } = require('./lib/dispatcher');
 const { getCapturedReplies, clearCapturedReplies } = require('./lib/twilio');
+const finalization = require('./lib/finalization');
 
 // ─── Test identity ──────────────────────────────────────────────────────────
 
@@ -170,9 +171,60 @@ describe('E2E: basic trip lifecycle with background finalization', () => {
   });
 });
 
+describe('E2E: correction exclusion (no auto re-finalization)', () => {
+  test('high-impact correction after finalization does not trigger re-run; manual does', async () => {
+    // 1. Create and finalize a trip
+    await sms('506\nCollege / Spadina\nEast');
+    const endReply = await sms('END College / Yonge');
+    assert.ok(endReply);
+
+    const trip = await getLatestTrip();
+    assert.ok(trip.endTime);
+
+    const finalized = await waitForFinalization(trip.id);
+    const firstRanAt = finalized.finalization?.ranAt?.toDate?.() || finalized.finalization?.ranAt;
+
+    // 2. Simulate high-impact user correction (route change)
+    await db.collection('trips').doc(trip.id).update({
+      route: '501',
+      correctedFields: ['route'],
+      correctedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Give any potential (but blocked) trigger time to do nothing
+    await new Promise(r => setTimeout(r, 1200));
+
+    const afterCorrection = await db.collection('trips').doc(trip.id).get();
+    const afterData = afterCorrection.data();
+
+    // Should still have the original finalization timestamp (no auto re-run)
+    const afterRanAt = afterData.finalization?.ranAt?.toDate?.() || afterData.finalization?.ranAt;
+    assert.ok(afterRanAt, 'finalization metadata should still exist');
+    // Timestamps should be the same (no re-finalization happened)
+    if (firstRanAt && afterRanAt) {
+      assert.equal(firstRanAt.getTime?.() ?? firstRanAt, afterRanAt.getTime?.() ?? afterRanAt,
+        'correction must not cause automatic re-finalization');
+    }
+
+    // 3. Explicit manual reprocess should succeed
+    await finalization.triggerManualFinalization(trip.id);
+
+    const afterManual = await waitForFinalization(trip.id); // will pick up the new run
+    const manualRanAt = afterManual.finalization?.ranAt?.toDate?.() || afterManual.finalization?.ranAt;
+
+    assert.ok(manualRanAt, 'manual reprocess should update finalization');
+    // The manual run should be newer
+    if (afterRanAt && manualRanAt) {
+      const prev = afterRanAt.getTime?.() ?? afterRanAt;
+      const now = manualRanAt.getTime?.() ?? manualRanAt;
+      assert.ok(now > prev, 'manual finalization should have a later timestamp');
+    }
+
+    await db.collection('trips').doc(trip.id).delete();
+  });
+});
+
 // TODO (future micro-chunks under this task):
-// - High-impact correction scenario (assert it does NOT auto re-finalize)
-// - Manual reprocess via triggerManualFinalization
 // - Journey linking + anomaly cases
 
-console.log('E2E chunk 3 complete (predictionStats + network side-effect assertions).');
+console.log('E2E chunk 4 complete (correction exclusion + manual reprocess).');
