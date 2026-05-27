@@ -56,6 +56,9 @@ Rationale:
 
 This spike was deliberately kept small and focused on leveraging recent architecture wins rather than starting from a blank slate.
 
+**Experiments for this work are recorded in:**  
+[docs/V6_EXPERIMENTS.md](./V6_EXPERIMENTS.md)
+
 ---
 
 *All work kept under the single "Prediction Engine V6" Notion task.*
