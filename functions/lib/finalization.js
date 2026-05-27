@@ -30,6 +30,9 @@ async function gradeAllPredictions(activeTrip, user, endStopData, duration) {
 
   const normalize = (r, agency) => {
     r = r.toString().trim();
+    // Legacy non-ML normalization (pre-dates the PRIMARY-aware policy layer in ml_utils.js).
+    // ML features now go through normalizeRouteForMl + PRIMARY config.
+    // This path is used for grading/stats and can be revisited later.
     if (agency === 'TTC') return (r.match(/^(\d+)/) || [])[1] || r;
     const c = r.match(/^(\d+)([a-zA-Z]+)$/);
     if (c) return c[1] + c[2].toUpperCase();

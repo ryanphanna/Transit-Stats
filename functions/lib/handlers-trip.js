@@ -27,6 +27,7 @@ const { HabitEngine } = require('./habit');
 const { PredictionEngineV4 } = require('./predict_v4.js');
 const { PredictionEngineV5 } = require('./predict_v5.js');
 const logger = require('./logger');
+const finalization = require('./finalization');
 const {
   getStopDisplay,
   getRouteDisplay,
@@ -108,7 +109,7 @@ async function detectProvisionalTransfer(userId, nextTrip, agency, boardingStop)
 /**
  * Handle trip logging
  */
-async function handleTripLog(phoneNumber, user, stopInput, route, direction, agency, options = {}) {
+async function handleTripLog(phoneNumber, user, stopInput, route, direction, agency, options = {}, traceId = null) {
   route = normalizeRoute(route);
   const activeTrip = await getActiveTrip(user.userId);
   const parsedStop = parseStopInput(stopInput);
@@ -248,7 +249,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
     const minutesSinceLastTrip = lastTrip?.startTime?.toDate
       ? Math.max(0, Math.round((now.getTime() - lastTrip.startTime.toDate().getTime()) / 60000))
       : null;
-    const routeContext = { stopName: startStopName, time: now, lastEndStopName, stopsLibrary };
+    const routeContext = { stopName: startStopName, time: now, lastEndStopName, stopsLibrary, primaryAgency: defaultAgency };
     const endStopContext = {
       route,
       startStopName,
@@ -258,6 +259,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       lastRoute,
       minutesSinceLastTrip,
       agency: resolvedAgency,
+      primaryAgency: defaultAgency,
       stopsLibrary,
       networkGraph: networkGraph || null,
     };
@@ -269,7 +271,8 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       direction,
       constraintSource: endStopConstraint.source,
       legalStopCount: endStopConstraint.legalStops ? endStopConstraint.legalStops.size : null,
-    });
+      traceId,
+    }, traceId);
     provisionalTransfer = await detectProvisionalTransfer(user.userId, {
       route,
       startStopName,
@@ -283,7 +286,8 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
         prevTripId: provisionalTransfer.prevTripId,
         prevRoute: provisionalTransfer.prevRoute,
         confidence: provisionalTransfer.confidence,
-      });
+        traceId,
+      }, traceId);
     }
 
     // When a habit fires with sufficient confidence, skip the full ML stack —
@@ -384,7 +388,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
 /**
  * Handle confirmation of start after active trip
  */
-async function handleConfirmStart(phoneNumber, user, state) {
+async function handleConfirmStart(phoneNumber, user, state, traceId = null) {
   const activeTrip = state.activeTrip;
   const newTrip = state.newTrip;
 
@@ -426,7 +430,8 @@ async function handleConfirmStart(phoneNumber, user, state) {
       direction: newTrip.direction,
       constraintSource: confirmEndStopConstraint.source,
       legalStopCount: confirmEndStopConstraint.legalStops ? confirmEndStopConstraint.legalStops.size : null,
-    });
+      traceId,
+    }, traceId);
     confirmProvisionalTransfer = await detectProvisionalTransfer(user.userId, {
       route: newTrip.route,
       startStopName: newTrip.stopName,
@@ -440,6 +445,7 @@ async function handleConfirmStart(phoneNumber, user, state) {
         prevTripId: confirmProvisionalTransfer.prevTripId,
         prevRoute: confirmProvisionalTransfer.prevRoute,
         confidence: confirmProvisionalTransfer.confidence,
+        traceId,
       });
     }
     confirmPrediction = PredictionEngine.guess(history, {
@@ -519,7 +525,7 @@ async function handleConfirmStart(phoneNumber, user, state) {
 /**
  * Handle ending a trip
  */
-async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification = null, notes = null) {
+async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification = null, notes = null, traceId = null) {
   const activeTrip = await getActiveTrip(user.userId);
 
   if (!activeTrip) {
@@ -606,423 +612,96 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     stop_matched: isStopMatched(activeTrip) && (endStopData !== null),
   });
 
-  // Promote gtfs→verified on the end stop if this trip confirmed it
-  if (endStopData?.id && endStopData.source === 'gtfs') {
-    db.collection('stops').doc(endStopData.id).update({ source: 'verified' }).catch(() => {});
-  }
-
-  let transferHistory = null;
+  // Detect previous trip for journey linking (used only for the immediate reply note).
+  // The actual linking write happens in the background finalizer.
   let prevTrip = null;
-  let provisionalPrevTrip = null;
   try {
-    transferHistory = await getRecentCompletedTrips(user.userId, 100);
-    const boardingStop = activeTrip.startStopName || activeTrip.startStop || null;
-    const networkConnections = (agency && boardingStop)
-      ? await NetworkEngine.getConnectionsAtStop(db, agency, boardingStop)
-      : null;
-
-    if (activeTrip.provisionalPrevTripId) {
-      provisionalPrevTrip = transferHistory.find(t => t.id === activeTrip.provisionalPrevTripId) || null;
-      if (provisionalPrevTrip && provisionalPrevTrip.endTime && provisionalPrevTrip.endStopName) {
-        const provisionalConfidence = TransferEngine.score(provisionalPrevTrip, activeTrip, transferHistory, networkConnections);
-        if (provisionalConfidence >= TransferEngine.CONFIDENCE_THRESHOLD) {
-          prevTrip = provisionalPrevTrip;
-        }
-      }
-    }
-
-    if (!prevTrip) {
-      prevTrip = transferHistory.find(t => {
-        if (t.id === activeTrip.id) return false;
-        if (!t.endTime || !t.endStopName) return false;
-        const confidence = TransferEngine.score(t, activeTrip, transferHistory, networkConnections);
-        return confidence >= TransferEngine.CONFIDENCE_THRESHOLD;
-      }) || null;
-    }
-  } catch (transferErr) {
-    console.error('Error preparing transfer context:', transferErr);
-  }
-
-  // Teach the network graph — only if both stops are canonical. Raw names are
-  // skipped entirely; they'll be picked up by the top-up script once normalized.
-  if (activeTrip.startStopName && activeTrip.direction && endStopData) {
-    const startStopCanonical = await lookupStop(activeTrip.startStopCode, activeTrip.startStopName, activeTrip.agency);
-    if (startStopCanonical) {
-      NetworkEngine.observe(db, user.userId, {
-        route: activeTrip.route,
-        agency: activeTrip.agency,
-        direction: activeTrip.direction,
-        startStop: startStopCanonical,
-        endStop: endStopData,
-        duration,
-      }, prevTrip?.route || null).catch(err => console.error('NetworkEngine.observe failed (non-fatal):', err.message));
-    }
+    prevTrip = await finalization.detectJourneyLink(activeTrip);
+  } catch (err) {
+    console.error('Error detecting journey link for reply note:', err);
   }
 
   const routeDisplay = getRouteDisplay(activeTrip.route, activeTrip.direction);
 
-  // Grade the prediction that was committed at trip start
-  try {
-    const stored = activeTrip.prediction;
-    if (stored) {
-      const actualRoute = activeTrip.route.toString();
-      const predRoute = stored.route.toString();
-      const routeMatch = predRoute === actualRoute;
-      const dirMatch = !stored.direction || !activeTrip.direction ||
-        PredictionEngine._normalizeDirection(stored.direction) ===
-        PredictionEngine._normalizeDirection(activeTrip.direction);
-      const isHit = routeMatch && dirMatch;
-      const baseRoute = r => /^\d/.test(r) ? r.replace(/[a-zA-Z]+(\s.*)?$/, '').trim() : r;
-      const isPartialHit = !isHit && dirMatch &&
-        baseRoute(predRoute) === baseRoute(actualRoute) &&
-        baseRoute(predRoute) !== '';
-      const predictedLabel = stored.route + (stored.direction ? ' ' + stored.direction : '') +
-        ' from ' + stored.stop;
-      const actualLabel = activeTrip.route + (activeTrip.direction ? ' ' + activeTrip.direction : '') +
-        ' from ' + (activeTrip.startStopName || '?');
-      // Grade end stop prediction
-      const actualEndStop = endStopData ? endStopData.stopName : parsedEndStop.stopName;
-      const storedEndStop = activeTrip.endStopPrediction;
-      const endStopHit = storedEndStop
-        ? PredictionEngine._stopMatch(storedEndStop.stop, actualEndStop)
-        : null;
+  // === Post-end architecture note ===
+  // All heavy side effects (grading, network learning, habit rebuild, journey write)
+  // now run in the background via the Firestore trigger + runPostEndFinalization.
+  // The handler below only computes the minimal data needed for the immediate SMS reply.
+  const { journeyNote } = await finalization.computeJourneyLink(activeTrip, prevTrip, startTime);
 
-      await db.collection('predictionStats').add({
-        tripId: activeTrip.id,
-        userId: user.userId,
-        agency: activeTrip.agency || null,
-        isHit: !!isHit,
-        isPartialHit: !isHit && !!isPartialHit,
-        predicted: predictedLabel,
-        actual: actualLabel,
-        confidence: stored.confidence,
-        version: stored.version,
-        route: activeTrip.route,
-        endStopPredicted: storedEndStop ? storedEndStop.stop : null,
-        endStopActual: actualEndStop,
-        endStopHit: endStopHit,
-        endStopConfidence: storedEndStop ? storedEndStop.confidence : null,
-        source: 'sms',
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      });
-
-      // Duration-informed end stop prediction (run at end time with elapsed duration)
-      let durationEndStopHit = null;
-      try {
-        const [endHistory, endStopsLib] = await Promise.all([
-          getRecentCompletedTrips(user.userId, 100),
-          getStopsLibrary(),
-        ]);
-        PredictionEngine.stopsLibrary = endStopsLib;
-        const durationPrediction = PredictionEngine.guessEndStop(
-          endHistory.filter(t => t.id !== activeTrip.id),
-          {
-            route: activeTrip.route,
-            startStopName: activeTrip.startStopName,
-            direction: activeTrip.direction,
-            time: activeTrip.startTime.toDate(),
-            duration,
-          }
-        );
-        if (durationPrediction) {
-          durationEndStopHit = PredictionEngine._stopMatch(durationPrediction.stop, actualEndStop);
-          console.log(`Duration end stop: ${durationEndStopHit ? 'HIT' : 'MISS'} | ` +
-            `predicted ${durationPrediction.stop} (conf ${durationPrediction.confidence}%) | ` +
-            `actual ${actualEndStop}`);
-        }
-      } catch (dErr) {
-        console.error('Error running duration end stop prediction:', dErr);
-      }
-
-      // Update running accuracy summary
-      const inc = admin.firestore.FieldValue.increment;
-      const accuracyUpdate = {
-        total: inc(1),
-        hits: inc(isHit ? 1 : 0),
-        partialHits: inc(isPartialHit ? 1 : 0),
-        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-      };
-      if (endStopHit !== null) {
-        accuracyUpdate.endStopTotal = inc(1);
-        accuracyUpdate.endStopHits = inc(endStopHit ? 1 : 0);
-      }
-      if (durationEndStopHit !== null) {
-        accuracyUpdate.durationEndStopTotal = inc(1);
-        accuracyUpdate.durationEndStopHits = inc(durationEndStopHit ? 1 : 0);
-      }
-      await db.collection('predictionAccuracy').doc(user.userId).set(accuracyUpdate, { merge: true });
-
-      console.log(`Prediction graded for ${user.userId}: ${isHit ? 'HIT' : (isPartialHit ? 'PARTIAL' : 'MISS')} | ` +
-        `${predictedLabel} → ${actualLabel}`);
-    }
-
-    // Normalize a route label the same way the ML training pipeline does,
-    // so grading compares apples to apples (e.g. "510A" → "510" for TTC).
-    const normalizeRouteForGrading = (route, agency) => {
-      const r = route.toString().trim();
-      if (agency === 'TTC') {
-        const m = r.match(/^(\d+)/);
-        return m ? m[1] : r;
-      }
-      const compact = r.match(/^(\d+)([a-zA-Z]+)$/);
-      if (compact) return `${compact[1]}${compact[2].toUpperCase()}`;
-      if (/^[a-zA-Z]$/.test(r)) return r.toUpperCase();
-      return r;
-    };
-
-    // Grade V4 Prediction silently in the background
-    const storedV4 = activeTrip.predictionV4;
-    if (storedV4) {
-      const actualRoute = normalizeRouteForGrading(activeTrip.route.toString(), activeTrip.agency);
-      const predRouteV4 = normalizeRouteForGrading(storedV4.route.toString(), activeTrip.agency);
-      const routeMatchV4 = predRouteV4 === actualRoute;
-      const isHitV4 = routeMatchV4; // V4 doesn't have direction
-
-      const baseRoute = r => /^\\d/.test(r) ? r.replace(/[a-zA-Z]+(\\s.*)?$/, '').trim() : r;
-      const isPartialHitV4 = !isHitV4 &&
-        baseRoute(predRouteV4) === baseRoute(actualRoute) &&
-        baseRoute(predRouteV4) !== '';
-
-      const predictedLabelV4 = storedV4.route + ' from ' + (activeTrip.startStopName || '?');
-      const actualLabelV4 = activeTrip.route + (activeTrip.direction ? ' ' + activeTrip.direction : '') +
-        ' from ' + (activeTrip.startStopName || '?');
-
-      await db.collection('predictionStats').add({
-        tripId: activeTrip.id,
-        userId: user.userId,
-        agency: activeTrip.agency || null,
-        isHit: !!isHitV4,
-        isPartialHit: !isHitV4 && !!isPartialHitV4,
-        predicted: predictedLabelV4,
-        actual: actualLabelV4,
-        confidence: storedV4.confidence,
-        version: storedV4.version,
-        route: activeTrip.route,
-        endStopPredicted: null,
-        endStopActual: null,
-        endStopHit: null,
-        endStopConfidence: null,
-        source: 'sms',
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      });
-      await db.collection('predictionAccuracy').doc(user.userId).set({
-        v4Total: admin.firestore.FieldValue.increment(1),
-        v4Hits: admin.firestore.FieldValue.increment(isHitV4 ? 1 : 0),
-        v4PartialHits: admin.firestore.FieldValue.increment(isPartialHitV4 ? 1 : 0),
-        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
-      console.log(`Prediction V4 graded for ${user.userId}: ${isHitV4 ? 'HIT' : (isPartialHitV4 ? 'PARTIAL' : 'MISS')} | ` +
-        `${predictedLabelV4} → ${actualLabelV4}`);
-    }
-
-    // Grade V5 Prediction silently in the background
-    const storedV5 = activeTrip.predictionV5;
-    if (storedV5) {
-      const actualRoute = normalizeRouteForGrading(activeTrip.route.toString(), activeTrip.agency);
-      const predRouteV5 = normalizeRouteForGrading(storedV5.route.toString(), activeTrip.agency);
-      const isHitV5 = predRouteV5 === actualRoute;
-
-      const isPartialHitV5 = false; // normalization makes partial hits redundant
-
-      const predictedLabelV5 = storedV5.route + ' from ' + (activeTrip.startStopName || '?');
-      const actualLabelV5 = activeTrip.route + (activeTrip.direction ? ' ' + activeTrip.direction : '') +
-        ' from ' + (activeTrip.startStopName || '?');
-
-      await db.collection('predictionStats').add({
-        tripId: activeTrip.id,
-        userId: user.userId,
-        agency: activeTrip.agency || null,
-        isHit: !!isHitV5,
-        isPartialHit: !isHitV5 && !!isPartialHitV5,
-        predicted: predictedLabelV5,
-        actual: actualLabelV5,
-        confidence: storedV5.confidence,
-        version: storedV5.version,
-        route: activeTrip.route,
-        endStopPredicted: null,
-        endStopActual: null,
-        endStopHit: null,
-        endStopConfidence: null,
-        source: 'sms',
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      });
-      await db.collection('predictionAccuracy').doc(user.userId).set({
-        v5Total: admin.firestore.FieldValue.increment(1),
-        v5Hits: admin.firestore.FieldValue.increment(isHitV5 ? 1 : 0),
-        v5PartialHits: admin.firestore.FieldValue.increment(isPartialHitV5 ? 1 : 0),
-        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
-      console.log(`Prediction V5 graded for ${user.userId}: ${isHitV5 ? 'HIT' : (isPartialHitV5 ? 'PARTIAL' : 'MISS')} | ` +
-        `${predictedLabelV5} → ${actualLabelV5}`);
-    }
-
-    // Grade V4 end stop prediction
-    const actualEndStopForGrading = endStopData ? endStopData.stopName : parsedEndStop.stopName;
-    const storedEndStopV4 = activeTrip.endStopPredictionV4;
-    if (storedEndStopV4) {
-      const endStopHitV4 = PredictionEngine._stopMatch(storedEndStopV4.stop, actualEndStopForGrading);
-      await db.collection('predictionStats').add({
-        tripId: activeTrip.id,
-        userId: user.userId,
-        agency: activeTrip.agency || null,
-        isHit: null,
-        isPartialHit: null,
-        predicted: null,
-        actual: null,
-        confidence: null,
-        version: storedEndStopV4.version,
-        route: activeTrip.route,
-        endStopPredicted: storedEndStopV4.stop,
-        endStopActual: actualEndStopForGrading,
-        endStopHit: endStopHitV4,
-        endStopConfidence: storedEndStopV4.confidence,
-        source: 'sms',
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      });
-      await db.collection('predictionAccuracy').doc(user.userId).set({
-        v4EndStopTotal: admin.firestore.FieldValue.increment(1),
-        v4EndStopHits: admin.firestore.FieldValue.increment(endStopHitV4 ? 1 : 0),
-        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
-      console.log(`End stop V4 graded for ${user.userId}: ${endStopHitV4 ? 'HIT' : 'MISS'} | predicted ${storedEndStopV4.stop} → actual ${actualEndStopForGrading}`);
-    }
-
-    // Grade V5 end stop prediction
-    const storedEndStopV5 = activeTrip.endStopPredictionV5;
-    if (storedEndStopV5) {
-      const endStopHitV5 = PredictionEngine._stopMatch(storedEndStopV5.stop, actualEndStopForGrading);
-      await db.collection('predictionStats').add({
-        tripId: activeTrip.id,
-        userId: user.userId,
-        agency: activeTrip.agency || null,
-        isHit: null,
-        isPartialHit: null,
-        predicted: null,
-        actual: null,
-        confidence: null,
-        version: storedEndStopV5.version,
-        route: activeTrip.route,
-        endStopPredicted: storedEndStopV5.stop,
-        endStopActual: actualEndStopForGrading,
-        endStopHit: endStopHitV5,
-        endStopConfidence: storedEndStopV5.confidence,
-        source: 'sms',
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      });
-      await db.collection('predictionAccuracy').doc(user.userId).set({
-        v5EndStopTotal: admin.firestore.FieldValue.increment(1),
-        v5EndStopHits: admin.firestore.FieldValue.increment(endStopHitV5 ? 1 : 0),
-        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
-      console.log(`End stop V5 graded for ${user.userId}: ${endStopHitV5 ? 'HIT' : 'MISS'} | predicted ${storedEndStopV5.stop} → actual ${actualEndStopForGrading}`);
-    }
-
-    // Grade habit end stop prediction
-    const storedHabit = activeTrip.habitPrediction;
-    if (storedHabit?.endStop) {
-      const habitEndStopHit = PredictionEngine._stopMatch(storedHabit.endStop, actualEndStopForGrading);
-      await db.collection('predictionStats').add({
-        tripId: activeTrip.id,
-        userId: user.userId,
-        agency: activeTrip.agency || null,
-        isHit: null,
-        isPartialHit: null,
-        predicted: null,
-        actual: null,
-        confidence: storedHabit.confidence,
-        version: storedHabit.version,
-        route: activeTrip.route,
-        endStopPredicted: storedHabit.endStop,
-        endStopActual: actualEndStopForGrading,
-        endStopHit: habitEndStopHit,
-        endStopConfidence: storedHabit.confidence,
-        source: 'sms',
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-      });
-      await db.collection('predictionAccuracy').doc(user.userId).set({
-        habitEndStopTotal: admin.firestore.FieldValue.increment(1),
-        habitEndStopHits: admin.firestore.FieldValue.increment(habitEndStopHit ? 1 : 0),
-        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
-      console.log(`Habit end stop graded for ${user.userId}: ${habitEndStopHit ? 'HIT' : 'MISS'} | predicted ${storedHabit.endStop} → actual ${actualEndStopForGrading}`);
-    }
-  } catch (predictionErr) {
-    console.error('Error grading prediction:', predictionErr);
-  }
-
-  // Auto-link journey: use TransferEngine to decide if the previous trip is a transfer
-  let journeyNote = '';
-  try {
-    if (prevTrip) {
-      const journeyId = prevTrip.journeyId || activeTrip.journeyId || randomUUID();
-      const batch = db.batch();
-      batch.update(db.collection('trips').doc(prevTrip.id), { journeyId });
-      batch.update(db.collection('trips').doc(activeTrip.id), { journeyId });
-      await batch.commit();
-      const prevEnd = prevTrip.endTime.toDate ? prevTrip.endTime.toDate() : new Date(prevTrip.endTime);
-      const gapStr = Math.round((startTime - prevEnd) / 60000);
-      journeyNote = `\n\nLinked to your ${getRouteDisplay(prevTrip.route)} trip ` +
-        `(${gapStr < 1 ? '<1' : gapStr} min transfer). UNLINK to separate.`;
-    }
-  } catch (journeyErr) {
-    console.error('Error auto-linking journey:', journeyErr);
-  }
-
-  // Background: rebuild habit model from latest trip history (non-blocking)
-  getRecentCompletedTrips(user.userId, 200)
-    .then(allTrips => HabitEngine.rebuild(db, user.userId, allTrips))
-    .catch(err => console.error('HabitEngine.rebuild failed (non-fatal):', err.message));
-
-  // Anomaly detection: flag trips that took significantly longer than the hour-specific median.
-  // Uses the specific start→end edge duration so routes with diverse destinations don't cross-contaminate.
-  let anomalyNote = '';
-  try {
-    const startHour = startTime.getHours();
-    const graph = await NetworkEngine.load(db, user.userId, agency, tripRoute);
-    const typicalMinutes = graph
-      ? (NetworkEngine.getEdgeMedianDuration(graph, activeTrip.startStopName, endStopNameFinal, startHour)
-         ?? NetworkEngine.getMedianDuration(graph, activeTrip.startStopName, startHour))
-      : null;
-    if (typicalMinutes && typicalMinutes >= 5 && duration >= typicalMinutes * 2) {
-      anomalyNote = `\n\nThis trip took longer than usual (${duration} min vs. typical ${typicalMinutes} min).`;
-    }
-  } catch (err) {
-    // non-fatal
-  }
-
-  // Next-leg suggestion: surface the most likely next route if this stop is a known transfer point.
-  // Skip when a journey was already auto-linked — the user is already in a multi-leg trip.
-  let nextLegNote = '';
-  if (!journeyNote && endStopNameFinal && agency) {
-    try {
-      const [connections, connLabels] = await Promise.all([
-        NetworkEngine.getConnectionsAtStop(db, agency, endStopNameFinal),
-        NetworkEngine.getConnectionLabels(db, agency, endStopNameFinal),
-      ]);
-      const fromKey = NetworkEngine._key(activeTrip.route.toString());
-      const prefix = `${fromKey}_to_`;
-      let bestConnKey = null;
-      let bestCount = 0;
-      for (const [k, count] of Object.entries(connections)) {
-        if (k.startsWith(prefix) && count > bestCount) {
-          bestCount = count;
-          bestConnKey = k;
-        }
-      }
-      if (bestConnKey && bestCount >= 2) {
-        const toLabel = connLabels[bestConnKey] || bestConnKey.slice(prefix.length);
-        nextLegNote = `\n\nUsually take the ${toLabel} from here.`;
-      }
-    } catch (err) {
-      // non-fatal
-    }
-  }
+  const [anomalyNote, nextLegNote] = await Promise.all([
+    finalization.detectAnomaly(activeTrip, endStopNameFinal, duration, agency),
+    finalization.getNextLegSuggestion(activeTrip, endStopNameFinal, agency, journeyNote),
+  ]);
 
   await sendSmsReply(
     phoneNumber,
     `Ended ${routeDisplay} at ${endStopDisplay}${agencySuffix(agency, endDefaultAgency)} (${duration} min trip)` +
     `${journeyNote}${anomalyNote}${nextLegNote}\n\nReply NOTES (your note) to add a note.`
   );
+
+  // Recompute the user's primary agency from recent trips (makes defaultAgency dynamic)
+  recomputeAndUpdatePrimaryAgency(user.userId).catch(() => {});
+}
+
+/**
+ * Recomputes a user's primary/default agency from their most recent completed trips
+ * and updates the profile if it has changed.
+ *
+ * This makes defaultAgency dynamic and based on actual recent behavior
+ * instead of only manual UI selection.
+ */
+async function recomputeAndUpdatePrimaryAgency(userId, dbClient = null) {
+  if (!userId) return;
+
+  const dbToUse = dbClient || db;
+  if (!dbToUse) return;
+
+  try {
+    const snapshot = await dbToUse.collection('trips')
+      .where('userId', '==', userId)
+      .where('endStopName', '!=', null)   // completed trips only
+      .orderBy('endTime', 'desc')
+      .limit(25)
+      .get();
+
+    if (snapshot.empty) return;
+
+    const agencyCounts = {};
+    let mostRecentAgency = null;
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const ag = data.agency;
+      if (!ag) return;
+      agencyCounts[ag] = (agencyCounts[ag] || 0) + 1;
+      if (!mostRecentAgency) mostRecentAgency = ag;
+    });
+
+    // Pick the agency with highest count; tie-break by most recent
+    let bestAgency = mostRecentAgency;
+    let bestCount = -1;
+    for (const [ag, count] of Object.entries(agencyCounts)) {
+      if (count > bestCount) {
+        bestCount = count;
+        bestAgency = ag;
+      }
+    }
+
+    if (!bestAgency) return;
+
+    // Read current profile
+    const profileRef = dbToUse.collection('profiles').doc(userId);
+    const profileSnap = await profileRef.get();
+    const current = profileSnap.exists ? profileSnap.data().defaultAgency : null;
+
+    if (current !== bestAgency) {
+      await profileRef.set({ defaultAgency: bestAgency, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      console.log(`[primary-agency] Updated user ${userId} defaultAgency: ${current || 'none'} → ${bestAgency}`);
+    }
+  } catch (err) {
+    console.error('[primary-agency] Failed to recompute for user', userId, err);
+  }
 }
 
 module.exports = {
@@ -1030,4 +709,5 @@ module.exports = {
   handleTripLog,
   handleConfirmStart,
   handleEndTrip,
+  recomputeAndUpdatePrimaryAgency,
 };

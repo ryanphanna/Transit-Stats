@@ -133,8 +133,8 @@ const PredictionEngineV4 = {
     const day_sin  = Math.sin(2 * Math.PI * pyDay / 7);
     const day_cos  = Math.cos(2 * Math.PI * pyDay / 7);
 
-    const cleanRoute = normalizeRouteForMl(context.route, context.agency).toString().toLowerCase();
-    const prevRoute = normalizeRouteForMl(context.lastRoute, context.agency) || 'none';
+    const cleanRoute = normalizeRouteForMl(context.route, context.agency, context.primaryAgency || context.defaultAgency).toString().toLowerCase();
+    const prevRoute = normalizeRouteForMl(context.lastRoute, context.agency, context.primaryAgency || context.defaultAgency) || 'none';
     const stopFeature = getStopFeature(context.startStopName, context.stopsLibrary);
     const lastStopFeature = `last_stop_${getStopFeature(context.lastEndStopName, context.stopsLibrary).replace('stop_', '')}`;
     const prevRouteFeature = `prev_route_${prevRoute.toString().toLowerCase()}`;

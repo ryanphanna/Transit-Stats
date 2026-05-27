@@ -22,7 +22,7 @@ import sys
 
 import numpy as np
 import pandas as pd
-from route_normalization import normalize_route_for_ml
+from route_normalization import normalize_route_for_ml, load_policies
 
 KEY_PATH = os.path.expanduser("~/Desktop/Dev/Credentials/Firebase for Transit Stats.json")
 CSV_PATH = os.path.join(os.path.dirname(__file__), "trips.csv")
@@ -37,6 +37,33 @@ def load_data():
     df = pd.read_csv(CSV_PATH)
     print(f"Loaded {len(df)} trips")
     return df
+
+
+def compute_primary_agency_map(df):
+    """
+    For each user_id, determine their primary agency in this dataset
+    (most frequent agency). This is used so that normalize_route_for_ml
+    can apply the 'PRIMARY' collapse policy to the right agency per user,
+    matching the dynamic 'default agency based on recent trips' behavior.
+    """
+    if 'user_id' not in df.columns or 'agency' not in df.columns:
+        return {}
+
+    primary_map = {}
+    for user, group in df.groupby('user_id'):
+        if len(group) > 0:
+            primary = group['agency'].value_counts().index[0]
+            if pd.notna(primary):
+                primary_map[user] = str(primary).strip()
+
+    # Fallback: most common agency overall (useful for small/single-user CSVs)
+    if not primary_map and len(df) > 0:
+        overall_primary = df['agency'].value_counts().index[0]
+        if pd.notna(overall_primary):
+            for uid in df['user_id'].dropna().unique():
+                primary_map[uid] = str(overall_primary).strip()
+
+    return primary_map
 
 
 import firebase_admin
@@ -73,10 +100,16 @@ def canonicalize_stop(name, lib):
 
 def clean(df, lib):
     df = df.copy()
-    df['route_base'] = df.apply(
-        lambda row: normalize_route_for_ml(row.get('route'), row.get('agency')),
-        axis=1,
-    )
+
+    primary_map = compute_primary_agency_map(df)
+
+    def _normalize_route(row):
+        agency = row.get('agency')
+        user_id = row.get('user_id')
+        primary = primary_map.get(user_id) if user_id else None
+        return normalize_route_for_ml(agency=agency, route=row.get('route'), primary_agency=primary)
+
+    df['route_base'] = df.apply(_normalize_route, axis=1)
     df['start_time'] = pd.to_datetime(df['start_time'], format='ISO8601', utc=True)
     
     # Canonicalize stops
@@ -215,6 +248,8 @@ def export_v5(model, le, feature_names, top1, top3, n_trips):
 
 def main():
     from sklearn.model_selection import train_test_split
+
+    load_policies()
 
     df = load_data()
     lib = load_stops_library()

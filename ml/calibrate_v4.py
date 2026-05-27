@@ -2,7 +2,65 @@ import pandas as pd
 import numpy as np
 import json
 import os
-from route_normalization import normalize_route_for_ml
+import re
+import firebase_admin
+from firebase_admin import credentials, firestore
+from route_normalization import normalize_route_for_ml, load_policies
+
+
+def compute_primary_agency_map(df):
+    """Same helper as in training scripts for consistency."""
+    if 'user_id' not in df.columns or 'agency' not in df.columns:
+        return {}
+
+    primary_map = {}
+    for user, group in df.groupby('user_id'):
+        if len(group) > 0:
+            primary = group['agency'].value_counts().index[0]
+            if pd.notna(primary):
+                primary_map[user] = str(primary).strip()
+
+    if not primary_map and len(df) > 0:
+        overall_primary = df['agency'].value_counts().index[0]
+        if pd.notna(overall_primary):
+            for uid in df['user_id'].dropna().unique():
+                primary_map[uid] = str(overall_primary).strip()
+
+    return primary_map
+
+KEY_PATH = os.path.expanduser("~/Desktop/Dev/Credentials/Firebase for Transit Stats.json")
+_stops_lib = None
+
+def load_stops_library():
+    global _stops_lib
+    if _stops_lib is not None:
+        return _stops_lib
+    if not firebase_admin._apps:
+        cred = credentials.Certificate(KEY_PATH)
+        firebase_admin.initialize_app(cred)
+    db = firestore.client()
+    docs = db.collection("stops").stream()
+    lib = []
+    for doc in docs:
+        d = doc.to_dict()
+        lib.append({"name": d.get("name"), "aliases": d.get("aliases", [])})
+    _stops_lib = lib
+    return lib
+
+def canonicalize_stop(name, lib):
+    if not name:
+        return "unknown"
+    lower = str(name).strip().lower().replace(" and ", "/").replace(" & ", "/").replace(" @ ", "/").replace(" at ", "/")
+    lower = re.sub(r"\s*/\s*", "/", lower)
+
+    for item in lib:
+        candidates = [item["name"]] + item.get("aliases", [])
+        for c in candidates:
+            c_norm = str(c).strip().lower().replace(" and ", "/").replace(" & ", "/").replace(" @ ", "/").replace(" at ", "/")
+            c_norm = re.sub(r"\s*/\s*", "/", c_norm)
+            if c_norm == lower:
+                return item["name"].lower().replace(" and ", "/").replace(" & ", "/").replace(" @ ", "/").replace(" at ", "/")
+    return lower
 
 with open('model_v4.json', 'r') as f:
     model_data = json.load(f)
@@ -14,12 +72,24 @@ feature_names = model_data['feature_names']
 stop_columns = model_data['stop_columns']
 
 df = pd.read_csv('trips.csv')
-df['route_base'] = df.apply(
-    lambda row: normalize_route_for_ml(row.get('route'), row.get('agency')),
-    axis=1,
-)
+
+load_policies()
+
+primary_map = compute_primary_agency_map(df)
+
+def _normalize_route(row):
+    agency = row.get('agency')
+    user_id = row.get('user_id')
+    primary = primary_map.get(user_id) if user_id else None
+    return normalize_route_for_ml(route=row.get('route'), agency=agency, primary_agency=primary)
+
+df['route_base'] = df.apply(_normalize_route, axis=1)
 df['start_time'] = pd.to_datetime(df['start_time'], format='ISO8601', utc=True)
 df = df.dropna(subset=['route_base', 'start_stop', 'hour_of_day', 'day_of_week'])
+
+# Normalize stop names using the curated stops library
+lib = load_stops_library()
+df['start_stop'] = df['start_stop'].apply(lambda x: canonicalize_stop(x, lib))
 
 # Filter out routes not in model classes
 df = df[df['route_base'].isin(classes)]

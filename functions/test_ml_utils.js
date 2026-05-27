@@ -6,7 +6,14 @@ const {
   getStopFeature,
   normalizeRouteForMl,
   getGapFeatures,
+  configureFromDict,
 } = require('./lib/ml_utils');
+
+// Establish the same policy configuration the training pipeline uses
+configureFromDict({
+  TTC: 'collapse',
+  DEFAULT: 'preserve_variant',
+});
 
 test('normalizeRouteForMl collapses TTC branch and shuttle variants', () => {
   assert.equal(normalizeRouteForMl('510A', 'TTC'), '510');
@@ -52,4 +59,42 @@ test('getGapFeatures encodes missing and present gaps predictably', () => {
   const maxed = getGapFeatures(720);
   assert.equal(capped.gapMissing, 0);
   assert.equal(capped.gapLog, maxed.gapLog);
+});
+
+test('normalizeRouteForMl is neutral for unknown agencies until configured', () => {
+  const { resetPolicies, configureFromDict, normalizeRouteForMl } = require('./lib/ml_utils');
+  resetPolicies();
+
+  // No config → any agency (even TTC) gets preserve_variant
+  assert.equal(normalizeRouteForMl('510A', 'TTC'), '510A');
+  assert.equal(normalizeRouteForMl('Red', 'NewCityTransit'), 'Red');
+
+  configureFromDict({ TTC: 'collapse', DEFAULT: 'preserve_variant' });
+  assert.equal(normalizeRouteForMl('510A', 'TTC'), '510');
+  assert.equal(normalizeRouteForMl('Red', 'NewCityTransit'), 'Red'); // still neutral default
+});
+
+test('loadPolicies and configuration APIs are exported and functional', () => {
+  const api = require('./lib/ml_utils');
+  assert.equal(typeof api.loadPolicies, 'function');
+  assert.equal(typeof api.configureFromDict, 'function');
+  assert.equal(typeof api.registerPolicy, 'function');
+  assert.equal(typeof api.resetPolicies, 'function');
+  assert.equal(typeof api.getDefaultConfig, 'function');
+  assert.deepEqual(api.getDefaultConfig(), { DEFAULT: 'preserve_variant' });
+});
+
+test('PRIMARY policy is applied when primaryAgency matches the trip agency', () => {
+  const { resetPolicies, configureFromDict, normalizeRouteForMl } = require('./lib/ml_utils');
+  resetPolicies();
+
+  configureFromDict({ PRIMARY: 'collapse', DEFAULT: 'preserve_variant' });
+
+  // When the agency matches the provided primaryAgency, PRIMARY policy wins
+  assert.equal(normalizeRouteForMl('510A', 'TTC', 'TTC'), '510');
+  assert.equal(normalizeRouteForMl('42 Shuttle', 'MiWay', 'MiWay'), '42');
+
+  // When it does not match the primary, normal/DEFAULT behavior applies
+  assert.equal(normalizeRouteForMl('510A', 'TTC', 'MiWay'), '510A');
+  assert.equal(normalizeRouteForMl('Red', 'BART', 'TTC'), 'Red');
 });

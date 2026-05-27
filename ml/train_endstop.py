@@ -25,7 +25,32 @@ import numpy as np
 import pandas as pd
 import firebase_admin
 from firebase_admin import credentials, firestore
-from route_normalization import normalize_route_for_ml
+from route_normalization import normalize_route_for_ml, load_policies
+
+
+def compute_primary_agency_map(df):
+    """
+    For each user_id, determine their primary agency in this dataset
+    (most frequent agency). Used so PRIMARY collapse policy is applied
+    correctly during feature generation.
+    """
+    if 'user_id' not in df.columns or 'agency' not in df.columns:
+        return {}
+
+    primary_map = {}
+    for user, group in df.groupby('user_id'):
+        if len(group) > 0:
+            primary = group['agency'].value_counts().index[0]
+            if pd.notna(primary):
+                primary_map[user] = str(primary).strip()
+
+    if not primary_map and len(df) > 0:
+        overall_primary = df['agency'].value_counts().index[0]
+        if pd.notna(overall_primary):
+            for uid in df['user_id'].dropna().unique():
+                primary_map[uid] = str(overall_primary).strip()
+
+    return primary_map
 
 KEY_PATH = os.path.expanduser("~/Desktop/Dev/Credentials/Firebase for Transit Stats.json")
 CSV_PATH = os.path.join(os.path.dirname(__file__), "trips.csv")
@@ -104,14 +129,16 @@ def clean(df, lib):
         df.get("minutes_since_last_trip"), errors="coerce"
     )
 
-    df["route_base"] = df.apply(
-        lambda row: normalize_route_for_ml(row.get("route"), row.get("agency")),
-        axis=1,
-    )
-    df["prev_route_base"] = df.apply(
-        lambda row: normalize_route_for_ml(row.get("prev_route"), row.get("agency")),
-        axis=1,
-    )
+    primary_map = compute_primary_agency_map(df)
+
+    def _normalize_route(row, col):
+        agency = row.get(col)
+        user_id = row.get('user_id')
+        primary = primary_map.get(user_id) if user_id else None
+        return normalize_route_for_ml(route=row.get(col), agency=agency, primary_agency=primary)
+
+    df["route_base"] = df.apply(lambda row: _normalize_route(row, "route"), axis=1)
+    df["prev_route_base"] = df.apply(lambda row: _normalize_route(row, "prev_route"), axis=1)
     df["start_stop"] = df["start_stop"].apply(lambda x: canonicalize_stop(x, lib))
     df["end_stop"] = df["end_stop"].apply(lambda x: canonicalize_stop(x, lib))
 
@@ -246,6 +273,9 @@ def mirror_to_lib():
 
 def main():
     from sklearn.model_selection import train_test_split
+
+    load_policies()
+
     df = load_data()
     lib = load_stops_library()
     df = clean(df, lib)
