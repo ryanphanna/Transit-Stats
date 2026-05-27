@@ -275,7 +275,7 @@ Both files implement the same engine. Changes must be applied to both. The CJS v
 
 **What it does:** Early concept phase. Primary goal is to move from single-trip prediction to explicit journey/sequence context. See the dedicated spike document for current thinking.
 
-**Status:** Concept / spike phase. See [V6 Design Spike](./V6_DESIGN_SPIKE.md) for the latest analysis and direction.
+**Status:** Concept / spike phase. See [V6 Design Spike](./V6_DESIGN_SPIKE.md) for direction and [V6 Experiments Log](./V6_EXPERIMENTS.md) for actual experiments/results. See also [Trip Corrections](./TRIP_CORRECTIONS.md) for the evolving philosophy on preserving realistic user intent (which directly affects future V6 training data quality).
 
 **Core idea (current thinking):** V6 should be the first model generation that treats trips as connected journey state rather than isolated starts. The main step up from V5 is not "more trees" or "more random features." It is sequence and transfer context.
 
