@@ -49,19 +49,38 @@ Background finalization (via `onTripFinalized` trigger + `runPostEndFinalization
 
 ## Recording User Intent in Corrections
 
-When correcting a trip, the goal is not always to immediately produce "perfect" canonical data.
+When correcting a trip, prefer recording **what the user actually meant to enter** over immediately forcing the fully normalized canonical name.
 
-A deliberate approach is to record **what the user actually meant to enter** (the raw or near-raw intent) rather than jumping straight to the fully normalized stop/route name. This has several benefits:
+### Why
+- Future models (especially V6) benefit from seeing realistic imperfect inputs + the context (route, direction, time, etc.) that should have resolved them.
+- It forces the matching logic to get stronger at handling real user phrasing instead of relying on perfect data.
+- It creates better training signal about common failure modes.
 
-- Future matching and prediction logic (especially V6 and beyond) can learn to handle realistic imperfect user input.
-- Route + direction context can often disambiguate and auto-match from a corrected but still "human" input.
-- It preserves signal about common user mistakes and phrasing, which is valuable training data.
+### Practical Pattern
+For a high-impact stop name correction:
 
-Example: Changing a bad entry like "collegea" to the user's intended "College" (rather than directly to "College St at Spadina Ave") lets the system demonstrate that it can resolve from context.
+1. Set the raw input field (`startStop` or equivalent) to what the user meant to type.
+2. Ensure `startStopName` holds a valid canonical name from the stops library (this can stay as the resolved form).
+3. Set `stop_matched: true` once the corrected intent + route/direction context should allow clean resolution.
+4. Always apply full correction metadata:
+   - `correctedFields`
+   - `correctedAt`
+   - `originalValues` (preserve both the bad raw and bad normalized values when possible)
+5. Apply exclusion flags (`needs_reprocess`, `exclude_from_training`, `exclude_from_accuracy`).
 
-This does **not** remove the need for proper correction metadata (`correctedFields`, `originalValues`, exclusion flags). The trip is still marked as corrected and excluded from training/accuracy until explicitly reprocessed.
+**Example (real trip, May 2026):**
+- Original: `startStopName = "Collegea"`, `startStop = null`
+- Correction applied:
+  - `startStop = "College"` (what the user meant to text on 506 Westbound)
+  - `startStopName = "College St at Spadina Ave"` (canonical name)
+  - `stop_matched = true`
+  - `correctedFields` includes both fields
+  - `originalValues` recorded the bad values
+  - All high-impact exclusion flags set
 
-The tension is intentional: we want both (a) clean data for immediate use and (b) realistic imperfect examples that strengthen the matching system over time.
+This keeps the trip honest about the user's actual input while still giving downstream systems (prediction, matching, training) clean canonical data where it matters.
+
+The same principle applies to other high-impact fields (route, direction, etc.): record the intended value first, then ensure proper metadata and exclusion.
 
 ## Why Not Full Delayed Finalization Yet
 
