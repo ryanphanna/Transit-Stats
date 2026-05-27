@@ -15,7 +15,8 @@
     "logs": "firebase functions:log",
     "test": "node --test test_*.js",
     "test:watch": "node --test --watch test_*.js",
-    "test:integration": "node --test test_integration.js"
+    "test:integration": "node --test test_integration.js",
+    "test:e2e": "firebase emulators:exec --only firestore,functions \"node test_e2e.js\""
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
