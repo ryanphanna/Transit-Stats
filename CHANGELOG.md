@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
-## [Unreleased]
+## [1.40.0] - 2026-05-27
 
 ### Added
 - **SMS request tracing** (`functions/lib/logger.js`, `functions/lib/dispatcher.js`, `functions/sms.js`, all handlers): Every SMS request now carries a short correlation ID (`t:xxxxxxxx`) through the full dispatch lifecycle. Logger now emits `[INFO][t:abc12345]` style prefixes and accepts `traceId` in data objects (or as a convenience parameter). Dispatcher, trip handlers, query handlers, command handlers, and key intelligence paths all propagate the ID. This enables end-to-end correlation of complex flows (pending states, disambiguation, prediction paths, Gemini calls) in Cloud Logging without changing any existing call sites.
