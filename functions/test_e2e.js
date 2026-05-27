@@ -92,6 +92,24 @@ async function waitForFinalization(tripId, timeoutMs = 8000) {
   throw new Error(`Timeout waiting for background finalization on trip ${tripId}`);
 }
 
+/** Count predictionStats rows written for a given trip (side-effect of grading). */
+async function countPredictionStats(tripId) {
+  const snap = await db.collection('predictionStats')
+    .where('tripId', '==', tripId)
+    .get();
+  return snap.size;
+}
+
+/** Check if the user's networkGraph for a route has received any observations. */
+async function hasNetworkObservation(userId, agency, route) {
+  const doc = await db.collection('networkGraph')
+    .doc(`user_${userId}_${agency}_${route}`)
+    .get();
+  if (!doc.exists) return false;
+  const data = doc.data();
+  return !!(data.edges && Object.keys(data.edges).length > 0);
+}
+
 // ─── Setup / Teardown ───────────────────────────────────────────────────────
 
 before(async () => {
@@ -141,14 +159,20 @@ describe('E2E: basic trip lifecycle with background finalization', () => {
     assert.ok(finalizedTrip.finalization.steps.includes('learning'), 'should have run learning step');
     assert.ok(finalizedTrip.finalization.steps.includes('grading'), 'should have run grading step');
 
+    // Side-effect assertions (core value of background system)
+    const statsCount = await countPredictionStats(trip.id);
+    assert.ok(statsCount >= 1, 'at least one predictionStats row should have been written by grading');
+
+    const hasNetwork = await hasNetworkObservation(TEST_USER_ID, 'TTC', '510');
+    assert.ok(hasNetwork, 'networkGraph should have received an observation for the route');
+
     await db.collection('trips').doc(trip.id).delete();
   });
 });
 
 // TODO (future micro-chunks under this task):
-// - Assert predictionStats + network graph side effects were actually written
 // - High-impact correction scenario (assert it does NOT auto re-finalize)
 // - Manual reprocess via triggerManualFinalization
 // - Journey linking + anomaly cases
 
-console.log('E2E chunk 2 complete (polling + first background assertions).');
+console.log('E2E chunk 3 complete (predictionStats + network side-effect assertions).');
