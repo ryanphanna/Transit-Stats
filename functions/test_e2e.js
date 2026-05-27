@@ -76,6 +76,22 @@ async function deleteAllTestTrips() {
   await batch.commit();
 }
 
+/** Poll until background finalization has completed (or timeout). */
+async function waitForFinalization(tripId, timeoutMs = 8000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const doc = await db.collection('trips').doc(tripId).get();
+    if (doc.exists) {
+      const data = doc.data();
+      if (data.backgroundFinalizedAt) {
+        return { id: doc.id, ...data };
+      }
+    }
+    await new Promise(r => setTimeout(r, 250));
+  }
+  throw new Error(`Timeout waiting for background finalization on trip ${tripId}`);
+}
+
 // ─── Setup / Teardown ───────────────────────────────────────────────────────
 
 before(async () => {
@@ -112,25 +128,27 @@ describe('E2E: basic trip lifecycle with background finalization', () => {
     assert.ok(reply, 'should get end reply');
     assert.match(reply, /ended|arrived/i);
 
-    // Give the background trigger a moment (emulator is local but still async)
-    await new Promise(r => setTimeout(r, 1500));
-
     const trip = await getLatestTrip();
     assert.ok(trip, 'trip should exist');
     assert.ok(trip.endTime, 'trip should be ended');
-    // Key assertion for the new background system
-    // (will be enabled once we have a reliable wait/polling helper)
-    // assert.ok(trip.backgroundFinalizedAt, 'background finalization should have run');
+
+    // Wait for the Firestore trigger + finalization to complete
+    const finalizedTrip = await waitForFinalization(trip.id);
+
+    assert.ok(finalizedTrip.backgroundFinalizedAt, 'background finalization should have run');
+    assert.ok(finalizedTrip.finalization, 'finalization metadata should exist');
+    assert.ok(Array.isArray(finalizedTrip.finalization.steps), 'finalization.steps should be an array');
+    assert.ok(finalizedTrip.finalization.steps.includes('learning'), 'should have run learning step');
+    assert.ok(finalizedTrip.finalization.steps.includes('grading'), 'should have run grading step');
 
     await db.collection('trips').doc(trip.id).delete();
   });
 });
 
-// TODO (next micro-chunk):
-// - Add polling helper for backgroundFinalizedAt / finalization metadata
-// - Assert predictionStats / network graph side effects were written
-// - Add high-impact correction scenario (should NOT auto re-finalize)
-// - Add manual reprocess test path
-// - Expand to cover journey linking, anomaly, etc. from finalization.js
+// TODO (future micro-chunks under this task):
+// - Assert predictionStats + network graph side effects were actually written
+// - High-impact correction scenario (assert it does NOT auto re-finalize)
+// - Manual reprocess via triggerManualFinalization
+// - Journey linking + anomaly cases
 
-console.log('E2E skeleton loaded — implementation started under single Notion task.');
+console.log('E2E chunk 2 complete (polling + first background assertions).');
