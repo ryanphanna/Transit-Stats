@@ -23,7 +23,7 @@ This document complements the [roadmap](./ROADMAP_NEXTGEN.md) and the [feature c
 This family handles route and end-stop inference at trip start.
 
 - **V3** — `functions/lib/predict.js`
-  Live heuristic weighted-voting model for route and end-stop guesses.
+  Live heuristic weighted-voting model for route and end-stop guesses. (See [detailed history subpage](./intelligence/V3.md) for the v1–v3.3 archive.)
 - **V4** — `functions/lib/predict_v4.js`
   Candidate logistic-regression route and end-stop models trained from trip history.
 - **V5** — `functions/lib/predict_v5.js`
@@ -64,7 +64,7 @@ This family reasons about whether multiple trips belong to the same journey.
 
 **What it does:** Predicts the next route and likely end stop at trip start using heuristic weighted voting over trip history, plus route/topology/network constraints.
 
-**Current version:** See the version history below.
+**Current version / history:** See [detailed version history (v1–v3.3)](./intelligence/V3.md). The signals and config below are the currently active ones.
 
 ### Active Signals
 
@@ -92,52 +92,9 @@ SEQUENCE_BOOST: 1.5          // Multiplier applied at transfer points
 
 ### Version History
 
-### v1
-**Problem it solved:** Initial working prototype. Needed something to produce a route guess at trip start.
+Detailed history (v1–v3.3) lives in the archive sub-page: [docs/intelligence/V3.md](./intelligence/V3.md).
 
-**Approach:** Additive point scoring across 5 signals: location match, sequence match, time of day, day of week, frequency.
-
-**What actually worked:** Time, day, and frequency only. Location matching was dead (no coordinate normalization). Sequence matching was broken (checked the wrong field on the trip object). In practice the engine was a frequency + time-of-day model.
-
----
-
-### v2
-**Problem it solved:** Additive scoring treated all signals as equally stackable — a trip that matched 3 weak signals could outscore a trip that matched 1 strong signal. Also, candidates weren't filtered to the current stop first, so the engine was voting on trips from completely different stops.
-
-**Approach:** Stop-first candidate filtering. Switched to multiplicative weighted voting: each past trip casts one vote for its `(route, direction)` pair with weight = `recency × time_similarity × day_similarity`. Sequence matching fixed: checks whether the last trip's end stop matches the current boarding stop, applies a flat 1.5× boost. No location dependency.
-
-**What actually worked:** Everything. The multiplicative formulation meant a trip had to match on all dimensions to score high, not just accumulate points from weak matches.
-
----
-
-### v3.3.0
-**What changed from v3.2:** Recency decay axis changed from calendar time to same-agency ride count. Previously, a week travelling in LA decayed TTC predictions — the engine treated elapsed time as evidence of pattern change, even when the pattern hadn't changed at all. Now each trip's weight decays based on how many same-agency rides occurred after it. `DECAY_HALFLIFE_RIDES: 100` means a trip 100 TTC rides ago votes at half the weight of the most recent trip. Being in a different city no longer ages your home network predictions.
-
-### v3.2.0
-**What changed from v3.1.1:** NetworkEngine integrated as a higher-priority directional filter. At trip start, the learned graph for the current route is loaded and used to pre-filter end stop candidates before topology.json. Falls back to topology.json when fewer than 3 trips observed on an edge. Reverse-edge inference: B→A westbound implies A is reachable from B eastbound.
-
-### v3.1.1
-**What changed from v3.1:** Topology filter moved upstream — candidate trips are now pre-filtered by topology before voting, not post-filtered after. Impossible destinations are eliminated before the model scores anything. Same fallback behaviour (unfiltered if no candidates survive).
-
-### v3.1
-**What changed from v3:** Topology constraint filter added to end stop prediction. Stop names canonicalized via stops library before topology index lookup. Networks expanded to TTC Lines 1–5, LA Metro B/D/A/E, BART, Muni N/T. Route alias resolution added — "Line 1", "Red Line", "N Judah" etc. resolve to correct topology entry without exact key match. `VERSION` bumped to 3.1 so predictionStats logs distinguish pre/post-filter predictions.
-
-### v3
-**Problems it solved:**
-1. The same physical stop logged under slightly different names ("King St W / Bathurst" vs "King / Bathurst") was being treated as two separate stops, splitting the vote signal.
-2. Day similarity used a flat 0.5 for any non-matching weekday pair, which didn't distinguish between "Tuesday vs Wednesday" and "Monday vs Friday."
-3. Malformed trips from bad SMS parses were polluting the candidate pool and casting noise votes.
-4. Route variants (510, 510a, 510b) were competing against each other rather than pooling.
-5. Direction strings from different sources (nb, northbound, north, N) weren't normalizing to the same value, causing mismatches.
-6. No guard against the engine predicting routes that don't physically serve the boarding stop.
-
-**Changes:**
-- Stop canonicalization via stops library (aliases collapse to canonical name; lazy-built index for performance).
-- Day similarity is now distance-based within weekdays: 1 day apart → 0.85, 4 days apart → 0.40. Weekend/weekday boundary stays at 0.1.
-- Trip validity filter added (excludes sentence-fragment stop names, routes with no digits).
-- Route family grouping: variants strip to base number for vote pooling; most-voted specific variant returned.
-- Direction normalization: nb/northbound/north/N all map to "Northbound" before comparison.
-- GTFS stop→route hard filter: candidates pruned to routes that actually serve the boarding stop. Fallback to unfiltered if no candidates survive.
+Current active signals, config, strengths, and data notes are documented above. Only high-level status and the pointer are kept in this file so the main notebook stays scannable as V6 work expands.
 
 ---
 
