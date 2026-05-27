@@ -134,6 +134,26 @@ This flags the trip for later review or manual reprocessing.
 
 These scenarios show how the same core principles (record intent + proper metadata + exclusions) adapt to different situations while protecting long-term model quality.
 
+### What to Do If...
+
+- **The trip has already been processed by background finalization**  
+  The learning/grading side-effects have already run. Apply the correction using the pattern above (record intent + canonical name + `stop_matched` + full metadata + exclusion flags). Do **not** expect automatic re-finalization — only an explicit `triggerManualFinalization(tripId)` will re-run the background work.
+
+- **You later decide you *do* want the corrected trip to be reprocessed**  
+  Call `triggerManualFinalization(tripId)` (this uses `force: true` internally). This bypasses the normal idempotency guard and exclusion logic for that one run. The trip will then contribute to NetworkEngine, HabitEngine, grading, etc.
+
+- **Multiple fields need correction on the same trip** (e.g. both route and start stop)  
+  Include all changed fields in `correctedFields`. Record each in `originalValues`. Apply the full set of exclusion flags. One correction record can cover multiple high-impact fields.
+
+- **The corrected raw input still doesn't resolve cleanly** (even with route + direction)  
+  Set `startStop` / `startStopName` to the best available value based on user intent. Leave `stop_matched = false`. The trip will remain flagged for potential later review or manual intervention. Still apply all exclusion flags.
+
+- **A trip was corrected before the new "record intent" philosophy was adopted**  
+  You can re-correct it. Update `startStop` to the intended raw value, refresh `originalValues` if desired, ensure the exclusion flags are present, and update `correctedAt`. This brings old corrections in line with the current approach.
+
+- **You want to understand the impact of corrections on future V6 training**  
+  Corrections that follow this pattern (intent preserved + exclusions applied) are exactly what we want for V6. They give the model realistic imperfect examples while preventing bad data from polluting accuracy or learning until the correction is resolved.
+
 ## Why Not Full Delayed Finalization Yet
 
 The cleaner architecture would be to separate:
