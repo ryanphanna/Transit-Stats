@@ -57,30 +57,53 @@ When correcting a trip, prefer recording **what the user actually meant to enter
 - It creates better training signal about common failure modes.
 
 ### Practical Pattern
-For a high-impact stop name correction:
+For a high-impact stop name correction (e.g. fixing a typo like "collegea"), follow this explicit checklist:
 
-1. Set the raw input field (`startStop` or equivalent) to what the user meant to type.
-2. Ensure `startStopName` holds a valid canonical name from the stops library (this can stay as the resolved form).
-3. Set `stop_matched: true` once the corrected intent + route/direction context should allow clean resolution.
-4. Always apply full correction metadata:
-   - `correctedFields`
-   - `correctedAt`
-   - `originalValues` (preserve both the bad raw and bad normalized values when possible)
-5. Apply exclusion flags (`needs_reprocess`, `exclude_from_training`, `exclude_from_accuracy`).
+1. **Raw user input**  
+   - `startStop` → Set to exactly what the user meant to text (e.g. `"College"`).  
+   - Do **not** skip this even if `startStopName` will hold the canonical form.
 
-**Example (real trip, May 2026):**
-- Original: `startStopName = "Collegea"`, `startStop = null`
-- Correction applied:
-  - `startStop = "College"` (what the user meant to text on 506 Westbound)
-  - `startStopName = "College St at Spadina Ave"` (canonical name)
-  - `stop_matched = true`
-  - `correctedFields` includes both fields
-  - `originalValues` recorded the bad values
-  - All high-impact exclusion flags set
+2. **Canonical / Normalized name**  
+   - `startStopName` → Set (or leave) as the correct canonical name from the stops library (e.g. `"College St at Spadina Ave"`).
 
-This keeps the trip honest about the user's actual input while still giving downstream systems (prediction, matching, training) clean canonical data where it matters.
+3. **Matching flag**  
+   - `stop_matched` → Set to `true` once the corrected raw intent + route/direction/time context should allow the system to resolve cleanly to the canonical stop.
 
-The same principle applies to other high-impact fields (route, direction, etc.): record the intended value first, then ensure proper metadata and exclusion.
+4. **Correction metadata** (always required for high-impact changes)  
+   - `correctedFields` → Use `ArrayUnion` to add the changed fields (e.g. `["startStop", "startStopName"]`).  
+   - `correctedAt` → Set to the current timestamp.  
+   - `originalValues` → Record the previous bad values for the fields being corrected (e.g. `{ "startStopName": "Collegea", "startStop": "collegea" }`).
+
+5. **Exclusion / Reprocessing flags** (for high-impact corrections)  
+   - `needs_reprocess` → `true`  
+   - `exclude_from_training` → `true`  
+   - `exclude_from_accuracy` → `true`
+
+6. **Do not touch** (unless also intentionally correcting them)  
+   - `journeyId`, `endStop*` fields, `route`, `direction`, etc.
+
+**Example (real trip, May 2026, 506 Westbound):**
+
+Before correction:
+- `startStop`: null
+- `startStopName`: "Collegea"
+- `stop_matched`: false
+- No correction metadata
+
+After correction:
+- `startStop`: "College" (what the user meant to text)
+- `startStopName`: "College St at Spadina Ave" (canonical)
+- `stop_matched`: true
+- `correctedFields`: ["startStop", "startStopName"]
+- `correctedAt`: <timestamp>
+- `originalValues`: { "startStopName": "Collegea", "startStop": "collegea" }
+- `needs_reprocess`: true
+- `exclude_from_training`: true
+- `exclude_from_accuracy`: true
+
+This approach records the user's actual intent while still giving the trip a proper canonical name and protecting training/accuracy data.
+
+The same pattern applies to other high-impact fields (route, direction, agency, etc.): record the intended raw/corrected value, ensure the canonical form is correct, set `stop_matched` / equivalent where applicable, apply full metadata + exclusion flags.
 
 ## Why Not Full Delayed Finalization Yet
 
