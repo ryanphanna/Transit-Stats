@@ -45,6 +45,8 @@ Current correction metadata / guardrails:
 - `exclude_from_accuracy`
 - `exclude_from_training`
 
+Background finalization (via `onTripFinalized` trigger + `runPostEndFinalization`) only runs on first `endTime`. Corrections set the exclusion flags and are skipped by the idempotency guard even if `needs_reprocess` is true; only explicit `triggerManualFinalization` (force) re-runs learning/grading.
+
 ## Why Not Full Delayed Finalization Yet
 
 The cleaner architecture would be to separate:
