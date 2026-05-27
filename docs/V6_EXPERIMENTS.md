@@ -92,4 +92,27 @@ Adding features derived from the previous 2–3 trips in a journey (e.g. recent 
 
 ---
 
+## 2026-05-27 — Sequence Signal Audit (v1.1) — Follow-up Run
+
+**Update to previous experiment**
+
+**Additional Measurement:**  
+Naive "always predict the previous route from the same journey" as a simple baseline predictor.
+
+**Results:**
+- Naive previous-route predictor accuracy (within journeys): **6.5%** (n=185)
+- Dumb baseline (always predict the single most common route overall): **31.1%**
+
+**Interpretation:**  
+Predicting the exact previous route from the same journey is actively worse than just guessing the globally most common route. This reinforces that the value of journey context is **not** route repetition, but rather modeling the *distribution of what people do next* after a given stop/route/time combination (i.e., transfer patterns and typical next actions).
+
+This is a useful negative result. It narrows the hypothesis space for V6 features.
+
+**Next:**  
+Move from "does previous route help?" to "which features derived from recent journey history actually correlate with the correct next route/end-stop?"
+
+**Script run:** `ml/v6_sequence_audit.py` (v1.1)
+
+---
+
 *This document is the living experiment log for V6. All work is kept under the single approved Notion task.*
