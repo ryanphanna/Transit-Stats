@@ -224,7 +224,39 @@ describe('E2E: correction exclusion (no auto re-finalization)', () => {
   });
 });
 
-// TODO (future micro-chunks under this task):
-// - Journey linking + anomaly cases
+describe('E2E: background journey linking', () => {
+  test('second trip shortly after first gets journeyLinked metadata', async () => {
+    // First leg
+    await sms('510\nSpadina / College\nNorth');
+    await sms('END Spadina / Bloor');
 
-console.log('E2E chunk 4 complete (correction exclusion + manual reprocess).');
+    const leg1 = await getLatestTrip();
+    const leg1Final = await waitForFinalization(leg1.id);
+
+    // Second leg very soon after (simulates quick transfer)
+    await sms('510\nSpadina / Bloor\nSouth');
+    await sms('END Dundas / Yonge');
+
+    const leg2 = await getLatestTrip();
+    const leg2Final = await waitForFinalization(leg2.id);
+
+    // Assert linking happened in background
+    assert.ok(leg2Final.journeyLinked === true, 'second leg should be marked journeyLinked');
+    assert.ok(leg2Final.linkedJourneyId, 'second leg should have linkedJourneyId');
+
+    // The first leg should also have been updated with the same journeyId during linking
+    const leg1After = await db.collection('trips').doc(leg1.id).get();
+    const leg1Data = leg1After.data();
+    if (leg2Final.linkedJourneyId) {
+      assert.equal(leg1Data.journeyId, leg2Final.linkedJourneyId, 'first leg should share the journeyId');
+    }
+
+    await db.collection('trips').doc(leg1.id).delete();
+    await db.collection('trips').doc(leg2.id).delete();
+  });
+});
+
+// TODO (future micro-chunks under this task):
+// - Anomaly detection case
+
+console.log('E2E chunk 5 complete (journey linking in background finalization).');
