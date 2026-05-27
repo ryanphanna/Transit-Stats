@@ -104,50 +104,9 @@ Current active signals, config, strengths, and data notes are documented above. 
 
 **What it does:** Uses trained logistic-regression models to predict routes and end stops from trip history instead of relying on hand-tuned weights.
 
-**Current version:** `v4.3`
-
 **Status:** Candidate. Evaluated in parallel against the live V3 path.
 
-### v4.3 — *candidate*
-**What changed from v4.2:** Candidate model version bumped so post-fix results are distinguishable in `predictionStats`. Shared ML helpers now cover route normalization, stop canonicalization, and trip-gap encoding. Live route inference also fixed a day-of-week feature bug (`day_cos` was being derived from `day_sin` instead of the actual day index).
-
-### v4.2 — *candidate*
-**What changed from v4.1:** Route training migrated to the shared export/training pipeline. Agency-aware route normalization added for ML so TTC branch/shuttle/short-turn labels collapse to their base route family while non-TTC labels like `Red`, `K`, and `N` retain their identity. Current route benchmark: 62.8% top-1 / 84.9% top-3 on 429 trips. End-stop model expanded to use `prev_route`, `last_end_stop`, and trip-gap features; benchmark: 68.1% top-1 / 93.6% top-3 on 234 trips.
-
-### v4.1 — *candidate*
-**What changed from v4:** End stop prediction added (`guessTopEndStops`). Trained a separate logistic regression classifier on 114 trips (11 end stop classes). Features: route (one-hot), start stop (one-hot), hour (sin/cos), day (sin/cos). Topology pre-filter applied before softmax — impossible stops zeroed out before probabilities are computed. Top-1: 39%, Top-3: 87%.
-
-### v4 — *candidate*
-**Problem it solved:** V3's scoring weights are hand-coded constants (`TIME_SIGMA_HOURS: 1.5`, `DECAY_HALFLIFE_DAYS: 20`, etc.) chosen by intuition, not learned from actual trip data. The model cannot discover signals it wasn't explicitly told to look for.
-
-**Approach:** Logistic regression classifier trained on historical trip data. Features: hour-of-day (sin/cos encoded), day-of-week (sin/cos encoded), start stop (one-hot encoded). Trained on 385 trips (Jan–Apr 2026) using scikit-learn. Weights exported to JSON and loaded by a Cloud Function at inference time.
-
-**Results on held-out test set:**
-- Top-1 accuracy: 52% (correct first guess)
-- Top-3 accuracy: 74% (correct answer in top 3)
-- Strong on dominant routes (1, 2, 510). Weak on rare routes with < 5 trips in history.
-
-**What the model figured out on its own:** Correct geographic stop-to-route associations (Spadina Station → 510, York University → Line 1, Bay/St George → Line 2) purely from trip history — no GTFS, no topology given during training.
-
-**Known ceiling:** Logistic regression only weights the features given to it. Cannot discover new signals or feature interactions on its own. V5 will address this with a gradient boosted tree (XGBoost).
-
-**What's built:**
-- Shared trip export pipeline (`ml/export_trips.py`)
-- Route training pipeline (`ml/train_routes.py`) producing `ml/model_v4.json`
-- Topology file (`ml/topology.json`) — ordered stop sequences for Lines 1, 2, 4, 5
-
-**Still to build:**
-- Promote V4 route or end-stop predictions into the live user-facing path if they prove better than V3
-- Richer sequential/context features that demonstrably help beyond the current baseline
-- Retrain audit log (date, trip count, accuracy) to Firestore
-
-**Files:**
-| File | Purpose |
-|---|---|
-| `ml/export_trips.py` | Pulls Firestore trips to CSV for training |
-| `ml/train_routes.py` | Route-model training and evaluation pipeline |
-| `ml/model_v4.json` | Trained logistic regression weights |
-| `ml/topology.json` | TTC line stop sequences for direction filtering |
+Detailed version history, benchmarks, and per-iteration notes: [docs/intelligence/V4.md](./intelligence/V4.md).
 
 ---
 
@@ -157,39 +116,9 @@ Current active signals, config, strengths, and data notes are documented above. 
 
 **What it does:** Uses XGBoost models exported to ONNX for richer feature interactions and stronger learned route/end-stop inference than V4.
 
-**Current version:** `v5.3`
-
 **Status:** Candidate. Evaluated in parallel against the live V3 path.
 
-### v5.3 — *candidate*
-**What changed from v5.2:** Candidate model version bumped so post-fix results are distinguishable in `predictionStats`. Shares the same route normalization, stop canonicalization, and trip-gap helper layer as V4. Route model still outperforms V4 overall; end-stop model remains the strongest ML challenger to V3, but has not yet beaten V3 in live candidate accuracy.
-
-### v5.2 — *candidate*
-**What changed from v5.1:** Route training moved to the shared Python pipeline and gained agency-aware route normalization. This removed blank/malformed route classes from non-TTC data and sharply improved route metrics. Current route benchmark: 70.9% top-1 / 82.6% top-3 on 429 trips. End-stop model now uses the same route normalization plus `prev_route`, `last_end_stop`, and trip-gap features, but those extra sequence features did not improve V5 on the current held-out split; benchmark remains 78.7% top-1 / 89.4% top-3 on 234 trips.
-
-### v5.1 — *candidate*
-**What changed from v5:** End stop prediction added (`guessTopEndStops`). Trained a separate XGBoost classifier on same 114-trip dataset (11 end stop classes). Same features as V4.1. Topology pre-filter applied before reading ONNX probabilities — zeroed out, renormalized, then ranked. Top-1: 48%, Top-3: 96%.
-
-### v5 — *candidate*
-**Problem it solved:** Logistic regression can't find feature interactions or discover signals we haven't thought of.
-
-**Approach:** XGBoost gradient boosted tree. Drop-in replacement — same features, same data pipeline. Discovers combinations like "York University + Monday morning = almost certainly Line 1 southbound" without being told.
-
-**Results (same 385-trip dataset, same train/test split as V4):**
-- Top-1 accuracy: 60.6% (+8.5pp over V4)
-- Top-3 accuracy: 80.3% (+5.6pp over V4)
-- Config: n_estimators=200, max_depth=4, learning_rate=0.1
-
-**What's built:**
-- ONNX route model (`ml/model_v5.onnx`) running in parallel evaluation alongside V3 and V4
-- ONNX end-stop model (`ml/model_v5_endstop.onnx`) running in parallel evaluation alongside V3 and V4
-- Graded and logged to `predictionStats` at trip end
-
-**Still to build:**
-- Promote V5 into the live user-facing path only after it clearly beats V3 on relevant candidate-evaluation slices
-- Richer signals: week of term, holiday flag, weather, TTC service alerts, route/service-frequency context
-- Retrain audit log to Firestore
-- Replace V4 once V5 consistently outperforms in candidate evaluation
+Detailed version history, benchmarks, and per-iteration notes: [docs/intelligence/V5.md](./intelligence/V5.md).
 
 ---
 
