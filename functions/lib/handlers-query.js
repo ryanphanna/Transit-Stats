@@ -28,7 +28,7 @@ const {
 /**
  * Handle natural-language query (premium feature)
  */
-async function handleQuery(phoneNumber, user, question) {
+async function handleQuery(phoneNumber, user, question, traceId = null) {
   const profile = await getUserProfile(user.userId);
   const isAdmin = await isEmailAdmin(user.email);
   if (!profile?.isPremium) {
@@ -61,13 +61,21 @@ async function handleQuery(phoneNumber, user, question) {
   }
 
   const recentAgency = trips[0]?.agency || null;
-  const timezone = await lookupAgencyTimezone(recentAgency);
+  const timezone = await lookupAgencyTimezone(recentAgency, traceId);
   const stats = aggregateTripStats(trips, timezone);
   if (await isGeminiRateLimited(phoneNumber, !!profile?.isPremium, isAdmin)) {
     await sendSmsReply(phoneNumber, 'AI limit reached. Try again later.');
     return;
   }
-  const answer = await answerQueryWithGemini(user.userId, question, trips, stats, conversationHistory, timezone);
+  const answer = await answerQueryWithGemini(
+    user.userId,
+    question,
+    trips,
+    stats,
+    conversationHistory,
+    timezone,
+    traceId
+  );
   await sendSmsReply(phoneNumber, answer);
 
   // Fire-and-forget — never block or fail the reply
@@ -86,7 +94,7 @@ async function handleQuery(phoneNumber, user, question) {
 /**
  * Handle STATS command
  */
-async function handleStatsCommand(phoneNumber, user) {
+async function handleStatsCommand(phoneNumber, user, traceId = null) {
   const now = new Date();
 
   // Windows

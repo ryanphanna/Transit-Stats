@@ -1,6 +1,24 @@
 /**
- * Logging utility with PII redaction
+ * Logging utility with PII redaction and optional trace correlation.
+ *
+ * All functions are backward-compatible. Pass `traceId` inside the data object
+ * (or as the third argument to info/error for convenience) to get prefixed logs
+ * that are easy to correlate across an SMS request.
  */
+
+/**
+ * Generate a short trace ID suitable for logs and Cloud Logging correlation.
+ * 8 characters is enough to uniquely identify a request in practice.
+ */
+function generateTraceId() {
+  // Use crypto.randomUUID when available (Node 19+ / Cloud Functions)
+  try {
+    const { randomUUID } = require('crypto');
+    return randomUUID().replace(/-/g, '').slice(0, 8);
+  } catch {
+    return Date.now().toString(36).slice(-8);
+  }
+}
 
 /**
  * Redact phone numbers (e.g., +16471234567 -> +1647***4567)
@@ -14,12 +32,19 @@ function maskPhone(phone) {
 }
 
 /**
- * Log information with optional PII masking
- * @param {string} message - The message to log
- * @param {object} data - Optional data object to log (will be redacted)
+ * Normalize a data object for logging: apply PII redaction and extract traceId.
+ * @param {object} data
+ * @returns {{ logData: object, traceId: string|null }}
  */
-function info(message, data = {}) {
+function normalizeLogData(data = {}) {
   const logData = { ...data };
+
+  // Extract traceId if present (support both camelCase and snake_case)
+  const traceId = logData.traceId || logData.trace_id || null;
+  if (traceId) {
+    delete logData.traceId;
+    delete logData.trace_id;
+  }
 
   // Automatically mask known PII fields
   if (logData.phoneNumber) logData.phoneNumber = maskPhone(logData.phoneNumber);
@@ -30,24 +55,74 @@ function info(message, data = {}) {
   if (logData.body) logData.body = `[REDACTED (Length: ${logData.body.length})]`;
   if (logData.Body) logData.Body = `[REDACTED (Length: ${logData.Body.length})]`;
 
-  console.log(`[INFO] ${message}`, Object.keys(logData).length ? logData : '');
+  return { logData, traceId };
 }
 
 /**
- * Log error events
- * @param {string} message - Error message
- * @param {Error|object} error - Error object or context
+ * Format a log prefix including optional short trace ID.
  */
-function error(message, error = {}) {
-  console.error(`[ERROR] ${message}`, error);
+function formatPrefix(level, traceId) {
+  if (traceId) {
+    return `[${level}][t:${traceId}]`;
+  }
+  return `[${level}]`;
 }
 
 /**
- * Log warning events
- * @param {string} message - Warning message
+ * Log information with optional PII masking and trace correlation.
+ * @param {string} message
+ * @param {object} [data]
+ * @param {string} [traceId] - optional convenience param
  */
-function warn(message) {
-  console.warn(`[WARN] ${message}`);
+function info(message, data = {}, traceId = null) {
+  let finalTrace = traceId;
+  let logData = data;
+
+  if (typeof data === 'string' && !traceId) {
+    // allow info(msg, traceId) calls for convenience
+    finalTrace = data;
+    logData = {};
+  } else {
+    const normalized = normalizeLogData(data);
+    logData = normalized.logData;
+    if (!finalTrace) finalTrace = normalized.traceId;
+  }
+
+  const prefix = formatPrefix('INFO', finalTrace);
+  console.log(`${prefix} ${message}`, Object.keys(logData).length ? logData : '');
+}
+
+/**
+ * Log error events with optional trace correlation.
+ * @param {string} message
+ * @param {Error|object} [err]
+ * @param {string} [traceId]
+ */
+function error(message, err = {}, traceId = null) {
+  let finalTrace = traceId;
+  let errorPayload = err;
+
+  if (typeof err === 'string' && !traceId) {
+    finalTrace = err;
+    errorPayload = {};
+  } else if (err && typeof err === 'object' && (err.traceId || err.trace_id)) {
+    const normalized = normalizeLogData(err);
+    errorPayload = normalized.logData;
+    if (!finalTrace) finalTrace = normalized.traceId;
+  }
+
+  const prefix = formatPrefix('ERROR', finalTrace);
+  console.error(`${prefix} ${message}`, errorPayload);
+}
+
+/**
+ * Log warning events with optional trace correlation.
+ * @param {string} message
+ * @param {string} [traceId]
+ */
+function warn(message, traceId = null) {
+  const prefix = formatPrefix('WARN', traceId);
+  console.warn(`${prefix} ${message}`);
 }
 
 module.exports = {
@@ -55,4 +130,5 @@ module.exports = {
   error,
   warn,
   maskPhone,
+  generateTraceId,
 };

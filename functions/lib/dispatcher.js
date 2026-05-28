@@ -4,6 +4,16 @@
  */
 
 const logger = require('./logger');
+
+/** Local short trace ID generator (tests sometimes mock the logger module) */
+function generateTraceIdLocal() {
+  try {
+    const { randomUUID } = require('crypto');
+    return randomUUID().replace(/-/g, '').slice(0, 8);
+  } catch {
+    return Date.now().toString(36).slice(-8);
+  }
+}
 const {
   isRateLimited,
   checkIdempotency,
@@ -26,11 +36,19 @@ const handlers = require('./handlers');
 
 /**
  * Main dispatch logic for an SMS message
+ * @param {string} phoneNumber
+ * @param {string} body
+ * @param {string} messageSid
+ * @param {object} [media]
+ * @param {string} [traceId] - optional correlation ID from the webhook entry
  */
-async function dispatch(phoneNumber, body, messageSid, media = {}) {
+async function dispatch(phoneNumber, body, messageSid, media = {}, traceId = null) {
   const receivedAt = Date.now();
   const { numMedia = 0, mediaUrl = null } = media;
   const isMms = numMedia > 0 && !!mediaUrl;
+
+  // Ensure we always have a traceId for this request lifecycle
+  const trace = traceId || generateTraceIdLocal();
 
   // 1. Basic Validation
   if (!phoneNumber || (!body && !isMms)) {
@@ -39,7 +57,7 @@ async function dispatch(phoneNumber, body, messageSid, media = {}) {
 
   // Drop messages sent from our own number — self-loop guard
   if (phoneNumber === getTwilioPhoneNumber()) {
-    logger.info('Self-loop detected — dropping', { From: phoneNumber });
+    logger.info('Self-loop detected — dropping', { From: phoneNumber, traceId: trace }, trace);
     return '';
   }
 
@@ -47,22 +65,22 @@ async function dispatch(phoneNumber, body, messageSid, media = {}) {
   if (body && !isMms) {
     const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/i;
     if (urlRegex.test(body)) {
-      logger.info('Spam URL dropped', { From: phoneNumber, Body: body });
+      logger.info('Spam URL dropped', { From: phoneNumber, Body: body, traceId: trace }, trace);
       return '';
     }
   }
 
   const upperBody = body ? body.toUpperCase() : '';
-  logger.info('Dispatching SMS', { From: phoneNumber, Body: body, isMms });
+  logger.info('Dispatching SMS', { From: phoneNumber, Body: body, isMms, traceId: trace }, trace);
 
   // 2. Pre-auth Checks
   if (await isRateLimited(phoneNumber)) {
-    logger.info('Rate limited', { From: phoneNumber });
+    logger.info('Rate limited', { From: phoneNumber, traceId: trace }, trace);
     return '';
   }
 
   if (messageSid && await checkIdempotency(messageSid)) {
-    logger.info('Duplicate Message', { MessageSid: messageSid });
+    logger.info('Duplicate Message', { MessageSid: messageSid, traceId: trace }, trace);
     return '';
   }
 
@@ -72,12 +90,12 @@ async function dispatch(phoneNumber, body, messageSid, media = {}) {
     // must be able to retry immediately without waiting 60 seconds.
     const isEndCommand = /^(END|STOP)(\s|$)/i.test(body);
     if (!isEndCommand && await checkContentDuplicate(phoneNumber, body)) {
-      logger.info('Duplicate content within window', { From: phoneNumber });
+      logger.info('Duplicate content within window', { From: phoneNumber, traceId: trace }, trace);
       return '';
     }
 
     if (await checkOutboundLoop(body)) {
-      logger.info('Outbound loop detected — dropping', { From: phoneNumber });
+      logger.info('Outbound loop detected — dropping', { From: phoneNumber, traceId: trace }, trace);
       return '';
     }
   }
@@ -85,7 +103,7 @@ async function dispatch(phoneNumber, body, messageSid, media = {}) {
   // 3. Contextual/Pending State Logic
   const pendingState = await getPendingState(phoneNumber);
   if (pendingState) {
-    const handled = await handlePendingState(phoneNumber, body, upperBody, pendingState);
+    const handled = await handlePendingState(phoneNumber, body, upperBody, pendingState, trace);
     if (handled) return '';
   }
 
@@ -98,12 +116,12 @@ async function dispatch(phoneNumber, body, messageSid, media = {}) {
       }
       return '';
     }
-    await handlers.handleMmsTrip(phoneNumber, user, mediaUrl, receivedAt);
+    await handlers.handleMmsTrip(phoneNumber, user, mediaUrl, receivedAt, trace);
     return '';
   }
 
   // 4. Public Commands (No Auth Required)
-  const publicHandled = await handlePublicCommands(phoneNumber, upperBody, body);
+  const publicHandled = await handlePublicCommands(phoneNumber, upperBody, body, trace);
   if (publicHandled) return '';
 
   // 5. User Authentication
@@ -116,7 +134,7 @@ async function dispatch(phoneNumber, body, messageSid, media = {}) {
   }
 
   // 6. Private/Member Commands
-  const privateHandled = await handlePrivateCommands(phoneNumber, user, upperBody, body);
+  const privateHandled = await handlePrivateCommands(phoneNumber, user, upperBody, body, trace);
   if (privateHandled) return '';
 
   // 7. Core Trip Logic (Parsing & Heuristics)
@@ -124,11 +142,11 @@ async function dispatch(phoneNumber, body, messageSid, media = {}) {
   const startPrefixMatch = body.match(/^START\s+(.{1,160})$/i);
   const tripBody = startPrefixMatch ? startPrefixMatch[1] : body;
 
-  const tripHandled = await handleTripFlow(phoneNumber, user, tripBody, receivedAt);
+  const tripHandled = await handleTripFlow(phoneNumber, user, tripBody, receivedAt, trace);
   if (tripHandled) return '';
 
   // 8. AI Intent Recognition (Gemini)
-  const aiHandled = await handleAIIntent(phoneNumber, user, tripBody, receivedAt);
+  const aiHandled = await handleAIIntent(phoneNumber, user, tripBody, receivedAt, trace);
   if (aiHandled) return '';
 
   // 9. Final Fallback
@@ -139,7 +157,8 @@ async function dispatch(phoneNumber, body, messageSid, media = {}) {
 /**
  * Handles states like verification codes or start-trip confirmations
  */
-async function handleConfirmAgencyState(phoneNumber, body, upperBody, state) {
+async function handleConfirmAgencyState(phoneNumber, body, upperBody, state, traceId = null) {
+  const trace = traceId || generateTraceIdLocal();
   if (/^[12]$/.test(body.trim())) {
     const user = await getUserByPhone(phoneNumber);
     if (user) {
@@ -147,7 +166,7 @@ async function handleConfirmAgencyState(phoneNumber, body, upperBody, state) {
       await clearPendingState(phoneNumber);
       await handlers.handleTripLog(
         phoneNumber, user, state.stopInput, state.route, state.direction,
-        chosenAgency, { ...state.options, agencyExplicit: true }
+        chosenAgency, { ...state.options, agencyExplicit: true }, trace
       );
     }
     return true;
@@ -164,7 +183,8 @@ async function handleConfirmAgencyState(phoneNumber, body, upperBody, state) {
   return false;
 }
 
-async function handleConfirmStopState(phoneNumber, body, upperBody, state) {
+async function handleConfirmStopState(phoneNumber, body, upperBody, state, traceId = null) {
+  const trace = traceId || generateTraceIdLocal();
   const num = parseInt(body.trim(), 10);
   if (!isNaN(num) && num >= 1 && num <= state.stopCandidates.length) {
     const user = await getUserByPhone(phoneNumber);
@@ -181,7 +201,7 @@ async function handleConfirmStopState(phoneNumber, body, upperBody, state) {
         });
         // Run V4/V5 predictions now that the stop is known — fire-and-forget
         handlers.fillPredictions(
-          user, state.tripId, chosen.stopName, state.route, state.direction, state.agency
+          user, state.tripId, chosen.stopName, state.route, state.direction, state.agency, trace
         ).catch(() => {});
         await sendSmsReply(
           phoneNumber,
@@ -191,7 +211,7 @@ async function handleConfirmStopState(phoneNumber, body, upperBody, state) {
         // No trip started yet (active-trip conflict path) — pass stop code so lookupStop resolves unambiguously
         await handlers.handleTripLog(
           phoneNumber, user, chosen.stopCode, state.route, state.direction,
-          state.agency, { ...state.options, agencyExplicit: true }
+          state.agency, { ...state.options, agencyExplicit: true }, trace
         );
       }
     }
@@ -210,7 +230,8 @@ async function handleConfirmStopState(phoneNumber, body, upperBody, state) {
   return false;
 }
 
-async function handleMmsStopNeededState(phoneNumber, body, upperBody, state) {
+async function handleMmsStopNeededState(phoneNumber, body, upperBody, state, traceId = null) {
+  const trace = traceId || generateTraceIdLocal();
   if (upperBody === 'DISCARD') {
     await clearPendingState(phoneNumber);
     await sendSmsReply(phoneNumber, 'Trip cancelled.');
@@ -229,7 +250,7 @@ async function handleMmsStopNeededState(phoneNumber, body, upperBody, state) {
     if (state.routeCandidates.length === 1) {
       const chosen = state.routeCandidates[0];
       await handlers.handleTripLog(
-        phoneNumber, user, stopReply, chosen.route, null, chosen.agency, mmsOptions
+        phoneNumber, user, stopReply, chosen.route, null, chosen.agency, mmsOptions, trace
       );
     } else {
       const list = state.routeCandidates.map((r, i) => `${i + 1}. Route ${r.route}`).join('\n');
@@ -246,7 +267,8 @@ async function handleMmsStopNeededState(phoneNumber, body, upperBody, state) {
   return true;
 }
 
-async function handleConfirmMmsRouteState(phoneNumber, body, upperBody, state) {
+async function handleConfirmMmsRouteState(phoneNumber, body, upperBody, state, traceId = null) {
+  const trace = traceId || generateTraceIdLocal();
   const num = parseInt(body.trim(), 10);
   if (!isNaN(num) && num >= 1 && num <= state.routeCandidates.length) {
     const user = await getUserByPhone(phoneNumber);
@@ -261,7 +283,8 @@ async function handleConfirmMmsRouteState(phoneNumber, body, upperBody, state) {
           startTime: state.receivedAt,
           source: 'mms',
           timing_reliability: 'approximate',
-        }
+        },
+        trace
       );
     }
     return true;
@@ -276,10 +299,11 @@ async function handleConfirmMmsRouteState(phoneNumber, body, upperBody, state) {
   return false;
 }
 
-async function handleConfirmStartState(phoneNumber, upperBody, state) {
+async function handleConfirmStartState(phoneNumber, upperBody, state, traceId = null) {
+  const trace = traceId || generateTraceIdLocal();
   if (upperBody === 'START') {
     const user = await getUserByPhone(phoneNumber);
-    if (user) await handlers.handleConfirmStart(phoneNumber, user, state);
+    if (user) await handlers.handleConfirmStart(phoneNumber, user, state, trace);
     return true;
   }
 
@@ -321,18 +345,20 @@ async function handleConfirmStartState(phoneNumber, upperBody, state) {
   return false;
 }
 
-async function handlePendingState(phoneNumber, body, upperBody, state) {
+async function handlePendingState(phoneNumber, body, upperBody, state, traceId = null) {
+  const trace = traceId || generateTraceIdLocal();
+
   if (state.type === 'awaiting_verification' && /^\d{4,6}$/.test(body)) {
-    await handlers.handleVerificationCode(phoneNumber, body);
+    await handlers.handleVerificationCode(phoneNumber, body, trace);
     return true;
   }
 
   const stateHandlers = {
-    confirm_agency: () => handleConfirmAgencyState(phoneNumber, body, upperBody, state),
-    confirm_stop: () => handleConfirmStopState(phoneNumber, body, upperBody, state),
-    mms_stop_needed: () => handleMmsStopNeededState(phoneNumber, body, upperBody, state),
-    confirm_mms_route: () => handleConfirmMmsRouteState(phoneNumber, body, upperBody, state),
-    confirm_start: () => handleConfirmStartState(phoneNumber, upperBody, state),
+    confirm_agency: () => handleConfirmAgencyState(phoneNumber, body, upperBody, state, trace),
+    confirm_stop: () => handleConfirmStopState(phoneNumber, body, upperBody, state, trace),
+    mms_stop_needed: () => handleMmsStopNeededState(phoneNumber, body, upperBody, state, trace),
+    confirm_mms_route: () => handleConfirmMmsRouteState(phoneNumber, body, upperBody, state, trace),
+    confirm_start: () => handleConfirmStartState(phoneNumber, upperBody, state, trace),
   };
 
   if (stateHandlers[state.type]) {
@@ -345,14 +371,16 @@ async function handlePendingState(phoneNumber, body, upperBody, state) {
 /**
  * Commands accessible to everyone (HELP, REGISTER)
  */
-async function handlePublicCommands(phoneNumber, upperBody, rawBody) {
+async function handlePublicCommands(phoneNumber, upperBody, rawBody, traceId = null) {
+  const trace = traceId || generateTraceIdLocal();
+
   if (['INFO', 'COMMANDS', '?', 'HELP', 'COMMAND'].includes(upperBody)) {
-    await handlers.handleHelp(phoneNumber);
+    await handlers.handleHelp(phoneNumber, trace);
     return true;
   }
 
   if (upperBody.startsWith('REGISTER ')) {
-    await handlers.handleRegister(phoneNumber, rawBody.substring(9).trim());
+    await handlers.handleRegister(phoneNumber, rawBody.substring(9).trim(), trace);
     return true;
   }
 
@@ -362,14 +390,21 @@ async function handlePublicCommands(phoneNumber, upperBody, rawBody) {
 /**
  * Commands for registered users (STATUS, STATS, etc.)
  */
-async function handlePrivateCommands(phoneNumber, user, upperBody, rawBody) {
+async function handlePrivateCommands(phoneNumber, user, upperBody, rawBody, traceId = null) {
+  const trace = traceId || generateTraceIdLocal();
+  const notesMatch = rawBody.match(/^NOTES\b[\s:]*([\s\S]*)$/i);
+  if (notesMatch) {
+    await handlers.handleAddNotes(phoneNumber, user, notesMatch[1] || '', trace);
+    return true;
+  }
+
   if (upperBody === 'ASK') {
-    await handlers.handleQuery(phoneNumber, user, '');
+    await handlers.handleQuery(phoneNumber, user, '', trace);
     return true;
   }
 
   if (upperBody.startsWith('ASK ')) {
-    await handlers.handleQuery(phoneNumber, user, rawBody.substring(4).trim());
+    await handlers.handleQuery(phoneNumber, user, rawBody.substring(4).trim(), trace);
     return true;
   }
 
@@ -381,19 +416,9 @@ async function handlePrivateCommands(phoneNumber, user, upperBody, rawBody) {
     'UNLINK': handlers.handleUnlink,
   };
 
-  if (upperBody === 'NOTES') {
-    await handlers.handleAddNotes(phoneNumber, user, '');
-    return true;
-  }
-
-  if (upperBody.startsWith('NOTES ')) {
-    await handlers.handleAddNotes(phoneNumber, user, rawBody.substring(6));
-    return true;
-  }
-
   // Strict whitelist to avoid unvalidated dynamic method invocation
   if (['STATUS', 'STATS', 'FORGOT', 'DISCARD', 'UNLINK'].includes(upperBody)) {
-    await commands[upperBody](phoneNumber, user);
+    await commands[upperBody](phoneNumber, user, trace);
     return true;
   }
 
@@ -403,7 +428,9 @@ async function handlePrivateCommands(phoneNumber, user, upperBody, rawBody) {
 /**
  * Handles explicit stop/start formats
  */
-async function handleTripFlow(phoneNumber, user, body, receivedAt = Date.now()) {
+async function handleTripFlow(phoneNumber, user, body, receivedAt = Date.now(), traceId = null) {
+  const trace = traceId || generateTraceIdLocal();
+
   // End Trip check
   const endTripData = parseEndTripFormat(body);
   const singleLineEndMatch = body.match(/^(END|STOP)\s+(\S.*)$/i);
@@ -411,9 +438,9 @@ async function handleTripFlow(phoneNumber, user, body, receivedAt = Date.now()) 
   if (endTripData || singleLineEndMatch) {
     const stopInput = singleLineEndMatch ? singleLineEndMatch[2] : endTripData?.stop;
     try {
-      await handlers.handleEndTrip(phoneNumber, user, stopInput, endTripData?.route, endTripData?.notes);
+      await handlers.handleEndTrip(phoneNumber, user, stopInput, endTripData?.route, endTripData?.notes, trace);
     } catch (err) {
-      logger.error('handleEndTrip failed', { error: err.message, stack: err.stack });
+      logger.error('handleEndTrip failed', { error: err.message, stack: err.stack, traceId: trace }, trace);
       await sendSmsReply(phoneNumber, 'Could not end your trip. Please try again.');
     }
     return true;
@@ -436,6 +463,7 @@ async function handleTripFlow(phoneNumber, user, body, receivedAt = Date.now()) 
       tripData.direction,
       tripData.agency,
       { agencyExplicit: tripData.agencyExplicit, startTime: receivedAt, vehicle: tripData.vehicle },
+      trace
     );
     return true;
   }
@@ -446,8 +474,9 @@ async function handleTripFlow(phoneNumber, user, body, receivedAt = Date.now()) 
 /**
  * AI fallback for unstructured messages
  */
-async function handleAIIntent(phoneNumber, user, body, receivedAt = Date.now()) {
-  const geminiResult = await parseWithGemini(body);
+async function handleAIIntent(phoneNumber, user, body, receivedAt = Date.now(), traceId = null) {
+  const trace = traceId || generateTraceIdLocal();
+  const geminiResult = await parseWithGemini(body, trace);
 
   // If Gemini missed a query (returned OTHER/null), fall back to a word-count
   // heuristic. By this point in the dispatch chain all trip command formats
@@ -455,7 +484,7 @@ async function handleAIIntent(phoneNumber, user, body, receivedAt = Date.now()) 
   // a natural-language question that Gemini mis-classified.
   if (!geminiResult || geminiResult.intent === 'OTHER') {
     if (body.trim().split(/\s+/).length >= 2) {
-      await handlers.handleQuery(phoneNumber, user, body.trim());
+      await handlers.handleQuery(phoneNumber, user, body.trim(), trace);
       return true;
     }
     return false;
@@ -483,6 +512,7 @@ async function handleAIIntent(phoneNumber, user, body, receivedAt = Date.now()) 
         safeDir,
         aiAgency || defaultAgency,
         { parsed_by: 'ai', agencyExplicit: !!aiAgency, startTime: receivedAt, vehicle: geminiResult.vehicle },
+        trace
       );
       return true;
     }
@@ -490,17 +520,17 @@ async function handleAIIntent(phoneNumber, user, body, receivedAt = Date.now()) 
   }
   case 'END_TRIP': {
     const endStop = constructStopInput(geminiResult);
-    await handlers.handleEndTrip(phoneNumber, user, endStop || null, null, geminiResult.notes);
+    await handlers.handleEndTrip(phoneNumber, user, endStop || null, null, geminiResult.notes, trace);
     return true;
   }
   case 'DISCARD_TRIP':
-    await handlers.handleDiscard(phoneNumber, user);
+    await handlers.handleDiscard(phoneNumber, user, trace);
     return true;
   case 'INCOMPLETE_TRIP':
-    await handlers.handleIncomplete(phoneNumber, user); // internal Gemini intent, maps to FORGOT
+    await handlers.handleIncomplete(phoneNumber, user, trace); // internal Gemini intent, maps to FORGOT
     return true;
   case 'QUERY':
-    await handlers.handleQuery(phoneNumber, user, geminiResult.question || body);
+    await handlers.handleQuery(phoneNumber, user, geminiResult.question || body, trace);
     return true;
   }
 
@@ -539,7 +569,7 @@ async function checkOutboundLoop(body) {
     const processedAt = doc.data().processedAt?.toDate?.();
     return processedAt && (Date.now() - processedAt.getTime()) < 120000;
   } catch (e) {
-    logger.error('checkOutboundLoop error', { error: e.message });
+    logger.error('checkOutboundLoop error', { error: e.message, traceId: trace }, trace);
     return false;
   }
 }

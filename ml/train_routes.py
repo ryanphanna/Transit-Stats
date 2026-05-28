@@ -116,9 +116,21 @@ def clean(df, lib):
     df["start_stop"] = df["start_stop"].apply(lambda x: canonicalize_stop(x, lib))
     df["end_stop"] = df["end_stop"].apply(lambda x: canonicalize_stop(x, lib))
 
-    # Add sequence feature: last_end_stop
+    # Add sequence features: last_end_stop and prev_route
     df = df.sort_values(["user_id", "start_time"])
     df["last_end_stop"] = df.groupby("user_id")["end_stop"].shift(1).fillna("none")
+    
+    # Normalize prev_route for consistent feature encoding
+    def _normalize_prev_route(row):
+        if pd.isna(row['prev_route']) or not row['prev_route']:
+            return "none"
+        agency = row.get('agency')
+        user_id = row.get('user_id')
+        primary = primary_map.get(user_id) if user_id else None
+        normalized = normalize_route_for_ml(agency=agency, route=row['prev_route'], primary_agency=primary)
+        return normalized if normalized else "none"
+    
+    df["prev_route_base"] = df.apply(_normalize_prev_route, axis=1)
 
     df = df.dropna(subset=['route_base', 'start_stop', 'hour_of_day', 'day_of_week'])
     
@@ -136,10 +148,23 @@ def build_features(df):
     df['day_sin']  = np.sin(2 * np.pi * df['day_of_week'] / 7)
     df['day_cos']  = np.cos(2 * np.pi * df['day_of_week'] / 7)
     
+    # Transfer rarity: rare transfers are high-signal (e.g., 506 → 510B)
+    # Compute transfer frequency: how often does prev_route → route occur?
+    transfer_counts = df.groupby(['prev_route_base', 'route_base']).size()
+    transfer_freq = transfer_counts.reset_index(name='freq')
+    transfer_freq['rarity'] = 1.0 / (transfer_freq['freq'] + 1)  # inverse frequency
+    
+    # Merge rarity scores back to df
+    df = df.merge(transfer_freq[['prev_route_base', 'route_base', 'rarity']], 
+                  on=['prev_route_base', 'route_base'], how='left')
+    df['transfer_rarity'] = df['rarity'].fillna(0.5)  # default 0.5 for unseen transfers
+    
     stop_dummies = pd.get_dummies(df['start_stop'].str.lower().str.strip(), prefix='stop')
     last_stop_dummies = pd.get_dummies(df['last_end_stop'].str.lower().str.strip(), prefix='last_stop')
+    prev_route_dummies = pd.get_dummies(df['prev_route_base'].str.lower().str.strip(), prefix='prev_route')
     
-    features = pd.concat([df[['hour_sin', 'hour_cos', 'day_sin', 'day_cos']], stop_dummies, last_stop_dummies], axis=1)
+    features = pd.concat([df[['hour_sin', 'hour_cos', 'day_sin', 'day_cos', 'transfer_rarity']], 
+                          stop_dummies, last_stop_dummies, prev_route_dummies], axis=1)
     return features, stop_dummies.columns.tolist()
 
 

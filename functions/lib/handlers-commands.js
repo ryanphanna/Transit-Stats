@@ -29,7 +29,7 @@ const {
 /**
  * Handle HELP command
  */
-async function handleHelp(phoneNumber) {
+async function handleHelp(phoneNumber, traceId = null) {
   const user = await getUserByPhone(phoneNumber);
   const profile = user ? await getUserProfile(user.userId) : null;
   const isPremium = !!profile?.isPremium;
@@ -68,7 +68,7 @@ ${commands.join('\n')}`,
 /**
  * Handle STATUS command
  */
-async function handleStatus(phoneNumber, user) {
+async function handleStatus(phoneNumber, user, traceId = null) {
   const activeTrip = await getActiveTrip(user.userId);
 
   if (!activeTrip) {
@@ -80,7 +80,7 @@ async function handleStatus(phoneNumber, user) {
   const elapsedMs = Date.now() - startTime.getTime();
   const elapsedMin = Math.round(elapsedMs / 60000);
   const statusTimezone = activeTrip.agency
-    ? await lookupAgencyTimezone(activeTrip.agency)
+    ? await lookupAgencyTimezone(activeTrip.agency, traceId)
     : 'America/Toronto';
   const timeStr = startTime.toLocaleTimeString('en-US', {
     hour: 'numeric',
@@ -108,7 +108,7 @@ END [stop] to finish. FORGOT if you forgot to end. INFO for help.`;
 /**
  * Handle DISCARD command - permanently deletes active trip
  */
-async function handleDiscard(phoneNumber, user) {
+async function handleDiscard(phoneNumber, user, traceId = null) {
   const activeTrip = await getActiveTrip(user.userId);
 
   if (!activeTrip) {
@@ -140,7 +140,7 @@ async function handleDiscard(phoneNumber, user) {
   await sendSmsReply(phoneNumber, `Deleted ${routeDisplay}.`);
 }
 
-async function handleAddNotes(phoneNumber, user, notes) {
+async function handleAddNotes(phoneNumber, user, notes, traceId = null) {
   const cleanNotes = notes?.trim();
   if (!cleanNotes) {
     await sendSmsReply(phoneNumber, 'Send NOTES followed by your note text.');
@@ -164,7 +164,7 @@ async function handleAddNotes(phoneNumber, user, notes) {
 /**
  * Handle UNLINK command - removes journey link from the most recently ended trip
  */
-async function handleUnlink(phoneNumber, user) {
+async function handleUnlink(phoneNumber, user, traceId = null) {
   // Find the most recently completed trip with a journeyId
   const snap = await db.collection('trips')
     .where('userId', '==', user.userId)
@@ -201,7 +201,7 @@ async function handleUnlink(phoneNumber, user) {
 /**
  * Handle FORGOT command - marks end as unknown
  */
-async function handleIncomplete(phoneNumber, user) {
+async function handleIncomplete(phoneNumber, user, traceId = null) {
   const activeTrip = await getActiveTrip(user.userId);
 
   if (!activeTrip) {
@@ -224,7 +224,7 @@ async function handleIncomplete(phoneNumber, user) {
 /**
  * Handle REGISTER command
  */
-async function handleRegister(phoneNumber, email) {
+async function handleRegister(phoneNumber, email, traceId = null) {
   const emailRegex = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
   if (!emailRegex.test(email)) {
     await sendSmsReply(phoneNumber, 'Invalid email format. Text REGISTER [email].');
@@ -279,7 +279,7 @@ async function handleRegister(phoneNumber, email) {
 /**
  * Handle verification code input
  */
-async function handleVerificationCode(phoneNumber, code) {
+async function handleVerificationCode(phoneNumber, code, traceId = null) {
   const verificationData = await getVerificationData(phoneNumber);
 
   if (!verificationData) {

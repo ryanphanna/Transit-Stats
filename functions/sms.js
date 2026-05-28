@@ -8,6 +8,16 @@ const { defineSecret } = require('firebase-functions/params');
 
 // Modules
 const logger = require('./lib/logger');
+
+/** Local short trace ID generator (defensive against test module mocking) */
+function generateTraceIdLocal() {
+  try {
+    const { randomUUID } = require('crypto');
+    return randomUUID().replace(/-/g, '').slice(0, 8);
+  } catch {
+    return Date.now().toString(36).slice(-8);
+  }
+}
 const {
   validateTwilioSignature,
   twimlResponse,
@@ -27,6 +37,8 @@ app.use(express.urlencoded({ extended: true }));
  * Simplified SMS Webhook Entry Point
  */
 async function handleSmsRequest(req, res) {
+  const traceId = generateTraceIdLocal();
+
   try {
     const phoneNumber = req.body.From;
     const body = (req.body.Body || '').trim();
@@ -39,17 +51,18 @@ async function handleSmsRequest(req, res) {
       return;
     }
 
-    // Delegate all logic to the dispatcher
-    await dispatch(phoneNumber, body, messageSid, { numMedia, mediaUrl });
+    // Delegate all logic to the dispatcher (traceId flows through for correlation)
+    await dispatch(phoneNumber, body, messageSid, { numMedia, mediaUrl }, traceId);
 
     // Twilio expects a valid TwiML response
     res.type('text/xml').send(twimlResponse(''));
-  } catch (error) {
+  } catch (err) {
     logger.error('CRITICAL SMS DISPATCH ERROR', {
-      error: error.message,
-      stack: error.stack,
+      error: err.message,
+      stack: err.stack,
       request: req.body,
-    });
+      traceId,
+    }, traceId);
     res.status(500).send('Internal Error');
   }
 }

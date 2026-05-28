@@ -367,7 +367,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
   );
 
   // Warm agency timezone cache in background — never blocks trip confirmation
-  if (resolvedAgency) lookupAgencyTimezone(resolvedAgency).catch(() => {});
+  if (resolvedAgency) lookupAgencyTimezone(resolvedAgency, traceId).catch(() => {});
 
   let replyBody = `Started ${routeDisplay} from ${finalStopDisplay}${agencySuffix(resolvedAgency, defaultAgency)}.`;
   if (habitPrediction?.endStop) {

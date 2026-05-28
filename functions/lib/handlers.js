@@ -19,6 +19,8 @@ const {
   handleEndTrip,
 } = require('./handlers-trip');
 
+const finalization = require('./finalization');
+
 const {
   handleQuery,
   handleStatsCommand,

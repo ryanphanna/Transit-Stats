@@ -71,7 +71,9 @@ quality and coverage improvements.
 Transit Stats already handles more than one agency, but the normalization,
 analytics, and stop-layer assumptions are still uneven.
 
-- [ ] **Configurable multi-agency route normalization** — replace TTC-biased ML route heuristics with an explicit per-agency normalization policy layer. Keep raw trip route text unchanged, but derive a separate normalized route label for training and analytics so TTC branch/shuttle variants can collapse appropriately without hardcoding Toronto-specific assumptions into the model pipeline.
+- [x] **Configurable multi-agency route normalization** — replace TTC-biased ML route heuristics with an explicit per-agency normalization policy layer. Keep raw trip route text unchanged, but derive a separate normalized route label for training and analytics so TTC branch/shuttle variants can collapse appropriately without hardcoding Toronto-specific assumptions into the model pipeline.
+
+  **Done:** Refactored `ml/route_normalization.py` into a policy-based system (`TTCCollapsePolicy`, `DefaultPreservePolicy`, etc.). Added `register_policy()`, `configure_policies()`, `configure_from_dict()`, `load_policies_from_file()` (JSON + YAML), and `load_policies()` for easy startup configuration. The training and calibration scripts now use the new system. A `policies.example.json` with documentation was added.
 - [ ] **Per-agency analytics** — dashboard views filterable by agency for users who
   ride multiple systems.
 - [ ] **Agency auto-detection** — infer the agency from the stop name at trip start

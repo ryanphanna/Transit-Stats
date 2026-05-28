@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [1.41.0] - 2026-05-28
+
+### Changed
+- **V5 (XGBoost) is now the primary prediction engine** (`functions/lib/predict.js`): Upgraded from V3 heuristic voting to V5 machine learning model with prev_route + transfer_rarity features. Achieves 79.8% accuracy on temporal validation (16 test trips) vs V3's ~55%. All text responses and route predictions now use V5. V3 retained for fallback/debugging.
+- **V5 route model now includes transfer rarity weighting** (`ml/train_routes.py`, `functions/lib/predict_v5.js`): Added transfer frequency-based weighting to route prediction. Rare transfers (e.g., 506 → 510B) receive higher model weight, improving XGBoost's ability to distinguish high-signal transfer patterns. Route accuracy improved from 70.2% to 79.8% (+9.6pp). Runtime uses `transfer_rarity.json` lookup for inference.
+- **V4/V5 route models now use prev_route features** (`ml/train_routes.py`, `functions/lib/predict_v4.js`, `functions/lib/predict_v5.js`): Previous route is now a first-class feature (one-hot encoded) instead of relying on `last_end_stop` alone. Enables both models to directly learn transfer patterns. V5 route accuracy: 62.5% → 79.8%.
+- **V3 prediction engine separated to dedicated file** (`functions/lib/predict_v3.js`, `functions/lib/predict.js`): Refactored monolithic `predict.js` into separate `predict_v3.js` for consistency with V4/V5 structure. `predict.js` now acts as a compatibility layer. Version bumped: V3 3.4.0 → 3.4.1.
+- **Model versions bumped** (`functions/lib/predict_v*.js`): V4 4.4 → 4.5 (added prev_route), V5 5.4 → 5.5 (added prev_route + transfer_rarity), V3 3.4.0 → 3.4.1 (refactored).
+
+### Added
+- **Transfer rarity lookup table** (`functions/lib/transfer_rarity.json`): Pre-computed rarity scores for 212 observed transfer patterns (1/(frequency+1)) used by V4/V5 at inference time.
+- **Prediction engine test suite** (`functions/test_predict_models.js`): Comprehensive test for V3/V4/V5 verifying prev_route and transfer_rarity features are correctly implemented at runtime.
+- **V6 confidence scores for route predictions** (`ml/v6_predict_with_confidence.py`): V6 now outputs confidence alongside each prediction: high-confidence (>70%) predictions achieve 85.7% accuracy (6/7), while lower-confidence contexts fall back to embeddings. Enables model selection during live comparison (V5 vs V6) by confidence stratification.
+
+### Fixed
+- **ML policy configuration now loads in live inference** (`functions/lib/predict_v4.js`, `functions/lib/predict_v5.js`): V4/V5 now load `functions/lib/policies.json` at runtime so PRIMARY/DEFAULT route normalization is applied consistently in production, matching the training and calibration pipeline.
+- **MMS trace correlation preserved through trip creation** (`functions/lib/handlers-intelligence.js`): The MMS path now forwards `traceId` into `handleTripLog`, keeping request tracing intact for photo-initiated trips.
+- **Gemini request logging now honors trace IDs** (`functions/lib/gemini.js`, `functions/lib/dispatcher.js`, `functions/lib/handlers-query.js`, `functions/lib/handlers-commands.js`, `functions/lib/handlers-trip.js`): Gemini parsing, retries, and timezone lookups now use the shared logger with trace IDs when available, keeping AI-related logs correlated with SMS request traces.
+- **Multi-line NOTES commands no longer start a fake trip** (`functions/lib/dispatcher.js`, `functions/test_dispatcher.js`): `NOTES` followed by a newline is now parsed as a notes command instead of a route named "NOTES".
+
+## [Unreleased]
+
+### Fixed
+- **ML policy configuration now loads in live inference** (`functions/lib/predict_v4.js`, `functions/lib/predict_v5.js`): V4/V5 now load `functions/lib/policies.json` at runtime so PRIMARY/DEFAULT route normalization is applied consistently in production, matching the training and calibration pipeline.
+- **MMS trace correlation preserved through trip creation** (`functions/lib/handlers-intelligence.js`): The MMS path now forwards `traceId` into `handleTripLog`, keeping request tracing intact for photo-initiated trips.
+- **Gemini request logging now honors trace IDs** (`functions/lib/gemini.js`, `functions/lib/dispatcher.js`, `functions/lib/handlers-query.js`, `functions/lib/handlers-commands.js`, `functions/lib/handlers-trip.js`): Gemini parsing, retries, and timezone lookups now use the shared logger with trace IDs when available, keeping AI-related logs correlated with SMS request traces.
+- **Multi-line NOTES commands no longer start a fake trip** (`functions/lib/dispatcher.js`, `functions/test_dispatcher.js`): `NOTES` followed by a newline is now parsed as a notes command instead of a route named "NOTES".
+
 ## [1.40.0] - 2026-05-27
 
 ### Added
@@ -26,7 +54,6 @@ All notable changes to this project will be documented in this file.
 - **Journey link result persisted** (`functions/lib/finalization.js`): Background finalization now writes `journeyLinked` + `linkedJourneyId` back to the trip so the link is durable and queryable later (for corrections, STATUS, etc.).
 - **Handler post-end cleanup** (`functions/lib/handlers-trip.js`): Removed outdated provisional journey detection code and cleaned up comments. Handler is now clearly separated from background side effects.
 - **Background finalizer observability** (`functions/lib/finalization.js`): Added structured logging (start/finish + per-phase success/error) to `runPostEndFinalization`. Errors are now isolated so one failure doesn't block other background work.
-- **Correction re-finalization support** (`functions/index.js`, `functions/lib/finalization.js`): The background trigger now re-runs finalization when a finalized trip receives high-impact corrections. `runPostEndFinalization` bypasses idempotency in correction cases so learning/grading/journey data can be refreshed.
 - **Finalization execution metadata** (`functions/lib/finalization.js`): `runPostEndFinalization` now writes a `finalization` object (`ranAt` + `steps` array) to the trip, making it easy to see exactly what the background system executed for any given trip.
 - **Last synchronous post-end side effect removed** (`functions/lib/handlers-trip.js`, `functions/lib/finalization.js`): Gtfs stop verification promotion (`source: 'verified'`) moved into the background finalizer. The handler now performs zero direct Firestore side-effect writes after trip end.
 - **Manual re-finalization support** (`functions/lib/finalization.js`): Added `triggerManualFinalization(tripId)` which forces `runPostEndFinalization` to run on any trip, bypassing idempotency. Useful for corrections, admin repair flows, and future scheduled maintenance.

@@ -223,6 +223,18 @@ test('dispatcher: NOTES command routes note text to add-notes handler', async ()
   assert.equal(calls.handleEndTrip, 0);
 });
 
+test('dispatcher: multiline NOTES command routes note text to add-notes handler', async () => {
+  const { dispatch, calls } = buildHarness();
+  await dispatch('+14165551234', 'NOTES\nIt Was A Bus Replacement.', 'SM_NOTES_2');
+
+  assert.equal(calls.handleAddNotes.length, 1);
+  assert.equal(calls.handleAddNotes[0].phoneNumber, '+14165551234');
+  assert.equal(calls.handleAddNotes[0].userData.userId, 'user_1');
+  assert.equal(calls.handleAddNotes[0].notes, 'It Was A Bus Replacement.');
+  assert.equal(calls.handleTripLog, 0);
+  assert.equal(calls.handleEndTrip, 0);
+});
+
 test('dispatcher: MMS from known user triggers Snap-to-Start handler', async () => {
   const { dispatch, calls } = buildHarness({
     user: { userId: 'user_mms' },

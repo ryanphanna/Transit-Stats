@@ -7,8 +7,18 @@
 
 const model = require('./model_v4.json');
 const endStopModel = require('./model_v4_endstop.json');
-const { getStopFeature, normalizeRouteForMl, getGapFeatures } = require('./ml_utils');
+const { getStopFeature, normalizeRouteForMl, getGapFeatures, loadPolicies } = require('./ml_utils');
 const logger = require('./logger');
+
+// Transfer rarity lookup: rare transfers (e.g., 506→510B) get higher weight
+let _transferRarity = null;
+try {
+  _transferRarity = require('./transfer_rarity.json');
+} catch (e) {
+  logger.warn('[V4] Transfer rarity not loaded (degraded mode)');
+}
+
+loadPolicies();
 
 let _topology = null;
 try {
@@ -68,7 +78,7 @@ function topologyMask(route, boardingStop, direction, classes) {
 }
 
 const PredictionEngineV4 = {
-  VERSION: '4.4',
+  VERSION: '4.5',
 
   /**
    * Guess the next route given the current stop and time.
@@ -88,16 +98,19 @@ const PredictionEngineV4 = {
 
     const stopFeature = getStopFeature(context.stopName, context.stopsLibrary);
     const lastStopFeature = `last_stop_${getStopFeature(context.lastEndStopName, context.stopsLibrary).replace('stop_', '')}`;
+    const prevRoute = normalizeRouteForMl(context.lastRoute, context.agency, context.primaryAgency || context.defaultAgency) || 'none';
+    const prevRouteFeature = `prev_route_${prevRoute.toString().toLowerCase()}`;
 
     const x = new Array(model.feature_names.length).fill(0);
     for (let i = 0; i < model.feature_names.length; i++) {
       const fn = model.feature_names[i];
-      if      (fn === 'hour_sin') x[i] = hour_sin;
-      else if (fn === 'hour_cos') x[i] = hour_cos;
-      else if (fn === 'day_sin')  x[i] = day_sin;
-      else if (fn === 'day_cos')  x[i] = day_cos;
-      else if (fn === stopFeature) x[i] = 1.0;
-      else if (fn === lastStopFeature) x[i] = 1.0;
+      if      (fn === 'hour_sin')         x[i] = hour_sin;
+      else if (fn === 'hour_cos')         x[i] = hour_cos;
+      else if (fn === 'day_sin')          x[i] = day_sin;
+      else if (fn === 'day_cos')          x[i] = day_cos;
+      else if (fn === stopFeature)        x[i] = 1.0;
+      else if (fn === lastStopFeature)    x[i] = 1.0;
+      else if (fn === prevRouteFeature)   x[i] = 1.0;
     }
 
     const logits = model.classes.map((_, c) => {

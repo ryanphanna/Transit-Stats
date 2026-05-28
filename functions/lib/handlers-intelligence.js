@@ -27,7 +27,7 @@ const { handleTripLog } = require('./handlers-trip');
  * (predictions are null at create time because the stop wasn't known yet).
  * Fire-and-forget — errors are logged but never surface to the user.
  */
-async function fillPredictions(user, tripId, stopName, route, direction, agency) {
+async function fillPredictions(user, tripId, stopName, route, direction, agency, traceId = null) {
   try {
     const profile = await getUserProfile(user.userId);
     const defaultAgency = profile?.defaultAgency || null;
@@ -88,7 +88,7 @@ async function fillPredictions(user, tripId, stopName, route, direction, agency)
  * receivedAt is captured at the top of dispatch() so startTime reflects when
  * the photo was sent, not when AI processing finishes.
  */
-async function handleMmsTrip(phoneNumber, user, mediaUrl, receivedAt) {
+async function handleMmsTrip(phoneNumber, user, mediaUrl, receivedAt, traceId = null) {
   // Validate and fetch in a single block so the allowlist check directly guards fetch().
   // CodeQL requires the guard and the sink to be in the same try block to resolve js/request-forgery.
   let imageBase64, mimeType;
@@ -125,7 +125,7 @@ async function handleMmsTrip(phoneNumber, user, mediaUrl, receivedAt) {
   // Parse the stop sign with Gemini Vision
   let parsed;
   try {
-    parsed = await parseStopSignImage(imageBase64, mimeType);
+    parsed = await parseStopSignImage(imageBase64, mimeType, traceId);
   } catch (err) {
     console.error('MMS vision parsing failed', err.message);
     await sendSmsReply(phoneNumber, 'Could not read the stop sign. Try a clearer shot or log by text.');
@@ -172,6 +172,7 @@ async function handleMmsTrip(phoneNumber, user, mediaUrl, receivedAt) {
       phoneNumber, user, stopInput, route, null,
       agency ? normalizeAgency(agency) : defaultAgency,
       tripOptions,
+      traceId,
     );
     return;
   }

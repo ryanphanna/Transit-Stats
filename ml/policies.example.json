@@ -1,0 +1,24 @@
+{
+  "_comment": [
+    "Example configuration for per-agency route normalization.",
+    "",
+    "Copy this file to 'policies.json' (or policies.yaml) in the ml/ directory.",
+    "The training and analysis scripts will automatically pick it up via load_policies().",
+    "",
+    "Special key 'PRIMARY':",
+    "  The agency passed as primary_agency (usually the user's current default",
+    "  based on their most recent trips) will receive this policy.",
+    "",
+    "Available policy names:",
+    "  - 'collapse'         : Aggressively collapse variants (e.g. 506, 506a, 506B → 506).",
+    "  - 'preserve_variant' : Light normalization. Keeps branch/shuttle letters but cleans formatting (e.g. 18c → 18C).",
+    "  - 'strict_preserve'  : Minimal changes. Only basic cleaning.",
+    "  - 'upper'            : Uppercases the route after light normalization.",
+    "",
+    "Use 'DEFAULT' to set the fallback policy for any agency not explicitly listed.",
+    "Use 'PRIMARY' to apply special treatment to whatever the caller's primary_agency is."
+  ],
+
+  "PRIMARY": "collapse",
+  "DEFAULT": "preserve_variant"
+}

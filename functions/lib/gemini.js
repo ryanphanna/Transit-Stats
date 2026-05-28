@@ -4,6 +4,7 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { defineSecret } = require('firebase-functions/params');
 const { VALID_INTENTS, VALID_SENTIMENTS } = require('./constants');
+const logger = require('./logger');
 
 const geminiApiKey = defineSecret('GEMINI_API_KEY');
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -51,7 +52,7 @@ function getWeekStartDateKeyInTimezone(date, timezone) {
  * @param {number} baseDelay - Initial delay in milliseconds
  * @returns {Promise<any>} Result of function
  */
-async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
+async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000, traceId = null) {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       return await fn();
@@ -73,7 +74,7 @@ async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
 
       // Exponential backoff: 1s, 2s, 4s
       const delay = baseDelay * Math.pow(2, attempt);
-      console.log(`Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
+      logger.info('Gemini retrying', { attempt: attempt + 1, maxRetries, delayMs: delay }, traceId);
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
@@ -279,7 +280,15 @@ function dayBoundsInTimezone(dateStr, timezone) {
   };
 }
 
-async function answerQueryWithGemini(userId, question, recentTrips, stats, conversationHistory = [], timezone = 'America/Toronto') {
+async function answerQueryWithGemini(
+  userId,
+  question,
+  recentTrips,
+  stats,
+  conversationHistory = [],
+  timezone = 'America/Toronto',
+  traceId = null
+) {
   const apiKey = geminiApiKey.value();
   if (!apiKey) return 'AI unavailable right now.';
 
@@ -803,8 +812,8 @@ Question: "${question}"`;
     }
 
     return response.text().trim();
-  }).catch((err) => {
-    console.error('Gemini Tooling Error:', err);
+  }, 3, 1000, traceId).catch((err) => {
+    logger.error('Gemini Tooling Error', { error: err.message, stack: err.stack }, traceId);
     return 'Sorry, I had trouble searching your data. Try again?';
   });
 }
@@ -825,11 +834,11 @@ function constructStopInput(result) {
  * @param {string} text - Raw SMS text
  * @returns {Promise<object|null>} Parsed and sanitized data or null if failed
  */
-async function parseWithGemini(text) {
+async function parseWithGemini(text, traceId = null) {
   if (process.env.TS_TEST_MODE) return null; // Use heuristic parser in tests
   const apiKey = geminiApiKey.value();
   if (!apiKey) {
-    console.error('Gemini API key not configured');
+    logger.error('Gemini API key not configured', {}, traceId);
     return null;
   }
 
@@ -906,15 +915,15 @@ async function parseWithGemini(text) {
     const sanitized = sanitizeGeminiOutput(parsed);
 
     // Log successful API call for monitoring
-    console.log('Gemini API call successful', {
+    logger.info('Gemini API call successful', {
       intent: sanitized?.intent,
       hasRoute: !!sanitized?.route,
       hasStop: !!(sanitized?.stop_name || sanitized?.stop_id),
-    });
+    }, traceId);
 
     return sanitized;
-  }).catch((error) => {
-    console.error('Gemini parsing error after retries:', error.message);
+  }, 3, 1000, traceId).catch((error) => {
+    logger.error('Gemini parsing error after retries', { error: error.message, stack: error.stack }, traceId);
     // Return null to fall back to heuristic parsing
     return null;
   });
@@ -962,7 +971,7 @@ const KNOWN_AGENCY_TIMEZONES = {
  * @param {string} agency
  * @returns {Promise<string>} IANA timezone string (e.g. 'America/Los_Angeles')
  */
-async function lookupAgencyTimezone(agency) {
+async function lookupAgencyTimezone(agency, traceId = null) {
   if (!agency) return 'America/Toronto';
 
   // Normalize first so aliases always resolve to canonical names
@@ -981,7 +990,7 @@ async function lookupAgencyTimezone(agency) {
       const doc = await db.collection('agencyTimezones').doc(canonical).get();
       if (doc.exists && doc.data().timezone) return doc.data().timezone;
     } catch (e) {
-      console.error('agencyTimezones cache read error:', e.message);
+      logger.error('agencyTimezones cache read error', { error: e.message }, traceId);
     }
   }
 
@@ -1005,14 +1014,14 @@ async function lookupAgencyTimezone(agency) {
           timezone: tz,
           discoveredAt: admin.firestore.FieldValue.serverTimestamp(),
         });
-        console.log(`Agency timezone discovered and cached: ${canonical} → ${tz}`);
+        logger.info('Agency timezone discovered and cached', { agency: canonical, timezone: tz }, traceId);
       } else {
-        console.log(`Agency timezone resolved (not cached, ambiguous): ${canonical} → ${tz}`);
+        logger.info('Agency timezone resolved (not cached, ambiguous)', { agency: canonical, timezone: tz }, traceId);
       }
       return tz;
     }
   } catch (e) {
-    console.error('Agency timezone Gemini lookup error:', e.message);
+    logger.error('Agency timezone Gemini lookup error', { error: e.message }, traceId);
   }
 
   return 'America/Toronto';
@@ -1024,7 +1033,7 @@ async function lookupAgencyTimezone(agency) {
  * @param {string} mimeType - Image MIME type (e.g. 'image/jpeg')
  * @returns {Promise<{stopCode: string|null, stopName: string|null, routes: Array<{route: string, agency: string|null}>}|null>}
  */
-async function parseStopSignImage(imageBase64, mimeType) {
+async function parseStopSignImage(imageBase64, mimeType, traceId = null) {
   const genAI = new GoogleGenerativeAI(geminiApiKey.value());
   const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
@@ -1048,7 +1057,7 @@ Rules:
       { inlineData: { data: imageBase64, mimeType } },
       { text: prompt },
     ]);
-  });
+  }, 3, 1000, traceId);
 
   const text = result.response.text().trim();
   const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -1074,7 +1083,7 @@ Rules:
           { inlineData: { data: imageBase64, mimeType } },
           { text: focusedPrompt },
         ]);
-      });
+      }, 3, 1000, traceId);
       const focusedText = focusedResult.response.text().trim();
       const codeMatch = focusedText.match(/\b\d{4,6}\b/);
       if (codeMatch) parsed.stopCode = codeMatch[0];

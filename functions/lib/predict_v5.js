@@ -8,8 +8,18 @@
 const path = require('path');
 const meta = require('./model_v5_meta.json');
 const endStopMeta = require('./model_v5_endstop_meta.json');
-const { getStopFeature, normalizeRouteForMl, getGapFeatures } = require('./ml_utils');
+const { getStopFeature, normalizeRouteForMl, getGapFeatures, loadPolicies } = require('./ml_utils');
 const logger = require('./logger');
+
+// Transfer rarity lookup: rare transfers (e.g., 506→510B) get higher weight
+let _transferRarity = null;
+try {
+  _transferRarity = require('./transfer_rarity.json');
+} catch (e) {
+  logger.warn('[V5] Transfer rarity not loaded (degraded mode)');
+}
+
+loadPolicies();
 
 let _session = null;
 let _endStopSession = null;
@@ -86,7 +96,7 @@ function topologyMask(route, boardingStop, direction, classes) {
 }
 
 const PredictionEngineV5 = {
-  VERSION: '5.4',
+  VERSION: '5.5',
 
   /**
    * Guess top N routes using the V5 XGBoost model.
@@ -106,16 +116,33 @@ const PredictionEngineV5 = {
 
     const stopFeature = getStopFeature(context.stopName, context.stopsLibrary);
     const lastStopFeature = `last_stop_${getStopFeature(context.lastEndStopName, context.stopsLibrary).replace('stop_', '')}`;
+    const prevRoute = normalizeRouteForMl(context.lastRoute, context.agency, context.primaryAgency || context.defaultAgency) || 'none';
+    const prevRouteFeature = `prev_route_${prevRoute.toString().toLowerCase()}`;
+    
+    // Compute transfer_rarity: how rare is this prev_route -> ? transfer?
+    // Default: 0.5 for unknown transfers
+    let transferRarity = 0.5;
+    if (_transferRarity) {
+      for (const route of meta.classes) {
+        const key = `${prevRoute}→${route}`;
+        if (_transferRarity[key]) {
+          transferRarity = _transferRarity[key];
+          break;
+        }
+      }
+    }
 
     const x = new Float32Array(meta.feature_names.length);
     for (let i = 0; i < meta.feature_names.length; i++) {
       const fn = meta.feature_names[i];
-      if      (fn === 'hour_sin')    x[i] = hour_sin;
-      else if (fn === 'hour_cos')    x[i] = hour_cos;
-      else if (fn === 'day_sin')     x[i] = day_sin;
-      else if (fn === 'day_cos')     x[i] = day_cos;
-      else if (fn === stopFeature)   x[i] = 1.0;
-      else if (fn === lastStopFeature) x[i] = 1.0;
+      if      (fn === 'hour_sin')         x[i] = hour_sin;
+      else if (fn === 'hour_cos')         x[i] = hour_cos;
+      else if (fn === 'day_sin')          x[i] = day_sin;
+      else if (fn === 'day_cos')          x[i] = day_cos;
+      else if (fn === 'transfer_rarity')  x[i] = transferRarity;
+      else if (fn === stopFeature)        x[i] = 1.0;
+      else if (fn === lastStopFeature)    x[i] = 1.0;
+      else if (fn === prevRouteFeature)   x[i] = 1.0;
     }
 
     try {

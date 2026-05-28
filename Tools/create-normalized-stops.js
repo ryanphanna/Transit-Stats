@@ -1,9 +1,10 @@
 /**
  * create-normalized-stops.js
  *
- * Creates all stops researched in the 2026-04-19 normalization session.
- * Idempotent — if a stop with the same code + agency already exists, it is
- * skipped. If it exists by name only (no code), aliases are merged in.
+ * Creates / maintains curated normalized stops.
+ * - Idempotent: merges aliases if the stop already exists.
+ * - Always marks these stops with source: 'verified' (so they are treated as
+ *   properly normalized rather than raw GTFS data).
  *
  * Usage:
  *   node Tools/create-normalized-stops.js [--dry-run]
@@ -57,7 +58,7 @@ const STOPS = [
   { name: 'Dufferin / College', code: '826', agency: 'TTC', aliases: ['826 College & Dufferin', 'Dufferin / College', 'College / Dufferin'] },
   { name: 'Dufferin / College', code: '827', agency: 'TTC', aliases: [] },
   { name: 'Spadina / College', code: '843', agency: 'TTC', aliases: [] },
-  { name: 'Spadina / College', code: '844', agency: 'TTC', aliases: ['COLLEGE & SPADINA', 'College &spadina'] },
+  { name: 'Spadina / College', code: '844', agency: 'TTC', aliases: ['COLLEGE & SPADINA', 'College &spadina', 'College St at Spadina Ave', 'Spadina Ave at College St North Side', 'Spadina Ave at College St South Side'] },
   { name: 'Gerrard / Pape', code: '1100', agency: 'TTC', aliases: ['Gerrard / Pape'] },
   { name: 'Gerrard / Pape', code: '1101', agency: 'TTC', aliases: ['Gerrard/Pape', '1101 Gerrard St E / Pape'] },
   { name: 'Gerrard / Jones', code: '1092', agency: 'TTC', aliases: ['Gerrard/Jones'] },
@@ -242,11 +243,18 @@ async function run() {
       const added = merged.filter(a => !(found.aliases || []).includes(a));
       if (added.length) {
         console.log(`UPDATE  "${def.name}" (${def.agency}${def.code ? ' #' + def.code : ''}) +${added.length} alias(es)`);
-        if (!DRY_RUN) await db.collection('stops').doc(found.id).update({ aliases: merged, updatedAt: new Date() });
+        if (!DRY_RUN) await db.collection('stops').doc(found.id).update({ aliases: merged, source: 'verified', updatedAt: new Date() });
         updated++;
       } else {
-        console.log(`SKIP    "${def.name}" (${def.agency}${def.code ? ' #' + def.code : ''}) — already exists`);
-        skipped++;
+        // Still ensure manually curated stops get marked as verified even if no new aliases
+        if (found.source !== 'verified') {
+          console.log(`UPDATE  "${def.name}" (${def.agency}${def.code ? ' #' + def.code : ''}) — marking source as verified`);
+          if (!DRY_RUN) await db.collection('stops').doc(found.id).update({ source: 'verified', updatedAt: new Date() });
+          updated++;
+        } else {
+          console.log(`SKIP    "${def.name}" (${def.agency}${def.code ? ' #' + def.code : ''}) — already exists`);
+          skipped++;
+        }
       }
     } else {
       console.log(`CREATE  "${def.name}" (${def.agency}${def.code ? ' #' + def.code : ''}) — ${canonicalAliases.length} alias(es)`);
@@ -256,6 +264,7 @@ async function run() {
           code: def.code || '',
           agency: def.agency,
           aliases: canonicalAliases,
+          source: 'verified',
           createdAt: new Date(),
           updatedAt: new Date(),
         });
