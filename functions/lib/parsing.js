@@ -67,7 +67,7 @@ function parseMultiLineTripFormat(body, defaultAgency) {
   let vehicle = null;
 
   // Extract vehicle if explicitly provided on any line (e.g. "Vehicle 7109")
-  const vehicleRegex = /^(?:v|vehicle)[:\s]+(.+)$/i;
+  const vehicleRegex = /^(?:v|vehicle)[:\s]+(\S.*)$/i;
   lines = lines.filter((line, index) => {
     if (index === 0) return true; // First line is always route
     const vMatch = line.match(vehicleRegex);

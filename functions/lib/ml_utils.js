@@ -127,6 +127,7 @@ function normalizeRouteForMl(route, agency = null, primaryAgency = null) {
   if (!routeStr) return routeStr;
 
   const policyFn = getPolicyForAgency(agency, primaryAgency);
+  if (typeof policyFn !== 'function') return routeStr;
   return policyFn(routeStr);
 }
 
