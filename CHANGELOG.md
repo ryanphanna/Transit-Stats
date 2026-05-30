@@ -24,13 +24,11 @@ All notable changes to this project will be documented in this file.
 - **Gemini request logging now honors trace IDs** (`functions/lib/gemini.js`, `functions/lib/dispatcher.js`, `functions/lib/handlers-query.js`, `functions/lib/handlers-commands.js`, `functions/lib/handlers-trip.js`): Gemini parsing, retries, and timezone lookups now use the shared logger with trace IDs when available, keeping AI-related logs correlated with SMS request traces.
 - **Multi-line NOTES commands no longer start a fake trip** (`functions/lib/dispatcher.js`, `functions/test_dispatcher.js`): `NOTES` followed by a newline is now parsed as a notes command instead of a route named "NOTES".
 
-## [Unreleased]
+## [1.41.1] - 2026-05-30
 
-### Fixed
-- **ML policy configuration now loads in live inference** (`functions/lib/predict_v4.js`, `functions/lib/predict_v5.js`): V4/V5 now load `functions/lib/policies.json` at runtime so PRIMARY/DEFAULT route normalization is applied consistently in production, matching the training and calibration pipeline.
-- **MMS trace correlation preserved through trip creation** (`functions/lib/handlers-intelligence.js`): The MMS path now forwards `traceId` into `handleTripLog`, keeping request tracing intact for photo-initiated trips.
-- **Gemini request logging now honors trace IDs** (`functions/lib/gemini.js`, `functions/lib/dispatcher.js`, `functions/lib/handlers-query.js`, `functions/lib/handlers-commands.js`, `functions/lib/handlers-trip.js`): Gemini parsing, retries, and timezone lookups now use the shared logger with trace IDs when available, keeping AI-related logs correlated with SMS request traces.
-- **Multi-line NOTES commands no longer start a fake trip** (`functions/lib/dispatcher.js`, `functions/test_dispatcher.js`): `NOTES` followed by a newline is now parsed as a notes command instead of a route named "NOTES".
+### Security
+- **ReDoS fix in vehicle regex** (`functions/lib/parsing.js`): Tightened `vehicleRegex` capture group from `(.+)` to `(\S.*)` to eliminate overlap with the `[:\s]+` separator, preventing polynomial backtracking on whitespace-heavy inputs (CodeQL #45 — `js/polynomial-redos`).
+- **Unvalidated dynamic method call guard** (`functions/lib/ml_utils.js`): Added explicit `typeof fn === 'function'` check before invoking the policy function in `normalizeRouteForMl`, making the allowlist-only dispatch intent explicit and satisfying CodeQL (CodeQL #46 — `js/unvalidated-dynamic-method-call`).
 
 ## [1.40.0] - 2026-05-27
 
