@@ -4,7 +4,9 @@
 const admin = require('firebase-admin');
 
 if (!admin.apps.length) {
-  admin.initializeApp();
+  admin.initializeApp({
+    serviceAccountId: 'firebase-adminsdk-fbsvc@transitstats-21ba4.iam.gserviceaccount.com',
+  });
 }
 
 const db = admin.firestore();

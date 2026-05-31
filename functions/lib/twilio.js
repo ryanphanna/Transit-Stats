@@ -1,6 +1,10 @@
 const twilio = require('twilio');
 const { defineSecret } = require('firebase-functions/params');
 const { escapeXml } = require('./utils');
+const { AsyncLocalStorage } = require('async_hooks');
+
+// API context storage to intercept Twilio SMS replies
+const apiContextStorage = new AsyncLocalStorage();
 
 // Test mode: captured replies accumulate here instead of being sent via Twilio.
 const _testReplies = [];
@@ -52,6 +56,14 @@ function getMessagingServiceSid() {
  * @returns {Promise<boolean>} success status
  */
 async function sendSmsReply(to, message) {
+  // Check if we are running in an API request context
+  const apiContext = apiContextStorage.getStore();
+  if (apiContext && apiContext.isApiRequest) {
+    apiContext.replies.push(message);
+    console.log(`[API Request] Intercepted SMS to ${to}: ${message}`);
+    return true;
+  }
+
   if (process.env.TS_TEST_MODE) {
     _testReplies.push({ to, message });
     return true;
@@ -62,6 +74,7 @@ async function sendSmsReply(to, message) {
   const from = getTwilioPhoneNumber();
 
   if (!client || (!messagingServiceSid && !from)) {
+
     console.error('Cannot send message - Twilio not configured');
     return false;
   }
@@ -195,4 +208,5 @@ module.exports = {
   validateTwilioSignature,
   getCapturedReplies,
   clearCapturedReplies,
+  apiContextStorage,
 };

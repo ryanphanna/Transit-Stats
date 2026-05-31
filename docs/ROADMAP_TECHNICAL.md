@@ -96,6 +96,18 @@ analytics, and stop-layer assumptions are still uneven.
 
 ---
 
+## iOS Companion App
+
+A native iOS companion app to serve as an alternative or supplement to SMS logging and offer rich on-device visualizations.
+
+- [x] **SwiftUI Core App Scaffold** — Initial setup of a SwiftData-backed iOS application targeting iOS 17+.
+- [x] **API-Based Logging** — Replicate SMS command flows (`START`, `END`, `DISCARD`) with a high-speed native interface that talks to the Cloud Functions backend, eliminating Twilio costs.
+- [ ] **Home & Lock Screen Widgets** — Single-tap widgets to log frequent routes/directions or check active trip status.
+- [ ] **Live Activities & GPS Tracking** — Live tracking of active journeys (similar to Rocket) with Dynamic Island integration.
+- [ ] **On-Device Offline Cache** — Allow queuing trip logs offline and auto-syncing once internet connectivity is restored.
+
+---
+
 ## Rocket Research Instrument
 
 Rocket is a standalone mobile-first web tool for high-precision transit research. It

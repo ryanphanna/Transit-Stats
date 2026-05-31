@@ -58,6 +58,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Phone login verification - only cloud functions can read/write (admin SDK)
+    match /phoneLoginVerification/{phoneNumber} {
+      allow read, write: if false;
+    }
+
     // Mail queue - only cloud functions can write (for sending emails)
     match /mail/{mailId} {
       allow read, write: if false;

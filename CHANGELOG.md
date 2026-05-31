@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Added
+- **iOS API Endpoint** (`functions/api.js`, `functions/index.js`): Added a secure HTTP API endpoint in Firebase Cloud Functions that authenticates iOS client users via Firebase Auth ID tokens, performs user phone lookup, and runs the dispatcher inside an `AsyncLocalStorage` context.
+- **Passwordless SMS OTP Login** (`functions/api.js`): Added `request_otp` and `verify_otp` action handlers that generate 6-digit verification codes, send them via Twilio SMS, and mint Firebase Custom Tokens for verified, whitelisted users. Includes robust phone number normalization to clean and automatically prefix 10-digit North American phone numbers with the '+1' country code.
+- **Security Rules for OTP Collection** (`firestore.rules`): Added a strict rule blocking all client-side read/write access to the new `phoneLoginVerification` collection, ensuring verification codes are only accessible via the Admin SDK in Cloud Functions.
+- **Outbound Twilio Interceptor** (`functions/lib/twilio.js`): Intercepts outbound SMS replies when executing within an API request context, preventing Twilio costs for native companion users.
+
 ## [1.41.1] - 2026-05-30
 
 ### Security

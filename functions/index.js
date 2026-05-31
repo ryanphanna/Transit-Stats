@@ -8,15 +8,21 @@ const admin = require('firebase-admin');
 
 // Initialize Admin SDK if not already initialized
 if (admin.apps.length === 0) {
-  admin.initializeApp();
+  admin.initializeApp({
+    serviceAccountId: 'firebase-adminsdk-fbsvc@transitstats-21ba4.iam.gserviceaccount.com',
+  });
 }
 
 const { sms } = require('./sms');
+const { api } = require('./api');
 const { onDocumentWritten } = require('firebase-functions/v2/firestore');
 const finalization = require('./lib/finalization');
 
 // Export the SMS webhook function
 exports.sms = sms;
+
+// Export the iOS companion app API endpoint
+exports.api = api;
 
 // Background trigger: runs post-end finalization (learning, grading, journey linking, etc.)
 // when a trip first receives endTime. Heavy side-effects are fully out of the SMS path.
