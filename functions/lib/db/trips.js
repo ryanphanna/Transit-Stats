@@ -54,6 +54,8 @@ async function createTrip(tripData) {
     endTime: null,
     source: tripData.source || 'sms',
     timing_reliability: tripData.timing_reliability || 'actual',
+    startHubId: tripData.startHubId || null,
+    endHubId: null,
     endStopCode: null,
     endStopName: null,
     exitLocation: null,

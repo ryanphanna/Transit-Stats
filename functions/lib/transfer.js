@@ -61,6 +61,8 @@ const TransferEngine = {
           routeB: next.route?.toString(),
           endStop: prev.endStopName,
           startStop: next.startStopName,
+          endHubId: prev.endHubId || null,
+          startHubId: next.startHubId || null,
           gap,
           hour: nextStart.getHours(),
           dayOfWeek: nextStart.getDay(),
@@ -155,6 +157,8 @@ const TransferEngine = {
 
     const prevEndStop = prevTrip.endStopName;
     const nextStartStop = nextTrip.startStopName || nextTrip.startStop;
+    const prevEndHubId = prevTrip.endHubId;
+    const nextStartHubId = nextTrip.startHubId;
     const routeA = prevTrip.route?.toString();
     const routeB = nextTrip.route?.toString();
     const hour = nextStart.getHours();
@@ -165,16 +169,27 @@ const TransferEngine = {
     if (transfers.length === 0) {
       const connKey = `${this._normalizeKey(routeA)}_to_${this._normalizeKey(routeB)}`;
       const networkCount = networkConnections ? (networkConnections[connKey] || 0) : 0;
-      // Known network connection extends the window slightly
-      const limit = networkCount >= 2 ? 20 : 15;
-      return gap <= limit ? 0.6 : 0;
+      
+      // Check if they are at the same hub even without history
+      const sameHub = prevEndHubId && nextStartHubId && prevEndHubId === nextStartHubId;
+      
+      // Known network connection or same Hub extends the window slightly
+      const limit = (networkCount >= 2 || sameHub) ? 20 : 15;
+      const baseConfidence = sameHub ? 0.65 : 0.6;
+      
+      return gap <= limit ? baseConfidence : 0;
     }
 
-    // Stop pair matches
-    const stopPairMatches = transfers.filter(t =>
-      this._stopMatch(t.endStop, prevEndStop) &&
-      this._stopMatch(t.startStop, nextStartStop)
-    );
+    // Stop pair matches (by Name or HubId)
+    const stopPairMatches = transfers.filter(t => {
+      const hubMatch = (prevEndHubId && t.endHubId && prevEndHubId === t.endHubId) &&
+                       (nextStartHubId && t.startHubId && nextStartHubId === t.startHubId);
+      
+      const nameMatch = this._stopMatch(t.endStop, prevEndStop) &&
+                        this._stopMatch(t.startStop, nextStartStop);
+                        
+      return hubMatch || nameMatch;
+    });
 
     // Route pair matches
     const routePairMatches = transfers.filter(t =>

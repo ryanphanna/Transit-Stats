@@ -331,6 +331,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       direction: direction || null,
       startStopCode: stopData ? stopData.stopCode : parsedStop.stopCode,
       startStopName,
+      startHubId: stopData?.hubId || null,
       stop_matched: stopMatched,
       agency: resolvedAgency,
       sentiment: options.sentiment || null,
@@ -420,6 +421,10 @@ async function handleConfirmStart(phoneNumber, user, state, traceId = null) {
     const now = new Date();
     const lastTrip = history.length > 0 ? history[0] : null;
     const lastEndStopName = lastTrip?.endStopName || null;
+    
+    // Resolve hubId for the new trip
+    const newStopData = await lookupStop(newTrip.stopCode, newTrip.stopName, newTrip.agency, newTrip.route, newTrip.direction);
+    
     const confirmRouteContext = { stopName: newTrip.stopName, time: now, lastEndStopName, stopsLibrary };
     const confirmEndStopContext = { route: newTrip.route, startStopName: newTrip.stopName, direction: newTrip.direction, time: now, lastEndStopName, stopsLibrary, networkGraph: confirmNetworkGraph || null };
     const confirmEndStopConstraint = PredictionEngine.getEndStopConstraint(confirmEndStopContext);
@@ -488,6 +493,7 @@ async function handleConfirmStart(phoneNumber, user, state, traceId = null) {
     direction: newTrip.direction || null,
     startStopCode: newTrip.stopCode,
     startStopName: newTrip.stopName,
+    startHubId: newStopData?.hubId || null,
     stop_matched: newTrip.stopMatched || false,
     agency: newTrip.agency,
     timing_reliability: determineReliability(state.expiresAt),
@@ -606,6 +612,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
   await db.collection('trips').doc(activeTrip.id).update({
     endStopCode: endStopData ? endStopData.stopCode : parsedEndStop.stopCode,
     endStopName: endStopNameFinal,
+    endHubId: endStopData?.hubId || null,
     endTime: endTime,
     duration: duration,
     notes: notes || null,
