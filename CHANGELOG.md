@@ -7,6 +7,9 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Database-Driven Hub Model** (`firestore.rules`, `stops` collection): Migrated hardcoded stop complexes from `transfer-connections.js` into the Firestore `stops` collection using a new `hubId` field. This enables dynamic, shared stop grouping that can be updated without code deployments.
+- **Stop Hub Migration Tool** (`Tools/migrate-hubs-to-firestore.js`): Utility to bootstrap the Firestore `hubId` and `verified` fields from existing JS configuration, deduplicating 18 canonical station complexes.
+- **Stop Enrichment Engine** (`Tools/enrich-stops-from-trips.js`): Implemented a "Discovery Loop" that scans trip GPS data to automatically geocode unmapped stops and suggest new physical Hub clusters based on high-precision coordinate consensus.
 - **iOS API Endpoint** (`functions/api.js`, `functions/index.js`): Added a secure HTTP API endpoint in Firebase Cloud Functions that authenticates iOS client users via Firebase Auth ID tokens, performs user phone lookup, and runs the dispatcher inside an `AsyncLocalStorage` context.
 - **Passwordless SMS OTP Login** (`functions/api.js`): Added `request_otp` and `verify_otp` action handlers that generate 6-digit verification codes, send them via Twilio SMS, and mint Firebase Custom Tokens for verified, whitelisted users. Includes robust phone number normalization to clean and automatically prefix 10-digit North American phone numbers with the '+1' country code.
 - **Security Rules for OTP Collection** (`firestore.rules`): Added a strict rule blocking all client-side read/write access to the new `phoneLoginVerification` collection, ensuring verification codes are only accessible via the Admin SDK in Cloud Functions.
