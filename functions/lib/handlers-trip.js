@@ -89,7 +89,7 @@ async function detectProvisionalTransfer(userId, nextTrip, agency, boardingStop)
     let best = null;
     for (const trip of history) {
       if (!trip.endTime || !trip.endStopName) continue;
-      const confidence = TransferEngine.score(trip, nextTrip, history, networkConnections);
+      const confidence = TransferEngine.score(trip, nextTrip, history, networkConnections, stopsLibrary);
       if (confidence < TransferEngine.CONFIDENCE_THRESHOLD) continue;
       if (!best || confidence > best.confidence) best = { trip, confidence };
     }
@@ -331,7 +331,6 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       direction: direction || null,
       startStopCode: stopData ? stopData.stopCode : parsedStop.stopCode,
       startStopName,
-      startHubId: stopData?.hubId || null,
       stop_matched: stopMatched,
       agency: resolvedAgency,
       sentiment: options.sentiment || null,
@@ -718,3 +717,4 @@ module.exports = {
   handleEndTrip,
   recomputeAndUpdatePrimaryAgency,
 };
+

@@ -7,41 +7,15 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
-- **Hub-Aware Transfer Engine** (`functions/lib/transfer.js`): Upgraded the journey linking logic to prioritize database-driven `hubId` matches. Trips sharing a verified Hub ID now achieve high-confidence transfer status automatically, bypassing fragile name-matching heuristics.
-- **Trip Hub Backfill Tool** (`Tools/backfill-trip-hubs.js`): Utility to retroactively assign `startHubId` and `endHubId` to all historical trips based on the current normalized stop library. Successfully updated 416 historical trips.
-- **Database-Driven Hub Model** (`firestore.rules`, `stops` collection): Migrated hardcoded stop complexes from `transfer-connections.js` into the Firestore `stops` collection using a new `hubId` field. This enables dynamic, shared stop grouping that can be updated without code deployments.
-- **Stop Migration Tool** (`Tools/migrate-hubs-to-firestore.js`): Utility to bootstrap the Firestore `hubId` and `verified` fields from existing JS configuration, deduplicating 18 canonical station complexes.
-- **Stop Enrichment Engine** (`Tools/enrich-stops-from-trips.js`): Implemented a "Discovery Loop" that scans trip GPS data to automatically geocode unmapped stops and suggest new physical Hub clusters based on high-precision coordinate consensus.
-- **iOS API Endpoint** (`functions/api.js`, `functions/index.js`): Added a secure HTTP API endpoint in Firebase Cloud Functions that authenticates iOS client users via Firebase Auth ID tokens, performs user phone lookup, and runs the dispatcher inside an `AsyncLocalStorage` context.
-- **Passwordless SMS OTP Login** (`functions/api.js`): Added `request_otp` and `verify_otp` action handlers that generate 6-digit verification codes, send them via Twilio SMS, and mint Firebase Custom Tokens for verified, whitelisted users. Includes robust phone number normalization to clean and automatically prefix 10-digit North American phone numbers with the '+1' country code.
-- **Security Rules for OTP Collection** (`firestore.rules`): Added a strict rule blocking all client-side read/write access to the new `phoneLoginVerification` collection, ensuring verification codes are only accessible via the Admin SDK in Cloud Functions.
-- **Outbound Twilio Interceptor** (`functions/lib/twilio.js`): Intercepts outbound SMS replies when executing within an API request context, preventing Twilio costs for native companion users.
-
-## [1.41.1] - 2026-05-30
-
-### Security
-- **ReDoS fix in vehicle regex** (`functions/lib/parsing.js`): Tightened `vehicleRegex` capture group from `(.+)` to `(\S.*)` to eliminate overlap with the `[:\s]+` separator, preventing polynomial backtracking on whitespace-heavy inputs (CodeQL #45 — `js/polynomial-redos`).
-- **Unvalidated dynamic method call guard** (`functions/lib/ml_utils.js`): Added explicit `typeof fn === 'function'` check before invoking the policy function in `normalizeRouteForMl`, making the allowlist-only dispatch intent explicit and satisfying CodeQL (CodeQL #46 — `js/unvalidated-dynamic-method-call`).
-
-## [1.41.0] - 2026-05-28
-
-### Changed
-- **V5 (XGBoost) is now the primary prediction engine** (`functions/lib/predict.js`): Upgraded from V3 heuristic voting to V5 machine learning model with prev_route + transfer_rarity features. Achieves 79.8% accuracy on temporal validation (16 test trips) vs V3's ~55%. All text responses and route predictions now use V5. V3 retained for fallback/debugging.
-- **V5 route model now includes transfer rarity weighting** (`ml/train_routes.py`, `functions/lib/predict_v5.js`): Added transfer frequency-based weighting to route prediction. Rare transfers (e.g., 506 → 510B) receive higher model weight, improving XGBoost's ability to distinguish high-signal transfer patterns. Route accuracy improved from 70.2% to 79.8% (+9.6pp). Runtime uses `transfer_rarity.json` lookup for inference.
-- **V4/V5 route models now use prev_route features** (`ml/train_routes.py`, `functions/lib/predict_v4.js`, `functions/lib/predict_v5.js`): Previous route is now a first-class feature (one-hot encoded) instead of relying on `last_end_stop` alone. Enables both models to directly learn transfer patterns. V5 route accuracy: 62.5% → 79.8%.
-- **V3 prediction engine separated to dedicated file** (`functions/lib/predict_v3.js`, `functions/lib/predict.js`): Refactored monolithic `predict.js` into separate `predict_v3.js` for consistency with V4/V5 structure. `predict.js` now acts as a compatibility layer. Version bumped: V3 3.4.0 → 3.4.1.
-- **Model versions bumped** (`functions/lib/predict_v*.js`): V4 4.4 → 4.5 (added prev_route), V5 5.4 → 5.5 (added prev_route + transfer_rarity), V3 3.4.0 → 3.4.1 (refactored).
-
-### Added
-- **Transfer rarity lookup table** (`functions/lib/transfer_rarity.json`): Pre-computed rarity scores for 212 observed transfer patterns (1/(frequency+1)) used by V4/V5 at inference time.
-- **Prediction engine test suite** (`functions/test_predict_models.js`): Comprehensive test for V3/V4/V5 verifying prev_route and transfer_rarity features are correctly implemented at runtime.
-- **V6 confidence scores for route predictions** (`ml/v6_predict_with_confidence.py`): V6 now outputs confidence alongside each prediction: high-confidence (>70%) predictions achieve 85.7% accuracy (6/7), while lower-confidence contexts fall back to embeddings. Enables model selection during live comparison (V5 vs V6) by confidence stratification.
+- **Strictly Normalized Hub Model** (functions/lib/transfer.js, functions/lib/finalization.js, iOS App): Refactored the entire project to follow a strictly normalized data architecture: Trips link to Stops, and Stops link to Hubs. Hub resolution is now performed dynamically at the reasoning layer (e.g., during journey linking) rather than being denormalized onto the trip record.
+- **Hub-Aware Transfer Engine** (functions/lib/transfer.js): Upgraded the journey linking logic to prioritize dynamic hubId resolution via the stops library. Trips sharing a verified Hub ID now achieve high-confidence transfer status automatically, bypassing fragile name-matching heuristics.
+- **Database-Driven Hub Model** (firestore.rules, stops collection): Migrated hardcoded stop complexes from transfer-connections.js into the Firestore stops collection using a new hubId field. This enables dynamic, shared stop grouping that can be updated without code deployments.
+- **Stop Hub Migration Tool** (Tools/migrate-hubs-to-firestore.js): Utility to bootstrap the Firestore hubId and verified fields from existing JS configuration, deduplicating 18 canonical station complexes.
+- **Stop Enrichment Engine** (Tools/enrich-stops-from-trips.js): Implemented a "Discovery Loop" that scans trip GPS data to automatically geocode unmapped stops and suggest new physical Hub clusters based on high-precision coordinate consensus.
+- **iOS API Endpoint** (functions/api.js, functions/index.js): Added a secure HTTP API endpoint in Firebase Cloud Functions that authenticates iOS client users via Firebase Auth ID tokens, performs user phone lookup, and runs the dispatcher inside an AsyncLocalStorage context.
 
 ### Fixed
-- **ML policy configuration now loads in live inference** (`functions/lib/predict_v4.js`, `functions/lib/predict_v5.js`): V4/V5 now load `functions/lib/policies.json` at runtime so PRIMARY/DEFAULT route normalization is applied consistently in production, matching the training and calibration pipeline.
-- **MMS trace correlation preserved through trip creation** (`functions/lib/handlers-intelligence.js`): The MMS path now forwards `traceId` into `handleTripLog`, keeping request tracing intact for photo-initiated trips.
-- **Gemini request logging now honors trace IDs** (`functions/lib/gemini.js`, `functions/lib/dispatcher.js`, `functions/lib/handlers-query.js`, `functions/lib/handlers-commands.js`, `functions/lib/handlers-trip.js`): Gemini parsing, retries, and timezone lookups now use the shared logger with trace IDs when available, keeping AI-related logs correlated with SMS request traces.
-- **Multi-line NOTES commands no longer start a fake trip** (`functions/lib/dispatcher.js`, `functions/test_dispatcher.js`): `NOTES` followed by a newline is now parsed as a notes command instead of a route named "NOTES".
+- **Data Restoration (Denormalization Cleanup)** (Tools/rollback-trip-hubs.js): Successfully executed a restoration script to remove denormalized startHubId and endHubId fields from 416 historical trip records, ensuring the production database adheres to the strictly normalized architectural mandate.
 
 
 

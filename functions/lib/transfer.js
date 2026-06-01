@@ -24,9 +24,10 @@ const TransferEngine = {
    * returns the features of each real transfer.
    *
    * @param {Array} trips - Completed trips with journeyId, endTime, startTime, etc.
-   * @returns {Array} Transfer records: { routeA, routeB, endStop, startStop, gap, hour, dayOfWeek }
+   * @param {Object} [stopsLibrary] - Normalized stops library for hub resolution
+   * @returns {Array} Transfer records: { routeA, routeB, endStop, startStop, gap, hour, dayOfWeek, endHubId, startHubId }
    */
-  extractTransfers(trips) {
+  extractTransfers(trips, stopsLibrary = null) {
     const journeys = {};
     for (const trip of trips) {
       if (!trip.journeyId || !trip.endTime || !trip.startTime) continue;
@@ -56,13 +57,29 @@ const TransferEngine = {
 
         if (gap < 0 || gap > 120) continue;
 
+        // Resolve Hub IDs via library if available
+        let endHubId = null;
+        let startHubId = null;
+        if (stopsLibrary) {
+          const prevStop = Object.values(stopsLibrary).find(s => 
+            (s.code && s.code === prev.endStopCode) || 
+            (s.name.toLowerCase() === prev.endStopName.toLowerCase())
+          );
+          const nextStop = Object.values(stopsLibrary).find(s => 
+            (s.code && s.code === next.startStopCode) || 
+            (s.name.toLowerCase() === next.startStopName.toLowerCase())
+          );
+          endHubId = prevStop?.hubId || null;
+          startHubId = nextStop?.hubId || null;
+        }
+
         transfers.push({
           routeA: prev.route?.toString(),
           routeB: next.route?.toString(),
           endStop: prev.endStopName,
           startStop: next.startStopName,
-          endHubId: prev.endHubId || null,
-          startHubId: next.startHubId || null,
+          endHubId,
+          startHubId,
           gap,
           hour: nextStart.getHours(),
           dayOfWeek: nextStart.getDay(),
