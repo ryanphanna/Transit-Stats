@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 - **iOS API Endpoint** (functions/api.js, functions/index.js): Added a secure HTTP API endpoint in Firebase Cloud Functions that authenticates iOS client users via Firebase Auth ID tokens, performs user phone lookup, and runs the dispatcher inside an AsyncLocalStorage context.
 
 ### Fixed
+- **Security Hardening (ReDoS & Dynamic Dispatch)** (functions/lib/parsing.js, functions/lib/ml_utils.js): Resolved CodeQL security alerts (js/polynomial-redos and js/unvalidated-dynamic-method-call). Fixed polynomial backtracking in vehicle matching regex and secured the ML policy registry against prototype pollution by using null-prototype objects.
 - **Data Restoration (Denormalization Cleanup)** (Tools/rollback-trip-hubs.js): Successfully executed a restoration script to remove denormalized startHubId and endHubId fields from 416 historical trip records, ensuring the production database adheres to the strictly normalized architectural mandate.
 
 

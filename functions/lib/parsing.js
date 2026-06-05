@@ -67,7 +67,7 @@ function parseMultiLineTripFormat(body, defaultAgency) {
   let vehicle = null;
 
   // Extract vehicle if explicitly provided on any line (e.g. "Vehicle 7109")
-  const vehicleRegex = /^(?:v|vehicle)[:\s]+(\S.*)$/i;
+  const vehicleRegex = /^(?:v|vehicle)[\s:]+([^:\s].*)$/i;
   lines = lines.filter((line, index) => {
     if (index === 0) return true; // First line is always route
     const vMatch = line.match(vehicleRegex);
@@ -147,7 +147,7 @@ function parseMultiLineTripFormat(body, defaultAgency) {
  * Helper to extract vehicle info from within a stop name string (e.g. "Union (Vehicle 123)")
  */
 function extractVehicleFromStop(stopName) {
-  const vehicleRegex = /\s*\((?:v|vehicle)(?:\s+number)?[:\s]+([^)]+)\)/i;
+  const vehicleRegex = /\s*\((?:v|vehicle)(?:\s+number)?[\s:]+([^:\s][^)]*)\)/i;
   const match = stopName.match(vehicleRegex);
   if (match) {
     return {

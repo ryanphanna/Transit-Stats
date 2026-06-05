@@ -75,15 +75,15 @@ function upperPolicy(routeStr) {
 }
 
 // Registry + configuration state (starts completely empty / neutral)
-const POLICY_REGISTRY = {};
+const POLICY_REGISTRY = Object.create(null);
 let defaultPolicy = defaultPreservePolicy;
 
-const POLICY_NAME_TO_FN = {
+const POLICY_NAME_TO_FN = Object.assign(Object.create(null), {
   collapse: ttcCollapsePolicy,
   preserve_variant: defaultPreservePolicy,
   strict_preserve: strictPreservePolicy,
   upper: upperPolicy,
-};
+});
 
 function registerPolicy(agency, policyFn) {
   POLICY_REGISTRY[agency] = policyFn;
