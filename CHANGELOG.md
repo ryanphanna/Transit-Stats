@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
-## [Unreleased]
+## [1.41.0] - 2026-06-05
 
 ### Added
 - **Strictly Normalized Hub Model** (functions/lib/transfer.js, functions/lib/finalization.js, iOS App): Refactored the entire project to follow a strictly normalized data architecture: Trips link to Stops, and Stops link to Hubs. Hub resolution is now performed dynamically at the reasoning layer (e.g., during journey linking) rather than being denormalized onto the trip record.

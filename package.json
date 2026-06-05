@@ -1,40 +1,40 @@
 {
   "name": "transit-stats",
-  "version": "1.40.0",
+  "version": "1.41.0",
   "description": "Personal transit trip tracker for enthusiasts to analyze ridership patterns.",
-    "engines": {
-        "node": "22"
-    },
-    "private": true,
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/TransitStats/TransitStats.git"
-    },
-    "author": "Antigravity & Ryan",
-    "license": "MIT",
-    "scripts": {
-        "dev": "vite",
-        "build": "vite build",
-        "preview": "vite preview",
-        "test": "vitest run",
-        "test:rules": "firebase emulators:exec --only firestore \"vitest run tests/firestore.rules.test.js\""
-    },
-    "devDependencies": {
-        "@firebase/rules-unit-testing": "^5.0.1",
-        "@vitest/ui": "^4.1.7",
-        "firebase": "^12.9.0",
-        "jsdom": "^29.1.1",
-        "vite": "^8.0.14",
-        "vitest": "^4.1.7"
-    },
-    "dependencies": {
-        "firebase-admin": "^13.10.0",
-        "playwright": "^1.60.0"
-    },
-    "overrides": {
-        "undici": "^7.24.0",
-        "@tootallnate/once": "^3.0.1",
-        "vite": "^8.0.14",
-        "uuid": "^11.1.1"
-    }
+  "engines": {
+    "node": "22"
+  },
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TransitStats/TransitStats.git"
+  },
+  "author": "Antigravity & Ryan",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:rules": "firebase emulators:exec --only firestore \"vitest run tests/firestore.rules.test.js\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.1",
+    "@vitest/ui": "^4.1.7",
+    "firebase": "^12.9.0",
+    "jsdom": "^29.1.1",
+    "vite": "^8.0.14",
+    "vitest": "^4.1.7"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.10.0",
+    "playwright": "^1.60.0"
+  },
+  "overrides": {
+    "undici": "^7.24.0",
+    "@tootallnate/once": "^3.0.1",
+    "vite": "^8.0.14",
+    "uuid": "^11.1.1"
+  }
 }
