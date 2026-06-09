@@ -146,7 +146,7 @@ async function detectJourneyLink(activeTrip, recentTrips = null) {
   if (activeTrip.provisionalPrevTripId) {
     const provisional = history.find(t => t.id === activeTrip.provisionalPrevTripId);
     if (provisional && provisional.endTime && provisional.endStopName) {
-      const conf = TransferEngine.score(provisional, activeTrip, history, networkConnections, stopsLibrary);
+      const conf = TransferEngine.score(provisional, activeTrip, history, networkConnections);
       if (conf >= TransferEngine.CONFIDENCE_THRESHOLD) {
         prevTrip = provisional;
       }
@@ -157,7 +157,7 @@ async function detectJourneyLink(activeTrip, recentTrips = null) {
     prevTrip = history.find(t => {
       if (t.id === activeTrip.id) return false;
       if (!t.endTime || !t.endStopName) return false;
-      const conf = TransferEngine.score(t, activeTrip, history, networkConnections, stopsLibrary);
+      const conf = TransferEngine.score(t, activeTrip, history, networkConnections);
       return conf >= TransferEngine.CONFIDENCE_THRESHOLD;
     }) || null;
   }
