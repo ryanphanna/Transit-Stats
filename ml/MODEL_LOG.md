@@ -5,6 +5,70 @@ One entry per trained version. See `docs/INTELLIGENCE.md` for full engineering n
 
 ---
 
+## V5.5 — XGBoost End Stop
+
+| Field | Value |
+|---|---|
+| **Date trained** | 2026-06-09 |
+| **Algorithm** | XGBoost (`n_estimators=200`, `max_depth=4`, `learning_rate=0.1`) |
+| **Trip count** | 288 (after cleaning) |
+| **Top-1 accuracy** | 84.5% |
+| **Top-3 accuracy** | 91.4% |
+| **Classes** | 19 end stops |
+| **Features** | hour_sin/cos, day_sin/cos, start_stop (one-hot), route (one-hot), prev_route (one-hot), last_end_stop (one-hot), trip gap, direction (one-hot) |
+| **Status** | Shadow mode |
+
+**Notes:** +14.7pp over V5.4 (69.8% → 84.5%). 38 new training trips from stop library backfill (35 from stop_matched fix, 3 from new Dufferin Park + St George/College alias). New 19th class added. Combined effect of direction feature + larger dataset is substantial.
+
+---
+
+## V4.5 — Logistic Regression End Stop
+
+| Field | Value |
+|---|---|
+| **Date trained** | 2026-06-09 |
+| **Algorithm** | Logistic Regression (scikit-learn, `class_weight='balanced'`, `max_iter=1000`) |
+| **Trip count** | 288 (same dataset as V5.5) |
+| **Top-1 accuracy** | 75.9% |
+| **Top-3 accuracy** | 91.4% |
+| **Classes** | 19 end stops |
+| **Features** | Same as V5.5 |
+| **Status** | Shadow mode |
+
+**Notes:** +11.7pp over V4.4 (64.2% → 75.9%). V4 now meaningfully competitive — direction feature helps the linear model more than the raw data increase alone.
+
+---
+
+## V5.5 — XGBoost Route
+
+| Field | Value |
+|---|---|
+| **Date trained** | 2026-06-09 |
+| **Algorithm** | XGBoost (`n_estimators=200`, `max_depth=4`, `learning_rate=0.1`) |
+| **Trip count** | 522 (after cleaning) |
+| **Top-1 accuracy** | 81.0% |
+| **Top-3 accuracy** | 88.6% |
+| **Classes** | 20 routes |
+| **Features** | hour_sin/cos, day_sin/cos, start_stop (one-hot), last_end_stop (one-hot) |
+| **Status** | Shadow mode |
+
+---
+
+## V4.5 — Logistic Regression Route
+
+| Field | Value |
+|---|---|
+| **Date trained** | 2026-06-09 |
+| **Algorithm** | Logistic Regression (scikit-learn, `class_weight='balanced'`, `max_iter=1000`) |
+| **Trip count** | 522 (same dataset as V5.5) |
+| **Top-1 accuracy** | 63.8% |
+| **Top-3 accuracy** | 83.8% |
+| **Classes** | 20 routes |
+| **Features** | Same as V5.5 |
+| **Status** | Shadow mode |
+
+---
+
 ## V5.4 — XGBoost End Stop
 
 | Field | Value |
