@@ -13,6 +13,14 @@ Each entry is recorded before a counter reset. Complements [MODEL_LOG.md](./MODE
 
 ---
 
+## Snapshot 5 — 2026-06-09 (V5.6 — stop features fixed)
+
+**Status: No new production data yet. Next audit after ~30 TTC trips.**
+
+Critical bug discovered and fixed: all `stop_*` and `last_stop_*` features were zero in every production inference call since the models were introduced (feature names from Python had spaces/slashes, JS generated underscores — never matched). Models V5.6/V4.6 are the first versions where stop identity actually works in production. Expected significant improvement in production accuracy beyond what the direction fix alone achieved.
+
+---
+
 ## Snapshot 4 — 2026-06-09 (Post direction-feature, pre-new-data)
 
 **Status: Baseline before direction-aware model goes live.**

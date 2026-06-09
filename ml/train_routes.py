@@ -18,6 +18,7 @@ Usage:
 import json
 import math
 import os
+import re
 import sys
 
 import numpy as np
@@ -95,7 +96,8 @@ def canonicalize_stop(name, lib):
             c_norm = str(c).strip().lower().replace(" and ", "/").replace(" & ", "/").replace(" @ ", "/").replace(" at ", "/")
             c_norm = re.sub(r"\s*/\s*", "/", c_norm)
             if c_norm == lower:
-                return item["name"].lower().replace(" and ", "/").replace(" & ", "/").replace(" @ ", "/").replace(" at ", "/")
+                canon = item["name"].lower().replace(" and ", "/").replace(" & ", "/").replace(" @ ", "/").replace(" at ", "/")
+                return re.sub(r"\s*/\s*", "/", canon)
     return lower
 
 def clean(df, lib):
@@ -159,8 +161,11 @@ def build_features(df):
                   on=['prev_route_base', 'route_base'], how='left')
     df['transfer_rarity'] = df['rarity'].fillna(0.5)  # default 0.5 for unseen transfers
     
-    stop_dummies = pd.get_dummies(df['start_stop'].str.lower().str.strip(), prefix='stop')
-    last_stop_dummies = pd.get_dummies(df['last_end_stop'].str.lower().str.strip(), prefix='last_stop')
+    def _sanitize(s):
+        return re.sub(r'[^a-z0-9]', '_', str(s).lower().strip())
+
+    stop_dummies = pd.get_dummies(df['start_stop'].apply(_sanitize), prefix='stop')
+    last_stop_dummies = pd.get_dummies(df['last_end_stop'].apply(_sanitize), prefix='last_stop')
     prev_route_dummies = pd.get_dummies(df['prev_route_base'].str.lower().str.strip(), prefix='prev_route')
     
     features = pd.concat([df[['hour_sin', 'hour_cos', 'day_sin', 'day_cos', 'transfer_rarity']], 

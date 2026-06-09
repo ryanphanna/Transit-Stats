@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Stop features silently zeroed in production inference** (`ml/train_endstop.py`, `ml/train_routes.py`): `pd.get_dummies` was creating feature names with raw spaces and slashes (e.g. `stop_bay station`, `stop_college / beverley`), but `getStopFeature()` in JS sanitizes non-alphanumeric to underscores (`stop_bay_station`, `stop_college_beverley`). The names never matched, so all `stop_*` and `last_stop_*` features were always 0 in production inference — models predicted on time + route + direction only, no stop identity signal. Fixed by sanitizing values before `get_dummies` in both training scripts and normalizing spaces-around-slashes in `canonicalize_stop`'s return path to match JS. Retrained as V5.6/V4.6.
 - **SMS stop disambiguation ignores reply "1"** (`functions/lib/dispatcher.js`, `functions/test_dispatcher.js`): When a user replied with a number during stop disambiguation, a concurrent iOS API trip command (or any other trip-start SMS) could fall through the `confirm_stop` handler and overwrite the pending state with `confirm_start`. The user's next "1" then hit the wrong handler and fell through to "Could not understand." Fix: unrecognized input in `confirm_stop` state now sends a reminder and returns early instead of falling through. STATUS/STATS/ASK/FORGOT/INFO still pass through normally. Added 3 regression tests covering the selection path, the reminder path, and the STATUS passthrough.
 
 ### Changed

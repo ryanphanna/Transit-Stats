@@ -78,7 +78,7 @@ function topologyMask(route, boardingStop, direction, classes) {
 }
 
 const PredictionEngineV4 = {
-  VERSION: '4.5',
+  VERSION: '4.6',
 
   /**
    * Guess the next route given the current stop and time.

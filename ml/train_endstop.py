@@ -105,7 +105,8 @@ def canonicalize_stop(name, lib):
             c_norm = str(c).strip().lower().replace(" and ", "/").replace(" & ", "/").replace(" @ ", "/").replace(" at ", "/")
             c_norm = re.sub(r"\s*/\s*", "/", c_norm)
             if c_norm == lower:
-                return item["name"].lower().replace(" and ", "/").replace(" & ", "/").replace(" @ ", "/").replace(" at ", "/")
+                canon = item["name"].lower().replace(" and ", "/").replace(" & ", "/").replace(" @ ", "/").replace(" at ", "/")
+                return re.sub(r"\s*/\s*", "/", canon)
     return lower
 
 def compute_ride_count_weights(df, halflife_rides=100):
@@ -177,6 +178,10 @@ def clean(df, lib):
     print(f"After cleaning: {len(df)} trips, {df['end_stop'].nunique()} end stop classes")
     return df
 
+def _sanitize(s):
+    """Mirrors getStopFeature() in ml_utils.js: replace non-alphanumeric with '_'."""
+    return re.sub(r'[^a-z0-9]', '_', str(s).lower().strip())
+
 def build_features(df):
     hour_sin = np.sin(2 * math.pi * df["hour"] / 24)
     hour_cos = np.cos(2 * math.pi * df["hour"] / 24)
@@ -194,8 +199,8 @@ def build_features(df):
 
     route_dummies = pd.get_dummies(df["route_base"].str.lower().str.strip(), prefix="route")
     prev_route_dummies = pd.get_dummies(df["prev_route_base"].str.lower().str.strip(), prefix="prev_route")
-    stop_dummies  = pd.get_dummies(df["start_stop"].str.lower().str.strip(), prefix="stop")
-    last_stop_dummies = pd.get_dummies(df["last_end_stop"].str.lower().str.strip(), prefix="last_stop")
+    stop_dummies  = pd.get_dummies(df["start_stop"].apply(_sanitize), prefix="stop")
+    last_stop_dummies = pd.get_dummies(df["last_end_stop"].apply(_sanitize), prefix="last_stop")
     dir_dummies = pd.get_dummies(df["direction_norm"], prefix="dir")
 
     X = pd.concat([time_features, route_dummies, prev_route_dummies, stop_dummies, last_stop_dummies, dir_dummies], axis=1)

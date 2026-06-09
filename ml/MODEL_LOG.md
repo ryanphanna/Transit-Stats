@@ -5,6 +5,72 @@ One entry per trained version. See `docs/INTELLIGENCE.md` for full engineering n
 
 ---
 
+## V5.6 — XGBoost End Stop
+
+| Field | Value |
+|---|---|
+| **Date trained** | 2026-06-09 |
+| **Algorithm** | XGBoost (`n_estimators=200`, `max_depth=4`, `learning_rate=0.1`) |
+| **Trip count** | 288 (after cleaning) |
+| **Top-1 accuracy** | 84.5% |
+| **Top-3 accuracy** | 91.4% |
+| **Classes** | 19 end stops |
+| **Features** | hour_sin/cos, day_sin/cos, start_stop (one-hot), route (one-hot), prev_route (one-hot), last_end_stop (one-hot), trip gap, direction (one-hot) |
+| **Status** | Shadow mode |
+
+**Notes:** Critical bug fix — stop identity features (`stop_*`, `last_stop_*`) were silently zero in all prior production inference due to feature name mismatch (Python exported `stop_bay station` with spaces, JS generated `stop_bay_station` with underscores). Fixed by sanitizing stop values before `get_dummies` and normalizing slash spacing in `canonicalize_stop` return path. Training accuracy unchanged (same dataset), but production inference now has actual stop signal for the first time.
+
+---
+
+## V4.6 — Logistic Regression End Stop
+
+| Field | Value |
+|---|---|
+| **Date trained** | 2026-06-09 |
+| **Algorithm** | Logistic Regression (scikit-learn, `class_weight='balanced'`, `max_iter=1000`) |
+| **Trip count** | 288 (same dataset as V5.6) |
+| **Top-1 accuracy** | 75.9% |
+| **Top-3 accuracy** | 91.4% |
+| **Classes** | 19 end stops |
+| **Features** | Same as V5.6 |
+| **Status** | Shadow mode |
+
+**Notes:** Same stop feature bug fix as V5.6.
+
+---
+
+## V5.6 — XGBoost Route
+
+| Field | Value |
+|---|---|
+| **Date trained** | 2026-06-09 |
+| **Algorithm** | XGBoost (`n_estimators=200`, `max_depth=4`, `learning_rate=0.1`) |
+| **Trip count** | 522 (after cleaning) |
+| **Top-1 accuracy** | 81.9% |
+| **Top-3 accuracy** | 87.6% |
+| **Classes** | 20 routes |
+| **Features** | hour_sin/cos, day_sin/cos, start_stop (one-hot), last_end_stop (one-hot), prev_route (one-hot), transfer_rarity |
+| **Status** | Shadow mode |
+
+**Notes:** Same stop feature bug fix as end-stop V5.6. Route accuracy unchanged (routes are numeric, no spaces, so route features were already matching — but start_stop and last_stop features for the route model are now fixed too).
+
+---
+
+## V4.6 — Logistic Regression Route
+
+| Field | Value |
+|---|---|
+| **Date trained** | 2026-06-09 |
+| **Algorithm** | Logistic Regression (scikit-learn, `class_weight='balanced'`, `max_iter=1000`) |
+| **Trip count** | 522 (same dataset as V5.6) |
+| **Top-1 accuracy** | 63.8% |
+| **Top-3 accuracy** | 83.8% |
+| **Classes** | 20 routes |
+| **Features** | Same as V5.6 |
+| **Status** | Shadow mode |
+
+---
+
 ## V5.5 — XGBoost End Stop
 
 | Field | Value |
