@@ -34,6 +34,9 @@ const { parseMultiLineTripFormat, parseSingleLineTripFormat, parseCasualTripForm
 const { isValidRoute, normalizeDirection, getRouteDisplay, getStopDisplay, normalizeAgency } = require('./utils');
 const handlers = require('./handlers');
 
+/** Commands that are allowed to fall through pending-state handlers to normal dispatch. */
+const PENDING_PASSTHROUGH = new Set(['STATUS', 'STATS', 'FORGOT', 'INFO', 'COMMANDS', 'HELP', '?']);
+
 /**
  * Main dispatch logic for an SMS message
  * @param {string} phoneNumber
@@ -178,9 +181,10 @@ async function handleConfirmAgencyState(phoneNumber, body, upperBody, state, tra
     return true;
   }
 
-  // Anything else (STATUS, STATS, new trip, etc.) falls through to normal dispatch.
-  // The pending state stays until resolved or it expires.
-  return false;
+  if (PENDING_PASSTHROUGH.has(upperBody) || upperBody.startsWith('ASK ')) return false;
+
+  await sendSmsReply(phoneNumber, 'Reply with 1 or 2 to select an agency, or DISCARD to cancel.');
+  return true;
 }
 
 async function handleConfirmStopState(phoneNumber, body, upperBody, state, traceId = null) {
@@ -227,16 +231,10 @@ async function handleConfirmStopState(phoneNumber, body, upperBody, state, trace
     return true;
   }
 
-  // Allow STATUS/STATS/ASK/FORGOT/INFO to fall through so they still work during disambiguation.
-  // Block everything else (including new trip attempts) to prevent confirm_start from overwriting this state.
-  const PASSTHROUGH = new Set(['STATUS', 'STATS', 'ASK', 'FORGOT', 'INFO', 'COMMANDS', 'HELP', '?']);
-  if (PASSTHROUGH.has(upperBody) || upperBody.startsWith('ASK ')) return false;
+  if (PENDING_PASSTHROUGH.has(upperBody) || upperBody.startsWith('ASK ')) return false;
 
   const count = (state.stopCandidates || []).length;
-  await sendSmsReply(
-    phoneNumber,
-    `Reply with a number (1–${count}) to set your stop, or DISCARD to cancel.`
-  );
+  await sendSmsReply(phoneNumber, `Reply with a number (1–${count}) to set your stop, or DISCARD to cancel.`);
   return true;
 }
 
@@ -306,7 +304,11 @@ async function handleConfirmMmsRouteState(phoneNumber, body, upperBody, state, t
     return true;
   }
 
-  return false;
+  if (PENDING_PASSTHROUGH.has(upperBody) || upperBody.startsWith('ASK ')) return false;
+
+  const count = (state.routeCandidates || []).length;
+  await sendSmsReply(phoneNumber, `Reply with a number (1–${count}) to select a route, or DISCARD to cancel.`);
+  return true;
 }
 
 async function handleConfirmStartState(phoneNumber, upperBody, state, traceId = null) {
@@ -375,6 +377,7 @@ async function handlePendingState(phoneNumber, body, upperBody, state, traceId =
     return stateHandlers[state.type]();
   }
 
+  logger.warn('handlePendingState: unknown state type, falling through', { type: state.type, traceId: trace }, trace);
   return false;
 }
 

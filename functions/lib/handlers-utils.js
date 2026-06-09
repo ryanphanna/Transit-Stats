@@ -238,6 +238,10 @@ async function maybeHandleStopDisambiguation({
   if (candidates.length <= 1) return false;
 
   const list = buildStopChoiceList(candidates);
+  // Strip full Firestore doc fields — only keep what the dispatcher needs to resolve the choice.
+  const slimCandidates = candidates.map(({ stopCode, stopName, direction: dir, routes }) =>
+    ({ stopCode, stopName, direction: dir, routes })
+  );
 
   if (!activeTrip) {
     let tripId;
@@ -278,7 +282,7 @@ async function maybeHandleStopDisambiguation({
       direction,
       agency: resolvedAgency,
       options,
-      stopCandidates: candidates,
+      stopCandidates: slimCandidates,
     });
     const routeDisplay = getRouteDisplay(route, direction);
     await sendSmsReply(
@@ -296,7 +300,7 @@ async function maybeHandleStopDisambiguation({
     direction,
     agency: resolvedAgency,
     options,
-    stopCandidates: candidates,
+    stopCandidates: slimCandidates,
   });
   await sendSmsReply(
     phoneNumber,

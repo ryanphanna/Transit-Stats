@@ -9,6 +9,10 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - **SMS stop disambiguation ignores reply "1"** (`functions/lib/dispatcher.js`, `functions/test_dispatcher.js`): When a user replied with a number during stop disambiguation, a concurrent iOS API trip command (or any other trip-start SMS) could fall through the `confirm_stop` handler and overwrite the pending state with `confirm_start`. The user's next "1" then hit the wrong handler and fell through to "Could not understand." Fix: unrecognized input in `confirm_stop` state now sends a reminder and returns early instead of falling through. STATUS/STATS/ASK/FORGOT/INFO still pass through normally. Added 3 regression tests covering the selection path, the reminder path, and the STATUS passthrough.
 
+### Changed
+- **Refactor: pending-state handlers** (`functions/lib/dispatcher.js`): Extracted shared `PENDING_PASSTHROUGH` set to a module-level constant. All three disambiguation handlers (`confirm_stop`, `confirm_agency`, `confirm_mms_route`) now use the same passthrough check. Added `logger.warn` for unknown state types in `handlePendingState`.
+- **Slim stopCandidates in pending state** (`functions/lib/handlers-utils.js`): Candidate objects stored in `confirm_stop` pending state are now stripped to `{ stopCode, stopName, direction, routes }` before writing to Firestore, eliminating full doc serialization risk and reducing Firestore document size.
+
 ## [1.41.0] - 2026-06-05
 
 ### Added
