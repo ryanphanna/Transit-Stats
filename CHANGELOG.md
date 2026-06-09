@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Fixed
+- **SMS stop disambiguation ignores reply "1"** (`functions/lib/dispatcher.js`, `functions/test_dispatcher.js`): When a user replied with a number during stop disambiguation, a concurrent iOS API trip command (or any other trip-start SMS) could fall through the `confirm_stop` handler and overwrite the pending state with `confirm_start`. The user's next "1" then hit the wrong handler and fell through to "Could not understand." Fix: unrecognized input in `confirm_stop` state now sends a reminder and returns early instead of falling through. STATUS/STATS/ASK/FORGOT/INFO still pass through normally. Added 3 regression tests covering the selection path, the reminder path, and the STATUS passthrough.
+
 ## [1.41.0] - 2026-06-05
 
 ### Added

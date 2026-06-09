@@ -49,6 +49,9 @@ function buildHarness({
     },
     handleEndTrip: async () => { calls.handleEndTrip++; },
     handleQuery: async () => { calls.handleQuery++; },
+    fillPredictions: async () => {},
+    handleConfirmStart: async () => {},
+    handleVerificationCode: async () => {},
   };
 
   const dbModule = {
@@ -339,4 +342,79 @@ test('dispatcher: confirm_mms_route selection starts trip with preserved timing 
     source: 'mms',
     timing_reliability: 'approximate',
   });
+});
+
+test('dispatcher: confirm_stop "1" clears state and updates trip', async () => {
+  const stopCandidates = [
+    { stopCode: '161', stopName: 'Bathurst / King', routes: ['511'], direction: null },
+    { stopCode: '162', stopName: 'Bathurst / King', routes: ['511'], direction: null },
+  ];
+  const { dispatch, calls } = buildHarness({
+    user: { userId: 'u_stop_choice' },
+    pendingState: {
+      type: 'confirm_stop',
+      tripId: 'trip_abc',
+      route: '511',
+      direction: 'Northbound',
+      agency: 'TTC',
+      options: {},
+      stopCandidates,
+    },
+  });
+
+  await dispatch('+14165550099', '1', 'SM_STOP_CHOICE');
+
+  assert.equal(calls.clearPendingState, 1, 'should clear pending state');
+  assert.equal(calls.sendSmsReply.length, 1, 'should send stop confirmation');
+  assert.match(calls.sendSmsReply[0].message, /Stop set to Bathurst \/ King/);
+});
+
+test('dispatcher: confirm_stop unrecognized input sends reminder, does not fall through', async () => {
+  const stopCandidates = [
+    { stopCode: '161', stopName: 'Bathurst / King', routes: ['511'], direction: null },
+    { stopCode: '162', stopName: 'Bathurst / King', routes: ['511'], direction: null },
+  ];
+  const { dispatch, calls } = buildHarness({
+    user: { userId: 'u_stop_noise' },
+    pendingState: {
+      type: 'confirm_stop',
+      tripId: 'trip_xyz',
+      route: '511',
+      direction: 'Northbound',
+      agency: 'TTC',
+      options: {},
+      stopCandidates,
+    },
+  });
+
+  await dispatch('+14165550099', '511 King Northbound', 'SM_STOP_NOISE');
+
+  assert.equal(calls.clearPendingState, 0, 'should not clear pending state');
+  assert.equal(calls.handleTripLog, 0, 'should not start a new trip');
+  assert.equal(calls.sendSmsReply.length, 1, 'should send reminder');
+  assert.match(calls.sendSmsReply[0].message, /Reply with a number/);
+});
+
+test('dispatcher: confirm_stop STATUS falls through to normal dispatch', async () => {
+  const stopCandidates = [
+    { stopCode: '161', stopName: 'Bathurst / King', routes: ['511'], direction: null },
+    { stopCode: '162', stopName: 'Bathurst / King', routes: ['511'], direction: null },
+  ];
+  const { dispatch, calls } = buildHarness({
+    user: { userId: 'u_stop_status' },
+    pendingState: {
+      type: 'confirm_stop',
+      tripId: 'trip_xyz',
+      route: '511',
+      direction: 'Northbound',
+      agency: 'TTC',
+      options: {},
+      stopCandidates,
+    },
+  });
+
+  await dispatch('+14165550099', 'STATUS', 'SM_STOP_STATUS');
+
+  assert.equal(calls.clearPendingState, 0, 'should not clear pending state');
+  assert.equal(calls.handleTripLog, 0, 'should not log a trip');
 });

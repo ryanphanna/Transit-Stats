@@ -227,7 +227,17 @@ async function handleConfirmStopState(phoneNumber, body, upperBody, state, trace
     return true;
   }
 
-  return false;
+  // Allow STATUS/STATS/ASK/FORGOT/INFO to fall through so they still work during disambiguation.
+  // Block everything else (including new trip attempts) to prevent confirm_start from overwriting this state.
+  const PASSTHROUGH = new Set(['STATUS', 'STATS', 'ASK', 'FORGOT', 'INFO', 'COMMANDS', 'HELP', '?']);
+  if (PASSTHROUGH.has(upperBody) || upperBody.startsWith('ASK ')) return false;
+
+  const count = (state.stopCandidates || []).length;
+  await sendSmsReply(
+    phoneNumber,
+    `Reply with a number (1–${count}) to set your stop, or DISCARD to cancel.`
+  );
+  return true;
 }
 
 async function handleMmsStopNeededState(phoneNumber, body, upperBody, state, traceId = null) {
