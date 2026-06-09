@@ -81,6 +81,19 @@ def load_stops_library():
         lib.append({"name": d.get("name"), "aliases": d.get("aliases", [])})
     return lib
 
+_DIRECTION_MAP = {
+    "n": "northbound", "nb": "northbound", "north": "northbound",
+    "s": "southbound", "sb": "southbound", "south": "southbound",
+    "e": "eastbound",  "eb": "eastbound",  "east": "eastbound", "eastward": "eastbound",
+    "w": "westbound",  "wb": "westbound",  "west": "westbound",
+}
+
+def normalize_direction(d):
+    if not d or (isinstance(d, float) and math.isnan(d)): return None
+    s = str(d).strip().lower()
+    s = re.sub(r"bound$", "", s).strip()
+    return _DIRECTION_MAP.get(s, None)
+
 def canonicalize_stop(name, lib):
     if not name: return "unknown"
     lower = str(name).strip().lower().replace(" and ", "/").replace(" & ", "/").replace(" @ ", "/").replace(" at ", "/")
@@ -141,6 +154,7 @@ def clean(df, lib):
     df["prev_route_base"] = df.apply(lambda row: _normalize_route(row, "prev_route"), axis=1)
     df["start_stop"] = df["start_stop"].apply(lambda x: canonicalize_stop(x, lib))
     df["end_stop"] = df["end_stop"].apply(lambda x: canonicalize_stop(x, lib))
+    df["direction_norm"] = df["direction"].apply(normalize_direction)
 
     # Add sequence feature: last_end_stop
     df = df.sort_values(["user_id", "start_time"])
@@ -182,8 +196,9 @@ def build_features(df):
     prev_route_dummies = pd.get_dummies(df["prev_route_base"].str.lower().str.strip(), prefix="prev_route")
     stop_dummies  = pd.get_dummies(df["start_stop"].str.lower().str.strip(), prefix="stop")
     last_stop_dummies = pd.get_dummies(df["last_end_stop"].str.lower().str.strip(), prefix="last_stop")
+    dir_dummies = pd.get_dummies(df["direction_norm"], prefix="dir")
 
-    X = pd.concat([time_features, route_dummies, prev_route_dummies, stop_dummies, last_stop_dummies], axis=1)
+    X = pd.concat([time_features, route_dummies, prev_route_dummies, stop_dummies, last_stop_dummies, dir_dummies], axis=1)
     return X
 
 

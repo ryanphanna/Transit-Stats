@@ -7,7 +7,7 @@
 
 const model = require('./model_v4.json');
 const endStopModel = require('./model_v4_endstop.json');
-const { getStopFeature, normalizeRouteForMl, getGapFeatures, loadPolicies } = require('./ml_utils');
+const { getStopFeature, normalizeRouteForMl, normalizeDirectionForMl, getGapFeatures, loadPolicies } = require('./ml_utils');
 const logger = require('./logger');
 
 // Transfer rarity lookup: rare transfers (e.g., 506→510B) get higher weight
@@ -152,6 +152,8 @@ const PredictionEngineV4 = {
     const lastStopFeature = `last_stop_${getStopFeature(context.lastEndStopName, context.stopsLibrary).replace('stop_', '')}`;
     const prevRouteFeature = `prev_route_${prevRoute.toString().toLowerCase()}`;
     const { gapLog, gapMissing } = getGapFeatures(context.minutesSinceLastTrip);
+    const dirNorm = normalizeDirectionForMl(context.direction);
+    const dirFeature = dirNorm ? `dir_${dirNorm}` : null;
 
     const x = new Array(endStopModel.feature_names.length).fill(0);
     for (let i = 0; i < endStopModel.feature_names.length; i++) {
@@ -165,7 +167,8 @@ const PredictionEngineV4 = {
       else if (fn === stopFeature)           x[i] = 1.0;
       else if (fn === `route_${cleanRoute}`) x[i] = 1.0;
       else if (fn === prevRouteFeature)      x[i] = 1.0;
-      else if (fn === lastStopFeature)      x[i] = 1.0;
+      else if (fn === lastStopFeature)       x[i] = 1.0;
+      else if (dirFeature && fn === dirFeature) x[i] = 1.0;
     }
 
     const logits = endStopModel.classes.map((_, c) => {

@@ -59,6 +59,7 @@
     "stop_dundas / beverley",
     "stop_dundas / sterling",
     "stop_dundas st west/bathurst st - toronto western hospital",
+    "stop_dundas st west/spadina ave",
     "stop_dundas station",
     "stop_dundas west station",
     "stop_eglinton station",
@@ -110,6 +111,7 @@
     "stop_santa fe depot",
     "stop_sentinel / the pond",
     "stop_sheppard west station",
+    "stop_sheppard-yonge station",
     "stop_spadina / bremner",
     "stop_spadina / dundas",
     "stop_spadina / harbord",
@@ -193,6 +195,7 @@
     "last_stop_kipling station",
     "last_stop_lansdowne / dupont",
     "last_stop_lansdowne station",
+    "last_stop_lawrence",
     "last_stop_lawrence / dufferin",
     "last_stop_lawrence av w / duval dr",
     "last_stop_lawrence av w / pimlico rd",
@@ -211,6 +214,7 @@
     "last_stop_ossington / college",
     "last_stop_ossington / queen",
     "last_stop_ossington station",
+    "last_stop_pape station",
     "last_stop_parliament / gerrard",
     "last_stop_port credit",
     "last_stop_queen st west/spadina ave",
@@ -222,6 +226,7 @@
     "last_stop_santa fe depot",
     "last_stop_sfo airport terminal 2-lower level",
     "last_stop_sheppard west station",
+    "last_stop_sheppard-yonge station",
     "last_stop_spadina / bremner",
     "last_stop_spadina / dundas",
     "last_stop_spadina / harbord",
@@ -261,6 +266,7 @@
     "prev_route_29",
     "prev_route_292",
     "prev_route_310",
+    "prev_route_4",
     "prev_route_40",
     "prev_route_41",
     "prev_route_43",
@@ -294,7 +300,7 @@
     "prev_route_stouffville",
     "prev_route_t"
   ],
-  "top1_accuracy": 0.7979,
-  "top3_accuracy": 0.8723,
-  "n_trips": 466
+  "top1_accuracy": 0.7959,
+  "top3_accuracy": 0.8673,
+  "n_trips": 489
 }
