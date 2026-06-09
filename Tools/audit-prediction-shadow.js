@@ -36,9 +36,9 @@ function parseArgs(argv) {
 
 function familyFromVersion(version) {
   const v = String(version || '');
-  if (v.startsWith('3')) return 'V3';
-  if (v.startsWith('4')) return 'V4';
-  if (v.startsWith('5')) return 'V5';
+  if (v.startsWith('3') || v === 'v3-endstop') return 'V3';
+  if (v.startsWith('4') || v === 'v4-endstop') return 'V4';
+  if (v.startsWith('5') || v === 'v5-endstop') return 'V5';
   return null;
 }
 

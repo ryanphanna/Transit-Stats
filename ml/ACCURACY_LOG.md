@@ -13,6 +13,36 @@ Each entry is recorded before a counter reset. Complements [MODEL_LOG.md](./MODE
 
 ---
 
+## Snapshot 4 — 2026-06-09 (Post direction-feature, pre-new-data)
+
+**Status: Baseline before direction-aware model goes live.**
+
+All stored `predictionStats` entries reflect old V4.4/V5.4 models (pre-direction). New trips starting today will use the direction-aware V4.4/V5.4 models. Re-audit after ~30 new TTC trips to see the improvement.
+
+**Notable findings from audit:**
+- `predictionStats` query was broken: `familyFromVersion` didn't handle `'v4-endstop'`/`'v5-endstop'` version strings — fixed in audit tool
+- All recent V4/V5 predictions (May 26) predicted wrong stop; many predictions were 510 streetcar stops for Route 1 trips — topology mask was disabled because direction was null at prediction time
+- Prediction block was silently broken May 28–June 9 (predict.js exported V5 instead of V3); fixed this session
+
+**Audit command:**
+```bash
+node Tools/audit-prediction-shadow.js N8f5vS0sLjgjwxMCSUZUkVFv7ax2 --agency=TTC --source=sms
+```
+
+| Metric | V3 (Heuristic) | V4 (LogReg) | V5 (XGBoost) |
+|---|---|---|---|
+| Overall end-stop hit rate (all history) | 20/27 (74.1%) | 19/87 (21.8%) | 23/87 (26.4%) |
+| Recent 30 end-stop hit rate | 5/6 (83.3%) | 0/12 (0.0%) | 0/12 (0.0%) |
+| Paired end-stop hit rate (27 trips) | 20/27 (74.1%) | 10/27 (37.0%) | 9/27 (33.3%) |
+
+**Conclusion:**
+- V3 remains the live predictor at 74% paired.
+- V4/V5 paired at ~35% — well below V3, but the historical data predates the direction fix.
+- 0% recent rate reflects 12 consecutive misses from May 26 (old models, no direction signal).
+- Re-audit after ~30 new trips to evaluate direction-aware model improvement.
+
+---
+
 ## Snapshot 3 — 2026-05-09 (TTC Shadow Slice Baseline)
 
 **Status: Not enough evidence to promote V5 yet.**
