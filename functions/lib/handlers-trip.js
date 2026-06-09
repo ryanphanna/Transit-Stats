@@ -244,7 +244,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
     } : null;
     const habitFired = habitPrediction !== null;
     const lastTrip = history.length > 0 ? history[0] : null;
-    const lastEndStopName = lastTrip?.endStopName || null;
+    const lastEndStopName = lastTrip?.endStopName || lastTrip?.endStop || null;
     const lastRoute = lastTrip?.route || null;
     const minutesSinceLastTrip = lastTrip?.startTime?.toDate
       ? Math.max(0, Math.round((now.getTime() - lastTrip.startTime.toDate().getTime()) / 60000))
@@ -419,7 +419,7 @@ async function handleConfirmStart(phoneNumber, user, state, traceId = null) {
     confirmDefaultAgency = confirmProfile?.defaultAgency || 'TTC';
     const now = new Date();
     const lastTrip = history.length > 0 ? history[0] : null;
-    const lastEndStopName = lastTrip?.endStopName || null;
+    const lastEndStopName = lastTrip?.endStopName || lastTrip?.endStop || null;
     
     // Resolve hubId for the new trip
     const newStopData = await lookupStop(newTrip.stopCode, newTrip.stopName, newTrip.agency, newTrip.route, newTrip.direction);
