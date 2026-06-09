@@ -16,6 +16,7 @@ function loadHandlers(overrides = {}) {
     require.resolve('./lib/handlers-trip'),
     require.resolve('./lib/handlers-query'),
     require.resolve('./lib/handlers-intelligence'),
+    require.resolve('./lib/finalization'),
   ]);
   // Bust the entire handler module graph so mocks take effect
   for (const p of handlerPaths) delete require.cache[p];
@@ -65,19 +66,19 @@ function loadHandlers(overrides = {}) {
           where: () => ({
             orderBy: () => ({
               limit: () => ({
-                get: async () => ({ docs: [] }),
+                get: async () => ({ empty: true, docs: [], forEach: () => {} }),
               }),
             }),
           }),
           orderBy: () => ({
             limit: () => ({
-              get: async () => ({ docs: [] }),
+              get: async () => ({ empty: true, docs: [], forEach: () => {} }),
             }),
           }),
           limit: () => ({
-            get: async () => ({ empty: true, docs: [] }),
+            get: async () => ({ empty: true, docs: [], forEach: () => {} }),
           }),
-          get: async () => ({ docs: [] }),
+          get: async () => ({ empty: true, docs: [], forEach: () => {} }),
         }),
       }),
       batch: () => ({
@@ -86,6 +87,7 @@ function loadHandlers(overrides = {}) {
         commit: async () => {},
       }),
     },
+    hasBlockingCorrection: () => false,
     isGeminiRateLimited: async () => false,
     createTrip: async (payload) => {
       calls.createTrip.push(payload);
@@ -774,8 +776,9 @@ test('handleEndTrip: transfer scoring uses network connections and observe recei
     restore();
   }
 
+  // Verify TransferEngine.score was called with the correct network connections
   assert.deepEqual(scoreCalls[0], { '2_to_1': 3 });
-  assert.equal(observeCalls[0].prevRoute, '2');
+  // observeCalls removed: NetworkEngine.observe now runs in background finalization, not handleEndTrip
 });
 
 test('handleEndTrip: single text-matched end candidate without a stop code still counts as matched', async () => {

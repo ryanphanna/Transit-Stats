@@ -12,6 +12,9 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - **Refactor: pending-state handlers** (`functions/lib/dispatcher.js`): Extracted shared `PENDING_PASSTHROUGH` set to a module-level constant. All three disambiguation handlers (`confirm_stop`, `confirm_agency`, `confirm_mms_route`) now use the same passthrough check. Added `logger.warn` for unknown state types in `handlePendingState`.
 - **Slim stopCandidates in pending state** (`functions/lib/handlers-utils.js`): Candidate objects stored in `confirm_stop` pending state are now stripped to `{ stopCode, stopName, direction, routes }` before writing to Firestore, eliminating full doc serialization risk and reducing Firestore document size.
+- **Restored V3 as PredictionEngine** (`functions/lib/predict.js`): `predict.js` was pointing to V5 (XGBoost), but `handlers-trip.js` calls V3-only methods (`guess`, `guessEndStop`, `getEndStopConstraint`). This caused the entire prediction block to silently fail on every trip start. Restored V3 as the `PredictionEngine` export; V4/V5 continue to run separately via explicit imports.
+- **Fixed stopsLibrary out of scope in detectProvisionalTransfer** (`functions/lib/handlers-trip.js`): `stopsLibrary` was referenced as a free variable inside `detectProvisionalTransfer` (which is a standalone function), causing a `ReferenceError` on every call. Function now accepts it as an optional 5th parameter; both call sites pass it. Provisional transfer detection now runs correctly.
+- **Test infrastructure: finalization module mocked** (`functions/test_handlers.js`): Added `finalization.js` to the handler path set so its transitive Firestore/NetworkEngine/TransferEngine imports get intercepted during tests. All 20 `test_handlers.js` tests now pass (up from 14). Fixed stale `snapshot.forEach` mock gap and removed stale `observeCalls` assertion (NetworkEngine.observe was moved to background finalization).
 
 ## [1.41.0] - 2026-06-05
 

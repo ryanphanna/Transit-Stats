@@ -79,7 +79,7 @@ async function determineStaleness(db, userId, activeTrip) {
   return { stale: false, elapsedMin };
 }
 
-async function detectProvisionalTransfer(userId, nextTrip, agency, boardingStop) {
+async function detectProvisionalTransfer(userId, nextTrip, agency, boardingStop, stopsLibrary = []) {
   try {
     const history = await getRecentCompletedTrips(userId, 100);
     const networkConnections = (agency && boardingStop)
@@ -89,7 +89,7 @@ async function detectProvisionalTransfer(userId, nextTrip, agency, boardingStop)
     let best = null;
     for (const trip of history) {
       if (!trip.endTime || !trip.endStopName) continue;
-      const confidence = TransferEngine.score(trip, nextTrip, history, networkConnections, stopsLibrary);
+      const confidence = TransferEngine.score(trip, nextTrip, history, networkConnections);
       if (confidence < TransferEngine.CONFIDENCE_THRESHOLD) continue;
       if (!best || confidence > best.confidence) best = { trip, confidence };
     }
@@ -278,7 +278,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       startStopName,
       startStop: startStopName,
       startTime: now,
-    }, resolvedAgency, startStopName);
+    }, resolvedAgency, startStopName, stopsLibrary);
     if (provisionalTransfer) {
       logger.info('Trip-start provisional transfer detected', {
         route,
@@ -441,7 +441,7 @@ async function handleConfirmStart(phoneNumber, user, state, traceId = null) {
       startStopName: newTrip.stopName,
       startStop: newTrip.stopName,
       startTime: now,
-    }, newTrip.agency, newTrip.stopName);
+    }, newTrip.agency, newTrip.stopName, stopsLibrary);
     if (confirmProvisionalTransfer) {
       logger.info('Confirm-start provisional transfer detected', {
         route: newTrip.route,

@@ -1,15 +1,13 @@
 /**
  * TransitStats Prediction Engine Compatibility Layer
  *
- * Re-exports V5 (XGBoost) as the primary PredictionEngine.
- * V3 (heuristic voting) runs in shadow mode for fallback/comparison.
- * V4 (logistic regression) retained for legacy support.
+ * PredictionEngine = V3 (heuristic frequency voting).
+ * V3 provides guess(), guessEndStop(), guessTopEndStops(), and getEndStopConstraint(),
+ * which handlers-trip.js calls directly. V4/V5 run alongside via their own imports.
  */
 
-const { PredictionEngineV5 } = require('./predict_v5');
+const { PredictionEngineV3 } = require('./predict_v3');
 
-// Primary model: V5 (XGBoost with prev_route + transfer_rarity features)
-// Accuracy: 79.8% on temporal holdout (62 training trips, 16 test trips)
-const PredictionEngine = PredictionEngineV5;
+const PredictionEngine = PredictionEngineV3;
 
 module.exports = { PredictionEngine };
