@@ -78,7 +78,7 @@ function topologyMask(route, boardingStop, direction, classes) {
 }
 
 const PredictionEngineV4 = {
-  VERSION: '4.6',
+  VERSION: '4.7',
 
   /**
    * Guess the next route given the current stop and time.
@@ -97,9 +97,19 @@ const PredictionEngineV4 = {
     const day_cos  = Math.cos(2 * Math.PI * pyDay / 7);
 
     const stopFeature = getStopFeature(context.stopName, context.stopsLibrary);
-    const lastStopFeature = `last_stop_${getStopFeature(context.lastEndStopName, context.stopsLibrary).replace('stop_', '')}`;
+    const lastStopKey = context.lastEndStopName
+      ? getStopFeature(context.lastEndStopName, context.stopsLibrary).replace('stop_', '')
+      : 'none';
+    const lastStopFeature = `last_stop_${lastStopKey}`;
     const prevRoute = normalizeRouteForMl(context.lastRoute, context.agency, context.primaryAgency || context.defaultAgency) || 'none';
     const prevRouteFeature = `prev_route_${prevRoute.toString().toLowerCase()}`;
+
+    const rarities = _transferRarity
+      ? model.classes.map(r => _transferRarity[`${prevRoute}→${r}`]).filter(v => v !== undefined)
+      : [];
+    const transferRarity = rarities.length > 0
+      ? rarities.reduce((s, r) => s + r, 0) / rarities.length
+      : 0.5;
 
     const x = new Array(model.feature_names.length).fill(0);
     for (let i = 0; i < model.feature_names.length; i++) {
@@ -108,6 +118,7 @@ const PredictionEngineV4 = {
       else if (fn === 'hour_cos')         x[i] = hour_cos;
       else if (fn === 'day_sin')          x[i] = day_sin;
       else if (fn === 'day_cos')          x[i] = day_cos;
+      else if (fn === 'transfer_rarity')  x[i] = transferRarity;
       else if (fn === stopFeature)        x[i] = 1.0;
       else if (fn === lastStopFeature)    x[i] = 1.0;
       else if (fn === prevRouteFeature)   x[i] = 1.0;
@@ -149,7 +160,10 @@ const PredictionEngineV4 = {
     const cleanRoute = normalizeRouteForMl(context.route, context.agency, context.primaryAgency || context.defaultAgency).toString().toLowerCase();
     const prevRoute = normalizeRouteForMl(context.lastRoute, context.agency, context.primaryAgency || context.defaultAgency) || 'none';
     const stopFeature = getStopFeature(context.startStopName, context.stopsLibrary);
-    const lastStopFeature = `last_stop_${getStopFeature(context.lastEndStopName, context.stopsLibrary).replace('stop_', '')}`;
+    const lastStopKey = context.lastEndStopName
+      ? getStopFeature(context.lastEndStopName, context.stopsLibrary).replace('stop_', '')
+      : 'none';
+    const lastStopFeature = `last_stop_${lastStopKey}`;
     const prevRouteFeature = `prev_route_${prevRoute.toString().toLowerCase()}`;
     const { gapLog, gapMissing } = getGapFeatures(context.minutesSinceLastTrip);
     const dirNorm = normalizeDirectionForMl(context.direction);

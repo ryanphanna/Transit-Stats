@@ -96,7 +96,7 @@ function topologyMask(route, boardingStop, direction, classes) {
 }
 
 const PredictionEngineV5 = {
-  VERSION: '5.6',
+  VERSION: '5.7',
 
   /**
    * Guess top N routes using the V5 XGBoost model.
@@ -115,22 +115,19 @@ const PredictionEngineV5 = {
     const day_cos  = Math.cos(2 * Math.PI * pyDay / 7);
 
     const stopFeature = getStopFeature(context.stopName, context.stopsLibrary);
-    const lastStopFeature = `last_stop_${getStopFeature(context.lastEndStopName, context.stopsLibrary).replace('stop_', '')}`;
+    const lastStopKey = context.lastEndStopName
+      ? getStopFeature(context.lastEndStopName, context.stopsLibrary).replace('stop_', '')
+      : 'none';
+    const lastStopFeature = `last_stop_${lastStopKey}`;
     const prevRoute = normalizeRouteForMl(context.lastRoute, context.agency, context.primaryAgency || context.defaultAgency) || 'none';
     const prevRouteFeature = `prev_route_${prevRoute.toString().toLowerCase()}`;
-    
-    // Compute transfer_rarity: how rare is this prev_route -> ? transfer?
-    // Default: 0.5 for unknown transfers
-    let transferRarity = 0.5;
-    if (_transferRarity) {
-      for (const route of meta.classes) {
-        const key = `${prevRoute}→${route}`;
-        if (_transferRarity[key]) {
-          transferRarity = _transferRarity[key];
-          break;
-        }
-      }
-    }
+
+    const rarities = _transferRarity
+      ? meta.classes.map(r => _transferRarity[`${prevRoute}→${r}`]).filter(v => v !== undefined)
+      : [];
+    const transferRarity = rarities.length > 0
+      ? rarities.reduce((s, r) => s + r, 0) / rarities.length
+      : 0.5;
 
     const x = new Float32Array(meta.feature_names.length);
     for (let i = 0; i < meta.feature_names.length; i++) {
@@ -181,7 +178,10 @@ const PredictionEngineV5 = {
     const cleanRoute = normalizeRouteForMl(context.route, context.agency, context.primaryAgency || context.defaultAgency).toString().toLowerCase();
     const prevRoute = normalizeRouteForMl(context.lastRoute, context.agency, context.primaryAgency || context.defaultAgency) || 'none';
     const stopFeature = getStopFeature(context.startStopName, context.stopsLibrary);
-    const lastStopFeature = `last_stop_${getStopFeature(context.lastEndStopName, context.stopsLibrary).replace('stop_', '')}`;
+    const lastStopKey = context.lastEndStopName
+      ? getStopFeature(context.lastEndStopName, context.stopsLibrary).replace('stop_', '')
+      : 'none';
+    const lastStopFeature = `last_stop_${lastStopKey}`;
     const prevRouteFeature = `prev_route_${prevRoute.toString().toLowerCase()}`;
     const { gapLog, gapMissing } = getGapFeatures(context.minutesSinceLastTrip);
     const dirNorm = normalizeDirectionForMl(context.direction);

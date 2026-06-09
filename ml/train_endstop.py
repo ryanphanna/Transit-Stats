@@ -94,19 +94,22 @@ def normalize_direction(d):
     s = re.sub(r"bound$", "", s).strip()
     return _DIRECTION_MAP.get(s, None)
 
+def _normalize_stop_str(s):
+    s = str(s).strip().lower()
+    s = re.sub(r"\s+and\s+", "/", s)
+    s = s.replace(" & ", "/").replace(" @ ", "/")
+    s = re.sub(r"\s+at\s+", "/", s)
+    s = re.sub(r"\s*/\s*", "/", s)
+    return s
+
 def canonicalize_stop(name, lib):
     if not name: return "unknown"
-    lower = str(name).strip().lower().replace(" and ", "/").replace(" & ", "/").replace(" @ ", "/").replace(" at ", "/")
-    lower = re.sub(r"\s*/\s*", "/", lower)
-    
+    lower = _normalize_stop_str(name)
     for item in lib:
         candidates = [item["name"]] + item.get("aliases", [])
         for c in candidates:
-            c_norm = str(c).strip().lower().replace(" and ", "/").replace(" & ", "/").replace(" @ ", "/").replace(" at ", "/")
-            c_norm = re.sub(r"\s*/\s*", "/", c_norm)
-            if c_norm == lower:
-                canon = item["name"].lower().replace(" and ", "/").replace(" & ", "/").replace(" @ ", "/").replace(" at ", "/")
-                return re.sub(r"\s*/\s*", "/", canon)
+            if _normalize_stop_str(c) == lower:
+                return _normalize_stop_str(item["name"])
     return lower
 
 def compute_ride_count_weights(df, halflife_rides=100):

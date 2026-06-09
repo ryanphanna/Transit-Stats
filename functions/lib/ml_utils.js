@@ -10,23 +10,20 @@
 function canonicalizeStop(name, stopsLibrary = []) {
   if (!name) return 'unknown';
   
-  // Basic cleanup first (mirrors V3)
-  const lower = name.trim().toLowerCase()
+  const normalize = s => s.trim().toLowerCase()
+    .replace(/\s+and\s+/g, '/')
     .replace(/\s*[/&@]\s*/g, '/')
     .replace(/\s+at\s+/g, '/');
+
+  const lower = normalize(name);
 
   if (stopsLibrary && stopsLibrary.length > 0) {
     const match = stopsLibrary.find(s => {
       const candidates = [s.name, ...(s.aliases || [])];
-      return candidates.some(c => c.trim().toLowerCase()
-        .replace(/\s*[/&@]\s*/g, '/')
-        .replace(/\s+at\s+/g, '/') === lower);
+      return candidates.some(c => normalize(c) === lower);
     });
     if (match) {
-      // Use the canonical name, ensuring it's title-cased consistently
-      return match.name.toLowerCase()
-        .replace(/\s*[/&@]\s*/g, '/')
-        .replace(/\s+at\s+/g, '/');
+      return normalize(match.name);
     }
   }
   return lower;
