@@ -5,7 +5,7 @@ One entry per trained version. See `docs/INTELLIGENCE.md` for full engineering n
 
 ---
 
-## V5.6 — XGBoost End Stop
+## V5.4 — XGBoost End Stop
 
 | Field | Value |
 |---|---|
@@ -18,28 +18,28 @@ One entry per trained version. See `docs/INTELLIGENCE.md` for full engineering n
 | **Features** | hour_sin/cos, day_sin/cos, start_stop (one-hot), route (one-hot), prev_route (one-hot), last_end_stop (one-hot), trip gap, direction (one-hot) |
 | **Status** | Shadow mode |
 
-**Notes:** Critical bug fix — stop identity features (`stop_*`, `last_stop_*`) were silently zero in all prior production inference due to feature name mismatch (Python exported `stop_bay station` with spaces, JS generated `stop_bay_station` with underscores). Fixed by sanitizing stop values before `get_dummies` and normalizing slash spacing in `canonicalize_stop` return path. Training accuracy unchanged (same dataset), but production inference now has actual stop signal for the first time.
+**Notes:** +7.9pp over V5.3 (76.6% → 84.5%). Major improvements this session: (1) added direction as a one-hot feature — root cause of V4/V5 production accuracy gap was Route 1 northbound/southbound trips being indistinguishable; (2) fixed training/inference feature name skew — `stop_*` and `last_stop_*` features were silently zero in all prior inference because Python exported `stop_bay station` (spaces) but JS generated `stop_bay_station` (underscores); (3) fixed `last_stop_none` vs `last_stop_unknown` mismatch on first trip of day; (4) fixed `" and "` separator not handled in JS canonicalization; (5) fixed V4 `transfer_rarity` never set in route inference; (6) stop library backfill added 35 trips (stops 845, 815, 2040, 161, 162). New 19th end-stop class. Dataset grew 234 → 288 cleaned trips.
 
 ---
 
-## V4.6 — Logistic Regression End Stop
+## V4.4 — Logistic Regression End Stop
 
 | Field | Value |
 |---|---|
 | **Date trained** | 2026-06-09 |
 | **Algorithm** | Logistic Regression (scikit-learn, `class_weight='balanced'`, `max_iter=1000`) |
-| **Trip count** | 288 (same dataset as V5.6) |
+| **Trip count** | 288 (same dataset as V5.4) |
 | **Top-1 accuracy** | 75.9% |
 | **Top-3 accuracy** | 91.4% |
 | **Classes** | 19 end stops |
-| **Features** | Same as V5.6 |
+| **Features** | Same as V5.4 |
 | **Status** | Shadow mode |
 
-**Notes:** Same stop feature bug fix as V5.6.
+**Notes:** +7.8pp over V4.3 (68.1% → 75.9%). Same fixes as V5.4. Direction + stop signal now both working for the first time in inference.
 
 ---
 
-## V5.6 — XGBoost Route
+## V5.4 — XGBoost Route
 
 | Field | Value |
 |---|---|
@@ -52,120 +52,24 @@ One entry per trained version. See `docs/INTELLIGENCE.md` for full engineering n
 | **Features** | hour_sin/cos, day_sin/cos, start_stop (one-hot), last_end_stop (one-hot), prev_route (one-hot), transfer_rarity |
 | **Status** | Shadow mode |
 
-**Notes:** Same stop feature bug fix as end-stop V5.6. Route accuracy unchanged (routes are numeric, no spaces, so route features were already matching — but start_stop and last_stop features for the route model are now fixed too).
+**Notes:** +14.9pp over V5.3 (67.0% → 81.9%). Stop feature name fix now applies here too — start_stop and last_stop were also zeroed in route inference. transfer_rarity now averaged across classes rather than taking first match.
 
 ---
 
-## V4.6 — Logistic Regression Route
+## V4.4 — Logistic Regression Route
 
 | Field | Value |
 |---|---|
 | **Date trained** | 2026-06-09 |
 | **Algorithm** | Logistic Regression (scikit-learn, `class_weight='balanced'`, `max_iter=1000`) |
-| **Trip count** | 522 (same dataset as V5.6) |
+| **Trip count** | 522 (same dataset as V5.4) |
 | **Top-1 accuracy** | 63.8% |
 | **Top-3 accuracy** | 83.8% |
 | **Classes** | 20 routes |
-| **Features** | Same as V5.6 |
+| **Features** | Same as V5.4 |
 | **Status** | Shadow mode |
 
----
-
-## V5.5 — XGBoost End Stop
-
-| Field | Value |
-|---|---|
-| **Date trained** | 2026-06-09 |
-| **Algorithm** | XGBoost (`n_estimators=200`, `max_depth=4`, `learning_rate=0.1`) |
-| **Trip count** | 288 (after cleaning) |
-| **Top-1 accuracy** | 84.5% |
-| **Top-3 accuracy** | 91.4% |
-| **Classes** | 19 end stops |
-| **Features** | hour_sin/cos, day_sin/cos, start_stop (one-hot), route (one-hot), prev_route (one-hot), last_end_stop (one-hot), trip gap, direction (one-hot) |
-| **Status** | Shadow mode |
-
-**Notes:** +14.7pp over V5.4 (69.8% → 84.5%). 38 new training trips from stop library backfill (35 from stop_matched fix, 3 from new Dufferin Park + St George/College alias). New 19th class added. Combined effect of direction feature + larger dataset is substantial.
-
----
-
-## V4.5 — Logistic Regression End Stop
-
-| Field | Value |
-|---|---|
-| **Date trained** | 2026-06-09 |
-| **Algorithm** | Logistic Regression (scikit-learn, `class_weight='balanced'`, `max_iter=1000`) |
-| **Trip count** | 288 (same dataset as V5.5) |
-| **Top-1 accuracy** | 75.9% |
-| **Top-3 accuracy** | 91.4% |
-| **Classes** | 19 end stops |
-| **Features** | Same as V5.5 |
-| **Status** | Shadow mode |
-
-**Notes:** +11.7pp over V4.4 (64.2% → 75.9%). V4 now meaningfully competitive — direction feature helps the linear model more than the raw data increase alone.
-
----
-
-## V5.5 — XGBoost Route
-
-| Field | Value |
-|---|---|
-| **Date trained** | 2026-06-09 |
-| **Algorithm** | XGBoost (`n_estimators=200`, `max_depth=4`, `learning_rate=0.1`) |
-| **Trip count** | 522 (after cleaning) |
-| **Top-1 accuracy** | 81.0% |
-| **Top-3 accuracy** | 88.6% |
-| **Classes** | 20 routes |
-| **Features** | hour_sin/cos, day_sin/cos, start_stop (one-hot), last_end_stop (one-hot) |
-| **Status** | Shadow mode |
-
----
-
-## V4.5 — Logistic Regression Route
-
-| Field | Value |
-|---|---|
-| **Date trained** | 2026-06-09 |
-| **Algorithm** | Logistic Regression (scikit-learn, `class_weight='balanced'`, `max_iter=1000`) |
-| **Trip count** | 522 (same dataset as V5.5) |
-| **Top-1 accuracy** | 63.8% |
-| **Top-3 accuracy** | 83.8% |
-| **Classes** | 20 routes |
-| **Features** | Same as V5.5 |
-| **Status** | Shadow mode |
-
----
-
-## V5.4 — XGBoost End Stop
-
-| Field | Value |
-|---|---|
-| **Date trained** | 2026-06-09 |
-| **Algorithm** | XGBoost (`n_estimators=200`, `max_depth=4`, `learning_rate=0.1`) |
-| **Trip count** | 261 (after cleaning) |
-| **Top-1 accuracy** | 69.8% |
-| **Top-3 accuracy** | 77.4% |
-| **Classes** | 18 end stops |
-| **Features** | hour_sin/cos, day_sin/cos, start_stop (one-hot), route (one-hot), prev_route (one-hot), last_end_stop (one-hot), trip gap (`gap_log`, `gap_missing`), **direction (one-hot: northbound/southbound/eastbound/westbound)** |
-| **Status** | Shadow mode |
-
-**Notes:** Added direction as a one-hot feature. Root cause of low production accuracy: without direction, Route 1 trips looked identical regardless of whether the user was going to Spadina Station (southbound) or York University (northbound). Top-1 improved 66.0% → 69.8% (+3.8pp) on the same 535-trip/261-cleaned dataset. V5.4 route retrained simultaneously on 535 trips (79.6% top-1). Canonicalization audit confirmed stop name normalization covers 530/535 trips — label fragmentation is not a factor.
-
----
-
-## V4.4 — Logistic Regression End Stop
-
-| Field | Value |
-|---|---|
-| **Date trained** | 2026-06-09 |
-| **Algorithm** | Logistic Regression (scikit-learn, `class_weight='balanced'`, `max_iter=1000`) |
-| **Trip count** | 261 (same dataset as V5.4) |
-| **Top-1 accuracy** | 64.2% |
-| **Top-3 accuracy** | 83.0% |
-| **Classes** | 18 end stops |
-| **Features** | Same as V5.4 (including direction) |
-| **Status** | Shadow mode |
-
-**Notes:** No improvement over V4.3 (64.2% unchanged). Direction signal may not be sufficient for logistic regression to separate classes at this dataset size — the linear model already partially infers direction from start stop + time.
+**Notes:** +3.6pp over V4.3 (60.2% → 63.8%). transfer_rarity now set correctly in inference (was always 0 before).
 
 ---
 
