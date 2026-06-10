@@ -5,7 +5,7 @@ One entry per trained version. See `docs/INTELLIGENCE.md` for full engineering n
 
 ---
 
-## V5.4 — XGBoost End Stop
+## V5.5 — XGBoost End Stop
 
 | Field | Value |
 |---|---|
@@ -22,7 +22,7 @@ One entry per trained version. See `docs/INTELLIGENCE.md` for full engineering n
 
 ---
 
-## V4.4 — Logistic Regression End Stop
+## V4.5 — Logistic Regression End Stop
 
 | Field | Value |
 |---|---|
@@ -39,7 +39,7 @@ One entry per trained version. See `docs/INTELLIGENCE.md` for full engineering n
 
 ---
 
-## V5.4 — XGBoost Route
+## V5.5 — XGBoost Route
 
 | Field | Value |
 |---|---|
@@ -56,7 +56,7 @@ One entry per trained version. See `docs/INTELLIGENCE.md` for full engineering n
 
 ---
 
-## V4.4 — Logistic Regression Route
+## V4.5 — Logistic Regression Route
 
 | Field | Value |
 |---|---|
