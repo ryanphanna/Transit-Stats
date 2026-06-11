@@ -28,6 +28,7 @@ const { PredictionEngineV4 } = require('./predict_v4.js');
 const { PredictionEngineV5 } = require('./predict_v5.js');
 const logger = require('./logger');
 const finalization = require('./finalization');
+const { checkMlTasks } = require('./ml-tasks');
 const {
   getStopDisplay,
   getRouteDisplay,
@@ -648,6 +649,9 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
 
   // Recompute the user's primary agency from recent trips (makes defaultAgency dynamic)
   recomputeAndUpdatePrimaryAgency(user.userId).catch(() => {});
+
+  // Check if any ML check-in tasks have hit their trip threshold
+  checkMlTasks(user.userId).catch(() => {});
 }
 
 /**
