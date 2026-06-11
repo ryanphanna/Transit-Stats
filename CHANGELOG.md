@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.43.0] - 2026-06-11
+
+### Fixed
+- **Gemini model deprecated** (`functions/lib/gemini.js`): Updated model from `gemini-2.0-flash` (404 Not Found) to `gemini-2.5-flash`, now centralized as `GEMINI_MODEL` constant so future upgrades are a one-line change. ASK, MMS, and parsing commands were all failing silently. Also added 404/"no longer available" to the no-retry list in `retryWithBackoff` so permanent failures fast-fail instead of burning 3 attempts.
+
 ### Added
 - **ML check-in task system** (`functions/lib/ml-tasks.js`, `functions/lib/handlers-trip.js`): After each trip ends, checks Firestore `mlTasks` collection for pending check-ins scoped to the user. When a task's trip threshold is crossed, fires an SMS reminder and marks the task triggered. Phone number is looked up from `phoneNumbers` at fire time so the system works for any user. First task seeded: audit V4/V5 shadow accuracy after 30 TTC trips since 2026-06-09 (stop feature fix).
 

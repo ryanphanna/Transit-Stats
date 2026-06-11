@@ -7,6 +7,7 @@ const { VALID_INTENTS, VALID_SENTIMENTS } = require('./constants');
 const logger = require('./logger');
 
 const geminiApiKey = defineSecret('GEMINI_API_KEY');
+const GEMINI_MODEL = 'gemini-2.5-flash';
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 function getTimezoneDateParts(date, timezone) {
@@ -59,13 +60,15 @@ async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000, traceId = 
     } catch (error) {
       const isLastAttempt = attempt === maxRetries - 1;
 
-      // Don't retry on certain error types
+      // Don't retry on permanent errors
       if (error.message && (
         error.message.includes('API key') ||
         error.message.includes('unauthorized') ||
-        error.message.includes('invalid') && !error.message.includes('invalid response')
+        error.message.includes('no longer available') ||
+        error.message.includes('404') ||
+        (error.message.includes('invalid') && !error.message.includes('invalid response'))
       )) {
-        throw error; // Don't retry on auth/config errors
+        throw error;
       }
 
       if (isLastAttempt) {
@@ -759,7 +762,7 @@ async function answerQueryWithGemini(
   return await retryWithBackoff(async () => {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: GEMINI_MODEL,
       tools: tools,
     });
 
@@ -847,7 +850,7 @@ async function parseWithGemini(text, traceId = null) {
 
   return await retryWithBackoff(async () => {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
 
     const prompt = `Analyze this SMS from a transit tracker user. Determine the intent and extract data.
     Text: "${truncatedText}"
@@ -1000,7 +1003,7 @@ async function lookupAgencyTimezone(agency, traceId = null) {
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
     const result = await model.generateContent(
       `What is the IANA timezone for the public transit agency "${canonical}"? ` +
       `Reply with only the IANA timezone string (e.g. America/Los_Angeles), nothing else.`
@@ -1035,7 +1038,7 @@ async function lookupAgencyTimezone(agency, traceId = null) {
  */
 async function parseStopSignImage(imageBase64, mimeType, traceId = null) {
   const genAI = new GoogleGenerativeAI(geminiApiKey.value());
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
 
   const prompt = `Analyze this photo of a transit stop sign, pole, or shelter. Extract stop information and return ONLY valid JSON with no other text:
 {
