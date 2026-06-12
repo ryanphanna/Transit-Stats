@@ -6,6 +6,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.43.1] - 2026-06-12
+
+### Changed
+- **Dependency updates**: bumped `firebase` to 12.14.0, `eslint` to 10.4.1 in `/functions`, `vitest` and `@vitest/ui` to 4.1.8 in root. `firebase-admin` held at 13 — `firebase-functions@7.2.5` peer dep does not yet declare support for v14.
+- **CI: upgrade to Node.js 24 actions** (`.github/workflows/`): Updated `actions/checkout` to v6 and `actions/setup-node` to v6 ahead of GitHub's June 16 Node.js 20 deprecation deadline.
+
 ## [1.43.0] - 2026-06-11
 
 ### Fixed
