@@ -106,6 +106,10 @@ function normalizeDirection(input) {
   if (['UV', 'UP', 'UPVALLEY', 'UP VALLEY', 'UP-VALLEY'].includes(upper)) return 'Up Valley';
   if (['DV', 'DOWN', 'DOWNVALLEY', 'DOWN VALLEY', 'DOWN-VALLEY'].includes(upper)) return 'Down Valley';
 
+  // Up Mountain / Down Mountain / Uphill / Downhill (escarpment cities like Hamilton)
+  if (['UP MOUNTAIN', 'UPMOUNTAIN', 'UP-MOUNTAIN', 'UPHILL', 'UP HILL', 'UP-HILL'].includes(upper)) return 'Up Mountain';
+  if (['DOWN MOUNTAIN', 'DOWNMOUNTAIN', 'DOWN-MOUNTAIN', 'DOWNHILL', 'DOWN HILL', 'DOWN-HILL'].includes(upper)) return 'Down Mountain';
+
   // Return original if no match (e.g. specific destination name)
   return input.trim();
 }

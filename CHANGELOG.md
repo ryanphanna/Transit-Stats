@@ -4,7 +4,11 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
-## [Unreleased]
+## [1.43.3] - 2026-06-17
+
+### Fixed
+- **Parser: "Down Mountain" / "Uphill" wrongly parsed as agency** — added "Down Mountain", "Downhill", "Up Mountain", "Uphill" (and hyphenated/no-space variants) to `normalizeDirection` and `CANONICAL_DIRECTIONS`, so escarpment-style direction terms on line 3 are recognized correctly instead of falling through to the agency slot.
+- **Data: corrected agency on 7 trips from today** — Route 20 ×2, Route 25, Route 41, Route 5A (all → HSR) and Lakeshore West ×2 (→ GO Transit), where "Down Mountain" or "Uphill" had been stored as the agency.
 
 ## [1.43.2] - 2026-06-17
 

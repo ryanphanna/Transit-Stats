@@ -8,6 +8,7 @@ const CANONICAL_DIRECTIONS = new Set([
   'Northbound', 'Southbound', 'Eastbound', 'Westbound',
   'Clockwise', 'Counterclockwise', 'Inbound', 'Outbound',
   'Up Valley', 'Down Valley',
+  'Up Mountain', 'Down Mountain',
 ]);
 
 /**
