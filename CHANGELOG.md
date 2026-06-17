@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.43.2] - 2026-06-17
+
 ### Changed
 - **Security**: bumped `vite` to 8.0.16 (CVE fixes for Windows alternate-path bypass and NTLMv2 hash disclosure via UNC paths); updated both `devDependencies` and `overrides` so vitest's transitive dep resolves to the patched version.
 
