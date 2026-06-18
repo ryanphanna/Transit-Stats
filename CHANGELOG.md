@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Fixed
+- **`checkOutboundLoop` catch block referenced undefined `trace`** (`functions/lib/dispatcher.js`): If the Firestore get ever threw, the catch block itself would throw a `ReferenceError` that propagated uncaught through dispatch. Removed the undefined reference.
+- **`resolveTripAgency` prompted agency disambiguation when stop only existed in default agency** (`functions/lib/handlers-utils.js`): The third branch fired `promptAgencyChoice` even when `stopInLast` was false — i.e. the user's last-trip agency didn't even have that stop, yet both were offered. Now silently uses the default agency in that case.
+
+### Changed
+- **Dependencies: bumped `form-data` and `protobufjs`** (root and `functions/package-lock.json`): Fixed 3 high `form-data` CRLF injection alerts and 1 moderate `protobufjs` schema-shadowing alert via `npm audit fix`.
+
 ## [1.44.0] - 2026-06-18
 
 ### Fixed

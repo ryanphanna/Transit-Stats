@@ -111,10 +111,8 @@ async function resolveTripAgency(
   }
 
   if (stopInDefault) {
-    const userProfile = await getUserProfile(userId);
-    const defaultAgency = userProfile?.defaultAgency || agency;
-    await promptAgencyChoice(phoneNumber, stopDisplay, route, direction, stopInput, options, lastAgency, defaultAgency);
-    return { resolvedAgency, handled: true };
+    // Stop only exists in the default agency — use it silently, no prompt needed.
+    return { resolvedAgency, handled: false };
   }
 
   // Neither has it — infer last trip's agency (unverified).

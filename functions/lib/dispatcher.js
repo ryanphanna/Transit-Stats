@@ -616,7 +616,7 @@ async function checkOutboundLoop(body) {
     const processedAt = doc.data().processedAt?.toDate?.();
     return processedAt && (Date.now() - processedAt.getTime()) < 120000;
   } catch (e) {
-    logger.error('checkOutboundLoop error', { error: e.message, traceId: trace }, trace);
+    logger.error('checkOutboundLoop error', { error: e.message });
     return false;
   }
 }
