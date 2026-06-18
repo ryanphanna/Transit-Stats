@@ -115,7 +115,8 @@ async function dispatch(phoneNumber, body, messageSid, media = {}, traceId = nul
     const user = await getUserByPhone(phoneNumber);
     if (!user) {
       if (await shouldRespondToUnknown(phoneNumber)) {
-        await sendSmsReply(phoneNumber, 'Text REGISTER [email] to link your account. Sign up at transitstats.fyi.');
+        await setPendingState(phoneNumber, { type: 'awaiting_email' });
+        await sendSmsReply(phoneNumber, 'Welcome to TransitStats! What\'s your email address?');
       }
       return '';
     }
@@ -131,7 +132,8 @@ async function dispatch(phoneNumber, body, messageSid, media = {}, traceId = nul
   const user = await getUserByPhone(phoneNumber);
   if (!user) {
     if (await shouldRespondToUnknown(phoneNumber)) {
-      await sendSmsReply(phoneNumber, 'Text REGISTER [email] to link your account. Sign up at transitstats.fyi.');
+      await setPendingState(phoneNumber, { type: 'awaiting_email' });
+      await sendSmsReply(phoneNumber, 'Welcome to TransitStats! What\'s your email address?');
     }
     return '';
   }
@@ -386,6 +388,11 @@ async function handlePendingState(phoneNumber, body, upperBody, state, traceId =
 
   if (state.type === 'awaiting_verification' && /^\d{4,6}$/.test(body)) {
     await handlers.handleVerificationCode(phoneNumber, body, trace);
+    return true;
+  }
+
+  if (state.type === 'awaiting_email') {
+    await handlers.handleRegister(phoneNumber, body.trim(), trace);
     return true;
   }
 

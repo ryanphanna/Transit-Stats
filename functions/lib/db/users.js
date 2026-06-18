@@ -35,7 +35,9 @@ async function getVerificationData(phoneNumber) {
   const doc = await db.collection('smsVerification').doc(phoneNumber).get();
   if (!doc.exists) return null;
   const data = doc.data();
-  if (data.expiresAt && data.expiresAt.toDate() < new Date()) {
+  // Don't delete a locked doc — lockout must expire naturally
+  const isLocked = data.lockedUntil && data.lockedUntil.toDate() > new Date();
+  if (!isLocked && data.expiresAt && data.expiresAt.toDate() < new Date()) {
     await db.collection('smsVerification').doc(phoneNumber).delete();
     return null;
   }

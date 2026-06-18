@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Security
+- **Verification code brute-force via repeated REGISTER** (`functions/lib/handlers-commands.js`, `functions/lib/db/users.js`): After 3 failed code attempts, phone is locked for 10 minutes — re-calling REGISTER during lockout is blocked with a countdown message. `getVerificationData` no longer deletes a locked doc on expiry so the lockout survives the code TTL.
+- **Removed verbose debug logging from Twilio signature validation** (`functions/lib/twilio.js`): `console.info` calls on every request were logging URL structure and body keys to Cloud logs. Now only warns on genuine validation failure.
+
 ### Fixed
 - **SMS registration: verification code pending state expired in 5 minutes** (`functions/lib/db/trips.js`, `functions/lib/handlers-commands.js`): The default `setPendingState` TTL is 5 min — too short for email delivery + user response. Verification state now uses a 20-minute TTL via a new optional `ttlMs` parameter. Confirmation message now tells the user they have 20 minutes.
 - **SMS registration: dead-end messages gave no URL** (`functions/lib/handlers-commands.js`, `functions/lib/dispatcher.js`): "No account found" and the unknown-number welcome now include transitstats.fyi so users know where to sign up.

@@ -246,6 +246,14 @@ async function handleRegister(phoneNumber, email, traceId = null) {
     return;
   }
 
+  // Check if this phone is locked out from too many failed verification attempts
+  const existingVerification = await getVerificationData(phoneNumber);
+  if (existingVerification?.lockedUntil && existingVerification.lockedUntil.toDate() > new Date()) {
+    const minutesLeft = Math.ceil((existingVerification.lockedUntil.toDate() - new Date()) / 60000);
+    await sendSmsReply(phoneNumber, `Too many failed attempts. Try again in ${minutesLeft} minute${minutesLeft === 1 ? '' : 's'}.`);
+    return;
+  }
+
   const profilesSnapshot = await db.collection('profiles')
     .where('email', '==', email.toLowerCase())
     .limit(1).get();
@@ -291,9 +299,11 @@ async function handleVerificationCode(phoneNumber, code, traceId = null) {
   }
 
   if (verificationData.attempts >= 3) {
-    await db.collection('smsVerification').doc(phoneNumber).delete();
+    await db.collection('smsVerification').doc(phoneNumber).update({
+      lockedUntil: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 10 * 60 * 1000)),
+    });
     await clearPendingState(phoneNumber);
-    await sendSmsReply(phoneNumber, 'Too many attempts. Text REGISTER [email].');
+    await sendSmsReply(phoneNumber, 'Too many failed attempts. Try again in 10 minutes.');
     return;
   }
 

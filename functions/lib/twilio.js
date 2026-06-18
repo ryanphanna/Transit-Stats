@@ -145,10 +145,6 @@ function validateTwilioSignature(req) {
 
   const authToken = twilioAuthToken.value();
 
-  console.info('Auth check:', {
-    hasSecret: !!authToken,
-  });
-
   if (!authToken) {
     console.error('Twilio auth token not available');
     return false;
@@ -162,17 +158,7 @@ function validateTwilioSignature(req) {
 
   const protocol = req.headers['x-forwarded-proto'] || 'https';
   const host = req.headers['x-forwarded-host'] || req.headers.host;
-
-  // Reconstruct the full URL. If a specific webhook URL is needed, it should be defined as a param.
   const url = `${protocol}://${host}${req.originalUrl}`;
-
-  console.info('Twilio validation inputs:', {
-    url,
-    originalUrl: req.originalUrl,
-    host,
-    xForwardedHost: req.headers['x-forwarded-host'],
-    bodyKeys: Object.keys(req.body || {}),
-  });
 
   // Try the primary URL
   let isValid = twilio.validateRequest(authToken, twilioSignature, url, req.body);
@@ -180,19 +166,13 @@ function validateTwilioSignature(req) {
   // Fallback to strict /sms URL if originalUrl fails (Firebase function rewriting)
   if (!isValid) {
     const fallbackUrl = `${protocol}://${host}/sms`;
-    console.info('Retrying with fallback URL:', fallbackUrl);
     if (twilio.validateRequest(authToken, twilioSignature, fallbackUrl, req.body)) {
-      console.info('Validation SUCCESS with fallback URL');
       isValid = true;
     }
   }
 
   if (!isValid) {
-    console.warn('Invalid Twilio webhook signature - final failure', {
-      url,
-      originalUrl: req.originalUrl,
-      bodyKeys: Object.keys(req.body || {})
-    });
+    console.warn('Invalid Twilio webhook signature');
     return false;
   }
 
