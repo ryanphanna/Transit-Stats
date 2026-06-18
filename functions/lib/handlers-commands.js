@@ -21,7 +21,9 @@ const {
   getStopDisplay,
   getRouteDisplay,
   generateVerificationCode,
+  normalizeAgency,
 } = require('./utils');
+const { KNOWN_AGENCIES } = require('./constants');
 const {
   lookupAgencyTimezone,
 } = require('./gemini');
@@ -40,6 +42,7 @@ async function handleHelp(phoneNumber, traceId = null) {
     'FORGOT - forgot to end a trip',
     'DISCARD - didn\'t board, delete the trip',
     'UNLINK - separate a linked journey',
+    'SETTINGS - view/change settings',
   ];
   if (isPremium) commands.push('ASK [question] - AI stats');
 
@@ -325,6 +328,40 @@ async function handleVerificationCode(phoneNumber, code, traceId = null) {
   await sendSmsReply(phoneNumber, `Phone linked! Text "[stop] [route]" to log trips.`);
 }
 
+/**
+ * Handle SETTINGS command — view or change user settings via SMS.
+ * SETTINGS → show current settings
+ * SETTINGS AGENCY [name] → change default agency
+ */
+async function handleSettings(phoneNumber, user, rawArgs, traceId = null) {
+  const profile = await getUserProfile(user.userId);
+  const currentAgency = profile?.defaultAgency || 'TTC';
+
+  if (!rawArgs) {
+    await sendSmsReply(phoneNumber,
+      `Settings:\nDefault agency: ${currentAgency}\n\nTo change: SETTINGS AGENCY [name]\nExample: SETTINGS AGENCY GO Transit`
+    );
+    return;
+  }
+
+  const agencyMatch = rawArgs.match(/^AGENCY\s+(.+)$/i);
+  if (agencyMatch) {
+    const normalized = normalizeAgency(agencyMatch[1].trim());
+    const isKnown = KNOWN_AGENCIES.includes(normalized);
+    if (!isKnown) {
+      await sendSmsReply(phoneNumber,
+        `Unknown agency "${agencyMatch[1].trim()}". Try: TTC, GO Transit, MiWay, YRT, OC Transpo, etc.`
+      );
+      return;
+    }
+    await db.collection('profiles').doc(user.userId).update({ defaultAgency: normalized });
+    await sendSmsReply(phoneNumber, `Default agency set to ${normalized}.`);
+    return;
+  }
+
+  await sendSmsReply(phoneNumber, 'Usage: SETTINGS AGENCY [name]\nExample: SETTINGS AGENCY GO Transit');
+}
+
 module.exports = {
   handleHelp,
   handleStatus,
@@ -334,4 +371,5 @@ module.exports = {
   handleIncomplete,
   handleRegister,
   handleVerificationCode,
+  handleSettings,
 };

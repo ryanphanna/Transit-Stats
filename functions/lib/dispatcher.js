@@ -181,9 +181,23 @@ async function handleConfirmAgencyState(phoneNumber, body, upperBody, state, tra
     return true;
   }
 
+  if (upperBody === 'SKIP') {
+    const user = await getUserByPhone(phoneNumber);
+    if (user) {
+      // SKIP uses the default agency (index 1 in agencyOptions)
+      const skippedAgency = state.agencyOptions[1] || state.agencyOptions[0];
+      await clearPendingState(phoneNumber);
+      await handlers.handleTripLog(
+        phoneNumber, user, state.stopInput, state.route, state.direction,
+        skippedAgency, { ...state.options, agencyExplicit: false }, trace
+      );
+    }
+    return true;
+  }
+
   if (PENDING_PASSTHROUGH.has(upperBody) || upperBody.startsWith('ASK ')) return false;
 
-  await sendSmsReply(phoneNumber, 'Reply with 1 or 2 to select an agency, or DISCARD to cancel.');
+  await sendSmsReply(phoneNumber, 'Reply 1 or 2 to select an agency, SKIP for default, or DISCARD to cancel.');
   return true;
 }
 
@@ -354,7 +368,17 @@ async function handleConfirmStartState(phoneNumber, upperBody, state, traceId = 
     return true;
   }
 
-  return false;
+  // STATUS/STATS/ASK/INFO fall through so their normal handlers can respond.
+  if (PENDING_PASSTHROUGH.has(upperBody) || upperBody.startsWith('ASK ')) return false;
+
+  // Anything else (e.g. "1", another trip attempt) gets a reminder instead of
+  // falling through to "Could not understand."
+  const newTripDisplay = getRouteDisplay(state.newTrip?.route, state.newTrip?.direction);
+  await sendSmsReply(
+    phoneNumber,
+    `Reply START to begin ${newTripDisplay}, DISCARD to cancel, or FORGOT to save existing trip as incomplete.`
+  );
+  return true;
 }
 
 async function handlePendingState(phoneNumber, body, upperBody, state, traceId = null) {
@@ -418,6 +442,16 @@ async function handlePrivateCommands(phoneNumber, user, upperBody, rawBody, trac
 
   if (upperBody.startsWith('ASK ')) {
     await handlers.handleQuery(phoneNumber, user, rawBody.substring(4).trim(), trace);
+    return true;
+  }
+
+  if (upperBody === 'SETTINGS') {
+    await handlers.handleSettings(phoneNumber, user, '', trace);
+    return true;
+  }
+
+  if (upperBody.startsWith('SETTINGS ')) {
+    await handlers.handleSettings(phoneNumber, user, rawBody.substring(9).trim(), trace);
     return true;
   }
 

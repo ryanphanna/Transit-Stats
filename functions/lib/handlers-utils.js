@@ -77,8 +77,10 @@ async function promptAgencyChoice(
   await sendSmsReply(
     phoneNumber,
     `Which ${stopDisplay}?
-1. ${getDisambiguationLabel(lastAgency, defaultAgency)}
-2. ${getDisambiguationLabel(defaultAgency, lastAgency)}`
+1. ${lastAgency}
+2. ${defaultAgency}
+
+Reply 1, 2, or SKIP to use default.`
   );
 }
 

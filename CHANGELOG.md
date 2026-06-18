@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [1.44.0] - 2026-06-18
+
+### Fixed
+- **SMS: `confirm_start` handler fell through to "Could not understand"** (`functions/lib/dispatcher.js`): Replies that weren't START/DISCARD/FORGOT (e.g. "1" from a prior agency disambiguation) returned `false` from `handleConfirmStartState`, falling all the way through to the fallback. Now passes STATUS/STATS/etc. through and sends a reminder for everything else. Same fix class as the v1.42.0 `confirm_stop` regression.
+- **SMS: agency disambiguation labels "Toronto / GTA" vs "Toronto" were confusingly similar** (`functions/lib/handlers-utils.js`): Disambiguation prompt now shows the agency names directly (e.g. "1. GO Transit" / "2. TTC") instead of city labels, which were identical enough to be misleading.
+- **SMS: anomaly detection "took longer than usual" used global trip data** (`functions/lib/finalization.js`): `NetworkEngine.load()` falls back to the all-users global graph when personal history is sparse. This caused "typical X min" to reflect other users' trips. `detectAnomaly` now reads the personal graph document directly — if it doesn't exist, no anomaly is reported. Also removed the boarding-stop-wide median fallback; anomaly only fires when the specific start→end edge has personal history.
+
+### Added
+- **SMS: SKIP reply for agency disambiguation** (`functions/lib/dispatcher.js`): When asked "Which [stop]? 1. GO Transit 2. TTC", replying SKIP uses the default agency and skips the prompt. Prompt now shows all three options.
+- **SMS: SETTINGS command** (`functions/lib/handlers-commands.js`, `functions/lib/dispatcher.js`): `SETTINGS` shows current default agency. `SETTINGS AGENCY [name]` changes it (validates against known agency list). Shown in HELP output.
+
 ## [1.43.3] - 2026-06-17
 
 ### Fixed

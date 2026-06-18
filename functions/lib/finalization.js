@@ -168,11 +168,17 @@ async function detectJourneyLink(activeTrip, recentTrips = null) {
 async function detectAnomaly(activeTrip, endStopNameFinal, duration, agency) {
   try {
     const startHour = new Date(activeTrip.startTime.toDate()).getHours();
-    const graph = await NetworkEngine.load(db, activeTrip.userId || activeTrip.userId, agency, activeTrip.route);
-    const typicalMinutes = graph
-      ? (NetworkEngine.getEdgeMedianDuration(graph, activeTrip.startStopName, endStopNameFinal, startHour)
-         ?? NetworkEngine.getMedianDuration(graph, activeTrip.startStopName, startHour))
-      : null;
+    // Use personal graph only — the global (all-users) graph would flag anomalies
+    // based on other people's trips, not the user's own history.
+    const personalDoc = await db.collection('networkGraph')
+      .doc(NetworkEngine._docId(activeTrip.userId, agency, activeTrip.route))
+      .get();
+    if (!personalDoc.exists) return '';
+    const graph = personalDoc.data();
+
+    // Only use the specific start→end edge — the boarding-stop-wide fallback
+    // averages across different destinations and produces misleading "typical" times.
+    const typicalMinutes = NetworkEngine.getEdgeMedianDuration(graph, activeTrip.startStopName, endStopNameFinal, startHour);
 
     if (typicalMinutes && typicalMinutes >= 5 && duration >= typicalMinutes * 2) {
       return `\n\nThis trip took longer than usual (${duration} min vs. typical ${typicalMinutes} min).`;
