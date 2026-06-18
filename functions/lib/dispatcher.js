@@ -116,7 +116,7 @@ async function dispatch(phoneNumber, body, messageSid, media = {}, traceId = nul
     if (!user) {
       if (await shouldRespondToUnknown(phoneNumber)) {
         await setPendingState(phoneNumber, { type: 'awaiting_email' });
-        await sendSmsReply(phoneNumber, 'Welcome to TransitStats! What\'s your email address?');
+        await sendSmsReply(phoneNumber, 'TransitStats tracks your transit rides and shows you stats over time. What\'s your email to get started?');
       }
       return '';
     }

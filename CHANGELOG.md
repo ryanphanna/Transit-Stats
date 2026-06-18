@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
-## [Unreleased]
+## [1.45.0] - 2026-06-18
 
 ### Security
 - **Verification code brute-force via repeated REGISTER** (`functions/lib/handlers-commands.js`, `functions/lib/db/users.js`): After 3 failed code attempts, phone is locked for 10 minutes — re-calling REGISTER during lockout is blocked with a countdown message. `getVerificationData` no longer deletes a locked doc on expiry so the lockout survives the code TTL.
