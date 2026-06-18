@@ -115,7 +115,7 @@ async function dispatch(phoneNumber, body, messageSid, media = {}, traceId = nul
     const user = await getUserByPhone(phoneNumber);
     if (!user) {
       if (await shouldRespondToUnknown(phoneNumber)) {
-        await sendSmsReply(phoneNumber, 'Text REGISTER [email] to get started');
+        await sendSmsReply(phoneNumber, 'Text REGISTER [email] to link your account. Sign up at transitstats.fyi.');
       }
       return '';
     }
@@ -131,7 +131,7 @@ async function dispatch(phoneNumber, body, messageSid, media = {}, traceId = nul
   const user = await getUserByPhone(phoneNumber);
   if (!user) {
     if (await shouldRespondToUnknown(phoneNumber)) {
-      await sendSmsReply(phoneNumber, 'Text REGISTER [email] to get started');
+      await sendSmsReply(phoneNumber, 'Text REGISTER [email] to link your account. Sign up at transitstats.fyi.');
     }
     return '';
   }

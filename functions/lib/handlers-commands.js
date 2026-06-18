@@ -251,7 +251,7 @@ async function handleRegister(phoneNumber, email, traceId = null) {
     .limit(1).get();
 
   if (profilesSnapshot.empty) {
-    await sendSmsReply(phoneNumber, `No TransitStats account for ${email}. Create one in web app.`);
+    await sendSmsReply(phoneNumber, `No account found for ${email}. Sign up at transitstats.fyi, then text REGISTER again.`);
     return;
   }
 
@@ -271,12 +271,12 @@ async function handleRegister(phoneNumber, email, traceId = null) {
     console.error('Error queuing verification email:', error);
   }
 
-  await sendSmsReply(phoneNumber, `Code sent to ${email}. Reply with the 6-digit code.`);
+  await sendSmsReply(phoneNumber, `Code sent to ${email}. Reply with the 6-digit code within 20 minutes.`);
 
   await setPendingState(phoneNumber, {
     type: 'awaiting_verification',
     email: email.toLowerCase(),
-  });
+  }, 20 * 60 * 1000);
 }
 
 /**

@@ -92,8 +92,8 @@ async function getPendingState(phoneNumber) {
   return data;
 }
 
-async function setPendingState(phoneNumber, state) {
-  const expiresAt = admin.firestore.Timestamp.fromDate(new Date(Date.now() + 5 * 60 * 1000));
+async function setPendingState(phoneNumber, state, ttlMs = 5 * 60 * 1000) {
+  const expiresAt = admin.firestore.Timestamp.fromDate(new Date(Date.now() + ttlMs));
   await db.collection('smsState').doc(phoneNumber).set({ ...state, expiresAt });
 }
 
