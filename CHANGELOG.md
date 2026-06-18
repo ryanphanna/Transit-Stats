@@ -13,8 +13,6 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - **SMS registration: verification code pending state expired in 5 minutes** (`functions/lib/db/trips.js`, `functions/lib/handlers-commands.js`): The default `setPendingState` TTL is 5 min — too short for email delivery + user response. Verification state now uses a 20-minute TTL via a new optional `ttlMs` parameter. Confirmation message now tells the user they have 20 minutes.
 - **SMS registration: dead-end messages gave no URL** (`functions/lib/handlers-commands.js`, `functions/lib/dispatcher.js`): "No account found" and the unknown-number welcome now include transitstats.fyi so users know where to sign up.
-
-### Fixed
 - **`checkOutboundLoop` catch block referenced undefined `trace`** (`functions/lib/dispatcher.js`): If the Firestore get ever threw, the catch block itself would throw a `ReferenceError` that propagated uncaught through dispatch. Removed the undefined reference.
 - **`resolveTripAgency` prompted agency disambiguation when stop only existed in default agency** (`functions/lib/handlers-utils.js`): The third branch fired `promptAgencyChoice` even when `stopInLast` was false — i.e. the user's last-trip agency didn't even have that stop, yet both were offered. Now silently uses the default agency in that case.
 
