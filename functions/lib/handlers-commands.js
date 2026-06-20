@@ -354,7 +354,7 @@ async function handleSettings(phoneNumber, user, rawArgs, traceId = null) {
     return;
   }
 
-  const agencyMatch = rawArgs.match(/^AGENCY\s+(.+)$/i);
+  const agencyMatch = rawArgs.match(/^AGENCY\s+(\S.*)$/i);
   if (agencyMatch) {
     const normalized = normalizeAgency(agencyMatch[1].trim());
     const isKnown = KNOWN_AGENCIES.includes(normalized);

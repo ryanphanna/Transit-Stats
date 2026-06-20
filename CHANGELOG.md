@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Security
+- **Resolved CodeQL polynomial regular expression ReDoS alert** (`functions/lib/handlers-commands.js`): Fixed the `AGENCY` command parsing regex which was vulnerable to catastrophic backtracking when given multiple spaces. The pattern now strictly anchors on a non-whitespace character (`\S`), preventing overlapping matches.
+- **Dependency updates** (root `package.json`, `package-lock.json`): Upgraded `undici` override to `^7.28.0` to patch CVEs relating to TLS validation bypass via SOCKS5 and shared cache whitespace bypass. Regenerated package lock.
+
 ## [1.45.0] - 2026-06-18
 
 ### Security
