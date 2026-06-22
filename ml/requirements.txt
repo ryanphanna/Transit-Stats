@@ -4,3 +4,4 @@ scikit-learn
 xgboost
 onnxmltools
 numpy
+packaging
