@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Fixed
+- **Weekly model retrain workflow had been silently failing for 6+ weeks** (`.github/workflows/retrain.yml`, `ml/train_endstop.py`, `ml/requirements.txt`): Four separate issues resolved: (1) missing `requirements.txt` caused pip cache step to abort before any code ran; (2) `onnxmltools` dependency on `packaging` wasn't installed; (3) `evaluate()` assumed `le.classes_` and `model.classes_` always matched — if a rare end-stop class got no training samples, `LogisticRegression` output fewer probability columns and crashed `top_k_accuracy_score`; (4) `FIREBASE_TOKEN` secret was unset, blocking deploy. Also raised the minimum end-stop class threshold from 3 → 10 trips so classes with too little data are dropped before training.
+
 ## [1.45.1] - 2026-06-20
 
 ### Security
