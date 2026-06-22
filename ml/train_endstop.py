@@ -174,9 +174,9 @@ def clean(df, lib):
     valid  = counts[counts >= 5].reset_index()[["route_base", "start_stop"]]
     df = df.merge(valid, on=["route_base", "start_stop"], how="inner")
 
-    # Filter to end_stop classes with >= 3 occurrences
+    # Filter to end_stop classes with >= 10 occurrences
     end_counts = df["end_stop"].value_counts()
-    df = df[df["end_stop"].isin(end_counts[end_counts >= 3].index)]
+    df = df[df["end_stop"].isin(end_counts[end_counts >= 10].index)]
 
     print(f"After cleaning: {len(df)} trips, {df['end_stop'].nunique()} end stop classes")
     return df
