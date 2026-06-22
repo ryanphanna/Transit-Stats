@@ -238,12 +238,21 @@ def train_v5(X_train, y_train, classes, weights_train=None):
     return model, le
 
 def evaluate(model, X_test, y_test, le, label):
+    import numpy as np
     from sklearn.metrics import top_k_accuracy_score
     proba = model.predict_proba(X_test if not hasattr(X_test, 'values') else X_test.values)
     y_enc = le.transform(y_test)
-    top1 = top_k_accuracy_score(y_enc, proba, k=1, labels=list(range(len(le.classes_))))
-    top3 = top_k_accuracy_score(y_enc, proba, k=min(3, len(le.classes_)), labels=list(range(len(le.classes_))))
-    print(f"{label}: top-1 {top1:.1%}  top-3 {top3:.1%}  ({len(y_test)} test trips)")
+    # model.classes_ may be a subset of le.classes_ if some classes had no training samples
+    model_classes = set(model.classes_)
+    mask = np.isin(y_enc, list(model_classes))
+    if not mask.all():
+        print(f"  [warn] {(~mask).sum()} test trips with unseen end-stop class dropped from eval")
+        y_enc = y_enc[mask]
+        proba = proba[mask]
+    labels = list(model.classes_)
+    top1 = top_k_accuracy_score(y_enc, proba, k=1, labels=labels)
+    top3 = top_k_accuracy_score(y_enc, proba, k=min(3, len(labels)), labels=labels)
+    print(f"{label}: top-1 {top1:.1%}  top-3 {top3:.1%}  ({len(y_enc)} test trips)")
     return top1, top3
 
 
