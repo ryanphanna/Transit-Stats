@@ -25,7 +25,7 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install firebase-admin pandas scikit-learn xgboost onnxmltools numpy
+        run: pip install -r ml/requirements.txt
 
       - name: Write service account key
         env:
