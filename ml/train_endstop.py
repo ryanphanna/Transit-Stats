@@ -309,7 +309,7 @@ def main():
     classes = sorted(y.unique())
     feature_names = list(X.columns)
     X_train, X_test, y_train, y_test, w_train, w_test = train_test_split(
-        X, y, weights, test_size=0.2, random_state=42
+        X, y, weights, test_size=0.2, random_state=42, stratify=y
     )
     v4_m, v4_le = train_v4(X_train, y_train, classes, weights_train=w_train)
     v4_t1, v4_t3 = evaluate(v4_m, X_test, y_test, v4_le, "V4")
