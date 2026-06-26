@@ -30,6 +30,7 @@ GEMINI.md
 .github/copilot-instructions.md
 .claude/
 .gemini/
+.agent/
 SESSION_CONTEXT.md
 handoff.md
 TRANSITSTATSLOG*
