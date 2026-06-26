@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Changed
+- **Retrain workflow now records results to MODEL_LOG.md automatically** (`.github/workflows/retrain.yml`, `ml/train_endstop.py`): V4 accuracy is now saved to `model_v4_endstop_meta.json` alongside the existing V5 meta. After each retrain, a new entry is prepended to `ml/MODEL_LOG.md` and committed with the model artifacts — no more silent retrains with no record.
+
 ## [1.45.2] - 2026-06-22
 
 ### Fixed

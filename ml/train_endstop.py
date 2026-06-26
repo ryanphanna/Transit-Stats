@@ -260,7 +260,7 @@ def evaluate(model, X_test, y_test, le, label):
 # 3. Export
 # ---------------------------------------------------------------------------
 
-def export_v4(model, le, feature_names):
+def export_v4(model, le, feature_names, top1, top3, n_trips):
     out = {
         "type": "logistic_regression_endstop",
         "version": "4",
@@ -272,6 +272,14 @@ def export_v4(model, le, feature_names):
     path = os.path.join(OUT_DIR, "model_v4_endstop.json")
     with open(path, "w") as f: json.dump(out, f)
     print(f"V4 end stop model → {path}")
+
+    meta = {
+        "type": "logistic_regression_endstop", "version": "4",
+        "classes": le.classes_.tolist(), "feature_names": feature_names,
+        "top1_accuracy": round(top1, 4), "top3_accuracy": round(top3, 4), "n_trips": n_trips,
+    }
+    with open(os.path.join(OUT_DIR, "model_v4_endstop_meta.json"), "w") as f:
+        json.dump(meta, f, indent=2)
 
 def export_v5(model, le, feature_names, top1, top3, n_trips):
     import onnxmltools
@@ -296,7 +304,7 @@ def export_v5(model, le, feature_names, top1, top3, n_trips):
 def mirror_to_lib():
     import shutil
     lib_dir = os.path.join(OUT_DIR, "..", "functions", "lib")
-    for fname in ["model_v4_endstop.json", "model_v5_endstop.onnx", "model_v5_endstop_meta.json"]:
+    for fname in ["model_v4_endstop.json", "model_v4_endstop_meta.json", "model_v5_endstop.onnx", "model_v5_endstop_meta.json"]:
         src = os.path.join(OUT_DIR, fname)
         dst = os.path.join(lib_dir, fname)
         if os.path.exists(src):
@@ -322,7 +330,7 @@ def main():
     )
     v4_m, v4_le = train_v4(X_train, y_train, classes, weights_train=w_train)
     v4_t1, v4_t3 = evaluate(v4_m, X_test, y_test, v4_le, "V4")
-    export_v4(v4_m, v4_le, feature_names)
+    export_v4(v4_m, v4_le, feature_names, v4_t1, v4_t3, len(df))
     v5_m, v5_le = train_v5(X_train, y_train, classes, weights_train=w_train)
     v5_t1, v5_t3 = evaluate(v5_m, X_test, y_test, v5_le, "V5")
     export_v5(v5_m, v5_le, feature_names, v5_t1, v5_t3, len(df))
