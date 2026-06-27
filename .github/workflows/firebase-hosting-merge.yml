@@ -37,9 +37,14 @@ jobs:
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_TRANSITSTATS_21BA4 }}' > /tmp/sa.json
           npm install -g firebase-tools
           GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json firebase deploy --only functions --project transitstats-21ba4
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TRANSITSTATS_21BA4 }}
-          channelId: live
-          projectId: transitstats-21ba4
+      - name: Deploy Hosting
+        # Firebase returns 400 FAILED_PRECONDITION when the build output is
+        # identical to the already-live version (e.g. only function code changed).
+        # That's a false-positive failure — the site is already up to date.
+        run: |
+          GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json firebase deploy --only hosting --project transitstats-21ba4 2>&1 | tee /tmp/hosting_out.txt; EXIT=${PIPESTATUS[0]}
+          if [ $EXIT -ne 0 ] && grep -q "current active version" /tmp/hosting_out.txt; then
+            echo "Hosting already up to date, skipping."
+            exit 0
+          fi
+          exit $EXIT
