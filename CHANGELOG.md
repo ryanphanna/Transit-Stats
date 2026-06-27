@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Changed
-- **Retrain workflow now records results to MODEL_LOG.md automatically** (`.github/workflows/retrain.yml`, `ml/train_endstop.py`): V4 accuracy is now saved to `model_v4_endstop_meta.json` alongside the existing V5 meta. After each retrain, a new entry is prepended to `ml/MODEL_LOG.md` and committed with the model artifacts — no more silent retrains with no record.
+- **Retrain workflow now records results to MODEL_LOG.md automatically** (`.github/workflows/retrain.yml`, `ml/train_endstop.py`, `ml/train_routes.py`): V4 accuracy is now saved to meta files (`model_v4_endstop_meta.json`, `model_v4_meta.json`) alongside existing V5 metas. After each retrain, a dated entry covering all four models (V4/V5 route + end-stop) is prepended to `ml/MODEL_LOG.md` and committed with the artifacts. Route models are now also retrained automatically — previously only end-stop ran in CI.
 
 ## [1.45.2] - 2026-06-22
 

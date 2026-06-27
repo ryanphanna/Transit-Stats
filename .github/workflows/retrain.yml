@@ -37,10 +37,13 @@ jobs:
       - name: Export trips from Firestore
         run: GRPC_DNS_RESOLVER=native python3 ml/export_trips.py
 
-      - name: Retrain V4 + V5
+      - name: Retrain end-stop models (V4 + V5)
         run: GRPC_DNS_RESOLVER=native python3 ml/train_endstop.py
 
-      - name: Copy models to functions/lib
+      - name: Retrain route models (V4 + V5)
+        run: GRPC_DNS_RESOLVER=native python3 ml/train_routes.py
+
+      - name: Copy end-stop models to functions/lib
         run: |
           cp ml/model_v4_endstop.json functions/lib/model_v4_endstop.json
           cp ml/model_v4_endstop_meta.json functions/lib/model_v4_endstop_meta.json
@@ -52,45 +55,33 @@ jobs:
           python3 - <<'EOF'
           import json, datetime, pathlib
 
-          v4 = json.loads(pathlib.Path("ml/model_v4_endstop_meta.json").read_text())
-          v5 = json.loads(pathlib.Path("ml/model_v5_endstop_meta.json").read_text())
+          es_v4 = json.loads(pathlib.Path("ml/model_v4_endstop_meta.json").read_text())
+          es_v5 = json.loads(pathlib.Path("ml/model_v5_endstop_meta.json").read_text())
+          rt_v4 = json.loads(pathlib.Path("ml/model_v4_meta.json").read_text())
+          rt_v5 = json.loads(pathlib.Path("ml/model_v5_meta.json").read_text())
           date = datetime.date.today().isoformat()
-          n = v5["n_trips"]
-          v4_classes = len(v4["classes"])
-          v5_classes = len(v5["classes"])
 
-          entry = f"""
-          ## Auto-retrain — {date}
+          entry = f"""## Auto-retrain — {date}
 
-          ### V5 — XGBoost End Stop
+### End-Stop Models
 
-          | Field | Value |
-          |---|---|
-          | **Date trained** | {date} |
-          | **Trip count** | {n} (after cleaning) |
-          | **Top-1 accuracy** | {v5['top1_accuracy']:.1%} |
-          | **Top-3 accuracy** | {v5['top3_accuracy']:.1%} |
-          | **Classes** | {v5_classes} end stops |
+| Model | Top-1 | Top-3 | Classes | Trips |
+|---|---|---|---|---|
+| V5 XGBoost | {es_v5['top1_accuracy']:.1%} | {es_v5['top3_accuracy']:.1%} | {len(es_v5['classes'])} | {es_v5['n_trips']} |
+| V4 LogReg  | {es_v4['top1_accuracy']:.1%} | {es_v4['top3_accuracy']:.1%} | {len(es_v4['classes'])} | {es_v4['n_trips']} |
 
-          ### V4 — Logistic Regression End Stop
+### Route Models
 
-          | Field | Value |
-          |---|---|
-          | **Date trained** | {date} |
-          | **Trip count** | {n} (after cleaning) |
-          | **Top-1 accuracy** | {v4['top1_accuracy']:.1%} |
-          | **Top-3 accuracy** | {v4['top3_accuracy']:.1%} |
-          | **Classes** | {v4_classes} end stops |
+| Model | Top-1 | Top-3 | Classes | Trips |
+|---|---|---|---|---|
+| V5 XGBoost | {rt_v5['top1_accuracy']:.1%} | {rt_v5['top3_accuracy']:.1%} | {len(rt_v5['classes'])} | {rt_v5['n_trips']} |
+| V4 LogReg  | {rt_v4['top1_accuracy']:.1%} | {rt_v4['top3_accuracy']:.1%} | {len(rt_v4['classes'])} | {rt_v4['n_trips']} |
 
-          ---
-          """
-
-          import textwrap
-          entry = textwrap.dedent(entry).lstrip("\n")
+---
+"""
 
           log = pathlib.Path("ml/MODEL_LOG.md")
           content = log.read_text()
-          # Insert after the header block (first ---)
           insert_at = content.index("---\n") + 4
           log.write_text(content[:insert_at] + "\n" + entry + content[insert_at:])
           print(f"Appended retrain entry for {date} to MODEL_LOG.md")
@@ -105,10 +96,18 @@ jobs:
             functions/lib/model_v4_endstop_meta.json \
             functions/lib/model_v5_endstop.onnx \
             functions/lib/model_v5_endstop_meta.json \
+            functions/lib/model_v4.json \
+            functions/lib/model_v4_meta.json \
+            functions/lib/model_v5.onnx \
+            functions/lib/model_v5_meta.json \
             ml/model_v4_endstop.json \
             ml/model_v4_endstop_meta.json \
             ml/model_v5_endstop.onnx \
             ml/model_v5_endstop_meta.json \
+            ml/model_v4.json \
+            ml/model_v4_meta.json \
+            ml/model_v5.onnx \
+            ml/model_v5_meta.json \
             ml/MODEL_LOG.md
           git diff --cached --quiet || git commit -m "chore: weekly model retrain [skip ci]"
           git push origin main

@@ -222,7 +222,7 @@ def evaluate(v4_model, v5_model, v5_le, X_test, y_test):
     return top1_v4, top3_v4, top1_v5, top3_v5
 
 
-def export_v4(model, feature_names, stop_columns):
+def export_v4(model, feature_names, stop_columns, top1, top3, n_trips):
     export = {
         'classes': model.classes_.tolist(),
         'coef': model.coef_.tolist(),
@@ -239,6 +239,17 @@ def export_v4(model, feature_names, stop_columns):
     with open(lib_path, 'w') as f:
         json.dump(export, f)
     print(f"V4 route model → {lib_path}")
+
+    meta = {
+        'type': 'logistic_regression_route', 'version': '4',
+        'classes': model.classes_.tolist(), 'feature_names': feature_names,
+        'top1_accuracy': round(top1, 4), 'top3_accuracy': round(top3, 4), 'n_trips': n_trips,
+    }
+    for dest in [os.path.join(OUT_DIR, 'model_v4_meta.json'),
+                 os.path.join(LIB_DIR, 'model_v4_meta.json')]:
+        with open(dest, 'w') as f:
+            json.dump(meta, f, indent=2)
+        print(f"V4 meta → {dest}")
 
 
 def export_v5(model, le, feature_names, top1, top3, n_trips):
@@ -305,7 +316,7 @@ def main():
     top1_v4, top3_v4, top1_v5, top3_v5 = evaluate(v4_model, v5_model, v5_le, X_test, y_test)
 
     print("\nExporting models...")
-    export_v4(v4_model, feature_names, stop_columns)
+    export_v4(v4_model, feature_names, stop_columns, top1_v4, top3_v4, len(df))
     export_v5(v5_model, v5_le, feature_names, top1_v5, top3_v5, len(df))
 
     print("\nDone. Models copied to functions/lib/.")
