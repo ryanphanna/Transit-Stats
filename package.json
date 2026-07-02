@@ -21,15 +21,15 @@
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",
-    "@vitest/ui": "^4.1.8",
-    "firebase": "^12.14.0",
+    "@vitest/ui": "^4.1.9",
+    "firebase": "^12.15.0",
     "jsdom": "^29.1.1",
     "vite": "^8.0.16",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.9"
   },
   "dependencies": {
-    "firebase-admin": "^13.10.0",
-    "playwright": "^1.60.0"
+    "firebase-admin": "^14.1.0",
+    "playwright": "^1.61.1"
   },
   "overrides": {
     "undici": "^7.28.0",
