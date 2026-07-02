@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Weekly retrain workflow's YAML was invalid and would have failed on its next scheduled run** (`.github/workflows/retrain.yml`): The `MODEL_LOG.md` entry was built from a triple-quoted Python f-string embedded inside a YAML block literal (`run: |`); its markdown headers and `---` separator started at column 0, which is less-indented than the block literal requires — a hard YAML parse error, confirmed by GitHub's own workflow validator. Rebuilt the entry as a list of consistently-indented lines joined with `\n` instead of a multi-line string, sidestepping the indentation trap. Output is byte-for-byte identical to the original intended format.
 - **`npm ci` was failing in CI on every open PR** (`package-lock.json`): Lock file was generated with npm 11, which resolves optional deps differently than npm 10 (CI's pinned Node 22 bundle) — missing an `@emnapi/runtime` entry. Regenerated with npm 10 to match CI; also fixed a stale `version` field left over from the 1.45.1 release.
 - **Firebase hosting deploy no longer fails when frontend content is unchanged** (`.github/workflows/firebase-hosting-merge.yml`): Replaced `action-hosting-deploy@v0` with a direct CLI step that treats Firebase's "current active version" 400 error as a success — the site was already up to date.
 

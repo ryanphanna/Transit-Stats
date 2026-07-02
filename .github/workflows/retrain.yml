@@ -61,24 +61,27 @@ jobs:
           rt_v5 = json.loads(pathlib.Path("ml/model_v5_meta.json").read_text())
           date = datetime.date.today().isoformat()
 
-          entry = f"""## Auto-retrain — {date}
-
-### End-Stop Models
-
-| Model | Top-1 | Top-3 | Classes | Trips |
-|---|---|---|---|---|
-| V5 XGBoost | {es_v5['top1_accuracy']:.1%} | {es_v5['top3_accuracy']:.1%} | {len(es_v5['classes'])} | {es_v5['n_trips']} |
-| V4 LogReg  | {es_v4['top1_accuracy']:.1%} | {es_v4['top3_accuracy']:.1%} | {len(es_v4['classes'])} | {es_v4['n_trips']} |
-
-### Route Models
-
-| Model | Top-1 | Top-3 | Classes | Trips |
-|---|---|---|---|---|
-| V5 XGBoost | {rt_v5['top1_accuracy']:.1%} | {rt_v5['top3_accuracy']:.1%} | {len(rt_v5['classes'])} | {rt_v5['n_trips']} |
-| V4 LogReg  | {rt_v4['top1_accuracy']:.1%} | {rt_v4['top3_accuracy']:.1%} | {len(rt_v4['classes'])} | {rt_v4['n_trips']} |
-
----
-"""
+          entry_lines = [
+              f"## Auto-retrain — {date}",
+              "",
+              "### End-Stop Models",
+              "",
+              "| Model | Top-1 | Top-3 | Classes | Trips |",
+              "|---|---|---|---|---|",
+              f"| V5 XGBoost | {es_v5['top1_accuracy']:.1%} | {es_v5['top3_accuracy']:.1%} | {len(es_v5['classes'])} | {es_v5['n_trips']} |",
+              f"| V4 LogReg  | {es_v4['top1_accuracy']:.1%} | {es_v4['top3_accuracy']:.1%} | {len(es_v4['classes'])} | {es_v4['n_trips']} |",
+              "",
+              "### Route Models",
+              "",
+              "| Model | Top-1 | Top-3 | Classes | Trips |",
+              "|---|---|---|---|---|",
+              f"| V5 XGBoost | {rt_v5['top1_accuracy']:.1%} | {rt_v5['top3_accuracy']:.1%} | {len(rt_v5['classes'])} | {rt_v5['n_trips']} |",
+              f"| V4 LogReg  | {rt_v4['top1_accuracy']:.1%} | {rt_v4['top3_accuracy']:.1%} | {len(rt_v4['classes'])} | {rt_v4['n_trips']} |",
+              "",
+              "---",
+              "",
+          ]
+          entry = "\n".join(entry_lines)
 
           log = pathlib.Path("ml/MODEL_LOG.md")
           content = log.read_text()
