@@ -420,6 +420,31 @@ test('dispatcher: confirm_stop END falls through so the trip can be ended', asyn
   assert.equal(calls.clearPendingState, 0, 'should not clear pending state');
 });
 
+test('dispatcher: confirm_stop SKIP dismisses the choice and keeps the trip', async () => {
+  const stopCandidates = [
+    { stopCode: '760', stopName: 'College Station', routes: ['506'], direction: 'Westbound' },
+    { stopCode: '761', stopName: 'College Station', routes: ['506'], direction: 'Eastbound' },
+  ];
+  const { dispatch, calls } = buildHarness({
+    user: { userId: 'u_stop_skip' },
+    pendingState: {
+      type: 'confirm_stop',
+      tripId: 'trip_keep',
+      route: '506',
+      direction: null,
+      agency: 'TTC',
+      options: {},
+      stopCandidates,
+    },
+  });
+
+  await dispatch('+14165550099', 'SKIP', 'SM_STOP_SKIP');
+
+  assert.equal(calls.clearPendingState, 1, 'should clear pending state');
+  assert.equal(calls.sendSmsReply.length, 1, 'should confirm');
+  assert.match(calls.sendSmsReply[0].message, /trip continues/i);
+});
+
 test('dispatcher: bare number with no pending state gets expiry note, not fallback', async () => {
   const { dispatch, calls } = buildHarness({ user: { userId: 'u_expired' } });
 

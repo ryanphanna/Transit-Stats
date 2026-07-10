@@ -247,6 +247,15 @@ async function handleConfirmStopState(phoneNumber, body, upperBody, state, trace
     return true;
   }
 
+  // SKIP dismisses the stop clarification without touching the trip —
+  // DISCARD is too destructive when the rider just doesn't care which
+  // physical stop it was.
+  if (upperBody === 'SKIP' && state.tripId) {
+    await clearPendingState(phoneNumber);
+    await sendSmsReply(phoneNumber, 'No problem — trip continues.\n\nEND [stop] to finish.');
+    return true;
+  }
+
   if (PENDING_PASSTHROUGH.has(upperBody) || upperBody.startsWith('ASK ')) return false;
 
   // END/STOP must work mid-disambiguation — the trip already exists and the
@@ -254,7 +263,7 @@ async function handleConfirmStopState(phoneNumber, body, upperBody, state, trace
   if (/^(END|STOP)(\s|$)/i.test(body)) return false;
 
   const count = (state.stopCandidates || []).length;
-  await sendSmsReply(phoneNumber, `Reply with a number (1–${count}) to set your stop, or DISCARD to cancel.`);
+  await sendSmsReply(phoneNumber, `Reply with a number (1–${count}) to set your stop, SKIP to leave it, or DISCARD to cancel the trip.`);
   return true;
 }
 

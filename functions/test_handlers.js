@@ -342,6 +342,31 @@ test('handleTripLog: 506 College with no direction falls back to disambiguation 
   assert.match(msg, /stop 761/);
 });
 
+test('handleTripLog: identical names with no direction data do not prompt (unanswerable)', async () => {
+  const { handlers, calls, restore } = loadHandlers({
+    dbModule: {
+      findMatchingStops: async () => [
+        { id: 'sA', stopCode: '8121', stopName: 'Spadina / Dundas', routes: [], direction: null },
+        { id: 'sB', stopCode: '7349', stopName: 'Spadina / Dundas', routes: [], direction: null },
+        { id: 'sC', stopCode: '2190', stopName: 'Spadina / Dundas', routes: [], direction: null },
+      ],
+      lookupStop: async () => null,
+    },
+  });
+
+  try {
+    await handlers.handleTripLog('+14165550013', { userId: 'u13' }, 'Spadina/Dundas', '510', 'Northbound', 'TTC');
+  } finally {
+    restore();
+  }
+
+  assert.equal(calls.setPendingState.length, 0, 'should not prompt — codes are the only differentiator');
+  assert.equal(calls.createTrip.length, 1, 'trip should still start');
+  assert.equal(calls.createTrip[0].startStopName, 'Spadina/Dundas');
+  const msg = calls.sendSmsReply[0]?.message || '';
+  assert.doesNotMatch(msg, /Multiple stops match/);
+});
+
 test('handleTripLog: 506 Dufferin / College Eastbound uses stopRoutes before prompting', async () => {
   const { handlers, calls, restore } = loadHandlers({
     dbModule: {

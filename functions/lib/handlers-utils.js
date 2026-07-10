@@ -237,6 +237,14 @@ async function maybeHandleStopDisambiguation({
   );
   if (candidates.length <= 1) return false;
 
+  // If every remaining candidate displays the same name and none carries a
+  // direction, the only differentiator we could show is the stop code — an
+  // unanswerable question for a rider. Fall through silently: the trip
+  // records the shared name with stop_matched:false. (Direction labels like
+  // "College Station (Westbound)" ARE answerable, so those still prompt.)
+  const distinctNames = new Set(candidates.map(c => (c.stopName || '').toLowerCase().trim()));
+  if (distinctNames.size === 1 && !candidates.some(c => c.direction)) return false;
+
   const list = buildStopChoiceList(candidates);
   // Strip full Firestore doc fields — only keep what the dispatcher needs to resolve the choice.
   const slimCandidates = candidates.map(({ stopCode, stopName, direction: dir, routes }) =>
@@ -290,7 +298,7 @@ async function maybeHandleStopDisambiguation({
     await sendSmsReply(
       phoneNumber,
       `${routeDisplay} started.\n\nMultiple stops match "${parsedStop.stopName}":\n\n${list}\n\n` +
-      'Reply with a number to set your stop, or DISCARD to cancel.'
+      'Reply with a number to set your stop (anytime this trip), SKIP to leave it, or DISCARD to cancel the trip.'
     );
     return true;
   }
