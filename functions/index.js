@@ -15,14 +15,30 @@ if (admin.apps.length === 0) {
 
 const { sms } = require('./sms');
 const { api } = require('./api');
-const { onDocumentWritten } = require('firebase-functions/v2/firestore');
+const { onDocumentWritten, onDocumentCreated } = require('firebase-functions/v2/firestore');
 const finalization = require('./lib/finalization');
+const { enrichStopDoc } = require('./lib/atlas-enrich');
 
 // Export the SMS webhook function
 exports.sms = sms;
 
 // Export the iOS companion app API endpoint
 exports.api = api;
+
+// Background trigger: fill Layer-2 facts (direction, routes, official-name alias)
+// on newly created stop docs from Atlas R2 stops-meta. No-ops gracefully while
+// the artifact doesn't exist yet; never touches the user-chosen name.
+exports.onStopCreated = onDocumentCreated('stops/{stopId}', async (event) => {
+  const stop = event.data?.data();
+  if (!stop) return;
+  try {
+    const db = admin.firestore();
+    const outcome = await enrichStopDoc(db, admin, event.params.stopId, stop);
+    console.log(`onStopCreated ${event.params.stopId}: ${outcome}`);
+  } catch (err) {
+    console.error('onStopCreated enrichment failed', err.message);
+  }
+});
 
 // Background trigger: runs post-end finalization (learning, grading, journey linking, etc.)
 // when a trip first receives endTime. Heavy side-effects are fully out of the SMS path.

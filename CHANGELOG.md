@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Stops now enrich themselves from Atlas on creation** (`functions/lib/atlas-enrich.js`, `functions/index.js`, `functions/test_atlas_enrich.js`): New Firestore trigger `onStopCreated` fills Layer-2 facts (direction, routes, official-name alias, `stopRoutes` doc) on any newly created stop doc from Atlas's published `atlas/{slug}-stops-meta.json` — the manual-paste decay problem can't restart. Layering rules enforced in code: `name` is never touched, official names land in `aliases` verbatim, only missing fields are filled, and paired platforms sharing a code only contribute facts every entry agrees on. No-ops gracefully until the Atlas artifact exists on R2; TTC mapped first, other agencies are one slug entry each. 4 unit tests.
+
 ### Data
 - **TTC stop metadata backfilled from GTFS** (`Tools/backfill-stop-metadata.js`, `Tools/backfill-stop-metadata-dryrun.js`, Firestore `stops` + `stopRoutes`): Months of manually pasted stop info had been saved without its direction/route fields — 104 of 169 manual stops were name+code only, and the `stopRoutes` collection (which all route-aware narrowing reads) had zero docs since it was built. One pass against the official TTC GTFS fixed it: 127 stop docs updated (89 directions, 117 route lists, 92 official-name aliases), 131 `stopRoutes` docs created. Guardrails: never overwrites curated values, direction only written when ≥90% of scheduled visits agree and the official name suffix doesn't contradict it (14 genuinely bidirectional stops left direction-less on purpose). Verified live: `510 + Spadina/Dundas + Northbound` now narrows to stop 7349 with no prompt. Script is idempotent — rerun after future GTFS updates.
 
