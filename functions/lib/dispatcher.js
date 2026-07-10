@@ -249,6 +249,10 @@ async function handleConfirmStopState(phoneNumber, body, upperBody, state, trace
 
   if (PENDING_PASSTHROUGH.has(upperBody) || upperBody.startsWith('ASK ')) return false;
 
+  // END/STOP must work mid-disambiguation — the trip already exists and the
+  // rider may reach their destination before ever picking a start stop.
+  if (/^(END|STOP)(\s|$)/i.test(body)) return false;
+
   const count = (state.stopCandidates || []).length;
   await sendSmsReply(phoneNumber, `Reply with a number (1–${count}) to set your stop, or DISCARD to cancel.`);
   return true;
@@ -595,6 +599,17 @@ async function handleAIIntent(phoneNumber, user, body, receivedAt = Date.now(), 
  * Final safety net for unrecognized input
  */
 async function handleFallback(phoneNumber, user, body) {
+  // A bare small number is almost certainly a reply to a disambiguation
+  // prompt whose pending state expired. Explain instead of "Could not
+  // understand", and don't log a junk needs_review trip for it.
+  if (/^\d{1,2}$/.test(body.trim())) {
+    await sendSmsReply(
+      phoneNumber,
+      'That choice expired, so there is nothing to select. Text STATUS to check your trip.'
+    );
+    return;
+  }
+
   await db.collection('trips').add({
     userId: user.userId,
     raw_text: body,

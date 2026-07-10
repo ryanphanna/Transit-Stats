@@ -275,6 +275,8 @@ async function maybeHandleStopDisambiguation({
       await sendSmsReply(phoneNumber, 'Could not start your trip. Please try again.');
       return true;
     }
+    // 60 min TTL — the rider is mid-trip and may not reply for a while.
+    // The default 5 min expired under real riders, so "1" fell to the fallback.
     await setPendingState(phoneNumber, {
       type: 'confirm_stop',
       tripId,
@@ -283,7 +285,7 @@ async function maybeHandleStopDisambiguation({
       agency: resolvedAgency,
       options,
       stopCandidates: slimCandidates,
-    });
+    }, 60 * 60 * 1000);
     const routeDisplay = getRouteDisplay(route, direction);
     await sendSmsReply(
       phoneNumber,
@@ -301,7 +303,7 @@ async function maybeHandleStopDisambiguation({
     agency: resolvedAgency,
     options,
     stopCandidates: slimCandidates,
-  });
+  }, 60 * 60 * 1000);
   await sendSmsReply(
     phoneNumber,
     `Multiple stops match "${parsedStop.stopName}":\n\n${list}\n\nReply with a number or DISCARD to cancel.`

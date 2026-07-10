@@ -111,6 +111,7 @@ function buildHarness({
   const parsing = {
     parseMultiLineTripFormat: () => null,
     parseSingleLineTripFormat: () => null,
+    parseCasualTripFormat: () => null,
     parseEndTripFormat: () => parseEndTripResult,
   };
 
@@ -393,6 +394,40 @@ test('dispatcher: confirm_stop unrecognized input sends reminder, does not fall 
   assert.equal(calls.handleTripLog, 0, 'should not start a new trip');
   assert.equal(calls.sendSmsReply.length, 1, 'should send reminder');
   assert.match(calls.sendSmsReply[0].message, /Reply with a number/);
+});
+
+test('dispatcher: confirm_stop END falls through so the trip can be ended', async () => {
+  const stopCandidates = [
+    { stopCode: '161', stopName: 'Bathurst / King', routes: ['511'], direction: null },
+    { stopCode: '162', stopName: 'Bathurst / King', routes: ['511'], direction: null },
+  ];
+  const { dispatch, calls } = buildHarness({
+    user: { userId: 'u_stop_end' },
+    pendingState: {
+      type: 'confirm_stop',
+      tripId: 'trip_xyz',
+      route: '511',
+      direction: 'Northbound',
+      agency: 'TTC',
+      options: {},
+      stopCandidates,
+    },
+  });
+
+  await dispatch('+14165550099', 'END Spadina Station', 'SM_STOP_END');
+
+  assert.equal(calls.handleEndTrip, 1, 'END should reach handleEndTrip');
+  assert.equal(calls.clearPendingState, 0, 'should not clear pending state');
+});
+
+test('dispatcher: bare number with no pending state gets expiry note, not fallback', async () => {
+  const { dispatch, calls } = buildHarness({ user: { userId: 'u_expired' } });
+
+  await dispatch('+14165550099', '1', 'SM_EXPIRED_CHOICE');
+
+  assert.equal(calls.sendSmsReply.length, 1, 'should send one reply');
+  assert.match(calls.sendSmsReply[0].message, /choice expired/i);
+  assert.doesNotMatch(calls.sendSmsReply[0].message, /Could not understand/);
 });
 
 test('dispatcher: confirm_stop STATUS falls through to normal dispatch', async () => {
