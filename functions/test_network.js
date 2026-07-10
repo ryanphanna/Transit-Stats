@@ -663,3 +663,77 @@ test('observe: writes durationsByHour alongside flat durations', async () => {
   assert.ok(Array.isArray(edge.durationsByHour[hourKey]), 'current hour bucket should be an array');
   assert.ok(edge.durationsByHour[hourKey].includes(12), 'duration should be in hour bucket');
 });
+
+// ─── inferStopSequence — synthetic graphs only, never real trip data ──────
+
+function edge(fromStop, toStop, direction, medianMinutes) {
+  return { fromStop, toStop, direction, medianMinutes };
+}
+
+test('inferStopSequence: reconstructs a 4-stop line from mostly non-adjacent observations', () => {
+  // True line: A -> B -> C -> D (2, 3, 2 min segments). Mostly "skip" trips
+  // a rider would actually produce (A->C, A->D, B->D) plus one adjacent hop
+  // (A->B) so every stop has a path back to the anchor — a stop that's
+  // NEVER a trip endpoint alongside anything already anchored genuinely
+  // can't be placed from duration data alone (see the sparse-data test below).
+  const graph = {
+    edges: {
+      e1: edge('A', 'C', 'Northbound', 5),  // 2+3
+      e2: edge('A', 'D', 'Northbound', 7),  // 2+3+2
+      e3: edge('B', 'D', 'Northbound', 5),  // 3+2
+      e4: edge('A', 'B', 'Northbound', 2),  // 2
+    },
+  };
+
+  const result = NetworkEngine.inferStopSequence(graph, 'Northbound');
+  assert.ok(result, 'should produce a result from 4 edges');
+  assert.equal(result.stopCount, 4);
+
+  const idx = Object.fromEntries(result.order.map((s, i) => [s, i]));
+  const trueOrder = ['A', 'B', 'C', 'D'];
+  const trueIdx = Object.fromEntries(trueOrder.map((s, i) => [s, i]));
+  // Accept either reading direction — a line has no inherent "which end is first"
+  let forward = 0, total = 0;
+  for (let i = 0; i < result.order.length; i++) {
+    for (let j = i + 1; j < result.order.length; j++) {
+      total++;
+      if (trueIdx[result.order[i]] < trueIdx[result.order[j]]) forward++;
+    }
+  }
+  assert.ok(Math.max(forward, total - forward) === total, `should be perfectly ordered (forward or reversed), got ${result.order.join(' -> ')}`);
+});
+
+test('inferStopSequence: honestly omits a stop with no real or transitive path to the anchor, rather than guessing', () => {
+  // B only ever appears as a trip START (B->D) — never an endpoint of any
+  // edge reachable from the anchor (A), and no chain connects them. There is
+  // genuinely no distance information linking A and B in this dataset.
+  const graph = {
+    edges: {
+      e1: edge('A', 'C', 'Northbound', 5),
+      e2: edge('A', 'D', 'Northbound', 7),
+      e3: edge('B', 'D', 'Northbound', 5),
+    },
+  };
+  const result = NetworkEngine.inferStopSequence(graph, 'Northbound');
+  assert.equal(result.stopCount, 3, 'B should be omitted, not guessed');
+  assert.ok(!result.order.includes('B'));
+  assert.deepEqual(new Set(result.order), new Set(['A', 'C', 'D']));
+});
+
+test('inferStopSequence: returns null with fewer than 2 stops observed', () => {
+  assert.equal(NetworkEngine.inferStopSequence({ edges: {} }, 'Northbound'), null);
+  assert.equal(NetworkEngine.inferStopSequence(null, 'Northbound'), null);
+});
+
+test('inferStopSequence: ignores edges in the opposite direction', () => {
+  const graph = {
+    edges: {
+      e1: edge('A', 'B', 'Northbound', 5),
+      e2: edge('X', 'Y', 'Southbound', 5),
+    },
+  };
+  const result = NetworkEngine.inferStopSequence(graph, 'Northbound');
+  assert.equal(result.stopCount, 2);
+  assert.ok(result.order.includes('A') && result.order.includes('B'));
+  assert.ok(!result.order.includes('X') && !result.order.includes('Y'));
+});

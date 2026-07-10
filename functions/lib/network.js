@@ -412,6 +412,67 @@ const NetworkEngine = {
   },
 
   /**
+   * Reconstruct a best-guess linear stop order for one direction, from
+   * observed edge durations alone — no GTFS/topology input, no assumption
+   * about which stop comes "first."
+   *
+   * Anchors on one of the two stops with the largest observed pairwise
+   * duration (very likely the two ends of the line) rather than an
+   * arbitrary or most-observed stop. Distance-from-a-true-endpoint has no
+   * left/right ambiguity; distance from a stop in the middle of the line
+   * does (two stops equidistant on opposite sides look identical), which
+   * silently scrambles the order. Includes transitive (2-hop) edges so
+   * sparse graphs still resolve pairs that were never observed directly.
+   *
+   * Returns { order, anchor, stopCount } or null if fewer than 2 stops
+   * have any duration data for this direction.
+   */
+  inferStopSequence(graph, direction) {
+    if (!graph) return null;
+    const normDir = this._normalizeDirection(direction);
+    const augmented = this._withTransitiveEdges(graph);
+
+    const stops = new Set();
+    const distSum = {}, distCount = {};
+    for (const edge of Object.values(augmented.edges || {})) {
+      if (this._normalizeDirection(edge.direction) !== normDir) continue;
+      if (edge.medianMinutes == null) continue;
+      stops.add(edge.fromStop);
+      stops.add(edge.toStop);
+      const key = [this._normalize(edge.fromStop), this._normalize(edge.toStop)].sort().join('|');
+      distSum[key] = (distSum[key] || 0) + edge.medianMinutes;
+      distCount[key] = (distCount[key] || 0) + 1;
+    }
+
+    const stopList = [...stops];
+    if (stopList.length < 2) return null;
+
+    const dist = (a, b) => {
+      if (a === b) return 0;
+      const key = [this._normalize(a), this._normalize(b)].sort().join('|');
+      return distSum[key] !== undefined ? distSum[key] / distCount[key] : null;
+    };
+
+    let anchor = stopList[0], maxDist = -1;
+    for (const a of stopList) {
+      for (const b of stopList) {
+        if (a === b) continue;
+        const d = dist(a, b);
+        if (d !== null && d > maxDist) { maxDist = d; anchor = a; }
+      }
+    }
+
+    const order = stopList
+      .map(s => ({ stop: s, d: dist(anchor, s) }))
+      .filter(x => x.d !== null || x.stop === anchor)
+      .map(x => ({ stop: x.stop, d: x.stop === anchor ? 0 : x.d }))
+      .sort((a, b) => a.d - b.d)
+      .map(x => x.stop);
+
+    return { order, anchor, stopCount: order.length };
+  },
+
+  /**
    * Synthesize inferred A→C edges from A→B + B→C pairs in the same direction.
    * Only real (non-inferred) edges are used as inputs — no chaining of transitives.
    * Caps at one hop (2-edge chains) to avoid over-inference.
