@@ -1,6 +1,6 @@
-# Security Incidents
+# Incidents
 
-This document tracks historical security incidents and the remediation steps taken to resolve them.
+This document tracks historical security and data-integrity incidents and the remediation steps taken to resolve them.
 
 ---
 
@@ -42,3 +42,26 @@ The `trips` Firestore security rule granted read access to the *entire* trip doc
 
 **Status: Resolved**
 Found and fixed in the same session, before any known external report. No indication of external access to the exposed data at this time.
+
+---
+
+## Background Finalization Silently Broken for 6 Weeks (May–July 2026)
+
+A refactor (commit `29ff83f`, 2026-05-26) moved trip-ending logic — prediction grading, journey linking, and network/habit learning — from the synchronous SMS handler into an async `onTripFinalized` Firestore trigger. The trigger passed the raw `event.data.after.data()` into the shared finalization code without the document's own ID (`Firestore.data()` never includes it). Every downstream operation keyed on the trip ID failed: `predictionStats` writes threw and were silently caught, and the closing `backgroundFinalizedAt` update threw on an empty document path. Trips kept logging normally — only the invisible background step broke, with no user-facing symptom.
+
+The same refactor also dropped the `agency`/`route` fields from `predictionStats` writes and the grading call for V3's own end-stop prediction, and a related bug (not new to this refactor) graded `habit-endstop` predictions against the wrong field (`habitPrediction.stop`, the starting stop, instead of `habitPrediction.endStop`).
+
+**Impact:**
+- No prediction accuracy data (`predictionStats`), no automatic journey linking, and no network/habit model learning for any trip ended between 2026-05-26 and 2026-07-10 (131 trips)
+- No security or privacy impact — trip data itself was recorded correctly throughout; only the internal analytics/ML pipeline was affected
+- Went undetected for ~6 weeks because nothing surfaced the failure to a user-visible surface or a monitored one
+
+**Remediation Steps:**
+1. **Root cause fixed**: `onTripFinalized` now merges `{ id: event.params.tripId, ...after }` before calling into finalization, matching the pattern already used correctly elsewhere in the codebase.
+2. **Regression fields restored**: `agency`, `route`, V3 end-stop grading, and the `habit-endstop` field mapping were all fixed in the same pass.
+3. **Backfilled**: all 131 affected trips were reprocessed in chronological order (required for correct journey linking); prediction stats were patched/corrected rather than reprocessed a second time where duplication would otherwise result.
+4. **Deployed and verified**: confirmed live via Cloud Function logs and a direct Firestore check before and after.
+
+**Status: Resolved.** See [Issue #153](https://github.com/ryanphanna/Transit-Stats/issues/153) and `CHANGELOG.md` for full technical detail.
+
+**Prevention going forward:** the repo already has an emulator-dependent e2e test file that isn't run in normal workflow — running it would have caught the missing document ID immediately. No alerting exists today for "a Firestore collection stopped receiving writes," which is why this took 6 weeks to notice rather than a day.
