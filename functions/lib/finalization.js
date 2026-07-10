@@ -51,7 +51,7 @@ async function gradeAllPredictions(activeTrip, user, endStopData, duration) {
         tripId: activeTrip.id, userId: user.userId, isHit: !!hit, isPartialHit: !!partial,
         predicted: s.route + (s.direction ? ' ' + s.direction : '') + ' from ' + s.stop,
         actual: activeTrip.route + (activeTrip.direction ? ' ' + activeTrip.direction : '') + ' from ' + (activeTrip.startStopName || '?'),
-        confidence: s.confidence, version: s.version, route: activeTrip.route, source: 'sms',
+        confidence: s.confidence, version: s.version, route: activeTrip.route, agency: activeTrip.agency, source: 'sms',
         timestamp: admin.firestore.FieldValue.serverTimestamp()
       });
       await db.collection('predictionAccuracy').doc(user.userId).set({
@@ -63,7 +63,7 @@ async function gradeAllPredictions(activeTrip, user, endStopData, duration) {
     const v4 = activeTrip.predictionV4;
     if (v4) {
       const hit = normalize(v4.route, activeTrip.agency) === normalize(activeTrip.route, activeTrip.agency);
-      await db.collection('predictionStats').add({ tripId: activeTrip.id, userId: user.userId, isHit: hit, version: v4.version, route: activeTrip.route, source: 'sms', timestamp: admin.firestore.FieldValue.serverTimestamp() });
+      await db.collection('predictionStats').add({ tripId: activeTrip.id, userId: user.userId, isHit: hit, version: v4.version, route: activeTrip.route, agency: activeTrip.agency, source: 'sms', timestamp: admin.firestore.FieldValue.serverTimestamp() });
       await db.collection('predictionAccuracy').doc(user.userId).set({ v4Total: inc(1), v4Hits: inc(hit ? 1 : 0), lastUpdated: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
     }
 
@@ -71,23 +71,28 @@ async function gradeAllPredictions(activeTrip, user, endStopData, duration) {
     const v5 = activeTrip.predictionV5;
     if (v5) {
       const hit = normalize(v5.route, activeTrip.agency) === normalize(activeTrip.route, activeTrip.agency);
-      await db.collection('predictionStats').add({ tripId: activeTrip.id, userId: user.userId, isHit: hit, version: v5.version, route: activeTrip.route, source: 'sms', timestamp: admin.firestore.FieldValue.serverTimestamp() });
+      await db.collection('predictionStats').add({ tripId: activeTrip.id, userId: user.userId, isHit: hit, version: v5.version, route: activeTrip.route, agency: activeTrip.agency, source: 'sms', timestamp: admin.firestore.FieldValue.serverTimestamp() });
       await db.collection('predictionAccuracy').doc(user.userId).set({ v5Total: inc(1), v5Hits: inc(hit ? 1 : 0), lastUpdated: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
     }
 
-    // End stop predictions (V4/V5/Habit)
+    // End stop predictions (V3/V4/V5/Habit)
     const es = (pred, version) => {
       if (!pred) return;
       const hit = PredictionEngine._stopMatch(pred.stop, actualEndStop);
       db.collection('predictionStats').add({
         tripId: activeTrip.id, userId: user.userId, endStopPredicted: pred.stop, endStopActual: actualEndStop,
-        endStopHit: hit, version, source: 'sms', timestamp: admin.firestore.FieldValue.serverTimestamp()
+        endStopHit: hit, endStopConfidence: pred.confidence, version, route: activeTrip.route, agency: activeTrip.agency, source: 'sms', timestamp: admin.firestore.FieldValue.serverTimestamp()
       }).catch(() => {});
     };
 
+    es(activeTrip.endStopPrediction, 'v3-endstop');
     es(activeTrip.endStopPredictionV4, 'v4-endstop');
     es(activeTrip.endStopPredictionV5, 'v5-endstop');
-    if (activeTrip.habitPrediction?.endStop) es(activeTrip.habitPrediction, 'habit-endstop');
+    // habitPrediction.stop is the STARTING stop the habit matched on, not the
+    // predicted end stop — must remap to .endStop or this grades the wrong field.
+    if (activeTrip.habitPrediction?.endStop) {
+      es({ stop: activeTrip.habitPrediction.endStop, confidence: activeTrip.habitPrediction.confidence }, 'habit-endstop');
+    }
 
   } catch (err) {
     logger.error('gradeAllPredictions failed', { error: err.message, tripId: activeTrip.id });
