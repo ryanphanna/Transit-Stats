@@ -13,7 +13,7 @@
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "test": "node --test test_*.js",
+    "test": "node --test $(ls test_*.js | grep -v test_e2e.js)",
     "test:watch": "node --test --watch test_*.js",
     "test:integration": "node --test test_integration.js",
     "test:e2e": "firebase emulators:exec --only firestore,functions \"node test_e2e.js\""

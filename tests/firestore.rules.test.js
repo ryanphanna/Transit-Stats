@@ -7,6 +7,7 @@ import {
     initializeTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { getDocs, collection, query, where } from 'firebase/firestore';
 
 const PROJECT_ID = 'transit-stats-rules-test';
 const RULES_PATH = resolve(process.cwd(), 'firestore.rules');
@@ -116,5 +117,75 @@ describe('firestore.rules: profile privilege boundaries', () => {
         const snap = await getDoc(doc(db, 'profiles/user_1'));
         expect(snap.data().isPremium).toBe(true);
         expect(snap.data().isAdmin).toBe(true);
+    });
+});
+
+describe('firestore.rules: trips are never publicly readable', () => {
+    beforeAll(async () => {
+        testEnv = await initializeTestEnvironment({
+            projectId: PROJECT_ID,
+            firestore: {
+                rules: readFileSync(RULES_PATH, 'utf8'),
+            },
+        });
+    });
+
+    beforeEach(async () => {
+        if (testEnv) {
+            await testEnv.clearFirestore();
+        }
+    });
+
+    afterAll(async () => {
+        if (testEnv) {
+            await testEnv.cleanup();
+        }
+    });
+
+    // Regression test for the Public Profile trip data exposure (see INCIDENTS.md,
+    // July 2026): the trips rule once granted read on the *entire* document when
+    // isPublic was true, leaking userId/route/stop names/timestamps. Trip data must
+    // only ever reach a public profile page through the publicProfile Cloud Function
+    // (Admin SDK, aggregate fields only) — never a direct client-side Firestore read.
+    test('unauthenticated client cannot read a trip doc, even when isPublic is true', async () => {
+        await testEnv.withSecurityRulesDisabled(async (context) => {
+            await setDoc(doc(context.firestore(), 'trips/trip_1'), {
+                userId: 'user_1',
+                isPublic: true,
+                route: '510',
+                startStopName: 'Spadina Station',
+                endStopName: 'Union Station',
+            });
+        });
+
+        const anonDb = testEnv.unauthenticatedContext().firestore();
+        await assertFails(getDoc(doc(anonDb, 'trips/trip_1')));
+        await assertFails(getDocs(query(collection(anonDb, 'trips'), where('isPublic', '==', true))));
+    });
+
+    test('a different authenticated user cannot read a trip doc, even when isPublic is true', async () => {
+        await testEnv.withSecurityRulesDisabled(async (context) => {
+            await setDoc(doc(context.firestore(), 'trips/trip_1'), {
+                userId: 'user_1',
+                isPublic: true,
+                route: '510',
+            });
+        });
+
+        const otherDb = authedDb('user_2', 'other@example.com');
+        await assertFails(getDoc(doc(otherDb, 'trips/trip_1')));
+    });
+
+    test('the owner can still read their own trip', async () => {
+        await testEnv.withSecurityRulesDisabled(async (context) => {
+            await setDoc(doc(context.firestore(), 'trips/trip_1'), {
+                userId: 'user_1',
+                isPublic: true,
+                route: '510',
+            });
+        });
+
+        const ownerDb = authedDb('user_1', 'user@example.com');
+        await assertSucceeds(getDoc(doc(ownerDb, 'trips/trip_1')));
     });
 });
