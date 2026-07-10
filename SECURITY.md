@@ -3,13 +3,15 @@
 TransitStats is built with privacy and security as its foundation.
 
 - **Authentication & Authorization**: A multi-tier model using invite-only whitelists and role-based access control (RBAC).
-- **Data Ownership**: Firestore rules ensure users only access their own trips, profiles, and templates.
+- **Data Ownership**: Firestore rules ensure users only access their own trips, profiles, and templates. Trip documents are tied to your account (`userId`) and are never publicly readable, even when a trip is marked public on your profile — only aggregate stats (trip/hour totals, an anonymized location heatmap) are exposed there, computed server-side.
+- **Stop-Sign Photos**: MMS photos sent to log a trip are fetched into memory, sent directly to Gemini for parsing, and discarded — they are never written to Cloud Storage, Firestore, or disk. Image EXIF metadata (which can carry a phone's GPS location) is never read or extracted; the only location data TransitStats stores is your phone's own GPS reading at trip start/end.
 - **AI Privacy**: TransitStats uses Gemini to interpret and process location-based trip data.
     - **Privacy Commitment**: Covered by [Google's Enterprise Privacy protections](https://cloud.google.com/vertex-ai/docs/generative-ai/learn/privacy).
     - **No Training**: Your trip data is never used to train global AI models.
     - **Isolation**: Data is processed in isolated sessions and is not shared with other users.
 - **Secure Integration**: Server-side validation, rate limiting, and secure secret management via Google Cloud.
 - **Third-Party Data**: Route and stop metadata is enriched from [Atlas](https://github.com/Civic-Minds/Atlas), a public, read-only transit data source. No credentials or user data are shared with it.
+- **Shared Network Intelligence**: Trips help make predictions smarter for everyone (e.g. confirming a stop serves a given route), but the shared/pooled collections this writes to (`stopRoutes`, `transferIndex`, the global route-level `networkGraph`) never carry a `userId` — only the aggregate fact. Your personal prediction data (a per-user `networkGraph` doc) does reference your account, but it isn't exposed to other users or readable by clients at all — only Cloud Functions running with the Admin SDK can access it.
 - **Automated Scanning**: Continuous monitoring via Dependabot and CodeQL for potential vulnerabilities.
 
 ### Server-Side Security (Cloud Functions)
@@ -32,7 +34,7 @@ For history of security audits and incident remediation reports, please see **[I
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in this project, please report it via the **[GitHub Private Vulnerability Reporting](https://github.com/TransitStats/TransitStats/security/advisories/new)** tool. Private reports allow for a secure disclosure process before a formal patch is released.
+If you discover a security vulnerability in this project, please report it via the **[GitHub Private Vulnerability Reporting](https://github.com/ryanphanna/Transit-Stats/security/advisories/new)** tool. Private reports allow for a secure disclosure process before a formal patch is released.
 
 ### What to Include
 
