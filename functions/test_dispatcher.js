@@ -253,7 +253,7 @@ test('dispatcher: MMS from known user triggers Snap-to-Start handler', async () 
   assert.equal(calls.sendSmsReply.length, 0);
 });
 
-test('dispatcher: MMS from unknown user gets REGISTER prompt when allowed', async () => {
+test('dispatcher: MMS from unknown user gets conversational onboarding when allowed', async () => {
   const { dispatch, calls } = buildHarness({
     user: null,
     shouldRespondToUnknown: true,
@@ -263,7 +263,11 @@ test('dispatcher: MMS from unknown user gets REGISTER prompt when allowed', asyn
   assert.equal(calls.handleMmsTrip.length, 0);
   assert.equal(calls.sendSmsReply.length, 1);
   assert.equal(calls.sendSmsReply[0].phoneNumber, '+14165550000');
-  assert.equal(calls.sendSmsReply[0].message, 'Text REGISTER [email] to get started');
+  // v1.45.0 conversational registration: ask for the email directly and park
+  // an awaiting_email state, instead of the old "Text REGISTER [email]" reply.
+  assert.match(calls.sendSmsReply[0].message, /What's your email/);
+  assert.equal(calls.setPendingState.length, 1);
+  assert.equal(calls.setPendingState[0].type, 'awaiting_email');
 });
 
 test('dispatcher: mms_stop_needed single route uses stop reply and preserves receivedAt', async () => {

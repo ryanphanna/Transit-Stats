@@ -54,12 +54,20 @@ function loadHandlers(overrides = {}) {
     findMatchingStops: async () => [],
     getRoutesAtStop: async () => null,
     db: {
-      collection: () => ({
+      collection: (name) => ({
         add: async () => {},
         doc: () => ({
           update: async (data) => { calls.docUpdates.push(data); },
           set: async () => {},
-          get: async () => { calls.docGets.push(true); return { exists: false, data: () => ({}) }; },
+          get: async () => {
+            // detectAnomaly reads the personal graph doc directly (v1.44.0);
+            // tests provide it via overrides.networkGraphDoc.
+            if (name === 'networkGraph' && overrides.networkGraphDoc) {
+              return { exists: true, data: () => overrides.networkGraphDoc };
+            }
+            calls.docGets.push(true);
+            return { exists: false, data: () => ({}) };
+          },
           delete: async () => {},
         }),
         where: () => ({
@@ -186,6 +194,7 @@ function loadHandlers(overrides = {}) {
       getConnectionsAtStop: async () => ({}),
       getConnectionLabels: async () => ({}),
       _key: (s) => s.toString().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
+      _docId: (userId, agency, route) => [userId, agency, route].join('_'),
       ...(overrides.network?.NetworkEngine || {}),
     },
   };
@@ -940,6 +949,9 @@ function makeEndTripHandlers(networkOverride) {
       }),
     },
     network: { NetworkEngine: networkOverride },
+    // Personal graph doc for detectAnomaly's direct Firestore read; the
+    // content is inert — getEdgeMedianDuration is mocked per test.
+    networkGraphDoc: { edges: {} },
   });
 }
 
