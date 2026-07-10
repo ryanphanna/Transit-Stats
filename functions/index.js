@@ -63,7 +63,10 @@ exports.onTripFinalized = onDocumentWritten('trips/{tripId}', async (event) => {
     console.log(`[Background] Running finalization for trip ${tripId} (reason: ended)`);
 
     try {
-      await finalization.runPostEndFinalization(after);
+      // after.data() never includes the doc's own ID — runPostEndFinalization
+      // and everything it calls (gradeAllPredictions, the backgroundFinalizedAt
+      // write) key off tripData.id, so it must be merged in here explicitly.
+      await finalization.runPostEndFinalization({ id: tripId, ...after });
     } catch (err) {
       console.error(`[Background] Finalization failed for ${tripId}`, err);
     }
