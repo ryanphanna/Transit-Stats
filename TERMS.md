@@ -15,6 +15,7 @@ You agree not to:
 - Attempt to access another user's account, trips, or data
 - Attempt to circumvent the invite-only whitelist or rate limits
 - Attempt to gain unauthorized access to Transit Stats' systems, infrastructure, source code repositories, or backend services — including exploiting, probing, or attacking security vulnerabilities — except as part of the good-faith responsible disclosure process described in [SECURITY.md](./SECURITY.md)
+- Misuse the service's AI features (stop-sign photo parsing, natural-language stats queries): no prompt injection or jailbreak attempts, no trying to extract underlying prompts/instructions, and no using them for anything unrelated to your own trip logging and stats — including generating harmful, illegal, or abusive content
 - Use the service in any way that disrupts it for other users or the operator's Twilio/Gemini/Firebase usage quotas and costs
 
 Violating this may result in your phone number or account being rate-limited, suspended, or permanently blocked, without notice, and may be reported to relevant authorities where applicable.
