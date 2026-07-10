@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Changed
+- **Docs cleanup after the Atlas integration landed** (`README.md`, `SECURITY.md`, `DOCUMENTS.md`, `Tools/README.md`, `docs/ROADMAP_TECHNICAL.md`, `.gitignore`): README now credits Atlas as the data provider. SECURITY.md lists it as a read-only third-party data source. DOCUMENTS.md's dead link to a legacy `setup-admin.md` (never tracked, lives under gitignored `_legacy_v1/`) is removed. Tools/README.md documents six scripts that existed but weren't listed (stop-metadata backfill, trip-hub migration/rollback, trip-based stop enrichment). ROADMAP_TECHNICAL.md's "Broader GTFS stop import" and "Scheduled GTFS refresh" items are checked off — both now handled by Atlas's weekly refresh. `.gitignore` typo fixed (`**/ .npm-cache/` → `**/.npm-cache/`).
+- Removed a stray tracked duplicate (`functions/package-lock 2.json`) and untracked sync-conflict/scratch files (`Tools/backfill-stop-metadata 2.js`, `Tools/backfill-stop-metadata-dryrun 2.js`, `count-trips-node.js` x2) that had accumulated outside git.
+
 ## [1.46.0] - 2026-07-10
 
 ### Added

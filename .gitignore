@@ -60,7 +60,7 @@ coverage/
 
 # Cache
 .npm-cache/
-**/ .npm-cache/
+**/.npm-cache/
 __pycache__/
 *.pyc
 

@@ -9,6 +9,7 @@ TransitStats is built with privacy and security as its foundation.
     - **No Training**: Your trip data is never used to train global AI models.
     - **Isolation**: Data is processed in isolated sessions and is not shared with other users.
 - **Secure Integration**: Server-side validation, rate limiting, and secure secret management via Google Cloud.
+- **Third-Party Data**: Route and stop metadata is enriched from [Atlas](https://github.com/Civic-Minds/Atlas), a public, read-only transit data source. No credentials or user data are shared with it.
 - **Automated Scanning**: Continuous monitoring via Dependabot and CodeQL for potential vulnerabilities.
 
 ### Server-Side Security (Cloud Functions)

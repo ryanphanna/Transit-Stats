@@ -38,6 +38,15 @@ Keep reusable scripts here. Do not create a second top-level scripts folder unle
 - `create-normalized-stops.js`
 - `gtfs-import-prep.py`
 
+## Stop Metadata & Hubs
+
+- `backfill-stop-metadata.js` — apply direction/routes/alias backfill for TTC stops from TTC GTFS
+- `backfill-stop-metadata-dryrun.js` — dry-run version of the above, writes nothing
+- `enrich-stops-from-trips.js` — backfill the normalized stops library from trip GPS coordinates
+- `backfill-trip-hubs.js` — assign startHubId/endHubId on trips from the stops library
+- `migrate-hubs-to-firestore.js` — migrate hardcoded CONNECTION_GROUPS into Firestore stop `hubId` fields
+- `rollback-trip-hubs.js` — remove denormalized hubId fields from trip records
+
 ## Standalone Utility
 
 - `Rocket/` — Rocket research instrument static files

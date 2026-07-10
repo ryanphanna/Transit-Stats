@@ -44,11 +44,9 @@ quality and coverage improvements.
 
 ## Stop & Route Data
 
-- [ ] **Broader GTFS stop import** — current stop library covers stops you've actually
-  boarded or alighted at (`source: "manual"` or `source: "gtfs"` seeded from trip history).
-  Expand to import all stops on routes you ride so name resolution works for new stops
-  before you've been there. Script exists at `Tools/gtfs-import-prep.py`; run with the
-  full-route mode rather than the used-stops-only mode.
+- [x] **Broader GTFS stop import** — done via Atlas. Route lists and stop metadata
+  now come from Atlas's weekly R2-hosted GTFS refresh (`functions/lib/atlas-enrich.js`),
+  so name resolution works for new stops without manual admin GTFS uploads.
 - [ ] **Stop alias coverage** — expand the stops library to cover more agencies and
   surface more alias variants. Current coverage is TTC-heavy.
 - [ ] **Multi-agency stops (`agencies` array)** — replace the single `agency` field on
@@ -56,9 +54,9 @@ quality and coverage improvements.
   are stored once and matched for any operator that boards there. Requires migrating
   existing stop documents and updating `lookupStop`/`findMatchingStops` to query with
   `array-contains`. Currently worked around by a cross-agency name fallback in `lookupStop`.
-- [ ] **Scheduled GTFS refresh** — static GTFS data ages. Add a Cloud Function that
-  detects feed staleness and triggers a re-import, rather than requiring a manual
-  admin import.
+- [x] **Scheduled GTFS refresh** — done via Atlas. Atlas re-processes and republishes
+  GTFS data on its own weekly schedule; Transit Stats reads the current snapshot from
+  R2 instead of running its own staleness detection.
 - [ ] **Stop merge history** — when stops are merged via the Consolidation Panel,
   log the merge so it can be audited and reverted if needed.
 - [ ] **Route completion tracking** — extend the Route Tracker beyond ridden/missing

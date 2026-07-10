@@ -30,3 +30,5 @@ Transit riders have almost no personal tracking tools built for transit. There i
 - [Documents](./DOCUMENTS.md)
 
 Created by [Ryan Hanna](https://github.com/ryanphanna) | [ryanisnota.pro](https://ryanisnota.pro)
+
+Powered by [Atlas](https://github.com/Civic-Minds/Atlas)
