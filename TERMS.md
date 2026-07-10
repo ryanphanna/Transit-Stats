@@ -14,9 +14,10 @@ You agree not to:
 - Send spam, abusive content, or automated/bulk messages to the service's SMS number or API endpoints
 - Attempt to access another user's account, trips, or data
 - Attempt to circumvent the invite-only whitelist or rate limits
+- Attempt to gain unauthorized access to Transit Stats' systems, infrastructure, source code repositories, or backend services — including exploiting, probing, or attacking security vulnerabilities — except as part of the good-faith responsible disclosure process described in [SECURITY.md](./SECURITY.md)
 - Use the service in any way that disrupts it for other users or the operator's Twilio/Gemini/Firebase usage quotas and costs
 
-Violating this may result in your phone number or account being rate-limited, suspended, or permanently blocked, without notice.
+Violating this may result in your phone number or account being rate-limited, suspended, or permanently blocked, without notice, and may be reported to relevant authorities where applicable.
 
 ## SMS terms
 
