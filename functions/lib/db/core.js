@@ -2,6 +2,7 @@
  * Firebase Admin SDK initialization — shared by all db modules
  */
 const admin = require('firebase-admin');
+const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -11,4 +12,4 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-module.exports = { admin, db };
+module.exports = { admin, db, FieldValue, Timestamp };

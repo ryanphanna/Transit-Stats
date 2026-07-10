@@ -25,9 +25,14 @@ process.env.TS_TEST_MODE = '1';
 const { test, before, after, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const admin = require('firebase-admin');
+const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 
-// Emulator connection — emulators:exec sets these env vars for the child process
-const EMULATOR_PROJECT_ID = 'transit-stats-e2e-test';
+// Emulator connection — emulators:exec sets these env vars for the child process.
+// Must match .firebaserc's project, or writes land in a Firestore emulator
+// "tenant" the Functions emulator's Eventarc trigger listener never watches —
+// Firestore-triggered functions (onTripFinalized) would silently never fire.
+// FIRESTORE_EMULATOR_HOST still keeps everything fully local; no real project touched.
+const EMULATOR_PROJECT_ID = 'transitstats-21ba4';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -70,6 +75,21 @@ async function getLatestTrip() {
   return { id: snap.docs[0].id, ...snap.docs[0].data() };
 }
 
+/**
+ * Backdate the active trip's startTime so END produces a realistic, non-zero
+ * duration. Without this, START+END fired back-to-back in a test produce
+ * duration: 0 (rounds to 0 minutes), and NetworkEngine.observe() silently
+ * no-ops on any falsy duration — a real "no elapsed time" guard, not a bug,
+ * but it means synthetic tests need to simulate elapsed travel time explicitly.
+ */
+async function backdateActiveTripStart(minutesAgo = 10) {
+  const active = await getLatestTrip();
+  if (!active || active.endTime) return;
+  await db.collection('trips').doc(active.id).update({
+    startTime: Timestamp.fromDate(new Date(Date.now() - minutesAgo * 60000)),
+  });
+}
+
 async function deleteAllTestTrips() {
   const snap = await db.collection('trips').where('userId', '==', TEST_USER_ID).get();
   const batch = db.batch();
@@ -103,8 +123,12 @@ async function countPredictionStats(tripId) {
 
 /** Check if the user's networkGraph for a route has received any observations. */
 async function hasNetworkObservation(userId, agency, route) {
+  // Doc ID must match NetworkEngine._docId exactly: `${userId}_${agency}_${route}`,
+  // normalized lowercase/underscored — no "user_" prefix. This helper's ID was
+  // never correct; this test failure was masked by earlier, deeper bugs.
+  const norm = s => s.toString().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
   const doc = await db.collection('networkGraph')
-    .doc(`user_${userId}_${agency}_${route}`)
+    .doc(`${userId}_${norm(agency)}_${norm(route)}`)
     .get();
   if (!doc.exists) return false;
   const data = doc.data();
@@ -112,6 +136,13 @@ async function hasNetworkObservation(userId, agency, route) {
 }
 
 // ─── Setup / Teardown ───────────────────────────────────────────────────────
+
+// Stop names used across the sms() calls below. Without seeded stops docs,
+// lookupStop() finds no match, every trip gets stop_matched: false, and
+// getRecentCompletedTrips silently excludes those trips from journey-linking/
+// transfer history — journey-linking assertions fail with no explanation
+// pointing at stops at all.
+const TEST_STOPS = ['Spadina / College', 'Spadina / Bloor', 'College / Spadina', 'College / Yonge', 'Dundas / Yonge'];
 
 before(async () => {
   await db.collection('phoneNumbers').doc(TEST_PHONE).set({
@@ -124,7 +155,17 @@ before(async () => {
     isAdmin: false,
   });
   await deleteAllTestTrips();
-  console.log('✅ E2E test user created (emulator)');
+
+  for (const [i, name] of TEST_STOPS.entries()) {
+    await db.collection('stops').doc(`e2e_test_stop_${i}`).set({
+      name,
+      code: `E2E${i}`,
+      agencies: ['TTC'],
+      source: 'verified',
+    });
+  }
+
+  console.log('✅ E2E test user + stops created (emulator)');
 });
 
 after(async () => {
@@ -132,6 +173,9 @@ after(async () => {
   await db.collection('phoneNumbers').doc(TEST_PHONE).delete().catch(() => {});
   await db.collection('profiles').doc(TEST_USER_ID).delete().catch(() => {});
   await db.collection('smsState').doc(TEST_PHONE).delete().catch(() => {});
+  for (let i = 0; i < TEST_STOPS.length; i++) {
+    await db.collection('stops').doc(`e2e_test_stop_${i}`).delete().catch(() => {});
+  }
   console.log('🧹 E2E test data cleaned up');
 });
 
@@ -143,6 +187,7 @@ describe('E2E: basic trip lifecycle with background finalization', () => {
     assert.ok(startReply, 'should get start reply');
     assert.match(startReply, /Started/i);
 
+    await backdateActiveTripStart(10);
     const reply = await sms('END Spadina / Bloor');
     assert.ok(reply, 'should get end reply');
     assert.match(reply, /ended|arrived/i);
@@ -175,6 +220,7 @@ describe('E2E: correction exclusion (no auto re-finalization)', () => {
   test('high-impact correction after finalization does not trigger re-run; manual does', async () => {
     // 1. Create and finalize a trip
     await sms('506\nCollege / Spadina\nEast');
+    await backdateActiveTripStart(10);
     const endReply = await sms('END College / Yonge');
     assert.ok(endReply);
 
@@ -188,7 +234,7 @@ describe('E2E: correction exclusion (no auto re-finalization)', () => {
     await db.collection('trips').doc(trip.id).update({
       route: '501',
       correctedFields: ['route'],
-      correctedAt: admin.firestore.FieldValue.serverTimestamp(),
+      correctedAt: FieldValue.serverTimestamp(),
     });
 
     // Give any potential (but blocked) trigger time to do nothing
@@ -228,12 +274,17 @@ describe('E2E: background journey linking', () => {
   test('second trip shortly after first gets journeyLinked metadata', async () => {
     // First leg
     await sms('510\nSpadina / College\nNorth');
+    await backdateActiveTripStart(10);
     await sms('END Spadina / Bloor');
 
     const leg1 = await getLatestTrip();
     const leg1Final = await waitForFinalization(leg1.id);
 
-    // Second leg very soon after (simulates quick transfer)
+    // Second leg very soon after (simulates quick transfer). Deliberately NOT
+    // backdated — leg2's startTime must stay near "now" so the gap from leg1's
+    // endTime stays small and positive for TransferEngine's cold-start scoring;
+    // backdating it would push it before leg1 even ended (negative gap = auto-reject).
+    // leg2's own duration isn't asserted here, so a near-zero duration is fine.
     await sms('510\nSpadina / Bloor\nSouth');
     await sms('END Dundas / Yonge');
 

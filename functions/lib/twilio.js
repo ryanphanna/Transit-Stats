@@ -103,13 +103,12 @@ async function sendSmsReply(to, message) {
 async function logOutboundMessage(body) {
   try {
     const crypto = require('crypto');
-    const { getFirestore, getAdmin } = require('./db');
+    const { getFirestore, FieldValue, Timestamp } = require('./db');
     const db = getFirestore();
-    const admin = getAdmin();
     const key = crypto.createHash('sha256').update('outbound|' + body).digest('hex');
     await db.collection('processedMessages').doc('outbound_' + key).set({
-      processedAt: admin.firestore.FieldValue.serverTimestamp(),
-      expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 120000)),
+      processedAt: FieldValue.serverTimestamp(),
+      expiresAt: Timestamp.fromDate(new Date(Date.now() + 120000)),
     });
   } catch (e) {
     console.error('Failed to log outbound message:', e);

@@ -1,7 +1,6 @@
 /**
  * Trip lifecycle handlers.
  */
-const admin = require('firebase-admin');
 const { randomUUID } = require('crypto');
 const {
   sendSmsReply,
@@ -19,6 +18,8 @@ const {
   createTrip,
   getRecentCompletedTrips,
   getStopsLibrary,
+  FieldValue,
+  Timestamp,
 } = require('./db');
 const { PredictionEngine } = require('./predict.js');
 const { TransferEngine } = require('./transfer.js');
@@ -149,7 +150,7 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
 
   // Background: teach this stop which routes serve it, and promote gtfs→verified on first real trip
   if (stopData?.id && route) {
-    const stopUpdate = { routes: require('firebase-admin').firestore.FieldValue.arrayUnion(route) };
+    const stopUpdate = { routes: FieldValue.arrayUnion(route) };
     if (stopData.source === 'gtfs') stopUpdate.source = 'verified';
     db.collection('stops').doc(stopData.id).update({
       ...stopUpdate,
@@ -568,7 +569,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
   }
 
   const parsedEndStop = parseStopInput(endStopInput);
-  const endTime = admin.firestore.Timestamp.now();
+  const endTime = Timestamp.now();
   const startTime = activeTrip.startTime.toDate();
   const duration = Math.round((endTime.toDate().getTime() - startTime.getTime()) / 60000);
 
@@ -706,7 +707,7 @@ async function recomputeAndUpdatePrimaryAgency(userId, dbClient = null) {
     const current = profileSnap.exists ? profileSnap.data().defaultAgency : null;
 
     if (current !== bestAgency) {
-      await profileRef.set({ defaultAgency: bestAgency, updatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      await profileRef.set({ defaultAgency: bestAgency, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
       console.log(`[primary-agency] Updated user ${userId} defaultAgency: ${current || 'none'} → ${bestAgency}`);
     }
   } catch (err) {

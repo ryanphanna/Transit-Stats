@@ -12,6 +12,8 @@
  *  - Atlas/R2 is read-only; if the file doesn't exist yet (404), do nothing.
  */
 
+const { FieldValue } = require('firebase-admin/firestore');
+
 const ATLAS_R2_BASE = process.env.ATLAS_R2_BASE || 'https://pub-85dc05d357954b6399c9a44018a3221e.r2.dev';
 
 // Transit Stats agency name -> Atlas slug. Extend as new agencies are ridden;
@@ -83,7 +85,7 @@ function buildStopEnrichment(stop, metaFile) {
  * Trigger body: enrich a newly created stop doc in place.
  * Returns a short outcome string for logging.
  */
-async function enrichStopDoc(db, admin, stopId, stop) {
+async function enrichStopDoc(db, stopId, stop) {
   const agency = stop.agency || (stop.agencies || [])[0];
   const slug = AGENCY_SLUGS[agency];
   if (!slug) return 'no-slug';
@@ -96,11 +98,11 @@ async function enrichStopDoc(db, admin, stopId, stop) {
   if (!enrichment) return 'nothing-to-add';
 
   const { stopUpdate, stopRoutes } = enrichment;
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const now = FieldValue.serverTimestamp();
   const update = { atlasEnrichedAt: now, updatedAt: now };
   if (stopUpdate.direction) update.direction = stopUpdate.direction;
-  if (stopUpdate.newRoutes) update.routes = admin.firestore.FieldValue.arrayUnion(...stopUpdate.newRoutes);
-  if (stopUpdate.newAliases) update.aliases = admin.firestore.FieldValue.arrayUnion(...stopUpdate.newAliases);
+  if (stopUpdate.newRoutes) update.routes = FieldValue.arrayUnion(...stopUpdate.newRoutes);
+  if (stopUpdate.newAliases) update.aliases = FieldValue.arrayUnion(...stopUpdate.newAliases);
   await db.collection('stops').doc(stopId).update(update);
 
   if (stopRoutes) {

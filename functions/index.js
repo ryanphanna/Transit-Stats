@@ -39,7 +39,7 @@ exports.onStopCreated = onDocumentCreated('stops/{stopId}', async (event) => {
   if (!stop) return;
   try {
     const db = admin.firestore();
-    const outcome = await enrichStopDoc(db, admin, event.params.stopId, stop);
+    const outcome = await enrichStopDoc(db, event.params.stopId, stop);
     console.log(`onStopCreated ${event.params.stopId}: ${outcome}`);
   } catch (err) {
     console.error('onStopCreated enrichment failed', err.message);

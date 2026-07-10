@@ -87,12 +87,15 @@ function buildHarness({
         }),
       }),
     },
-    admin: {
-      firestore: {
-        FieldValue: {
-          serverTimestamp: () => new Date(),
-        },
-      },
+    FieldValue: {
+      delete: () => ({ _op: 'delete' }),
+      increment: v => ({ _op: 'increment', v }),
+      serverTimestamp: () => new Date(),
+      arrayUnion: (...vals) => ({ _op: 'arrayUnion', vals }),
+    },
+    Timestamp: {
+      now: () => ({ toDate: () => new Date() }),
+      fromDate: (d) => ({ toDate: () => d }),
     },
   };
 

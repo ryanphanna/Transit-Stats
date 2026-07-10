@@ -1,7 +1,6 @@
 /**
  * Simple SMS command handlers.
  */
-const admin = require('firebase-admin');
 const {
   sendSmsReply,
 } = require('./twilio');
@@ -16,6 +15,8 @@ const {
   getUserByPhone,
   getUserProfile,
   db,
+  FieldValue,
+  Timestamp,
 } = require('./db');
 const {
   getStopDisplay,
@@ -130,7 +131,7 @@ async function handleDiscard(phoneNumber, user, traceId = null) {
     const batch = db.batch();
     partnerSnap.docs.forEach(doc => {
       if (doc.id !== activeTrip.id) {
-        batch.update(doc.ref, { journeyId: admin.firestore.FieldValue.delete() });
+        batch.update(doc.ref, { journeyId: FieldValue.delete() });
       }
     });
     batch.delete(db.collection('trips').doc(activeTrip.id));
@@ -194,7 +195,7 @@ async function handleUnlink(phoneNumber, user, traceId = null) {
 
   const batch = db.batch();
   journeySnap.docs.forEach(doc => {
-    batch.update(doc.ref, { journeyId: admin.firestore.FieldValue.delete() });
+    batch.update(doc.ref, { journeyId: FieldValue.delete() });
   });
   await batch.commit();
 
@@ -300,7 +301,7 @@ async function handleVerificationCode(phoneNumber, code, traceId = null) {
 
   if (verificationData.attempts >= 3) {
     await db.collection('smsVerification').doc(phoneNumber).update({
-      lockedUntil: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 10 * 60 * 1000)),
+      lockedUntil: Timestamp.fromDate(new Date(Date.now() + 10 * 60 * 1000)),
     });
     await clearPendingState(phoneNumber);
     await sendSmsReply(phoneNumber, 'Too many failed attempts. Try again in 10 minutes.');
@@ -309,7 +310,7 @@ async function handleVerificationCode(phoneNumber, code, traceId = null) {
 
   if (code !== verificationData.code) {
     await db.collection('smsVerification').doc(phoneNumber).update({
-      attempts: admin.firestore.FieldValue.increment(1),
+      attempts: FieldValue.increment(1),
     });
     await sendSmsReply(phoneNumber, 'Invalid code.');
     return;
@@ -329,7 +330,7 @@ async function handleVerificationCode(phoneNumber, code, traceId = null) {
   await db.collection('phoneNumbers').doc(phoneNumber).set({
     userId,
     email: verificationData.email,
-    registeredAt: admin.firestore.FieldValue.serverTimestamp(),
+    registeredAt: FieldValue.serverTimestamp(),
   });
 
   await db.collection('smsVerification').doc(phoneNumber).delete();

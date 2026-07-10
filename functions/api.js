@@ -4,6 +4,7 @@
 
 const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
+const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 const { dispatch } = require('./lib/dispatcher');
 const { apiContextStorage, sendSmsReply } = require('./lib/twilio');
 const logger = require('./lib/logger');
@@ -63,7 +64,7 @@ async function handleRequestOtp(req, res, traceId) {
     }
 
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = admin.firestore.Timestamp.fromDate(new Date(Date.now() + 10 * 60 * 1000));
+    const expiresAt = Timestamp.fromDate(new Date(Date.now() + 10 * 60 * 1000));
     
     await db.collection('phoneLoginVerification').doc(phoneNumber).set({
       code,
@@ -122,7 +123,7 @@ async function handleVerifyOtp(req, res, traceId) {
 
     if (verifyData.code !== code) {
       await db.collection('phoneLoginVerification').doc(phoneNumber).update({
-        attempts: admin.firestore.FieldValue.increment(1),
+        attempts: FieldValue.increment(1),
       });
       res.status(400).json({ error: 'Invalid verification code.' });
       return;

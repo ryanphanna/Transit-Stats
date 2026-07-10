@@ -1,7 +1,6 @@
 /**
  * Query, stats, and journey link handlers.
  */
-const admin = require('firebase-admin');
 const { randomUUID } = require('crypto');
 const {
   sendSmsReply,
@@ -15,6 +14,8 @@ const {
   getRecentCompletedTrips,
   getConversationHistory,
   saveConversationTurn,
+  FieldValue,
+  Timestamp,
 } = require('./db');
 const {
   getRouteDisplay,
@@ -86,7 +87,7 @@ async function handleQuery(phoneNumber, user, question, traceId = null) {
     question,
     answer,
     tripWindowSize: trips.length,
-    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    timestamp: FieldValue.serverTimestamp(),
     source: 'sms',
   }).catch((err) => console.error('queryLogs write failed:', err));
 }
@@ -105,7 +106,7 @@ async function handleStatsCommand(phoneNumber, user, traceId = null) {
 
   const snapshot = await db.collection('trips')
     .where('userId', '==', user.userId)
-    .where('startTime', '>=', admin.firestore.Timestamp.fromDate(sixtyDaysAgo))
+    .where('startTime', '>=', Timestamp.fromDate(sixtyDaysAgo))
     .get();
 
   const toDate = (t) => t.startTime?.toDate ? t.startTime.toDate() : new Date(t.startTime);

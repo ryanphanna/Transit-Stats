@@ -4,13 +4,13 @@
  * from both the SMS handler and future background triggers.
  */
 
-const admin = require('firebase-admin');
 const { randomUUID } = require('crypto');
 const {
   getRecentCompletedTrips,
   getStopsLibrary,
   lookupStop,
   db,
+  FieldValue,
   hasBlockingCorrection,
 } = require('./db');
 const { PredictionEngine } = require('./predict.js');
@@ -26,7 +26,7 @@ const logger = require('./logger');
 
 async function gradeAllPredictions(activeTrip, user, endStopData, duration) {
   const actualEndStop = endStopData ? endStopData.stopName : (activeTrip.endStopName || '');
-  const inc = admin.firestore.FieldValue.increment;
+  const inc = FieldValue.increment;
 
   const normalize = (r, agency) => {
     r = r.toString().trim();
@@ -52,10 +52,10 @@ async function gradeAllPredictions(activeTrip, user, endStopData, duration) {
         predicted: s.route + (s.direction ? ' ' + s.direction : '') + ' from ' + s.stop,
         actual: activeTrip.route + (activeTrip.direction ? ' ' + activeTrip.direction : '') + ' from ' + (activeTrip.startStopName || '?'),
         confidence: s.confidence, version: s.version, route: activeTrip.route, agency: activeTrip.agency, source: 'sms',
-        timestamp: admin.firestore.FieldValue.serverTimestamp()
+        timestamp: FieldValue.serverTimestamp()
       });
       await db.collection('predictionAccuracy').doc(user.userId).set({
-        total: inc(1), hits: inc(hit ? 1 : 0), partialHits: inc(partial ? 1 : 0), lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+        total: inc(1), hits: inc(hit ? 1 : 0), partialHits: inc(partial ? 1 : 0), lastUpdated: FieldValue.serverTimestamp()
       }, { merge: true });
     }
 
@@ -63,16 +63,16 @@ async function gradeAllPredictions(activeTrip, user, endStopData, duration) {
     const v4 = activeTrip.predictionV4;
     if (v4) {
       const hit = normalize(v4.route, activeTrip.agency) === normalize(activeTrip.route, activeTrip.agency);
-      await db.collection('predictionStats').add({ tripId: activeTrip.id, userId: user.userId, isHit: hit, version: v4.version, route: activeTrip.route, agency: activeTrip.agency, source: 'sms', timestamp: admin.firestore.FieldValue.serverTimestamp() });
-      await db.collection('predictionAccuracy').doc(user.userId).set({ v4Total: inc(1), v4Hits: inc(hit ? 1 : 0), lastUpdated: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      await db.collection('predictionStats').add({ tripId: activeTrip.id, userId: user.userId, isHit: hit, version: v4.version, route: activeTrip.route, agency: activeTrip.agency, source: 'sms', timestamp: FieldValue.serverTimestamp() });
+      await db.collection('predictionAccuracy').doc(user.userId).set({ v4Total: inc(1), v4Hits: inc(hit ? 1 : 0), lastUpdated: FieldValue.serverTimestamp() }, { merge: true });
     }
 
     // V5 (similar pattern)
     const v5 = activeTrip.predictionV5;
     if (v5) {
       const hit = normalize(v5.route, activeTrip.agency) === normalize(activeTrip.route, activeTrip.agency);
-      await db.collection('predictionStats').add({ tripId: activeTrip.id, userId: user.userId, isHit: hit, version: v5.version, route: activeTrip.route, agency: activeTrip.agency, source: 'sms', timestamp: admin.firestore.FieldValue.serverTimestamp() });
-      await db.collection('predictionAccuracy').doc(user.userId).set({ v5Total: inc(1), v5Hits: inc(hit ? 1 : 0), lastUpdated: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      await db.collection('predictionStats').add({ tripId: activeTrip.id, userId: user.userId, isHit: hit, version: v5.version, route: activeTrip.route, agency: activeTrip.agency, source: 'sms', timestamp: FieldValue.serverTimestamp() });
+      await db.collection('predictionAccuracy').doc(user.userId).set({ v5Total: inc(1), v5Hits: inc(hit ? 1 : 0), lastUpdated: FieldValue.serverTimestamp() }, { merge: true });
     }
 
     // End stop predictions (V3/V4/V5/Habit)
@@ -81,7 +81,7 @@ async function gradeAllPredictions(activeTrip, user, endStopData, duration) {
       const hit = PredictionEngine._stopMatch(pred.stop, actualEndStop);
       db.collection('predictionStats').add({
         tripId: activeTrip.id, userId: user.userId, endStopPredicted: pred.stop, endStopActual: actualEndStop,
-        endStopHit: hit, endStopConfidence: pred.confidence, version, route: activeTrip.route, agency: activeTrip.agency, source: 'sms', timestamp: admin.firestore.FieldValue.serverTimestamp()
+        endStopHit: hit, endStopConfidence: pred.confidence, version, route: activeTrip.route, agency: activeTrip.agency, source: 'sms', timestamp: FieldValue.serverTimestamp()
       }).catch(() => {});
     };
 
@@ -334,7 +334,7 @@ async function runPostEndFinalization(tripData, options = {}) {
   }
 
   // Mark as processed + store execution metadata
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const now = FieldValue.serverTimestamp();
   await db.collection('trips').doc(tripId || '').update({
     backgroundFinalizedAt: now,
     finalization: {

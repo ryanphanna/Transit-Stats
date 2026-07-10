@@ -26,7 +26,7 @@ const {
   clearPendingState,
   setPendingState,
   db,
-  admin,
+  FieldValue,
 } = require('./db');
 const { sendSmsReply, getTwilioPhoneNumber } = require('./twilio');
 const { parseWithGemini, constructStopInput } = require('./gemini');
@@ -623,7 +623,7 @@ async function handleFallback(phoneNumber, user, body) {
     userId: user.userId,
     raw_text: body,
     needs_review: true,
-    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    timestamp: FieldValue.serverTimestamp(),
     source: 'sms_fallback',
   });
 

@@ -986,6 +986,7 @@ async function lookupAgencyTimezone(agency, traceId = null) {
 
   // 2. Firestore cache (skip for ambiguous names — they can't be cached safely)
   const admin = require('firebase-admin');
+  const { FieldValue } = require('firebase-admin/firestore');
   const db = admin.firestore();
   const isAmbiguous = AMBIGUOUS_AGENCIES.has(canonical);
   if (!isAmbiguous) {
@@ -1015,7 +1016,7 @@ async function lookupAgencyTimezone(agency, traceId = null) {
       if (!isAmbiguous) {
         await db.collection('agencyTimezones').doc(canonical).set({
           timezone: tz,
-          discoveredAt: admin.firestore.FieldValue.serverTimestamp(),
+          discoveredAt: FieldValue.serverTimestamp(),
         });
         logger.info('Agency timezone discovered and cached', { agency: canonical, timezone: tz }, traceId);
       } else {

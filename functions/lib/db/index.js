@@ -1,7 +1,7 @@
 /**
  * Database module — re-exports all domain modules
  */
-const { admin, db } = require('./core');
+const { admin, db, FieldValue, Timestamp } = require('./core');
 const { isRateLimited, isGeminiRateLimited, shouldRespondToUnknown, checkIdempotency, checkContentDuplicate } = require('./rate-limit');
 const { getUserByPhone, getUserProfile, isEmailAllowed, isEmailAdmin, storeVerificationCode, getVerificationData } = require('./users');
 const { getActiveTrip, createTrip, getRecentCompletedTrips, hasBlockingCorrection, getPendingState, setPendingState, clearPendingState, getLastTripAgency, getTripCount } = require('./trips');
@@ -11,6 +11,8 @@ const { getConversationHistory, saveConversationTurn } = require('./conversation
 module.exports = {
   admin,
   db,
+  FieldValue,
+  Timestamp,
   isRateLimited,
   isGeminiRateLimited,
   shouldRespondToUnknown,
