@@ -4,8 +4,31 @@ import { UI } from './ui-utils.js';
 
 /**
  * Route Tracker Module
- * Shows per-agency route completion based on imported GTFS routes and user trips.
+ * Shows per-agency route completion based on Atlas route data and user trips.
+ *
+ * Route definitions load from the Atlas R2 GeoJSON (read-only consumer of the
+ * weekly pipeline output), cached in IndexedDB keyed by refresh week. The
+ * Firestore `routes` collection remains as a fallback for agencies Atlas
+ * doesn't carry or when the fetch fails.
  */
+
+const ATLAS_R2_BASE = 'https://pub-85dc05d357954b6399c9a44018a3221e.r2.dev';
+
+// Transit Stats agency name -> Atlas slug (must match Atlas index.json).
+const ATLAS_SLUGS = {
+    'TTC': 'ttc',
+    'OC Transpo': 'octranspo',
+    'GO Transit': 'go',
+    'MiWay': 'miway',
+    'YRT': 'yrt',
+    'Brampton Transit': 'brampton',
+    'Durham Transit': 'drt',
+    'HSR': 'hamilton',
+};
+
+const IDB_NAME = 'transitstats-cache';
+const IDB_STORE = 'atlasRoutes';
+
 export const RouteTracker = {
     currentAgency: null,
     routesCache: {},    // agency -> routes[]
@@ -45,10 +68,7 @@ export const RouteTracker = {
             if (routes.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        No routes imported for ${UI.escapeHtml(this.currentAgency)} yet.<br>
-                        <span style="font-size:0.85em; color: var(--text-muted);">
-                            An admin can import them via Data Manager.
-                        </span>
+                        No routes available for ${UI.escapeHtml(this.currentAgency)} yet.
                     </div>`;
                 return;
             }
@@ -64,8 +84,23 @@ export const RouteTracker = {
     _getRoutes: async function (agency) {
         if (this.routesCache[agency]) return this.routesCache[agency];
 
-        const snapshot = await db.collection('routes').where('agency', '==', agency).get();
-        const routes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        let routes = null;
+        const slug = ATLAS_SLUGS[agency];
+        if (slug) {
+            const cacheKey = `${slug}-${this._weekVersion()}`;
+            routes = await this._idbGet(cacheKey).catch(() => null);
+            if (!routes) {
+                routes = await this._fetchAtlasRoutes(slug);
+                if (routes) this._idbPut(cacheKey, routes).catch(() => {});
+            }
+        }
+
+        // Fallback: legacy Firestore routes collection (agency not in Atlas,
+        // or the R2 fetch failed).
+        if (!routes) {
+            const snapshot = await db.collection('routes').where('agency', '==', agency).get();
+            routes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        }
 
         routes.sort((a, b) => {
             const aNum = parseInt(a.routeShortName, 10);
@@ -76,6 +111,90 @@ export const RouteTracker = {
 
         this.routesCache[agency] = routes;
         return routes;
+    },
+
+    /** Unique routes from the agency's Atlas GeoJSON; null on any failure. */
+    _fetchAtlasRoutes: async function (slug) {
+        try {
+            const res = await fetch(`${ATLAS_R2_BASE}/atlas/${slug}.json`);
+            if (!res.ok) return null;
+            const fc = await res.json();
+            const byShortName = new Map();
+            for (const f of fc.features || []) {
+                const p = f.properties || {};
+                if (!p.routeShortName) continue;
+                const key = String(p.routeShortName);
+                const existing = byShortName.get(key);
+                if (!existing) {
+                    byShortName.set(key, { routeShortName: key, routeLongName: p.routeLongName || '' });
+                } else if (!existing.routeLongName && p.routeLongName) {
+                    existing.routeLongName = p.routeLongName;
+                }
+            }
+            return byShortName.size > 0 ? [...byShortName.values()] : null;
+        } catch (err) {
+            console.warn('RouteTracker: Atlas fetch failed, falling back to Firestore', err);
+            return null;
+        }
+    },
+
+    /** Atlas refreshes Mondays 06:00 UTC — cache key is the current Monday's date. */
+    _weekVersion: function () {
+        const d = new Date();
+        d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+        return d.toISOString().slice(0, 10);
+    },
+
+    _idbOpen: function () {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(IDB_NAME, 1);
+            req.onupgradeneeded = () => {
+                if (!req.result.objectStoreNames.contains(IDB_STORE)) {
+                    req.result.createObjectStore(IDB_STORE);
+                }
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    },
+
+    _idbGet: async function (key) {
+        const idb = await this._idbOpen();
+        try {
+            return await new Promise((resolve, reject) => {
+                const req = idb.transaction(IDB_STORE).objectStore(IDB_STORE).get(key);
+                req.onsuccess = () => resolve(req.result || null);
+                req.onerror = () => reject(req.error);
+            });
+        } finally {
+            idb.close();
+        }
+    },
+
+    _idbPut: async function (key, value) {
+        const idb = await this._idbOpen();
+        try {
+            await new Promise((resolve, reject) => {
+                const tx = idb.transaction(IDB_STORE, 'readwrite');
+                const store = tx.objectStore(IDB_STORE);
+                // Drop stale weeks for this slug so the store doesn't grow unbounded.
+                // Key format: `${slug}-YYYY-MM-DD` — slug is everything before the date.
+                const slug = key.slice(0, -11);
+                const cursorReq = store.openCursor();
+                cursorReq.onsuccess = () => {
+                    const cursor = cursorReq.result;
+                    if (cursor) {
+                        if (String(cursor.key).startsWith(`${slug}-`) && cursor.key !== key) cursor.delete();
+                        cursor.continue();
+                    }
+                };
+                store.put(value, key);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        } finally {
+            idb.close();
+        }
     },
 
     _getRiddenSet: function (agency) {

@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Route Tracker on the dashboard, powered by Atlas** (`js/route-tracker.js`, `js/pages/dashboard.js`, `dashboard.html`): The per-agency route completion tracker now loads route definitions from Atlas's public R2 GeoJSON (`atlas/{slug}.json`) instead of the manually imported Firestore `routes` collection — route lists stay current with Atlas's weekly refresh, no admin GTFS uploads. Parsed client-side (189 unique TTC routes), cached in IndexedDB keyed by refresh week, Firestore fallback kept for agencies Atlas doesn't carry. Tracker card now lives on the main dashboard (8 GTHA/Ottawa agencies selectable); admin copy unchanged.
 - **Stops now enrich themselves from Atlas on creation** (`functions/lib/atlas-enrich.js`, `functions/index.js`, `functions/test_atlas_enrich.js`): New Firestore trigger `onStopCreated` fills Layer-2 facts (direction, routes, official-name alias, `stopRoutes` doc) on any newly created stop doc from Atlas's published `atlas/{slug}-stops-meta.json` — the manual-paste decay problem can't restart. Layering rules enforced in code: `name` is never touched, official names land in `aliases` verbatim, only missing fields are filled, and paired platforms sharing a code only contribute facts every entry agrees on. No-ops gracefully until the Atlas artifact exists on R2; TTC mapped first, other agencies are one slug entry each. 4 unit tests.
 
 ### Data

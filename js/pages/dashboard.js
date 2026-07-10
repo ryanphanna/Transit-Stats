@@ -3,6 +3,7 @@ import { initHeader } from '../shared/header.js';
 import { ModalManager } from '../shared/modal-engine.js';
 import { Trips } from '../trips.js';
 import { Stats } from '../stats.js';
+import { RouteTracker } from '../route-tracker.js';
 import { Admin } from '../admin.js';
 import { Profile } from '../profile.js';
 import { PredictionEngine } from '../predict.js';
@@ -133,7 +134,12 @@ async function init() {
     Trips.init();
     Trips._readyPromise.then(() => {
         Stats.init();
+        RouteTracker.init();
         refreshIcons();
+    });
+
+    document.getElementById('routeTrackerAgency')?.addEventListener('change', (e) => {
+        RouteTracker.setAgency(e.target.value);
     });
 
     refreshIcons();
