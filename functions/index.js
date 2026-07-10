@@ -15,6 +15,7 @@ if (admin.apps.length === 0) {
 
 const { sms } = require('./sms');
 const { api } = require('./api');
+const { publicProfile } = require('./lib/public-profile');
 const { onDocumentWritten, onDocumentCreated } = require('firebase-functions/v2/firestore');
 const finalization = require('./lib/finalization');
 const { enrichStopDoc } = require('./lib/atlas-enrich');
@@ -24,6 +25,11 @@ exports.sms = sms;
 
 // Export the iOS companion app API endpoint
 exports.api = api;
+
+// Public profile stats — the only sanctioned way to read another user's trip
+// data. Trips are not publicly readable via Firestore rules; this endpoint
+// reads them with the Admin SDK and returns only aggregate/anonymized fields.
+exports.publicProfile = publicProfile;
 
 // Background trigger: fill Layer-2 facts (direction, routes, official-name alias)
 // on newly created stop docs from Atlas R2 stops-meta. No-ops gracefully while

@@ -1,7 +1,4 @@
-import { db } from './firebase.js';
-import { UI } from './ui-utils.js';
 import { Identity } from './identity.js';
-import { Visuals } from './visuals.js';
 
 // Public Profile Logic
 document.addEventListener('DOMContentLoaded', async () => {
@@ -14,60 +11,48 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     try {
-        // 1. Resolve Username to UID
-        const usernameDoc = await db.collection('usernames').doc(username.toLowerCase()).get();
-        if (!usernameDoc.exists) {
+        // Trips are never publicly readable from Firestore (see firestore.rules) —
+        // this endpoint reads them server-side with the Admin SDK and returns only
+        // aggregate/anonymized fields (totals + lat/lng points, no route/stop/userId).
+        const res = await fetch(`https://us-central1-transitstats-21ba4.cloudfunctions.net/publicProfile?user=${encodeURIComponent(username.toLowerCase())}`);
+        if (res.status === 404) {
             showError('User not found');
             return;
         }
-
-        const userId = usernameDoc.data().uid;
-
-        // 2. Fetch Profile
-        const profileDoc = await db.collection('profiles').doc(userId).get();
-        if (!profileDoc.exists) {
-            showError('User not found');
-            return;
-        }
-
-        const profile = profileDoc.data();
-        if (!profile.isPublic) {
+        if (res.status === 403) {
             showError('This profile is private');
             return;
         }
+        if (!res.ok) {
+            showError('Error loading profile');
+            return;
+        }
 
-        // 3. Render Profile Header
-        document.getElementById('userName').textContent = profile.displayName || profile.name || 'Traveler';
-        
+        const data = await res.json();
+
+        // Render Profile Header
+        document.getElementById('userName').textContent = data.displayName || 'Traveler';
+
         const emojiEl = document.getElementById('userEmoji');
-        if (profile.username) {
-            emojiEl.textContent = Identity.toEmojis(profile.username);
-        } else if (profile.emoji) {
-            emojiEl.textContent = profile.emoji;
+        if (data.username) {
+            emojiEl.textContent = Identity.toEmojis(data.username);
+        } else if (data.emoji) {
+            emojiEl.textContent = data.emoji;
         } else {
             emojiEl.innerHTML = '<i data-lucide="user"></i>';
             if (window.lucide) window.lucide.createIcons();
         }
-        
-        if (profile.defaultAgency) {
-            document.getElementById('userAgency').textContent = profile.defaultAgency;
+
+        if (data.defaultAgency) {
+            document.getElementById('userAgency').textContent = data.defaultAgency;
         }
 
-        // 4. Fetch Trips
-        const tripsSnapshot = await db.collection('trips')
-            .where('userId', '==', userId)
-            .where('isPublic', '==', true)
-            .limit(1000)
-            .get();
+        // Render Stats
+        document.getElementById('totalTrips').textContent = data.totalTrips;
+        document.getElementById('totalHours').textContent = data.totalHours;
 
-        const trips = [];
-        tripsSnapshot.forEach(doc => trips.push(doc.data()));
-
-        // 5. Render Stats
-        renderStats(trips);
-
-        // 6. Render Map
-        initPublicMap(trips);
+        // Render Map
+        initPublicMap(data.points);
 
     } catch (error) {
         console.error('Error loading profile:', error);
@@ -87,16 +72,7 @@ function showError(msg) {
     if (window.lucide) window.lucide.createIcons();
 }
 
-function renderStats(trips) {
-    const totalTrips = trips.length;
-    const totalMinutes = trips.reduce((sum, t) => sum + (t.duration || 0), 0);
-    const totalHours = Math.round(totalMinutes / 60 * 10) / 10;
-
-    document.getElementById('totalTrips').textContent = totalTrips;
-    document.getElementById('totalHours').textContent = totalHours;
-}
-
-function initPublicMap(trips) {
+function initPublicMap(points) {
     const map = L.map('publicMap', {
         zoomControl: false,
         attributionControl: false
@@ -110,19 +86,21 @@ function initPublicMap(trips) {
         opacity: 0.4
     }).addTo(map);
 
-    if (trips.length > 0) {
-        Visuals.renderHeatmap(trips, map);
-        
-        const points = [];
-        trips.forEach(t => {
-            const start = t.boardingLocation || t.boardLocation;
-            const end = t.exitLocation;
-            if (start?.lat) points.push([start.lat, start.lng]);
-            if (end?.lat) points.push([end.lat, end.lng]);
-        });
-
-        if (points.length > 0) {
-            map.fitBounds(points, { padding: [100, 100] });
+    if (points && points.length > 0) {
+        // Built directly from anonymized {lat,lng,type} points rather than
+        // Visuals.renderHeatmap, which expects full trip objects — the public
+        // profile endpoint never receives raw trips, so it can't build those.
+        const heatPoints = points.map(p => [p.lat, p.lng, p.type === 'start' ? 0.8 : 0.5]);
+        if (typeof L.heatLayer !== 'undefined') {
+            L.heatLayer(heatPoints, {
+                radius: 25,
+                blur: 15,
+                maxZoom: 17,
+                gradient: { 0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red' }
+            }).addTo(map);
         }
+
+        const bounds = points.map(p => [p.lat, p.lng]);
+        map.fitBounds(bounds, { padding: [100, 100] });
     }
 }
