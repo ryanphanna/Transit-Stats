@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [1.47.4] - 2026-07-11
+
+### Fixed
+- **`unit` job's real, previously-unreachable bug: root tests ran before `functions/` was installed**: with `npm ci` finally out of the way (1.47.3), CI got far enough to hit an actual test failure for the first time — `tests/gemini.test.js` (root) imports `functions/lib/gemini.js`, which needs `@google/generative-ai`, a `functions/`-only dependency. The `unit` job ran root `npm test` before `cd functions && npm install`, so Node's `require()` had nothing to find walking up from `functions/lib/`. Reordered: `functions/` now installs before either test step runs. Reproduced locally by removing `functions/node_modules` and confirmed the fix restores it.
+
+### Docs
+- **Changelog audit**: found and fixed the same duplicate-`###`-header defect (from many work sessions each appending a fresh header instead of merging) in `CHANGELOG.md`'s `[1.46.0]` block and across `CHANGELOG_ARCHIVE.md`. Also fixed two genuine version-numbering bugs in the archive: `[1.4.0]` was used for two different releases six days apart (the March 9 one, same-day successor to `[1.3.1]`, renamed to `[1.3.2]`), and a stray empty `## [1.30.0]` header with no content was removed.
+
 ## [1.47.3] - 2026-07-11
 
 ### Fixed
@@ -67,6 +75,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - **SMS: stop clarification is no longer an interrogation** (`functions/lib/handlers-utils.js`, `functions/lib/dispatcher.js`, `functions/test_handlers.js`, `functions/test_dispatcher.js`): Three changes to the "Multiple stops match" flow. (1) When every candidate shows the same name and none has a direction, the prompt is skipped entirely — "Spadina / Dundas (stop 8121) vs (stop 7349) vs (stop 2190)" is unanswerable for a rider; the trip now starts silently with the shared name and `stop_matched:false`. Prompts still appear when candidates are human-distinguishable (different names or direction labels). (2) New `SKIP` reply dismisses the clarification and keeps the trip — previously the only exit was DISCARD, which cancels the whole trip. (3) Prompt copy now says the choice can be made anytime during the trip and that DISCARD cancels the trip, not just the choice. Added 2 regression tests.
+- **Dependency updates** (`package.json`, `functions/package.json`, `.github/workflows/retrain.yml`): `firebase` 12.14.0 → 12.15.0, `vitest`/`@vitest/ui` 4.1.8 → 4.1.10, `playwright` 1.60.0 → 1.61.1, root `firebase-admin` 13.10.0 → 14.1.0, `eslint` 10.4.1 → 10.6.0, `globals` 17.6.0 → 17.7.0, `onnxruntime-node` 1.26.0 → 1.27.0, `actions/checkout` v4 → v7. Held back `functions/firebase-admin` at 13.10.0 — `firebase-functions@7.2.5`'s peer range tops out at admin v13, so bumping it to 14 would create a real peer conflict, not just an npm warning.
+- **Retrain workflow now records results to MODEL_LOG.md automatically** (`.github/workflows/retrain.yml`, `ml/train_endstop.py`, `ml/train_routes.py`): V4 accuracy is now saved to meta files (`model_v4_endstop_meta.json`, `model_v4_meta.json`) alongside existing V5 metas. After each retrain, a dated entry covering all four models (V4/V5 route + end-stop) is prepended to `ml/MODEL_LOG.md` and committed with the artifacts. Route models are now also retrained automatically — previously only end-stop ran in CI.
 
 ### Fixed
 - **Two stale unit tests brought back in line with shipped behavior** (`functions/test_dispatcher.js`, `functions/test_handlers.js`): The MMS unknown-user test still expected the pre-v1.45.0 "Text REGISTER [email]" reply (now conversational onboarding + `awaiting_email` state), and the anomaly-note tests mocked the pre-v1.44.0 `NetworkEngine.load` path — `detectAnomaly` now reads the personal `networkGraph` doc directly, so the harness never served it and the note path was silently untested. Harness now serves a `networkGraph` doc and defines `_docId`; both features were working in production all along. Functions suite: 244/248, only the emulator-dependent e2e file remains red without an emulator.
@@ -74,10 +84,6 @@ All notable changes to this project will be documented in this file.
 - **Weekly retrain workflow's YAML was invalid and would have failed on its next scheduled run** (`.github/workflows/retrain.yml`): The `MODEL_LOG.md` entry was built from a triple-quoted Python f-string embedded inside a YAML block literal (`run: |`); its markdown headers and `---` separator started at column 0, which is less-indented than the block literal requires — a hard YAML parse error, confirmed by GitHub's own workflow validator. Rebuilt the entry as a list of consistently-indented lines joined with `\n` instead of a multi-line string, sidestepping the indentation trap. Output is byte-for-byte identical to the original intended format.
 - **`npm ci` was failing in CI on every open PR** (`package-lock.json`): Lock file was generated with npm 11, which resolves optional deps differently than npm 10 (CI's pinned Node 22 bundle) — missing an `@emnapi/runtime` entry. Regenerated with npm 10 to match CI; also fixed a stale `version` field left over from the 1.45.1 release.
 - **Firebase hosting deploy no longer fails when frontend content is unchanged** (`.github/workflows/firebase-hosting-merge.yml`): Replaced `action-hosting-deploy@v0` with a direct CLI step that treats Firebase's "current active version" 400 error as a success — the site was already up to date.
-
-### Changed
-- **Dependency updates** (`package.json`, `functions/package.json`, `.github/workflows/retrain.yml`): `firebase` 12.14.0 → 12.15.0, `vitest`/`@vitest/ui` 4.1.8 → 4.1.10, `playwright` 1.60.0 → 1.61.1, root `firebase-admin` 13.10.0 → 14.1.0, `eslint` 10.4.1 → 10.6.0, `globals` 17.6.0 → 17.7.0, `onnxruntime-node` 1.26.0 → 1.27.0, `actions/checkout` v4 → v7. Held back `functions/firebase-admin` at 13.10.0 — `firebase-functions@7.2.5`'s peer range tops out at admin v13, so bumping it to 14 would create a real peer conflict, not just an npm warning.
-- **Retrain workflow now records results to MODEL_LOG.md automatically** (`.github/workflows/retrain.yml`, `ml/train_endstop.py`, `ml/train_routes.py`): V4 accuracy is now saved to meta files (`model_v4_endstop_meta.json`, `model_v4_meta.json`) alongside existing V5 metas. After each retrain, a dated entry covering all four models (V4/V5 route + end-stop) is prepended to `ml/MODEL_LOG.md` and committed with the artifacts. Route models are now also retrained automatically — previously only end-stop ran in CI.
 
 ## [1.45.2] - 2026-06-22
 

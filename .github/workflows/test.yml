@@ -18,8 +18,9 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm install
+      - run: cd functions && npm install
       - run: npm test
-      - run: cd functions && npm install && npm test
+      - run: cd functions && npm test
 
   rules:
     runs-on: ubuntu-latest

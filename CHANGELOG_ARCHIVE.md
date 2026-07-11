@@ -78,8 +78,6 @@ For recent changes, see [CHANGELOG.md](./CHANGELOG.md).
 ### Fixed
 - **Gemini stats bucketing**: Gemini stats now bucket dates in the requested timezone rather than server-local time.
 
-## [1.30.0] - 2026-05-05
-
 ---
 
 ## [1.9.9] - 2026-03-22
@@ -239,7 +237,7 @@ For recent changes, see [CHANGELOG.md](./CHANGELOG.md).
 - **Continue Button Responsiveness**: Injected secrets during CI/CD to resolve uninitialized production assets.
 - **Module Initialization Safety**: Hardened Admin and Public deployments with robustness checks.
 
-## [1.4.0] - 2026-03-09
+## [1.3.2] - 2026-03-09
 
 ### Added
 - **Stops library injection**: Server-side stop canonicalization powered by Firestore stops collection.
