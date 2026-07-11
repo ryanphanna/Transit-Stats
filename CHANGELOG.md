@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [1.47.2] - 2026-07-11
+
+### Fixed
+- **1.47.1's lockfile fix was incomplete — CI still failed the same way**: a plain `npm install` (both root and `functions/`) synced the version field but still left the tree missing `@emnapi/runtime@1.11.2` and other entries, because it only touches packages that changed rather than fully recomputing the tree. Deleted `node_modules` + `package-lock.json` in both directories and reinstalled from scratch; verified `npm ci` now succeeds clean in both, and the full test suite (165 root + 249 functions) still passes.
+
 ## [1.47.1] - 2026-07-11
 
 ### Fixed
