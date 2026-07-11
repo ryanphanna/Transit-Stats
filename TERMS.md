@@ -15,10 +15,17 @@ You agree not to:
 - Attempt to access another user's account, trips, or data
 - Attempt to circumvent the invite-only whitelist or rate limits
 - Attempt to gain unauthorized access to Transit Stats' systems, infrastructure, source code repositories, or backend services — including exploiting, probing, or attacking security vulnerabilities — except as part of the good-faith responsible disclosure process described in [SECURITY.md](./SECURITY.md)
-- Misuse the service's AI features (stop-sign photo parsing, natural-language stats queries): no prompt injection or jailbreak attempts, no trying to extract underlying prompts/instructions, and no using them for anything unrelated to your own trip logging and stats — including generating harmful, illegal, or abusive content
+- Misuse the service's AI features (stop-sign photo parsing, natural-language stats queries): no prompt injection or jailbreak attempts, no trying to extract underlying prompts/instructions, and no using them for anything unrelated to your own trip logging and stats
+- Send any photo, message, or other content via MMS/SMS or any other channel that is illegal, sexually explicit, exploitative, or otherwise inappropriate — see **Illegal content and mandatory reporting** below
 - Use the service in any way that disrupts it for other users or the operator's Twilio/Gemini/Firebase usage quotas and costs
 
 Violating this may result in your phone number or account being rate-limited, suspended, or permanently blocked, without notice, and may be reported to relevant authorities where applicable.
+
+## Illegal content and mandatory reporting
+
+Sending child sexual abuse material (CSAM) or any other illegal content through Transit Stats — by MMS photo or any other means — is strictly prohibited and will result in an immediate, permanent ban. Where the operator becomes aware of apparent CSAM, it will be reported to the National Center for Missing & Exploited Children (NCMEC) via the CyberTipline and to law enforcement, as required by U.S. law (18 U.S.C. § 2258A) for providers who become aware of such content. Photos sent via MMS are processed through Google's Gemini API, which is subject to Google's own content-safety systems, in addition to any review by the operator.
+
+This obligation exists under federal law independent of anything written here — this section documents it, it doesn't create it. **If you have any real-world exposure to this risk (a public-facing app, unknown users, stored images), this is not something to rely on self-drafted wording for — get actual legal counsel and implement real technical safeguards** (e.g., hash-matching against known-CSAM databases, this app's practice of never storing submitted images).
 
 ## SMS terms
 
