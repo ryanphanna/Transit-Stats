@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [1.47.1] - 2026-07-11
+
+### Fixed
+- **CI Test workflow broken on every push since it was added this session**: two separate bugs, found immediately after 1.47.0 pushed and the `Test` workflow failed. (1) `npm ci` failed in both `unit` and `rules` jobs — root and `functions/` `package-lock.json` still had `"version": "1.45.1"` after the 1.47.0 bump; `npm ci` requires the lockfile's own version field to match `package.json` exactly, and separately `@emnapi/runtime` was missing from the lockfile from an earlier unrelated drift. Fixed by running `npm install` in both directories to resync. (2) `rules` and `e2e` jobs failed with `firebase: not found` — `.github/workflows/test.yml` (added this session) never installs `firebase-tools`, which only worked locally because it's installed globally on this machine, not as a project dependency. Added `npm install -g firebase-tools` to both jobs.
+
 ## [1.47.0] - 2026-07-11
 
 ### Added

@@ -33,6 +33,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - run: npm install -g firebase-tools
       - run: npm ci
       - run: npm run test:rules
 
@@ -48,4 +49,5 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - run: npm install -g firebase-tools
       - run: cd functions && npm ci && npm run test:e2e
