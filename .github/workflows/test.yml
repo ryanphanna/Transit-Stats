@@ -17,9 +17,9 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: npm ci
+      - run: npm install
       - run: npm test
-      - run: cd functions && npm ci && npm test
+      - run: cd functions && npm install && npm test
 
   rules:
     runs-on: ubuntu-latest
@@ -34,7 +34,7 @@ jobs:
           distribution: temurin
           java-version: '21'
       - run: npm install -g firebase-tools
-      - run: npm ci
+      - run: npm install
       - run: npm run test:rules
 
   e2e:
@@ -50,4 +50,4 @@ jobs:
           distribution: temurin
           java-version: '21'
       - run: npm install -g firebase-tools
-      - run: cd functions && npm ci && npm run test:e2e
+      - run: cd functions && npm install && npm run test:e2e

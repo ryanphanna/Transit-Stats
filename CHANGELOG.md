@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [1.47.3] - 2026-07-11
+
+### Fixed
+- **1.47.2 also failed — root cause was `npm ci`'s strict tree-matching itself, not lockfile staleness**: CI wanted `@emnapi/core`/`@emnapi/runtime` at *both* `1.11.1` and `1.11.2` simultaneously (two nested copies), while every local regeneration attempt (plain reinstall, full clean reinstall, npm cache cleared, npm 10 via `npx` to match CI's pinned version, `--os=linux --cpu=x64` to force cross-platform resolution) only ever produced one. This looks like a genuine Node 22 (CI) vs. local Node version difference in how npm resolves a loose `^1.7.1` range for this package's transitive optional dependency, not reproducible locally at all. Rather than keep chasing exact lockfile parity, switched `.github/workflows/test.yml` from `npm ci` to `npm install` in all three jobs — `npm install` resolves and adapts instead of hard-failing on any tree drift. Less strict reproducibility guarantee, but actually reliable for a single-maintainer project where the lockfile drifting slightly between a Mac and a Linux CI runner isn't a real risk worth this much friction.
+
 ## [1.47.2] - 2026-07-11
 
 ### Fixed
