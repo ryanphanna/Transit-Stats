@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [1.47.5] - 2026-07-11
+
+### Fixed
+- **`functions/`'s `npm test` script never actually excluded `test_integration.js`, only `test_e2e.js`** — another previously-unreachable bug, surfaced now that the `unit` job gets far enough to run functions' tests at all. `test_integration.js` requires a hardcoded local Firebase service account key path (`/Users/ryan/Desktop/Dev/Credentials/...`) and is meant to run only via the separate `test:integration` script, same category as the emulator-only `test:e2e`. Added it to the exclusion glob. Local suite: 237/237 (down from 249, correctly excluding the 12 integration tests).
+
 ## [1.47.4] - 2026-07-11
 
 ### Fixed
