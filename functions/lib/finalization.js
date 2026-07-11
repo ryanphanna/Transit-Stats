@@ -19,25 +19,14 @@ const { HabitEngine } = require('./habit');
 const { TransferEngine } = require('./transfer.js');
 const {
   getRouteDisplay,
-  normalizeRoute,
-  isStopMatched,
+  normalizeRouteForGrading,
 } = require('./utils');
 const logger = require('./logger');
 
 async function gradeAllPredictions(activeTrip, user, endStopData, duration) {
   const actualEndStop = endStopData ? endStopData.stopName : (activeTrip.endStopName || '');
   const inc = FieldValue.increment;
-
-  const normalize = (r, agency) => {
-    r = r.toString().trim();
-    // Legacy non-ML normalization (pre-dates the PRIMARY-aware policy layer in ml_utils.js).
-    // ML features now go through normalizeRouteForMl + PRIMARY config.
-    // This path is used for grading/stats and can be revisited later.
-    if (agency === 'TTC') return (r.match(/^(\d+)/) || [])[1] || r;
-    const c = r.match(/^(\d+)([a-zA-Z]+)$/);
-    if (c) return c[1] + c[2].toUpperCase();
-    return /^[a-zA-Z]$/.test(r) ? r.toUpperCase() : r;
-  };
+  const normalize = normalizeRouteForGrading;
 
   try {
     // V3

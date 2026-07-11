@@ -9,7 +9,7 @@
  */
 
 const { onRequest } = require('firebase-functions/v2/https');
-const admin = require('firebase-admin');
+const { db, getUserProfile } = require('./db');
 const logger = require('./logger');
 
 async function handlePublicProfile(req, res) {
@@ -27,8 +27,6 @@ async function handlePublicProfile(req, res) {
   }
 
   try {
-    const db = admin.firestore();
-
     const usernameDoc = await db.collection('usernames').doc(username).get();
     if (!usernameDoc.exists) {
       res.status(404).json({ error: 'User not found' });
@@ -36,8 +34,7 @@ async function handlePublicProfile(req, res) {
     }
     const userId = usernameDoc.data().uid;
 
-    const profileDoc = await db.collection('profiles').doc(userId).get();
-    const profile = profileDoc.exists ? profileDoc.data() : null;
+    const profile = await getUserProfile(userId);
     if (!profile || !profile.isPublic) {
       res.status(403).json({ error: 'This profile is private' });
       return;

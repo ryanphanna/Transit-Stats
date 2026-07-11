@@ -245,11 +245,33 @@ function normalizeAgency(agency) {
   return AGENCY_CANONICAL[agency.trim().toLowerCase()] || agency.trim();
 }
 
+/**
+ * Normalize a route for prediction grading/stats comparisons.
+ * TTC routes collapse to their leading digits (variants share a route number);
+ * other agencies keep digit+letter suffixes uppercased, or single letters uppercased.
+ *
+ * This intentionally does NOT use ml_utils.normalizeRouteForMl — that function's
+ * collapse policy applies to whichever agency is the caller's PRIMARY agency, but
+ * grading always compares a prediction to the actual trip within the same agency,
+ * so this stays hardcoded to TTC rather than needing a primaryAgency to be threaded in.
+ * @param {string} route
+ * @param {string} agency
+ * @returns {string} Normalized route
+ */
+function normalizeRouteForGrading(route, agency) {
+  const r = route.toString().trim();
+  if (agency === 'TTC') return (r.match(/^(\d+)/) || [])[1] || r;
+  const compact = r.match(/^(\d+)([a-zA-Z]+)$/);
+  if (compact) return compact[1] + compact[2].toUpperCase();
+  return /^[a-zA-Z]$/.test(r) ? r.toUpperCase() : r;
+}
+
 module.exports = {
   toTitleCase,
   escapeXml,
   normalizeDirection,
   normalizeRoute,
+  normalizeRouteForGrading,
   normalizeAgency,
   generateVerificationCode,
   isValidRoute,
