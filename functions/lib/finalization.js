@@ -76,23 +76,25 @@ async function gradeAllPredictions(activeTrip, user, endStopData, duration) {
     }
 
     // End stop predictions (V3/V4/V5/Habit)
-    const es = (pred, version) => {
+    const es = async (pred, version) => {
       if (!pred) return;
       const hit = PredictionEngine._stopMatch(pred.stop, actualEndStop);
-      db.collection('predictionStats').add({
+      await db.collection('predictionStats').add({
         tripId: activeTrip.id, userId: user.userId, endStopPredicted: pred.stop, endStopActual: actualEndStop,
         endStopHit: hit, endStopConfidence: pred.confidence, version, route: activeTrip.route, agency: activeTrip.agency, source: 'sms', timestamp: FieldValue.serverTimestamp()
-      }).catch(() => {});
+      });
     };
 
-    es(activeTrip.endStopPrediction, 'v3-endstop');
-    es(activeTrip.endStopPredictionV4, 'v4-endstop');
-    es(activeTrip.endStopPredictionV5, 'v5-endstop');
+    const gradingPromises = [];
+    gradingPromises.push(es(activeTrip.endStopPrediction, 'v3-endstop'));
+    gradingPromises.push(es(activeTrip.endStopPredictionV4, 'v4-endstop'));
+    gradingPromises.push(es(activeTrip.endStopPredictionV5, 'v5-endstop'));
     // habitPrediction.stop is the STARTING stop the habit matched on, not the
     // predicted end stop — must remap to .endStop or this grades the wrong field.
     if (activeTrip.habitPrediction?.endStop) {
-      es({ stop: activeTrip.habitPrediction.endStop, confidence: activeTrip.habitPrediction.confidence }, 'habit-endstop');
+      gradingPromises.push(es({ stop: activeTrip.habitPrediction.endStop, confidence: activeTrip.habitPrediction.confidence }, 'habit-endstop'));
     }
+    await Promise.all(gradingPromises);
 
   } catch (err) {
     logger.error('gradeAllPredictions failed', { error: err.message, tripId: activeTrip.id });

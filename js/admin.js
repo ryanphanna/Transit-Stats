@@ -87,7 +87,21 @@ export const Admin = {
                     const iKey = `${i.rawName.toLowerCase()}||${(i.route||'').toLowerCase()}||${(i.direction||'').toLowerCase()}`;
                     return iKey === groupKey;
                 });
-                if (items.length && confirm(`Link all ${items.length} trips to this stop?`)) {
+                if (items.length) {
+                    if (el.dataset.armed !== 'true') {
+                        el.dataset.armed = 'true';
+                        el.textContent = 'Confirm Accept';
+                        el.classList.add('btn-danger');
+                        el.classList.remove('btn-outline');
+                        setTimeout(() => {
+                            el.dataset.armed = 'false';
+                            el.textContent = 'Accept All';
+                            el.classList.remove('btn-danger');
+                            el.classList.add('btn-outline');
+                        }, 3000);
+                        return;
+                    }
+                    el.dataset.armed = 'false';
                     for (const item of items) {
                         await AdminTriage.linkTrip(item, stopId, AdminLibrary.stops);
                     }
@@ -137,7 +151,21 @@ export const Admin = {
 
         document.getElementById('routeLibraryList')?.addEventListener('click', async (e) => {
             const btn = e.target.closest('[data-action="delete-route"]');
-            if (btn && confirm('Remove this route from the library?')) {
+            if (btn) {
+                if (btn.dataset.armed !== 'true') {
+                    btn.dataset.armed = 'true';
+                    btn.style.color = 'var(--color-danger)';
+                    btn.innerHTML = '<i data-lucide="trash-2"></i>';
+                    if (window.lucide) lucide.createIcons();
+                    setTimeout(() => {
+                        btn.dataset.armed = 'false';
+                        btn.style.color = '';
+                        btn.innerHTML = '<i data-lucide="x"></i>';
+                        if (window.lucide) lucide.createIcons();
+                    }, 3000);
+                    return;
+                }
+                btn.dataset.armed = 'false';
                 await AdminLibrary.deleteRoute(btn.dataset.routeId);
                 this.loadRouteLibrary();
             }
@@ -335,7 +363,13 @@ export const Admin = {
         this._renderAliasEditor();
 
         const deleteBtn = document.getElementById('btn-delete-stop');
-        if (deleteBtn) stop ? deleteBtn.classList.remove('hidden') : deleteBtn.classList.add('hidden');
+        if (deleteBtn) {
+            stop ? deleteBtn.classList.remove('hidden') : deleteBtn.classList.add('hidden');
+            deleteBtn.dataset.armed = 'false';
+            deleteBtn.textContent = 'Delete Stop';
+            deleteBtn.classList.remove('btn-danger');
+            deleteBtn.classList.add('btn-danger-outline');
+        }
 
         ModalManager.open('modal-stop-form');
     },
@@ -376,11 +410,27 @@ export const Admin = {
 
     async handleDeleteStop() {
         const id = document.getElementById('stop-form-id').value;
-        if (id && confirm('Are you sure you want to delete this stop?')) {
-            await AdminLibrary.deleteStop(id);
-            ModalManager.closeAll();
-            this.loadAll();
+        if (!id) return;
+        const btn = document.getElementById('btn-delete-stop');
+        if (btn) {
+            if (btn.dataset.armed !== 'true') {
+                btn.dataset.armed = 'true';
+                btn.textContent = 'Tap again to delete';
+                btn.classList.add('btn-danger');
+                btn.classList.remove('btn-danger-outline');
+                setTimeout(() => {
+                    btn.dataset.armed = 'false';
+                    btn.textContent = 'Delete Stop';
+                    btn.classList.remove('btn-danger');
+                    btn.classList.add('btn-danger-outline');
+                }, 3000);
+                return;
+            }
+            btn.dataset.armed = 'false';
         }
+        await AdminLibrary.deleteStop(id);
+        ModalManager.closeAll();
+        this.loadAll();
     },
 
     handleGTFSPreview() {

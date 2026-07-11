@@ -671,18 +671,27 @@ async function recomputeAndUpdatePrimaryAgency(userId, dbClient = null) {
   try {
     const snapshot = await dbToUse.collection('trips')
       .where('userId', '==', userId)
-      .where('endStopName', '!=', null)   // completed trips only
       .orderBy('endTime', 'desc')
-      .limit(25)
+      .limit(100)
       .get();
 
     if (snapshot.empty) return;
 
+    const completedTrips = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.endStopName !== null && data.endStopName !== undefined) {
+        completedTrips.push(data);
+      }
+    });
+
+    const recentCompleted = completedTrips.slice(0, 25);
+    if (recentCompleted.length === 0) return;
+
     const agencyCounts = {};
     let mostRecentAgency = null;
 
-    snapshot.forEach(doc => {
-      const data = doc.data();
+    recentCompleted.forEach(data => {
       const ag = data.agency;
       if (!ag) return;
       agencyCounts[ag] = (agencyCounts[ag] || 0) + 1;

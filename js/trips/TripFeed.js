@@ -93,8 +93,26 @@ export const TripFeed = {
 
         if (trip.needs_review) {
             card.querySelector('.btn-confirm-trip').addEventListener('click', () => TripController.confirmTrip(trip.id));
-            card.querySelector('.btn-delete-trip').addEventListener('click', () => {
-                if (confirm('Permanently delete this trip record?')) TripController.delete(trip.id);
+            let deleteArmed = false;
+            let deleteTimer = null;
+            card.querySelector('.btn-delete-trip').addEventListener('click', (e) => {
+                const btn = e.currentTarget;
+                if (!deleteArmed) {
+                    deleteArmed = true;
+                    btn.textContent = 'Confirm Discard';
+                    btn.classList.add('btn-danger');
+                    btn.classList.remove('btn-danger-outline');
+                    deleteTimer = setTimeout(() => {
+                        deleteArmed = false;
+                        btn.textContent = 'Discard';
+                        btn.classList.remove('btn-danger');
+                        btn.classList.add('btn-danger-outline');
+                    }, 3000);
+                    return;
+                }
+                clearTimeout(deleteTimer);
+                deleteArmed = false;
+                TripController.delete(trip.id);
             });
         }
 

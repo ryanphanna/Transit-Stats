@@ -452,6 +452,37 @@ test('dispatcher: confirm_stop SKIP dismisses the choice and keeps the trip', as
   assert.match(calls.sendSmsReply[0].message, /trip continues/i);
 });
 
+test('dispatcher: confirm_stop SKIP without tripId calls handleTripLog with skipDisambiguation', async () => {
+  const stopCandidates = [
+    { stopCode: '760', stopName: 'College Station', routes: ['506'], direction: 'Westbound' },
+    { stopCode: '761', stopName: 'College Station', routes: ['506'], direction: 'Eastbound' },
+  ];
+  const { dispatch, calls } = buildHarness({
+    user: { userId: 'u_stop_skip_no_trip' },
+    pendingState: {
+      type: 'confirm_stop',
+      tripId: null,
+      route: '506',
+      direction: null,
+      agency: 'TTC',
+      options: { test: true },
+      stopCandidates,
+      stopInput: 'College Station',
+    },
+  });
+
+  await dispatch('+14165550099', 'SKIP', 'SM_STOP_SKIP_NO_TRIP');
+
+  assert.equal(calls.clearPendingState, 1, 'should clear pending state');
+  assert.equal(calls.handleTripLog, 1, 'should call handleTripLog');
+  const args = calls.handleTripLogArgs[0];
+  assert.equal(args[2], 'College Station', 'should pass stopInput as third arg');
+  assert.equal(args[3], '506', 'should pass route');
+  assert.equal(args[4], null, 'should pass direction');
+  assert.equal(args[5], 'TTC', 'should pass agency');
+  assert.deepEqual(args[6], { test: true, skipDisambiguation: true }, 'should pass skipDisambiguation in options');
+});
+
 test('dispatcher: bare number with no pending state gets expiry note, not fallback', async () => {
   const { dispatch, calls } = buildHarness({ user: { userId: 'u_expired' } });
 

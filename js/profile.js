@@ -142,7 +142,10 @@ export const Profile = {
         
         try {
             // Check cache first to avoid redundant reads
-            if (this.data && this.phone) return;
+            if (this.data && this.phone) {
+                window.currentUserProfile = this.data;
+                return;
+            }
 
             const [profileDoc, phoneSnap] = await Promise.all([
                 db.collection('profiles').doc(user.uid).get(),
@@ -183,6 +186,7 @@ export const Profile = {
             }
 
             this.syncUI(user.email);
+            window.currentUserProfile = this.data;
         } catch (err) {
             console.error('Profile load error:', err);
         }
@@ -308,6 +312,7 @@ export const Profile = {
             // Update local state
             if (!this.data) this.data = {};
             this.data[key] = value;
+            window.currentUserProfile = this.data;
             
             UI.showNotification('Preference saved.');
         } catch (err) {
@@ -344,6 +349,7 @@ export const Profile = {
 
             if (!this.data) this.data = {};
             this.data.username = username;
+            window.currentUserProfile = this.data;
             this.syncUI(user.email);
             UI.showNotification('Identity reserved!');
         } catch (err) {

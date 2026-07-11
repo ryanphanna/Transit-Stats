@@ -16,11 +16,25 @@ async function init() {
     await Profile.load(user);
     Profile.setupListeners();
 
-    document.getElementById('btn-logout')?.addEventListener('click', async () => {
-        if (confirm('Sign out of TransitStats?')) {
-            await Auth.signOut();
-            window.location.href = '/';
+    let logoutArmed = false;
+    let logoutTimer = null;
+    document.getElementById('btn-logout')?.addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
+        if (!logoutArmed) {
+            logoutArmed = true;
+            btn.textContent = 'Tap again to sign out';
+            btn.classList.add('btn-danger');
+            logoutTimer = setTimeout(() => {
+                logoutArmed = false;
+                btn.textContent = 'Sign Out';
+                btn.classList.remove('btn-danger');
+            }, 3000);
+            return;
         }
+        clearTimeout(logoutTimer);
+        logoutArmed = false;
+        await Auth.signOut();
+        window.location.href = '/';
     });
 
     document.getElementById('btn-reset-password')?.addEventListener('click', async () => {

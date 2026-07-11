@@ -191,7 +191,7 @@ async function handleConfirmAgencyState(phoneNumber, body, upperBody, state, tra
       await clearPendingState(phoneNumber);
       await handlers.handleTripLog(
         phoneNumber, user, state.stopInput, state.route, state.direction,
-        skippedAgency, { ...state.options, agencyExplicit: false }, trace
+        skippedAgency, { ...state.options, agencyExplicit: true }, trace
       );
     }
     return true;
@@ -250,9 +250,19 @@ async function handleConfirmStopState(phoneNumber, body, upperBody, state, trace
   // SKIP dismisses the stop clarification without touching the trip —
   // DISCARD is too destructive when the rider just doesn't care which
   // physical stop it was.
-  if (upperBody === 'SKIP' && state.tripId) {
+  if (upperBody === 'SKIP') {
     await clearPendingState(phoneNumber);
-    await sendSmsReply(phoneNumber, 'No problem — trip continues.\n\nEND [stop] to finish.');
+    if (state.tripId) {
+      await sendSmsReply(phoneNumber, 'No problem — trip continues.\n\nEND [stop] to finish.');
+    } else {
+      const user = await getUserByPhone(phoneNumber);
+      if (user) {
+        await handlers.handleTripLog(
+          phoneNumber, user, state.stopInput, state.route, state.direction,
+          state.agency, { ...state.options, skipDisambiguation: true }, trace
+        );
+      }
+    }
     return true;
   }
 

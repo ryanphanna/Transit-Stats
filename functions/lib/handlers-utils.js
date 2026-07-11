@@ -227,6 +227,7 @@ function buildStopChoiceList(candidates) {
 async function maybeHandleStopDisambiguation({
   phoneNumber, user, activeTrip, parsedStop, route, direction, resolvedAgency, options,
 }) {
+  if (options?.skipDisambiguation) return false;
   if (parsedStop.stopCode || !parsedStop.stopName) return false;
 
   const candidates = await narrowStopCandidates(
@@ -311,6 +312,7 @@ async function maybeHandleStopDisambiguation({
     agency: resolvedAgency,
     options,
     stopCandidates: slimCandidates,
+    stopInput: parsedStop.stopName || null,
   }, 60 * 60 * 1000);
   await sendSmsReply(
     phoneNumber,
