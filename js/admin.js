@@ -17,6 +17,7 @@ export const Admin = {
         libAgency: 'All',
         inboxSearch: ''
     },
+    deleteStopTimer: null,
 
     async init() {
         console.log('Admin: Initializing...');
@@ -351,6 +352,10 @@ export const Admin = {
     _pendingLinkItem: null,
 
     openStopForm(mode, id = null, prefillName = '') {
+        if (this.deleteStopTimer) {
+            clearTimeout(this.deleteStopTimer);
+            this.deleteStopTimer = null;
+        }
         document.getElementById('stop-form-id').value = id || '';
         const stop = id ? AdminLibrary.stops.find(s => s.id === id) : null;
 
@@ -414,11 +419,15 @@ export const Admin = {
         const btn = document.getElementById('btn-delete-stop');
         if (btn) {
             if (btn.dataset.armed !== 'true') {
+                if (this.deleteStopTimer) {
+                    clearTimeout(this.deleteStopTimer);
+                }
                 btn.dataset.armed = 'true';
                 btn.textContent = 'Tap again to delete';
                 btn.classList.add('btn-danger');
                 btn.classList.remove('btn-danger-outline');
-                setTimeout(() => {
+                this.deleteStopTimer = setTimeout(() => {
+                    this.deleteStopTimer = null;
                     btn.dataset.armed = 'false';
                     btn.textContent = 'Delete Stop';
                     btn.classList.remove('btn-danger');
@@ -427,6 +436,10 @@ export const Admin = {
                 return;
             }
             btn.dataset.armed = 'false';
+            if (this.deleteStopTimer) {
+                clearTimeout(this.deleteStopTimer);
+                this.deleteStopTimer = null;
+            }
         }
         await AdminLibrary.deleteStop(id);
         ModalManager.closeAll();

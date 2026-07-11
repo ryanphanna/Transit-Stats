@@ -1,7 +1,7 @@
 /**
  * User lookup, profiles, auth whitelist, and verification
  */
-const { admin, db } = require('./core');
+const { db, Timestamp } = require('./core');
 
 async function getUserByPhone(phoneNumber) {
   const phoneDoc = await db.collection('phoneNumbers').doc(phoneNumber).get();
@@ -26,8 +26,8 @@ async function isEmailAdmin(email) {
   return allowedDoc.exists && allowedDoc.data()?.isAdmin === true;
 }
 
-async function storeVerificationCode(phoneNumber, email, code) {
-  const expiresAt = admin.firestore.Timestamp.fromDate(new Date(Date.now() + 15 * 60 * 1000));
+async function storeVerificationCode(phoneNumber, email, code, ttlMs = 15 * 60 * 1000) {
+  const expiresAt = Timestamp.fromDate(new Date(Date.now() + ttlMs));
   await db.collection('smsVerification').doc(phoneNumber).set({ email, code, expiresAt, attempts: 0 });
 }
 

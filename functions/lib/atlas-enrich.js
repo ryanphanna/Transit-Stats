@@ -1,9 +1,12 @@
 /**
  * atlas-enrich.js — Layer-2 facts for new stop docs, sourced from Atlas R2.
  *
- * Atlas publishes atlas/{slug}-stops-meta.json weekly (official name, routes
- * served, direction of travel per stop). When a stop doc is created here with
- * a code but missing facts, we fill the blanks from that file.
+ * Atlas will publish stops-meta/{slug}.json weekly (official name, routes
+ * served, direction of travel per stop) once Civic-Minds/Atlas#161 ships —
+ * that path is the contract documented in that issue. Until then this fetch
+ * 404s and the enrichment safely no-ops (see fetchStopsMeta). When a stop doc
+ * is created here with a code but missing facts, we fill the blanks from
+ * that file.
  *
  * Layering rules (Transit-Stats#152):
  *  - `name` is the user's label — NEVER set or changed by this module.
@@ -31,7 +34,7 @@ async function fetchStopsMeta(slug) {
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) return cached.data;
   let data = null;
   try {
-    const res = await fetch(`${ATLAS_R2_BASE}/atlas/${slug}-stops-meta.json`, {
+    const res = await fetch(`${ATLAS_R2_BASE}/stops-meta/${slug}.json`, {
       signal: AbortSignal.timeout(15000),
     });
     if (res.ok) data = await res.json();

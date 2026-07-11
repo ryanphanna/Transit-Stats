@@ -1,8 +1,7 @@
 /**
  * Stop lookup and GTFS route mapping
  */
-const admin = require('firebase-admin');
-const { db } = require('./core');
+const { db, FieldValue } = require('./core');
 const { AGENCY_CITY } = require('../constants');
 const { getConnectionGroup, areConnectedStops, normalizeStopName } = require('../transfer-connections');
 let _topology = null;
@@ -144,7 +143,7 @@ async function _findAndExpandStop(term, agency) {
     if (match) {
       if (!data.agencies?.includes(agency)) {
         doc.ref.update({
-          agencies: admin.firestore.FieldValue.arrayUnion(agency),
+          agencies: FieldValue.arrayUnion(agency),
           updatedAt: new Date(),
         }).catch(err => console.error('agencies auto-expand failed:', err.message));
       }

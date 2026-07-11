@@ -74,6 +74,8 @@ async function deleteAllTestTrips() {
 // ─── Setup / Teardown ────────────────────────────────────────────────────────
 
 before(async () => {
+  // Clear any leftover trips or pending states from a previous run
+  await db.collection('smsState').doc(TEST_PHONE).delete().catch(() => {});
   // Create test user records
   await db.collection('phoneNumbers').doc(TEST_PHONE).set({
     userId: TEST_USER_ID,
@@ -84,7 +86,6 @@ before(async () => {
     isPremium: true,
     isAdmin: false,
   });
-  // Clear any leftover trips from a previous run
   await deleteAllTestTrips();
   console.log('✅ Test user created');
 });
@@ -94,8 +95,9 @@ after(async () => {
   await db.collection('phoneNumbers').doc(TEST_PHONE).delete();
   await db.collection('profiles').doc(TEST_USER_ID).delete();
   // Clean up pending state if any
-  await db.collection('pendingState').doc(TEST_PHONE).delete().catch(() => {});
+  await db.collection('smsState').doc(TEST_PHONE).delete().catch(() => {});
   console.log('🧹 Test data cleaned up');
+  await admin.app().delete();
 });
 
 // ─── Tests ───────────────────────────────────────────────────────────────────

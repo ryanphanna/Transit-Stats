@@ -2,7 +2,7 @@
  * Rate limiting, idempotency, and deduplication
  */
 const crypto = require('crypto');
-const { admin, db } = require('./core');
+const { db, FieldValue, Timestamp } = require('./core');
 const logger = require('../logger');
 
 async function isRateLimited(phoneNumber) {
@@ -17,7 +17,7 @@ async function isRateLimited(phoneNumber) {
   if (!doc.exists) {
     await rateLimitRef.set({
       count: 1,
-      resetAt: admin.firestore.Timestamp.fromDate(new Date(now.getTime() + windowMs)),
+      resetAt: Timestamp.fromDate(new Date(now.getTime() + windowMs)),
     });
     return false;
   }
@@ -28,7 +28,7 @@ async function isRateLimited(phoneNumber) {
   if (now >= resetAt) {
     await rateLimitRef.set({
       count: 1,
-      resetAt: admin.firestore.Timestamp.fromDate(new Date(now.getTime() + windowMs)),
+      resetAt: Timestamp.fromDate(new Date(now.getTime() + windowMs)),
     });
     return false;
   }
@@ -38,7 +38,7 @@ async function isRateLimited(phoneNumber) {
     return true;
   }
 
-  await rateLimitRef.update({ count: admin.firestore.FieldValue.increment(1) });
+  await rateLimitRef.update({ count: FieldValue.increment(1) });
   return false;
 }
 
@@ -52,7 +52,7 @@ async function isGeminiRateLimited(phoneNumber, isPremium = false, isAdmin = fal
   if (!doc.exists) {
     await rateLimitRef.set({
       count: 1,
-      resetAt: admin.firestore.Timestamp.fromDate(new Date(now.getTime() + 60 * 60 * 1000)),
+      resetAt: Timestamp.fromDate(new Date(now.getTime() + 60 * 60 * 1000)),
     });
     return false;
   }
@@ -63,7 +63,7 @@ async function isGeminiRateLimited(phoneNumber, isPremium = false, isAdmin = fal
   if (now >= resetAt) {
     await rateLimitRef.set({
       count: 1,
-      resetAt: admin.firestore.Timestamp.fromDate(new Date(now.getTime() + 60 * 60 * 1000)),
+      resetAt: Timestamp.fromDate(new Date(now.getTime() + 60 * 60 * 1000)),
     });
     return false;
   }
@@ -73,7 +73,7 @@ async function isGeminiRateLimited(phoneNumber, isPremium = false, isAdmin = fal
     return true;
   }
 
-  await rateLimitRef.update({ count: admin.firestore.FieldValue.increment(1) });
+  await rateLimitRef.update({ count: FieldValue.increment(1) });
   return false;
 }
 
@@ -84,9 +84,9 @@ async function shouldRespondToUnknown(phoneNumber) {
 
   if (!doc.exists) {
     await unknownRef.set({
-      firstMessageAt: admin.firestore.FieldValue.serverTimestamp(),
+      firstMessageAt: FieldValue.serverTimestamp(),
       messageCount: 1,
-      resetAt: admin.firestore.Timestamp.fromDate(new Date(now.getTime() + 60 * 60 * 1000)),
+      resetAt: Timestamp.fromDate(new Date(now.getTime() + 60 * 60 * 1000)),
     });
     return true;
   }
@@ -96,14 +96,14 @@ async function shouldRespondToUnknown(phoneNumber) {
 
   if (now >= resetAt) {
     await unknownRef.set({
-      firstMessageAt: admin.firestore.FieldValue.serverTimestamp(),
+      firstMessageAt: FieldValue.serverTimestamp(),
       messageCount: 1,
-      resetAt: admin.firestore.Timestamp.fromDate(new Date(now.getTime() + 60 * 60 * 1000)),
+      resetAt: Timestamp.fromDate(new Date(now.getTime() + 60 * 60 * 1000)),
     });
     return true;
   }
 
-  await unknownRef.update({ messageCount: admin.firestore.FieldValue.increment(1) });
+  await unknownRef.update({ messageCount: FieldValue.increment(1) });
   console.log('Ignoring repeat message from unknown number');
   return false;
 }
@@ -114,8 +114,8 @@ async function checkIdempotency(messageSid) {
   const msgRef = db.collection('processedMessages').doc(messageSid);
   try {
     await msgRef.create({
-      processedAt: admin.firestore.FieldValue.serverTimestamp(),
-      expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 3600000)),
+      processedAt: FieldValue.serverTimestamp(),
+      expiresAt: Timestamp.fromDate(new Date(Date.now() + 3600000)),
     });
     return false;
   } catch (e) {
@@ -133,8 +133,8 @@ async function checkContentDuplicate(phoneNumber, body) {
 
   try {
     await ref.create({
-      processedAt: admin.firestore.FieldValue.serverTimestamp(),
-      expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + WINDOW_MS)),
+      processedAt: FieldValue.serverTimestamp(),
+      expiresAt: Timestamp.fromDate(new Date(Date.now() + WINDOW_MS)),
     });
     return false;
   } catch (e) {
@@ -144,8 +144,8 @@ async function checkContentDuplicate(phoneNumber, body) {
         const processedAt = doc.data().processedAt?.toDate?.();
         if (processedAt && (Date.now() - processedAt.getTime()) < WINDOW_MS) return true;
         await ref.set({
-          processedAt: admin.firestore.FieldValue.serverTimestamp(),
-          expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + WINDOW_MS)),
+          processedAt: FieldValue.serverTimestamp(),
+          expiresAt: Timestamp.fromDate(new Date(Date.now() + WINDOW_MS)),
         });
       }
       return false;

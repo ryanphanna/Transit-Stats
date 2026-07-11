@@ -1,7 +1,7 @@
 /**
  * Trip and SMS state management
  */
-const { admin, db } = require('./core');
+const { db, FieldValue, Timestamp } = require('./core');
 const { getUserProfile } = require('./users');
 const { AGENCY_TIMEZONE } = require('../constants');
 
@@ -26,7 +26,7 @@ function hasBlockingCorrection(trip) {
 
 async function getActiveTrip(userId) {
   const now = new Date();
-  const sixHoursAgo = admin.firestore.Timestamp.fromDate(new Date(now.getTime() - 6 * 60 * 60 * 1000));
+  const sixHoursAgo = Timestamp.fromDate(new Date(now.getTime() - 6 * 60 * 60 * 1000));
 
   const snapshot = await db.collection('trips')
     .where('userId', '==', userId)
@@ -45,8 +45,8 @@ async function createTrip(tripData) {
   const profile = await getUserProfile(tripData.userId);
   const { startTime: startTimeOverride, ...restTripData } = tripData;
   const startTime = startTimeOverride
-    ? admin.firestore.Timestamp.fromDate(new Date(startTimeOverride))
-    : admin.firestore.FieldValue.serverTimestamp();
+    ? Timestamp.fromDate(new Date(startTimeOverride))
+    : FieldValue.serverTimestamp();
 
   const docRef = await db.collection('trips').add({
     ...restTripData,
@@ -93,7 +93,7 @@ async function getPendingState(phoneNumber) {
 }
 
 async function setPendingState(phoneNumber, state, ttlMs = 5 * 60 * 1000) {
-  const expiresAt = admin.firestore.Timestamp.fromDate(new Date(Date.now() + ttlMs));
+  const expiresAt = Timestamp.fromDate(new Date(Date.now() + ttlMs));
   await db.collection('smsState').doc(phoneNumber).set({ ...state, expiresAt });
 }
 

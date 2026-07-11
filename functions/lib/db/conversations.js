@@ -1,7 +1,7 @@
 /**
  * Conversation history for ASK context
  */
-const { admin, db } = require('./core');
+const { db, FieldValue } = require('./core');
 
 async function getConversationHistory(userId) {
   const doc = await db.collection('conversations').doc(userId).get();
@@ -26,7 +26,7 @@ async function saveConversationTurn(userId, userMsg, botMsg) {
     { role: 'model', text: botMsg, timestamp: now },
   ].slice(-10);
 
-  await ref.set({ history: updated, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+  await ref.set({ history: updated, updatedAt: FieldValue.serverTimestamp() });
 }
 
 module.exports = { getConversationHistory, saveConversationTurn };

@@ -230,14 +230,23 @@ async function handleIncomplete(phoneNumber, user, traceId = null) {
  */
 async function handleRegister(phoneNumber, email, traceId = null) {
   const emailRegex = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
-  if (!emailRegex.test(email)) {
+  let candidate = email.trim();
+  if (!emailRegex.test(candidate)) {
+    // Pull an embedded address out of natural replies ("it's foo@bar.com") and out of a
+    // redundant "REGISTER foo@bar.com" retry sent while already awaiting an email — both
+    // otherwise fail this regex and loop on the same "Invalid email format" reply forever.
+    const embedded = candidate.match(/[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+/);
+    if (embedded) candidate = embedded[0];
+  }
+  if (!emailRegex.test(candidate)) {
     await sendSmsReply(phoneNumber, 'Invalid email format. Text REGISTER [email].');
     return;
   }
+  email = candidate;
 
   const allowed = await isEmailAllowed(email);
   if (!allowed) {
-    await sendSmsReply(phoneNumber, 'Invite-only. Visit web app for access info.');
+    await sendSmsReply(phoneNumber, 'Invite-only. Sign up at transitstats.fyi for access info.');
     return;
   }
 
@@ -265,7 +274,7 @@ async function handleRegister(phoneNumber, email, traceId = null) {
   }
 
   const code = generateVerificationCode();
-  await storeVerificationCode(phoneNumber, email.toLowerCase(), code);
+  await storeVerificationCode(phoneNumber, email.toLowerCase(), code, 20 * 60 * 1000);
 
   try {
     await db.collection('mail').add({
@@ -336,7 +345,7 @@ async function handleVerificationCode(phoneNumber, code, traceId = null) {
   await db.collection('smsVerification').doc(phoneNumber).delete();
   await clearPendingState(phoneNumber);
 
-  await sendSmsReply(phoneNumber, `Phone linked! Text "[stop] [route]" to log trips.`);
+  await sendSmsReply(phoneNumber, `Phone linked! Text "[route] [stop]" to log trips.`);
 }
 
 /**

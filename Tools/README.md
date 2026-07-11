@@ -40,7 +40,7 @@ Keep reusable scripts here. Do not create a second top-level scripts folder unle
 
 ## Stop Metadata & Hubs
 
-- `backfill-stop-metadata.js` — apply direction/routes/alias backfill for TTC stops from TTC GTFS
+- `backfill-stop-metadata.js` — apply direction/routes/alias backfill for TTC stops from TTC GTFS. Idempotent and additive-only (never overwrites curated values) — rerun after TTC service changes (roughly quarterly) until Atlas ships per-agency `stops-meta` exports (Civic-Minds/Atlas#161), at which point `onStopCreated` enrichment (`functions/lib/atlas-enrich.js`) makes this manual step unnecessary. See Transit-Stats#152.
 - `backfill-stop-metadata-dryrun.js` — dry-run version of the above, writes nothing
 - `enrich-stops-from-trips.js` — backfill the normalized stops library from trip GPS coordinates
 - `backfill-trip-hubs.js` — assign startHubId/endHubId on trips from the stops library

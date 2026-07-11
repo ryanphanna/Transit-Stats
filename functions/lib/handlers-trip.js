@@ -407,6 +407,7 @@ async function handleConfirmStart(phoneNumber, user, state, traceId = null) {
   let confirmEndStopConstraintSource = 'none';
   let confirmIsAdmin = false;
   let confirmProvisionalTransfer = null;
+  let newStopData = null;
   try {
     const [history, stopsLibrary, routesAtStop, confirmProfile, confirmNetworkGraph, confirmAdminStatus] = await Promise.all([
       getRecentCompletedTrips(user.userId, 100),
@@ -424,7 +425,7 @@ async function handleConfirmStart(phoneNumber, user, state, traceId = null) {
     const lastEndStopName = lastTrip?.endStopName || lastTrip?.endStop || null;
     
     // Resolve hubId for the new trip
-    const newStopData = await lookupStop(newTrip.stopCode, newTrip.stopName, newTrip.agency, newTrip.route, newTrip.direction);
+    newStopData = await lookupStop(newTrip.stopCode, newTrip.stopName, newTrip.agency, newTrip.route, newTrip.direction);
     
     const confirmRouteContext = { stopName: newTrip.stopName, time: now, lastEndStopName, stopsLibrary };
     const confirmEndStopContext = { route: newTrip.route, startStopName: newTrip.stopName, direction: newTrip.direction, time: now, lastEndStopName, stopsLibrary, networkGraph: confirmNetworkGraph || null };

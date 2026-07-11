@@ -5,6 +5,7 @@ import { Trips } from '../trips.js';
 import { RouteTracker } from '../route-tracker.js';
 import { Utils } from '../utils.js';
 import { UI } from '../ui-utils.js';
+import { Profile } from '../profile.js';
 
 window.Admin = Admin;
 window.Utils = Utils;
@@ -38,6 +39,7 @@ function setupRouteTracker() {
 
 async function init() {
     const { user, isAdmin } = await requireAuth({ adminOnly: true });
+    await Profile.load(user);
     initHeader({ isAdmin, currentPage: 'admin' });
 
     setupModalListeners();

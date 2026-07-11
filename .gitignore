@@ -31,6 +31,7 @@ GEMINI.md
 .claude/
 .gemini/
 .agent/
+.agents/
 SESSION_CONTEXT.md
 handoff.md
 TRANSITSTATSLOG*

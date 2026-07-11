@@ -116,7 +116,7 @@ async function dispatch(phoneNumber, body, messageSid, media = {}, traceId = nul
     if (!user) {
       if (await shouldRespondToUnknown(phoneNumber)) {
         await setPendingState(phoneNumber, { type: 'awaiting_email' });
-        await sendSmsReply(phoneNumber, 'TransitStats tracks your transit rides and shows you stats over time. What\'s your email to get started?');
+        await sendSmsReply(phoneNumber, 'TransitStats tracks your transit rides and shows you stats over time. What\'s your email to get started? (No account yet? Sign up at transitstats.fyi first.)');
       }
       return '';
     }
@@ -133,7 +133,7 @@ async function dispatch(phoneNumber, body, messageSid, media = {}, traceId = nul
   if (!user) {
     if (await shouldRespondToUnknown(phoneNumber)) {
       await setPendingState(phoneNumber, { type: 'awaiting_email' });
-      await sendSmsReply(phoneNumber, 'Welcome to TransitStats! What\'s your email address?');
+      await sendSmsReply(phoneNumber, 'Welcome to TransitStats! What\'s your email address? (No account yet? Sign up at transitstats.fyi first.)');
     }
     return '';
   }
@@ -415,6 +415,10 @@ async function handlePendingState(phoneNumber, body, upperBody, state, traceId =
   }
 
   if (state.type === 'awaiting_email') {
+    // Let HELP/STATUS/etc. and an explicit "REGISTER [email]" retry fall through to their
+    // normal handlers instead of being swallowed as a (malformed) email attempt — this is
+    // the only pending state that used to lack this bypass.
+    if (PENDING_PASSTHROUGH.has(upperBody) || upperBody.startsWith('ASK ') || upperBody.startsWith('REGISTER ')) return false;
     await handlers.handleRegister(phoneNumber, body.trim(), trace);
     return true;
   }
