@@ -2,14 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
+
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
-## [1.47.5] - 2026-07-11
+## [Unreleased]
+
+### Fixed
+- **Mitigate Polynomial ReDoS in SMS email registration regexes** (`functions/lib/handlers-commands.js`): Replaced unbounded repetition `+` with a bounded repetition `{1,10}` in both the validation regex (`emailRegex`) and matching regex (`embedded`) within `handleRegister`. This eliminates polynomial backtracking complexity while preserving identical matching/extraction parity.
+
+## [1.47.5] — 2026-07-11
 
 ### Fixed
 - **`functions/`'s `npm test` script never actually excluded `test_integration.js`, only `test_e2e.js`** — another previously-unreachable bug, surfaced now that the `unit` job gets far enough to run functions' tests at all. `test_integration.js` requires a hardcoded local Firebase service account key path (`/Users/ryan/Desktop/Dev/Credentials/...`) and is meant to run only via the separate `test:integration` script, same category as the emulator-only `test:e2e`. Added it to the exclusion glob. Local suite: 237/237 (down from 249, correctly excluding the 12 integration tests).
 
-## [1.47.4] - 2026-07-11
+## [1.47.4] — 2026-07-11
 
 ### Fixed
 - **`unit` job's real, previously-unreachable bug: root tests ran before `functions/` was installed**: with `npm ci` finally out of the way (1.47.3), CI got far enough to hit an actual test failure for the first time — `tests/gemini.test.js` (root) imports `functions/lib/gemini.js`, which needs `@google/generative-ai`, a `functions/`-only dependency. The `unit` job ran root `npm test` before `cd functions && npm install`, so Node's `require()` had nothing to find walking up from `functions/lib/`. Reordered: `functions/` now installs before either test step runs. Reproduced locally by removing `functions/node_modules` and confirmed the fix restores it.
@@ -17,22 +24,22 @@ All notable changes to this project will be documented in this file.
 ### Docs
 - **Changelog audit**: found and fixed the same duplicate-`###`-header defect (from many work sessions each appending a fresh header instead of merging) in `CHANGELOG.md`'s `[1.46.0]` block and across `CHANGELOG_ARCHIVE.md`. Also fixed two genuine version-numbering bugs in the archive: `[1.4.0]` was used for two different releases six days apart (the March 9 one, same-day successor to `[1.3.1]`, renamed to `[1.3.2]`), and a stray empty `## [1.30.0]` header with no content was removed.
 
-## [1.47.3] - 2026-07-11
+## [1.47.3] — 2026-07-11
 
 ### Fixed
 - **1.47.2 also failed — root cause was `npm ci`'s strict tree-matching itself, not lockfile staleness**: CI wanted `@emnapi/core`/`@emnapi/runtime` at *both* `1.11.1` and `1.11.2` simultaneously (two nested copies), while every local regeneration attempt (plain reinstall, full clean reinstall, npm cache cleared, npm 10 via `npx` to match CI's pinned version, `--os=linux --cpu=x64` to force cross-platform resolution) only ever produced one. This looks like a genuine Node 22 (CI) vs. local Node version difference in how npm resolves a loose `^1.7.1` range for this package's transitive optional dependency, not reproducible locally at all. Rather than keep chasing exact lockfile parity, switched `.github/workflows/test.yml` from `npm ci` to `npm install` in all three jobs — `npm install` resolves and adapts instead of hard-failing on any tree drift. Less strict reproducibility guarantee, but actually reliable for a single-maintainer project where the lockfile drifting slightly between a Mac and a Linux CI runner isn't a real risk worth this much friction.
 
-## [1.47.2] - 2026-07-11
+## [1.47.2] — 2026-07-11
 
 ### Fixed
 - **1.47.1's lockfile fix was incomplete — CI still failed the same way**: a plain `npm install` (both root and `functions/`) synced the version field but still left the tree missing `@emnapi/runtime@1.11.2` and other entries, because it only touches packages that changed rather than fully recomputing the tree. Deleted `node_modules` + `package-lock.json` in both directories and reinstalled from scratch; verified `npm ci` now succeeds clean in both, and the full test suite (165 root + 249 functions) still passes.
 
-## [1.47.1] - 2026-07-11
+## [1.47.1] — 2026-07-11
 
 ### Fixed
 - **CI Test workflow broken on every push since it was added this session**: two separate bugs, found immediately after 1.47.0 pushed and the `Test` workflow failed. (1) `npm ci` failed in both `unit` and `rules` jobs — root and `functions/` `package-lock.json` still had `"version": "1.45.1"` after the 1.47.0 bump; `npm ci` requires the lockfile's own version field to match `package.json` exactly, and separately `@emnapi/runtime` was missing from the lockfile from an earlier unrelated drift. Fixed by running `npm install` in both directories to resync. (2) `rules` and `e2e` jobs failed with `firebase: not found` — `.github/workflows/test.yml` (added this session) never installs `firebase-tools`, which only worked locally because it's installed globally on this machine, not as a project dependency. Added `npm install -g firebase-tools` to both jobs.
 
-## [1.47.0] - 2026-07-11
+## [1.47.0] — 2026-07-11
 
 ### Added
 - **`NetworkEngine.inferStopSequence(graph, direction)`** (`functions/lib/network.js`): reconstructs a best-guess linear stop order for a route/direction from observed edge durations alone — no GTFS, no topology.json, no Atlas input. Anchors on one of the two stops with the largest observed pairwise duration (very likely the true line endpoints) rather than an arbitrary or most-observed stop; anchoring on a middle stop is ambiguous (two stops equidistant on opposite sides look identical) and silently scrambles the order. Includes transitive (2-hop) edges so sparse graphs still resolve pairs never observed directly. Returns only the stops it can actually place — a stop with no real or transitive path to the anchor is honestly omitted, not guessed. Not yet wired into any prediction/handler path; purely additive, unit-tested (`functions/test_network.js`) against synthetic graphs only.
@@ -69,7 +76,7 @@ All notable changes to this project will be documented in this file.
 - **`.gitignore`**: added `.agents/` — working-state scratch from a separate agent-orchestration tool that ran against this repo, not meant to be tracked.
 - Removed a stray tracked duplicate (`functions/package-lock 2.json`) and untracked sync-conflict/scratch files (`Tools/backfill-stop-metadata 2.js`, `Tools/backfill-stop-metadata-dryrun 2.js`, `count-trips-node.js` x2) that had accumulated outside git.
 
-## [1.46.0] - 2026-07-10
+## [1.46.0] — 2026-07-10
 
 ### Added
 - **Route Tracker on the dashboard, powered by Atlas** (`js/route-tracker.js`, `js/pages/dashboard.js`, `dashboard.html`): The per-agency route completion tracker now loads route definitions from Atlas's public R2 GeoJSON (`atlas/{slug}.json`) instead of the manually imported Firestore `routes` collection — route lists stay current with Atlas's weekly refresh, no admin GTFS uploads. Parsed client-side (189 unique TTC routes), cached in IndexedDB keyed by refresh week, Firestore fallback kept for agencies Atlas doesn't carry. Tracker card now lives on the main dashboard (8 GTHA/Ottawa agencies selectable); admin copy unchanged.
@@ -90,18 +97,18 @@ All notable changes to this project will be documented in this file.
 - **`npm ci` was failing in CI on every open PR** (`package-lock.json`): Lock file was generated with npm 11, which resolves optional deps differently than npm 10 (CI's pinned Node 22 bundle) — missing an `@emnapi/runtime` entry. Regenerated with npm 10 to match CI; also fixed a stale `version` field left over from the 1.45.1 release.
 - **Firebase hosting deploy no longer fails when frontend content is unchanged** (`.github/workflows/firebase-hosting-merge.yml`): Replaced `action-hosting-deploy@v0` with a direct CLI step that treats Firebase's "current active version" 400 error as a success — the site was already up to date.
 
-## [1.45.2] - 2026-06-22
+## [1.45.2] — 2026-06-22
 
 ### Fixed
 - **Weekly model retrain workflow had been silently failing for 6+ weeks** (`.github/workflows/retrain.yml`, `ml/train_endstop.py`, `ml/requirements.txt`): Four separate issues resolved: (1) missing `requirements.txt` caused pip cache step to abort before any code ran; (2) `onnxmltools` dependency on `packaging` wasn't installed; (3) `evaluate()` assumed `le.classes_` and `model.classes_` always matched — if a rare end-stop class got no training samples, `LogisticRegression` output fewer probability columns and crashed `top_k_accuracy_score`; (4) `FIREBASE_TOKEN` secret was unset, blocking deploy. Also raised the minimum end-stop class threshold from 3 → 10 trips so classes with too little data are dropped before training.
 
-## [1.45.1] - 2026-06-20
+## [1.45.1] — 2026-06-20
 
 ### Security
 - **Resolved CodeQL polynomial regular expression ReDoS alert** (`functions/lib/handlers-commands.js`): Fixed the `AGENCY` command parsing regex which was vulnerable to catastrophic backtracking when given multiple spaces. The pattern now strictly anchors on a non-whitespace character (`\S`), preventing overlapping matches.
 - **Dependency updates** (root `package.json`, `package-lock.json`): Upgraded `undici` override to `^7.28.0` to patch CVEs relating to TLS validation bypass via SOCKS5 and shared cache whitespace bypass. Regenerated package lock.
 
-## [1.45.0] - 2026-06-18
+## [1.45.0] — 2026-06-18
 
 ### Security
 - **Verification code brute-force via repeated REGISTER** (`functions/lib/handlers-commands.js`, `functions/lib/db/users.js`): After 3 failed code attempts, phone is locked for 10 minutes — re-calling REGISTER during lockout is blocked with a countdown message. `getVerificationData` no longer deletes a locked doc on expiry so the lockout survives the code TTL.
@@ -116,7 +123,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - **Dependencies: bumped `form-data` and `protobufjs`** (root and `functions/package-lock.json`): Fixed 3 high `form-data` CRLF injection alerts and 1 moderate `protobufjs` schema-shadowing alert via `npm audit fix`.
 
-## [1.44.0] - 2026-06-18
+## [1.44.0] — 2026-06-18
 
 ### Fixed
 - **SMS: `confirm_start` handler fell through to "Could not understand"** (`functions/lib/dispatcher.js`): Replies that weren't START/DISCARD/FORGOT (e.g. "1" from a prior agency disambiguation) returned `false` from `handleConfirmStartState`, falling all the way through to the fallback. Now passes STATUS/STATS/etc. through and sends a reminder for everything else. Same fix class as the v1.42.0 `confirm_stop` regression.
@@ -127,24 +134,24 @@ All notable changes to this project will be documented in this file.
 - **SMS: SKIP reply for agency disambiguation** (`functions/lib/dispatcher.js`): When asked "Which [stop]? 1. GO Transit 2. TTC", replying SKIP uses the default agency and skips the prompt. Prompt now shows all three options.
 - **SMS: SETTINGS command** (`functions/lib/handlers-commands.js`, `functions/lib/dispatcher.js`): `SETTINGS` shows current default agency. `SETTINGS AGENCY [name]` changes it (validates against known agency list). Shown in HELP output.
 
-## [1.43.3] - 2026-06-17
+## [1.43.3] — 2026-06-17
 
 ### Fixed
 - **Parser: "Down Mountain" / "Uphill" wrongly parsed as agency** — added "Down Mountain", "Downhill", "Up Mountain", "Uphill" (and hyphenated/no-space variants) to `normalizeDirection` and `CANONICAL_DIRECTIONS`, so escarpment-style direction terms on line 3 are recognized correctly instead of falling through to the agency slot.
 - **Data: corrected agency on 7 trips from today** — Route 20 ×2, Route 25, Route 41, Route 5A (all → HSR) and Lakeshore West ×2 (→ GO Transit), where "Down Mountain" or "Uphill" had been stored as the agency.
 
-## [1.43.2] - 2026-06-17
+## [1.43.2] — 2026-06-17
 
 ### Changed
 - **Security**: bumped `vite` to 8.0.16 (CVE fixes for Windows alternate-path bypass and NTLMv2 hash disclosure via UNC paths); updated both `devDependencies` and `overrides` so vitest's transitive dep resolves to the patched version.
 
-## [1.43.1] - 2026-06-12
+## [1.43.1] — 2026-06-12
 
 ### Changed
 - **Dependency updates**: bumped `firebase` to 12.14.0, `eslint` to 10.4.1 in `/functions`, `vitest` and `@vitest/ui` to 4.1.8 in root. `firebase-admin` held at 13 — `firebase-functions@7.2.5` peer dep does not yet declare support for v14.
 - **CI: upgrade to Node.js 24 actions** (`.github/workflows/`): Updated `actions/checkout` to v6 and `actions/setup-node` to v6 ahead of GitHub's June 16 Node.js 20 deprecation deadline.
 
-## [1.43.0] - 2026-06-11
+## [1.43.0] — 2026-06-11
 
 ### Fixed
 - **Gemini model deprecated** (`functions/lib/gemini.js`): Updated model from `gemini-2.0-flash` (404 Not Found) to `gemini-2.5-flash`, now centralized as `GEMINI_MODEL` constant so future upgrades are a one-line change. ASK, MMS, and parsing commands were all failing silently. Also added 404/"no longer available" to the no-retry list in `retryWithBackoff` so permanent failures fast-fail instead of burning 3 attempts.
@@ -152,7 +159,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 - **ML check-in task system** (`functions/lib/ml-tasks.js`, `functions/lib/handlers-trip.js`): After each trip ends, checks Firestore `mlTasks` collection for pending check-ins scoped to the user. When a task's trip threshold is crossed, fires an SMS reminder and marks the task triggered. Phone number is looked up from `phoneNumbers` at fire time so the system works for any user. First task seeded: audit V4/V5 shadow accuracy after 30 TTC trips since 2026-06-09 (stop feature fix).
 
-## [1.42.0] - 2026-06-09
+## [1.42.0] — 2026-06-09
 
 ### Fixed
 - **`lastEndStopName` missed legacy `endStop` field** (`functions/lib/handlers-trip.js`): Inference read only `endStopName`, but older trips in history only have `endStop`. Training export uses both (`endStopName or endStop`). `last_end_stop` would be null for the next trip after any legacy trip, firing `last_stop_none` instead of the actual prior stop. Fixed with a one-line fallback.
@@ -169,7 +176,7 @@ All notable changes to this project will be documented in this file.
 - **Fixed stopsLibrary out of scope in detectProvisionalTransfer** (`functions/lib/handlers-trip.js`): `stopsLibrary` was a free variable, causing a `ReferenceError` on every call. Now passed as an optional 5th parameter.
 - **Test infrastructure: finalization module mocked** (`functions/test_handlers.js`): All 20 `test_handlers.js` tests now pass (up from 14).
 
-## [1.41.0] - 2026-06-05
+## [1.41.0] — 2026-06-05
 
 ### Added
 - **Strictly Normalized Hub Model** (functions/lib/transfer.js, functions/lib/finalization.js, iOS App): Refactored the entire project to follow a strictly normalized data architecture: Trips link to Stops, and Stops link to Hubs. Hub resolution is now performed dynamically at the reasoning layer (e.g., during journey linking) rather than being denormalized onto the trip record.
@@ -185,7 +192,7 @@ All notable changes to this project will be documented in this file.
 
 
 
-## [1.40.0] - 2026-05-27
+## [1.40.0] — 2026-05-27
 
 ### Added
 - **SMS request tracing** (`functions/lib/logger.js`, `functions/lib/dispatcher.js`, `functions/sms.js`, all handlers): Every SMS request now carries a short correlation ID (`t:xxxxxxxx`) through the full dispatch lifecycle. Logger now emits `[INFO][t:abc12345]` style prefixes and accepts `traceId` in data objects (or as a convenience parameter). Dispatcher, trip handlers, query handlers, command handlers, and key intelligence paths all propagate the ID. This enables end-to-end correlation of complex flows (pending states, disambiguation, prediction paths, Gemini calls) in Cloud Logging without changing any existing call sites.
@@ -211,7 +218,7 @@ All notable changes to this project will be documented in this file.
 - **Last synchronous post-end side effect removed** (`functions/lib/handlers-trip.js`, `functions/lib/finalization.js`): Gtfs stop verification promotion (`source: 'verified'`) moved into the background finalizer. The handler now performs zero direct Firestore side-effect writes after trip end.
 - **Manual re-finalization support** (`functions/lib/finalization.js`): Added `triggerManualFinalization(tripId)` which forces `runPostEndFinalization` to run on any trip, bypassing idempotency. Useful for corrections, admin repair flows, and future scheduled maintenance.
 
-## [1.39.1] - 2026-05-26
+## [1.39.1] — 2026-05-26
 
 ### Fixed
 - **SMS stop disambiguation now uses route metadata before prompting** (`functions/lib/handlers-utils.js`, `functions/test_handlers.js`): Named-stop trip starts now enrich ambiguous candidates from `stopRoutes` before deciding whether to ask for clarification, and direction narrowing now prefers explicit direction matches over generic directionless candidates. This reduces unnecessary prompts for cases like `506 + Dufferin / College + Eastbound` once normalized stop records include the correct physical stop direction. Multi-stop SMS prompts also now include blank lines around the choice list for better readability.
@@ -224,7 +231,7 @@ All notable changes to this project will be documented in this file.
   - Updated `vite` to `^8.0.14`.
   - Added `uuid@^11.1.1` override to resolve buffer bounds check vulnerability (GHSA-w5hq-g745-h8pq) across transitive dependencies (`@google-cloud/storage`, `google-gax`, etc.).
 
-## [1.39.0] - 2026-05-24
+## [1.39.0] — 2026-05-24
 
 ### Added
 - **Vehicle field tracking** (`functions/lib/parsing.js`, `functions/lib/gemini.js`, `functions/lib/handlers-trip.js`, `functions/lib/dispatcher.js`, `dashboard.html`, `js/pages/dashboard.js`, `js/trips/TripFeed.js`, `functions/test_parsing.js`): Added end-to-end support for tracking vehicle numbers/names. Includes heuristic extraction from SMS lines or inline stop names, updated Gemini AI extraction, Firestore storage, and display/edit capability in the Web UI.
@@ -235,7 +242,7 @@ All notable changes to this project will be documented in this file.
 - **Default Vitest discovery now stays inside the real repo test surface** (`vite.config.js`): Scoped the default test run to `tests/**/*.test.js`, excluded agent/worktree folders, and left Firestore rules coverage on the explicit emulator-backed `npm run test:rules` path so `npm test` remains a local unit-test command.
 - **Habit confidence and stale-pattern detection now anchor to trip context instead of wall-clock drift** (`functions/lib/habit.js`): Habit extraction scores against the latest trip in the snapshot, matching re-scores confidence against the attempted boarding time, and stale-habit replacement checks use the dataset’s own recency window so long-lived tests and offline rebuilds do not silently decay or miss emerging replacements just because real time passed.
 
-## [1.38.0] - 2026-05-20
+## [1.38.0] — 2026-05-20
 
 ### Added
 - **Post-trip SMS notes command** (`functions/lib/dispatcher.js`, `functions/lib/handlers-commands.js`, `functions/lib/handlers-trip.js`, `functions/test_dispatcher.js`, `functions/test_handlers.js`): Trip-end replies now advertise `Reply NOTES (your note) to add a note.`, and `NOTES ...` attaches text to the most recent completed trip.
@@ -248,12 +255,12 @@ All notable changes to this project will be documented in this file.
 - **End-trip text resolution no longer drops single matched candidates that lack a stop code** (`functions/lib/handlers-trip.js`, `functions/test_handlers.js`): When the end-stop matcher narrows text input to one stop-library candidate, that candidate is now used directly instead of being lost on a second code-only lookup.
 - **Admin prediction-accuracy panel removed from Settings** (`settings.html`, `js/pages/settings.js`): Stale incremental accuracy counters are no longer surfaced in the Settings UI; raw `predictionStats` remains the truth source for manual model evaluation.
 
-## [1.37.1] - 2026-05-20
+## [1.37.1] — 2026-05-20
 
 ### Fixed
 - **Prediction audit rows now retain the originating trip ID** (`functions/lib/handlers-trip.js`): All `predictionStats` writes now include `tripId`, so route/end-stop grading rows can be traced back to the exact trip that produced them instead of relying on fuzzy matching by timestamp, version, or labels.
 
-## [1.37.0] - 2026-05-18
+## [1.37.0] — 2026-05-18
 
 ### Added
 - **Transfer-pair candidate audit tool** (`Tools/audit-transfer-pair-candidates.js`, `functions/lib/transfer.js`, `functions/test_transfer.js`):
@@ -264,7 +271,7 @@ All notable changes to this project will be documented in this file.
 - **Generic TTC transfer names now resolve through the transfer-complex layer** (`functions/lib/db/stops.js`, `functions/lib/handlers-trip.js`, `functions/lib/handlers-utils.js`, `functions/test_stops.js`, `functions/test_handlers.js`): Stop lookup no longer depends only on exact stop-library aliases for generic names like `College`. The resolver now gathers exact and transfer-complex-connected candidates together, then narrows them by `route` and `direction`. This allows behaviors like `506 + College + Westbound -> westbound surface stop`, `1 + College -> subway station`, while still falling back to clarification when direction is missing or ambiguity remains.
 - **Stop clarification prompts now expose the physical stop more clearly** (`functions/lib/handlers-utils.js`, `functions/test_handlers.js`): Multi-match SMS prompts now include stronger labels like direction plus `stop ####` when candidates share the same display name or transfer complex, making fallback prompts for cases like `College` materially clearer than a list of near-identical names.
 
-## [1.36.1] - 2026-05-17
+## [1.36.1] — 2026-05-17
 
 ### Added
 - **Firestore privilege-boundary rules tests** (`tests/firestore.rules.test.js`, `package.json`): Added emulator-backed security tests covering normal profile creation, blocked self-promotion to `isPremium`/`isAdmin`, and admin-only privileged profile updates.
@@ -273,7 +280,7 @@ All notable changes to this project will be documented in this file.
 - **Profile privilege escalation via user-writable flags** (`firestore.rules`, `functions/lib/db/users.js`, `functions/lib/handlers-query.js`, `functions/lib/handlers-trip.js`, `functions/test_handlers.js`, `functions/test_dispatcher.js`): Users can no longer promote themselves by editing `profiles/{userId}`. Profile writes now preserve `isPremium` and `isAdmin` unless performed by an actual admin from `allowedUsers`, and backend admin-only behavior now checks `allowedUsers` directly instead of trusting mutable profile fields.
 - **Twilio webhook validation logs exposed auth-derived material** (`functions/lib/twilio.js`): Removed `secretPrefix` and full `X-Twilio-Signature` values from production logs while keeping request-shape diagnostics for webhook debugging.
 
-## [1.36.0] - 2026-05-17
+## [1.36.0] — 2026-05-17
 
 ### Added
 - **NetworkEngine v2.1 — Pure Empirical Learner** (`functions/lib/network.js`, `functions/lib/handlers-trip.js`, `Tools/diagnose-naming-drift.js`):
@@ -309,18 +316,18 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - **Vetted TTC stop library expanded** (Firestore `stops` collection): Added `Davisville` as a manual TTC stop record so current Line 1 commute trips can resolve cleanly against the canonical stop library instead of falling through to unresolved raw text.
 
-## [1.35.2] - 2026-05-12
+## [1.35.2] — 2026-05-12
 
 ### Fixed
 - **Dependabot Alerts**: Resolved 8 high/moderate security vulnerabilities in `functions` by updating the `protobufjs` dependency tree to `7.5.8` via `npm audit fix`.
 
-## [1.35.1] - 2026-05-12
+## [1.35.1] — 2026-05-12
 
 ### Fixed
 - **CI Build Failure**: Removed `--omit=optional` from the root `npm install` command in GitHub Action workflows. Vite/Rolldown native bindings are installed as optional dependencies, and omitting them was causing `MODULE_NOT_FOUND` errors during the `npm run build` step.
 - **SSRF CodeQL Alert**: Hardened MMS URL processing in `functions/lib/handlers-intelligence.js` by expanding the trusted Twilio domain whitelist, fully reconstructing target URLs to prevent bypasses, and ensuring guards and the `fetch` sink occur in the same try-block to resolve CodeQL alert #44.
 
-## [1.35.0] - 2026-05-12
+## [1.35.0] — 2026-05-12
 
 ### Fixed
 - **Next-leg suggestion displays original route label** (`functions/lib/network.js`, `functions/lib/handlers-trip.js`): Transfer index now stores `toLabels[connKey] = originalRoute` alongside counts. `getConnectionLabels()` retrieves them. Handlers-trip uses the original label for the "Usually take the X from here" SMS — fixing "510a" displaying instead of "510A", "greenline" instead of "Green Line", etc.
@@ -345,7 +352,3 @@ All notable changes to this project will be documented in this file.
 - **Prediction stats analysis script** (`ml/analyze_predictions.py`): Reports hit rates by model version, top confusion pairs, confidence calibration, and high-confidence misses from live `predictionStats` data.
 - **Trip count diagnostic** (`ml/count_trips.py`): Breaks down total Firestore trip count by export-filter category to understand how many trips are excluded from ML training and why.
 - **V5.2/V5.3 grade backfill** (`ml/backfill_v5_grades.py`): One-time script to correct `isHit` values for V5.2/V5.3 prediction records that were mis-graded due to the normalization bug above. Also corrects the corresponding `predictionAccuracy` running counters.
-
----
-
-Older releases can be found in [CHANGELOG_ARCHIVE.md](./CHANGELOG_ARCHIVE.md).
