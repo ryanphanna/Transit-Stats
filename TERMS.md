@@ -1,7 +1,5 @@
 # Terms of Service
 
-**This is a starting point, not legal advice.** These terms are self-drafted for a small personal project. If Transit Stats ever takes on paying customers at scale, opens up beyond invite-only access, or otherwise carries real legal/liability exposure, have an actual lawyer review this before relying on it.
-
 Last updated: July 2026.
 
 ## What this is
@@ -14,7 +12,7 @@ You agree not to:
 - Send spam, abusive content, or automated/bulk messages to the service's SMS number or API endpoints
 - Attempt to access another user's account, trips, or data
 - Attempt to circumvent the invite-only whitelist or rate limits
-- Attempt to gain unauthorized access to Transit Stats' systems, infrastructure, source code repositories, or backend services — including exploiting, probing, or attacking security vulnerabilities — except as part of the good-faith responsible disclosure process described in [SECURITY.md](./SECURITY.md)
+- Attempt to gain unauthorized access to Transit Stats' systems, infrastructure, source code repositories, or backend services — including exploiting, probing, or attacking security vulnerabilities — except as part of the good-faith responsible disclosure process described in [SECURITY.md](./docs/SECURITY.md)
 - Misuse the service's AI features (stop-sign photo parsing, natural-language stats queries): no prompt injection or jailbreak attempts, no trying to extract underlying prompts/instructions, and no using them for anything unrelated to your own trip logging and stats
 - Send any photo, message, or other content via MMS/SMS or any other channel that is illegal, sexually explicit, exploitative, or otherwise inappropriate — see **Illegal content and mandatory reporting** below
 - Use the service in any way that disrupts it for other users or the operator's Twilio/Gemini/Firebase usage quotas and costs
@@ -25,7 +23,7 @@ Violating this may result in your phone number or account being rate-limited, su
 
 Sending child sexual abuse material (CSAM) or any other illegal content through Transit Stats — by MMS photo or any other means — is strictly prohibited and will result in an immediate, permanent ban. Where the operator becomes aware of apparent CSAM, it will be reported to the National Center for Missing & Exploited Children (NCMEC) via the CyberTipline and to law enforcement, as required by U.S. law (18 U.S.C. § 2258A) for providers who become aware of such content. Photos sent via MMS are processed through Google's Gemini API, which is subject to Google's own content-safety systems, in addition to any review by the operator.
 
-This obligation exists under federal law independent of anything written here — this section documents it, it doesn't create it. **If you have any real-world exposure to this risk (a public-facing app, unknown users, stored images), this is not something to rely on self-drafted wording for — get actual legal counsel and implement real technical safeguards** (e.g., hash-matching against known-CSAM databases, this app's practice of never storing submitted images).
+This obligation exists under federal law independent of anything written here — this section documents it, it doesn't create it. Submitted photos are never stored; they are processed in memory and discarded (see [SECURITY.md](./docs/SECURITY.md)).
 
 ## SMS terms
 
@@ -37,7 +35,7 @@ By registering your phone number, you consent to receive SMS/MMS messages from T
 
 ## What data is collected
 
-See [SECURITY.md](./SECURITY.md) for the full technical breakdown. In summary: trip data (routes, stops, timestamps, and GPS coordinates at trip start/end) tied to your account; your phone number and email for authentication; and, for premium AI-query users, trip data is sent to Google Gemini to answer natural-language questions (never used to train Google's models — see SECURITY.md for the specific privacy commitment). Stop-sign photos sent by MMS are processed in memory and never stored. Third-party services used to operate Transit Stats: Twilio (SMS/MMS), Google Gemini (AI parsing/queries), Google Firebase (auth, database, hosting, functions), and [Atlas](https://github.com/Civic-Minds/Atlas) (public, read-only route/stop data — no user data is ever sent to it).
+See [SECURITY.md](./docs/SECURITY.md) for the full technical breakdown. In summary: trip data (routes, stops, timestamps, and GPS coordinates at trip start/end) tied to your account; your phone number and email for authentication; and, for premium AI-query users, trip data is sent to Google Gemini to answer natural-language questions (never used to train Google's models — see SECURITY.md for the specific privacy commitment). Stop-sign photos sent by MMS are processed in memory and never stored. Third-party services used to operate Transit Stats: Twilio (SMS/MMS), Google Gemini (AI parsing/queries), Google Firebase (auth, database, hosting, functions), and [Atlas](https://github.com/Civic-Minds/Atlas) (public, read-only route/stop data — no user data is ever sent to it).
 
 ## Your data
 

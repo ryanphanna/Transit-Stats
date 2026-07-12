@@ -333,10 +333,10 @@ We can learn generalizable transfer context representations via matrix factoriza
 - Gap to frequency baseline: 20.7 percentage points (69.0% vs 89.7%)
 
 **Interpretation:**  
-✓ **Generalizes well.** Despite only 50 observed contexts, the k-NN model achieves 69% on held-out trips—far better than the 28% global baseline. This shows embeddings *do* capture meaningful transfer structure.  
-✓ **k=2 is optimal.** Higher k values dilute the signal, suggesting local neighborhood structure is more reliable than broader regions.  
-⚠️ **Sparsity still matters.** The 20pp gap to frequency baseline (89.7%) reflects the fundamental limitation: with 50 observed contexts across 21 routes, many (context, next_route) pairs are unobserved. Neighbors exist but aren't perfect matches.  
-✓ **No hand-collected data needed.** This works on natural trips only, validating the plan to rely on learning from existing behavior rather than targeted collection.
+- **Generalizes well.** Despite only 50 observed contexts, the k-NN model achieves 69% on held-out trips—far better than the 28% global baseline. This shows embeddings *do* capture meaningful transfer structure.  
+- **k=2 is optimal.** Higher k values dilute the signal, suggesting local neighborhood structure is more reliable than broader regions.  
+- Caveat: **Sparsity still matters.** The 20pp gap to frequency baseline (89.7%) reflects the fundamental limitation: with 50 observed contexts across 21 routes, many (context, next_route) pairs are unobserved. Neighbors exist but aren't perfect matches.  
+- **No hand-collected data needed.** This works on natural trips only, validating the plan to rely on learning from existing behavior rather than targeted collection.
 
 **Key Insight — Why Embeddings Work:**  
 Stops and routes have latent structure (geographic, temporal, network). NMF discovers that structure, so similar stops (e.g., nearby stations) get similar embeddings. When we encounter a new (stop, prev_route) context, we find similar observed contexts and inherit their outcomes. This is **transfer learning** in the classical sense.
@@ -372,10 +372,10 @@ The optimal number of embedding factors balances expressiveness and overfitting.
 | 32      | 70.1%    | ± 10.6% | +41.9%         |
 
 **Interpretation:**  
-✓ **16 factors is optimal.** Accuracy peaks at 72.9%, a +3.9pp improvement over the 8-factor baseline (69.0%).  
-✓ **Diminishing returns at 32.** Over-parameterization causes a 2.8pp drop (70.1% vs 72.9%), likely overfitting on the small 50-context sample.  
-✓ **Robustness similar.** Std dev stays consistent (~10.5-11.2%), suggesting the bootstrap variance is dominated by data sparsity, not model variance.  
-✓ **4 factors underfits.** Only 59.4% suggests the structure is genuinely 8+ dimensional; the 16-factor lift validates this.
+- **16 factors is optimal.** Accuracy peaks at 72.9%, a +3.9pp improvement over the 8-factor baseline (69.0%).  
+- **Diminishing returns at 32.** Over-parameterization causes a 2.8pp drop (70.1% vs 72.9%), likely overfitting on the small 50-context sample.  
+- **Robustness similar.** Std dev stays consistent (~10.5-11.2%), suggesting the bootstrap variance is dominated by data sparsity, not model variance.  
+- **4 factors underfits.** Only 59.4% suggests the structure is genuinely 8+ dimensional; the 16-factor lift validates this.
 
 **Key Insight:**  
 The sweet spot is 16 factors: enough to capture transfer structure without overfitting. This is ~1/3 of the matrix rank (50 contexts), which aligns with typical dimensionality reduction heuristics.
@@ -411,8 +411,8 @@ Routes with alphabetic suffixes (510, 510A, 510B) have similar transfer patterns
 | Buckets with 2+ observations | 10 | 9 | -10.0% |
 
 **Interpretation:**  
-✗ **Collapsing routes *hurts* signal.** Reducing routes by 19% only reduces contexts by 6%, and the high-confidence bucket count *drops* by 10%.  
-✓ **Route variants are operationally distinct (not just suffixes).** The 510 family structure:
+- **Collapsing routes *hurts* signal.** Reducing routes by 19% only reduces contexts by 6%, and the high-confidence bucket count *drops* by 10%.  
+- **Route variants are operationally distinct (not just suffixes).** The 510 family structure:
   - **510**: Northbound only, ends at Spadina Station → transfers to route 2
   - **510A**: Southbound (full route), ends at Spadina Ave at College St → transfers to route 1
   - **510B**: Southbound (short-turn, half route), ends at Spadina Ave at Nassau St → different destinations
@@ -423,8 +423,8 @@ Direction (N/S) + truncation point = different network positions = different onw
 Rather than hand-coded families, let **embeddings learn route similarity**. NMF will naturally group similar routes if they have similar transfer patterns. This is data-driven rather than rule-based.
 
 **Conclusion:**  
-✗ Do not collapse route variants.  
-✓ Keep routes separate; embeddings will handle similarity.
+- Do not collapse route variants.  
+- Keep routes separate; embeddings will handle similarity.
 
 **Related Links:**
 - Previous: Dimensionality Sweep (16 factors optimal)
@@ -455,8 +455,8 @@ Combining frequency table (for observed, high-confidence contexts) with embeddin
 - Hybrid accuracy (75.6%) sits between frequency (89.7%) and embeddings (69.0%).
 - Expected: frequency outperforms because it's on observed data; embeddings handle unobserved.
 - Hybrid trades off:
-  - ✓ Avoids frequency overfitting (89.7% is training set performance)
-  - ✓ Generalizes beyond observed contexts (vs pure frequency on test set)
+  - Avoids frequency overfitting (89.7% is training set performance)
+  - Generalizes beyond observed contexts (vs pure frequency on test set)
   - → Likely 75.6% is closer to true generalization accuracy
 
 **Why Hybrid Matters:**
@@ -508,17 +508,17 @@ Real deployment requires forward-looking accuracy: train on past trips, test on 
 - Novel (unseen): 7 contexts (54%)
 
 **Interpretation:**  
-✓ **When the model predicts, it's right.** Frequency table: 100%, embeddings: 100%. This validates both mechanisms work.  
-⚠️ **Coverage is the limiter, not accuracy.** 54% novel contexts = model doesn't have enough signal for 9/16 test trips. This isn't overfitting; it's genuine sparsity in your data.  
-✓ **+18.8pp over baseline is solid.** For only 16 test samples with 54% novel contexts, 43.8% is realistic. The 75.6% bootstrap result was on balanced samples; holdout reflects real deployment conditions.
+- **When the model predicts, it's right.** Frequency table: 100%, embeddings: 100%. This validates both mechanisms work.  
+- Caveat: **Coverage is the limiter, not accuracy.** 54% novel contexts = model doesn't have enough signal for 9/16 test trips. This isn't overfitting; it's genuine sparsity in your data.  
+- **+18.8pp over baseline is solid.** For only 16 test samples with 54% novel contexts, 43.8% is realistic. The 75.6% bootstrap result was on balanced samples; holdout reflects real deployment conditions.
 
 **Key Insight:**  
 V6 is conservative and accurate. It makes predictions on ~50% of transfers (where it has some signal) and gets them right. For the other 50% (truly novel contexts), it has no basis for prediction—not because the model is weak, but because your data genuinely hasn't seen that (stop, route) combination.
 
 **What This Means for Deployment:**
-- ✓ V6 is safe: when it predicts, trust it (100% accuracy on holdout)
-- ⚠️ V6 needs more data to expand coverage
-- ⚠️ Shadow mode should log coverage metrics: what % of transfers is V6 confident on?
+- V6 is safe: when it predicts, trust it (100% accuracy on holdout)
+- Caveat: V6 needs more data to expand coverage
+- Caveat: Shadow mode should log coverage metrics: what % of transfers is V6 confident on?
 
 **Next Steps:**
 1. Run on production data for 2-4 weeks in shadow mode (log predictions + coverage).
