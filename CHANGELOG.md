@@ -6,7 +6,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
-## [Unreleased]
+## [1.47.6] — 2026-07-12
 
 ### Fixed
 - **Mitigate Polynomial ReDoS in SMS email registration regexes** (`functions/lib/handlers-commands.js`): Replaced unbounded repetition `+` with a bounded repetition `{1,10}` in both the validation regex (`emailRegex`) and matching regex (`embedded`) within `handleRegister`. This eliminates polynomial backtracking complexity while preserving identical matching/extraction parity.
