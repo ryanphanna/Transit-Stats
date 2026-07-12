@@ -229,13 +229,13 @@ async function handleIncomplete(phoneNumber, user, traceId = null) {
  * Handle REGISTER command
  */
 async function handleRegister(phoneNumber, email, traceId = null) {
-  const emailRegex = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+){1,10}$/;
+  const emailRegex = /^[^\s@]{1,64}@[^\s@.]{1,63}(?:\.[^\s@.]{1,63}){1,10}$/;
   let candidate = email.trim();
   if (!emailRegex.test(candidate)) {
     // Pull an embedded address out of natural replies ("it's foo@bar.com") and out of a
     // redundant "REGISTER foo@bar.com" retry sent while already awaiting an email — both
     // otherwise fail this regex and loop on the same "Invalid email format" reply forever.
-    const embedded = candidate.match(/[^\s@]+@[^\s@.]+(?:\.[^\s@.]+){1,10}/);
+    const embedded = candidate.match(/[^\s@]{1,64}@[^\s@.]{1,63}(?:\.[^\s@.]{1,63}){1,10}/);
     if (embedded) candidate = embedded[0];
   }
   if (!emailRegex.test(candidate)) {

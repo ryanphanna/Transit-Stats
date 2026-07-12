@@ -6,6 +6,11 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [1.47.7] — 2026-07-12
+
+### Fixed
+- **Mitigate remaining polynomial ReDoS in SMS email registration regexes (CodeQL alert #49)** (`functions/lib/handlers-commands.js`): The 1.47.6 fix bounded the repeated `(?:\.[^\s@.]+)` group but left the local-part (`[^\s@]+`) and domain-label (`[^\s@.]+`) quantifiers unbounded — two adjacent unbounded quantifiers over overlapping character classes, still exploitable (e.g. a long run of `!` characters with no `@`). Bounded both to RFC-sane lengths (`{1,64}` local-part per RFC 5321, `{1,63}` per domain label per RFC 1035). Verified: legitimate addresses still match, a 50,000-character adversarial string now resolves in ~11ms instead of hanging.
+
 ## [1.47.6] — 2026-07-12
 
 ### Fixed
