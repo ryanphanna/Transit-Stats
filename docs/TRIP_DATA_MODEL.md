@@ -131,7 +131,7 @@ Examples:
 
 Live history and ML export should use filtered trips, not every trip.
 
-Current policy lives in [REVIEW.md](../REVIEW.md), but the short version is:
+Current policy lives in [REVIEW.md](./REVIEW.md), but the short version is:
 
 - exclude `incomplete`
 - exclude `discarded`

@@ -23,20 +23,6 @@ serviceAccountKey.json
 *-firebase-adminsdk-*.json
 migrations/admin-emails.config.js
 
-# AI context files
-AGENTS.md
-CLAUDE.md
-GEMINI.md
-.github/copilot-instructions.md
-.claude/
-.gemini/
-.agent/
-.agents/
-SESSION_CONTEXT.md
-handoff.md
-TRANSITSTATSLOG*
-Gemini.md
-
 # IDE
 .idea/
 .vscode/

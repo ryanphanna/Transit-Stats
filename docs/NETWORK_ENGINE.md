@@ -67,4 +67,4 @@ One document per user/agency/route combination. Edges are keyed by normalized `f
 | `functions/lib/predict.js` | Calls NetworkEngine before topology.json in `_preFilterCandidatesByTopology` |
 | `functions/lib/handlers.js` | Calls `NetworkEngine.load()` at trip start, `NetworkEngine.observe()` at trip end |
 
-Future work for network learning lives in [ROADMAP_NEXTGEN.md](./ROADMAP_NEXTGEN.md).
+Future work for network learning lives in [NEXTGEN.md](./roadmap/NEXTGEN.md).

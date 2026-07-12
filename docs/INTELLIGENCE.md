@@ -2,7 +2,7 @@
 
 Engineering record for the TransitStats inference, decision, and learning systems. Tracks what changed, why, and what signals are currently active.
 
-This document complements the [roadmap](./ROADMAP_NEXTGEN.md) and the [feature changelog](../CHANGELOG.md). It is the internal notebook for the app's intelligence systems.
+This document complements the [roadmap](./roadmap/NEXTGEN.md) and the [feature changelog](../CHANGELOG.md). It is the internal notebook for the app's intelligence systems.
 
 ---
 

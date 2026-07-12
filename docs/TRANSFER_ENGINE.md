@@ -57,4 +57,4 @@ CONFIDENCE_THRESHOLD: 0.55  // Minimum to auto-link
 | `functions/lib/transfer.js` | Engine + scoring logic |
 | `functions/test_transfer.js` | 15 tests covering extractTransfers, score, _stopMatch |
 
-Future work for transfer reasoning lives in [ROADMAP_NEXTGEN.md](./ROADMAP_NEXTGEN.md).
+Future work for transfer reasoning lives in [NEXTGEN.md](./roadmap/NEXTGEN.md).

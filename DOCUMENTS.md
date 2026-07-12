@@ -6,14 +6,14 @@ Exhaustive index of the project’s Markdown documentation.
 
 - [README](./README.md) — product overview and entry point
 - [Changelog](./CHANGELOG.md) and [Changelog Archive](./CHANGELOG_ARCHIVE.md) — current and archived release history
-- [Roadmap](./ROADMAP.md) — top-level product roadmap
+- [Roadmap](./docs/roadmap/ROADMAP.md) — top-level product roadmap
 - [Tools Index](./Tools/README.md) — operational scripts and frequently used utilities
 
 ## Data Model & Review
 
 - [Trip Data Model](./docs/TRIP_DATA_MODEL.md) — what lives in `trips` vs `stops`, raw vs derived fields
 - [Trip Corrections](./docs/TRIP_CORRECTIONS.md) — design notes for post-trip edits, correction safety, and delayed finalization
-- [Review Policy](./REVIEW.md) — manual review rules and ML/history filtering policy
+- [Review Policy](./docs/REVIEW.md) — manual review rules and ML/history filtering policy
 
 ## Engines
 
@@ -23,7 +23,7 @@ Exhaustive index of the project’s Markdown documentation.
 
 ## Roadmaps & Vision
 
-- [Next-Gen Roadmap](./docs/ROADMAP_NEXTGEN.md), [Technical Roadmap](./docs/ROADMAP_TECHNICAL.md), and [Long-Term Vision](./docs/VISION.md)
+- [Next-Gen Roadmap](./docs/roadmap/NEXTGEN.md), [Technical Roadmap](./docs/roadmap/TECHNICAL.md), and [Long-Term Vision](./docs/VISION.md)
 
 ## ML
 
@@ -32,4 +32,4 @@ Exhaustive index of the project’s Markdown documentation.
 
 ## Security & Incidents
 
-- [Security Policy](./SECURITY.md) and [Incidents](./INCIDENTS.md) — security policy and incident notes
+- [Security Policy](./docs/SECURITY.md) and [Incidents](./docs/INCIDENTS.md) — security policy and incident notes

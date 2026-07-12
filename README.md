@@ -24,9 +24,9 @@ Transit riders have almost no personal tracking tools built for transit. There i
 
 ---
 
-- [Roadmap](./ROADMAP.md)
+- [Roadmap](./docs/roadmap/ROADMAP.md)
 - [Changelog](./CHANGELOG.md)
-- [Security](./SECURITY.md)
+- [Security](./docs/SECURITY.md)
 - [Documents](./DOCUMENTS.md)
 
 Created by [Ryan Hanna](https://github.com/ryanphanna) | [ryanisnota.pro](https://ryanisnota.pro)
