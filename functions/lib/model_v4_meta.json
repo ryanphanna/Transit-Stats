@@ -1,6 +1,6 @@
 {
-  "type": "xgboost_route",
-  "version": "5",
+  "type": "logistic_regression_route",
+  "version": "4",
   "classes": [
     "1",
     "1T",
@@ -312,7 +312,7 @@
     "prev_route_stouffville",
     "prev_route_t"
   ],
-  "top1_accuracy": 0.7739,
-  "top3_accuracy": 0.8522,
+  "top1_accuracy": 0.6957,
+  "top3_accuracy": 0.8696,
   "n_trips": 571
 }

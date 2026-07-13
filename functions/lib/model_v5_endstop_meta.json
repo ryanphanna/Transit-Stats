@@ -29,6 +29,7 @@
     "prev_route_41",
     "prev_route_5",
     "prev_route_501",
+    "prev_route_504b",
     "prev_route_505",
     "prev_route_506",
     "prev_route_509",
@@ -79,6 +80,7 @@
     "last_stop_davisville",
     "last_stop_dundas_jarvis",
     "last_stop_dundas_st_west_dufferin_st",
+    "last_stop_dundas_st_west_university_ave___st_patrick_station",
     "last_stop_dundas_west_station",
     "last_stop_finch_west_station",
     "last_stop_harbourfront_centre",
@@ -97,7 +99,9 @@
     "last_stop_spadina_ave_nassau_st",
     "last_stop_spadina_ave_nassau_st_south_side",
     "last_stop_spadina_ave_queen_st_west_south_side",
+    "last_stop_spadina_dundas",
     "last_stop_spadina_harbord",
+    "last_stop_spadina_king",
     "last_stop_spadina_richmond",
     "last_stop_spadina_station",
     "last_stop_st_clair_station",
@@ -110,7 +114,7 @@
     "dir_southbound",
     "dir_westbound"
   ],
-  "top1_accuracy": 0.9592,
-  "top3_accuracy": 0.9796,
-  "n_trips": 243
+  "top1_accuracy": 0.9423,
+  "top3_accuracy": 0.9808,
+  "n_trips": 256
 }

@@ -1,6 +1,6 @@
 {
-  "type": "xgboost_endstop",
-  "version": "5",
+  "type": "logistic_regression_endstop",
+  "version": "4",
   "classes": [
     "college station",
     "davisville",
@@ -114,7 +114,7 @@
     "dir_southbound",
     "dir_westbound"
   ],
-  "top1_accuracy": 0.9423,
+  "top1_accuracy": 0.9231,
   "top3_accuracy": 0.9808,
   "n_trips": 256
 }
