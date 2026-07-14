@@ -270,6 +270,13 @@ const PredictionEngineV3 = {
     return lower;
   },
 
+  _normalizeStopLabel: function (name) {
+    if (!name) return null;
+    return name.trim().toLowerCase()
+      .replace(/\s*[/&@]\s*/g, '/')
+      .replace(/\s+at\s+/g, '/');
+  },
+
   _stopMatch: function (a, b) {
     if (!a || !b) return false;
     return this._canonicalizeStop(a) === this._canonicalizeStop(b);
@@ -349,14 +356,20 @@ const PredictionEngineV3 = {
     const constraint = this.getEndStopConstraint({ route, startStopName: boardingStop, direction });
     if (constraint.source === 'network') {
       const filtered = NetworkEngine.filterCandidates(candidates, this.networkGraph, boardingStop, direction);
-      return filtered !== null ? filtered : candidates;
+      return filtered !== null ? this._filterCandidatesByTopologyPlatform(filtered, route, direction) : candidates;
     }
     if (constraint.source !== 'topology' || !constraint.legalStops) return candidates;
 
     // Topology coverage is curated ground truth for covered routes. Once we can
     // resolve the route/boarding stop/direction, destinations outside that
     // downstream menu are physically impossible and must be removed.
-    return candidates.filter(t => constraint.legalStops.has(this._canonicalizeStop(t.endStopName)));
+    return candidates.filter(t => {
+      const labels = [
+        this._normalizeStopLabel(t.endStopName),
+        this._canonicalizeStop(t.endStopName),
+      ].filter(Boolean);
+      return labels.some(label => constraint.legalStops.has(label));
+    });
   },
 
   /**
@@ -372,7 +385,13 @@ const PredictionEngineV3 = {
   _applyTopologyFilter: function (candidates, route, boardingStop, direction) {
     const constraint = this.getEndStopConstraint({ route, startStopName: boardingStop, direction });
     if (constraint.source !== 'topology' || !constraint.legalStops) return candidates;
-    return candidates.filter(c => constraint.legalStops.has(this._canonicalizeStop(c.stop)));
+    return candidates.filter(c => {
+      const labels = [
+        this._normalizeStopLabel(c.stop),
+        this._canonicalizeStop(c.stop),
+      ].filter(Boolean);
+      return labels.some(label => constraint.legalStops.has(label));
+    });
   },
 
   /**
@@ -412,6 +431,10 @@ const PredictionEngineV3 = {
       const unionIdx = this._topologyStopIndex(line, this._canonicalizeStop('Union') || 'Union');
       if (unionIdx === -1 || boardingIdx === unionIdx) return { source: 'none', legalStops: null };
       goingHigher = boardingIdx <= unionIdx ? normDir === 'Southbound' : normDir === 'Northbound';
+    } else if (line.direction_order) {
+      if (normDir === line.direction_order.forward) goingHigher = true;
+      else if (normDir === line.direction_order.reverse) goingHigher = false;
+      else return { source: 'none', legalStops: null };
     } else {
       goingHigher = normDir === 'Eastbound' || normDir === 'Northbound';
     }
@@ -419,7 +442,9 @@ const PredictionEngineV3 = {
     const legalStops = new Set();
     for (let i = 0; i < line.stops.length; i++) {
       if (goingHigher ? i > boardingIdx : i < boardingIdx) {
-        legalStops.add(this._canonicalizeStop(line.stops[i]));
+        for (const label of this._topologyStopLabels(line, line.stops[i], normDir)) {
+          legalStops.add(label);
+        }
       }
     }
 
@@ -451,14 +476,69 @@ const PredictionEngineV3 = {
    */
   _topologyStopIndex: function (line, stopName) {
     if (!stopName) return -1;
-    const normalized = this._canonicalizeStop(stopName) || stopName.trim().toLowerCase();
+    const normalized = this._normalizeStopLabel(stopName);
     for (let i = 0; i < line.stops.length; i++) {
       const canon = line.stops[i];
-      if ((this._canonicalizeStop(canon) || canon.toLowerCase()) === normalized) return i;
+      if (this._normalizeStopLabel(canon) === normalized) return i;
       const aliases = (line.aliases && line.aliases[canon]) || [];
-      if (aliases.some(a => (this._canonicalizeStop(a) || a.toLowerCase()) === normalized)) return i;
+      if (aliases.some(a => this._normalizeStopLabel(a) === normalized)) return i;
+      const variants = (line.directional_stops && line.directional_stops[canon]) || [];
+      if (variants.some(v => {
+        const names = [v.name, ...(v.aliases || [])].filter(Boolean);
+        return names.some(name => this._normalizeStopLabel(name) === normalized);
+      })) return i;
     }
     return -1;
+  },
+
+  _topologyStopLabels: function (line, canon, direction) {
+    const variants = (line.directional_stops && line.directional_stops[canon]) || [];
+    if (variants.length > 0) {
+      return variants
+        .filter(v => !v.directions || v.directions.includes(direction))
+        .flatMap(v => [v.name, ...(v.aliases || [])])
+        .map(name => this._normalizeStopLabel(name))
+        .filter(Boolean);
+    }
+
+    return [
+      canon,
+      ...((line.aliases && line.aliases[canon]) || []),
+    ].map(name => this._normalizeStopLabel(name)).filter(Boolean);
+  },
+
+  _filterCandidatesByTopologyPlatform: function (candidates, route, direction) {
+    return candidates.filter(t => this._topologyPlatformCompatible(route, t.endStopName, direction));
+  },
+
+  _topologyPlatformCompatible: function (route, stopName, direction) {
+    if (!_topology || !route || !stopName || !direction) return true;
+    const line = this._topologyLine(this._baseRoute(route.toString()));
+    if (!line) return true;
+    const normDir = this._normalizeDirection(direction);
+    const normStop = this._normalizeStopLabel(stopName);
+    if (!normDir || !normStop) return true;
+
+    for (const canon of line.stops || []) {
+      const variants = (line.directional_stops && line.directional_stops[canon]) || [];
+      if (variants.length === 0) continue;
+      let matchedVariant = false;
+      let compatibleVariant = false;
+      for (const variant of variants) {
+        const labels = [variant.name, ...(variant.aliases || [])]
+          .map(name => this._normalizeStopLabel(name))
+          .filter(Boolean);
+        if (labels.includes(normStop)) {
+          matchedVariant = true;
+          if (!variant.directions || variant.directions.includes(normDir)) {
+            compatibleVariant = true;
+          }
+        }
+      }
+      if (matchedVariant) return compatibleVariant;
+    }
+
+    return true;
   },
 };
 

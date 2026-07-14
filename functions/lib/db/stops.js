@@ -70,6 +70,15 @@ function _lookupStopInTopology(stopName, agency, route) {
     if (canon.toLowerCase() === lower) {
       return _topologyStop(canon, agency, route, line);
     }
+    const variants = (line.directional_stops && line.directional_stops[canon]) || [];
+    for (const variant of variants) {
+      if (variant.name?.toLowerCase() === lower) {
+        return _topologyStop(variant.name, agency, route, line, variant.aliases || []);
+      }
+      if ((variant.aliases || []).some(a => a.toLowerCase() === lower)) {
+        return _topologyStop(variant.name, agency, route, line, variant.aliases || []);
+      }
+    }
     const aliases = (line.aliases && line.aliases[canon]) || [];
     if (aliases.some(a => a.toLowerCase() === lower)) {
       return _topologyStop(canon, agency, route, line);
@@ -95,7 +104,7 @@ function _topologyLine(route, agency) {
   return null;
 }
 
-function _topologyStop(canon, agency, route, line) {
+function _topologyStop(canon, agency, route, line, aliases = null) {
   return {
     id: null,
     agency,
@@ -103,7 +112,7 @@ function _topologyStop(canon, agency, route, line) {
     stopCode: '',
     name: canon,
     stopName: canon,
-    aliases: (line.aliases && line.aliases[canon]) || [],
+    aliases: aliases || (line.aliases && line.aliases[canon]) || [],
     routes: [route.toString()],
     source: 'topology',
     topologyMatched: true,

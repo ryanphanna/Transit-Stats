@@ -5,6 +5,7 @@
       "name": "Spadina",
       "network": "TTC",
       "route_aliases": ["510A", "510B", "510a", "510b", "510 Shuttle"],
+      "direction_order": { "forward": "Southbound", "reverse": "Northbound" },
       "stops": [
         "Spadina Station",
         "Spadina Ave at Sussex Ave",
@@ -35,6 +36,20 @@
         "Spadina Ave at King St West": ["Spadina / King", "King / Spadina"],
         "Queens Quay West at Lower Spadina Ave": ["Spadina / Queens Quay West", "Queens Quay West at Lower Spadina Ave East Side"],
         "Queens Quay West at Harbourfront Centre": ["Harbourfront Centre", "Queens Quay / Harbourfront Centre"]
+      },
+      "directional_stops": {
+        "Spadina Ave at College St": [
+          { "name": "Spadina Ave at College St North Side", "aliases": ["Spadina / College", "College / Spadina"], "directions": ["Northbound"] },
+          { "name": "Spadina Ave at College St South Side", "aliases": ["Spadina / College", "College / Spadina"], "directions": ["Southbound"] }
+        ],
+        "Spadina Ave at Nassau St": [
+          { "name": "Spadina Ave at Nassau St", "aliases": ["Spadina / Nassau"], "directions": ["Northbound"] },
+          { "name": "Spadina Ave at Nassau St South Side", "aliases": ["Spadina / Nassau"], "directions": ["Southbound"] }
+        ],
+        "Spadina Ave at Queen St West": [
+          { "name": "Spadina Ave at Queen St West North Side", "aliases": ["Spadina / Queen", "Queen / Spadina"], "directions": ["Northbound"] },
+          { "name": "Spadina Ave at Queen St West South Side", "aliases": ["Spadina / Queen", "Queen / Spadina"], "directions": ["Southbound"] }
+        ]
       }
     },
     "506": {

@@ -138,7 +138,14 @@ export const PredictionEngine = {
 
         const constraint = this.getEndStopConstraint(context);
         if (constraint.source === 'topology' && constraint.legalStops) {
-            candidates = candidates.filter(t => constraint.legalStops.has(this._canonicalizeStop(t.endStop || t.endStopName)));
+            candidates = candidates.filter(t => {
+                const stop = t.endStop || t.endStopName;
+                const labels = [
+                    this._normalizeStopLabel(stop),
+                    this._canonicalizeStop(stop),
+                ].filter(Boolean);
+                return labels.some(label => constraint.legalStops.has(label));
+            });
         }
 
         const votes = {};
@@ -193,6 +200,10 @@ export const PredictionEngine = {
             const unionIdx = this._topologyStopIndex(line, this._canonicalizeStop('Union') || 'Union');
             if (unionIdx === -1 || boardingIdx === unionIdx) return { source: 'none', legalStops: null };
             goingHigher = boardingIdx <= unionIdx ? normDir === 'Southbound' : normDir === 'Northbound';
+        } else if (line.direction_order) {
+            if (normDir === line.direction_order.forward) goingHigher = true;
+            else if (normDir === line.direction_order.reverse) goingHigher = false;
+            else return { source: 'none', legalStops: null };
         } else {
             goingHigher = normDir === 'Eastbound' || normDir === 'Northbound';
         }
@@ -200,7 +211,9 @@ export const PredictionEngine = {
         const legalStops = new Set();
         for (let i = 0; i < line.stops.length; i++) {
             if (goingHigher ? i > boardingIdx : i < boardingIdx) {
-                legalStops.add(this._canonicalizeStop(line.stops[i]));
+                for (const label of this._topologyStopLabels(line, line.stops[i], normDir)) {
+                    legalStops.add(label);
+                }
             }
         }
         return { source: 'topology', legalStops };
@@ -245,6 +258,13 @@ export const PredictionEngine = {
         const result = this._stopsIndex.get(lower) || lower;
         this._normCache.set(name, result);
         return result;
+    },
+
+    _normalizeStopLabel(name) {
+        if (!name) return null;
+        return name.trim().toLowerCase()
+            .replace(/\s*[\/&@]\s*/g, '/')
+            .replace(/\s+at\s+/g, '/');
     },
 
     _stopMatch(a, b) {
@@ -341,13 +361,34 @@ export const PredictionEngine = {
 
     _topologyStopIndex(line, stopName) {
         if (!stopName) return -1;
-        const normalized = this._canonicalizeStop(stopName) || stopName.trim().toLowerCase();
+        const normalized = this._normalizeStopLabel(stopName);
         for (let i = 0; i < line.stops.length; i++) {
             const canon = line.stops[i];
-            if ((this._canonicalizeStop(canon) || canon.toLowerCase()) === normalized) return i;
+            if (this._normalizeStopLabel(canon) === normalized) return i;
             const aliases = (line.aliases && line.aliases[canon]) || [];
-            if (aliases.some(a => (this._canonicalizeStop(a) || a.toLowerCase()) === normalized)) return i;
+            if (aliases.some(a => this._normalizeStopLabel(a) === normalized)) return i;
+            const variants = (line.directional_stops && line.directional_stops[canon]) || [];
+            if (variants.some(v => {
+                const names = [v.name, ...(v.aliases || [])].filter(Boolean);
+                return names.some(name => this._normalizeStopLabel(name) === normalized);
+            })) return i;
         }
         return -1;
+    },
+
+    _topologyStopLabels(line, canon, direction) {
+        const variants = (line.directional_stops && line.directional_stops[canon]) || [];
+        if (variants.length > 0) {
+            return variants
+                .filter(v => !v.directions || v.directions.includes(direction))
+                .flatMap(v => [v.name, ...(v.aliases || [])])
+                .map(name => this._normalizeStopLabel(name))
+                .filter(Boolean);
+        }
+
+        return [
+            canon,
+            ...((line.aliases && line.aliases[canon]) || []),
+        ].map(name => this._normalizeStopLabel(name)).filter(Boolean);
     }
 };

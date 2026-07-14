@@ -46,6 +46,12 @@ async function getEndStopSession() {
 }
 
 // Shared topology helpers
+function normStop(s) {
+  return s.trim().toLowerCase()
+    .replace(/\s*[\/&@]\s*/g, '/')
+    .replace(/\s+at\s+/g, '/');
+}
+
 function topologyLine(routeStr) {
   if (!_topology) return null;
   const lines = _topology.lines;
@@ -59,16 +65,47 @@ function topologyLine(routeStr) {
 
 function topologyStopIndex(line, stopName) {
   if (!stopName) return -1;
-  const norm = s => s.trim().toLowerCase()
-    .replace(/\s*[\/&@]\s*/g, '/')
-    .replace(/\s+at\s+/g, '/');
-  const lower = norm(stopName);
+  const lower = normStop(stopName);
   for (let i = 0; i < line.stops.length; i++) {
-    if (norm(line.stops[i]) === lower) return i;
+    if (normStop(line.stops[i]) === lower) return i;
     const aliases = (line.aliases && line.aliases[line.stops[i]]) || [];
-    if (aliases.some(a => norm(a) === lower)) return i;
+    if (aliases.some(a => normStop(a) === lower)) return i;
+    const variants = (line.directional_stops && line.directional_stops[line.stops[i]]) || [];
+    if (variants.some(v => [v.name, ...(v.aliases || [])].filter(Boolean).some(name => normStop(name) === lower))) return i;
   }
   return -1;
+}
+
+function topologyPlatformCompatible(line, stopName, direction) {
+  const normDir = normalizeDirectionForTopology(direction);
+  const lower = normStop(stopName);
+  if (!normDir || !lower) return true;
+
+  for (const canon of line.stops || []) {
+    const variants = (line.directional_stops && line.directional_stops[canon]) || [];
+    if (variants.length === 0) continue;
+    let matchedVariant = false;
+    let compatibleVariant = false;
+    for (const variant of variants) {
+      const labels = [variant.name, ...(variant.aliases || [])].filter(Boolean).map(normStop);
+      if (labels.includes(lower)) {
+        matchedVariant = true;
+        if (!variant.directions || variant.directions.includes(normDir)) compatibleVariant = true;
+      }
+    }
+    if (matchedVariant) return compatibleVariant;
+  }
+  return true;
+}
+
+function normalizeDirectionForTopology(direction) {
+  if (!direction) return null;
+  const dir = direction.toString().toLowerCase().replace(/bound$/, '').trim();
+  if (['south', 's', 'sb'].includes(dir)) return 'Southbound';
+  if (['north', 'n', 'nb'].includes(dir)) return 'Northbound';
+  if (['east', 'e', 'eb'].includes(dir)) return 'Eastbound';
+  if (['west', 'w', 'wb'].includes(dir)) return 'Westbound';
+  return null;
 }
 
 function topologyMask(route, boardingStop, direction, classes) {
@@ -76,21 +113,25 @@ function topologyMask(route, boardingStop, direction, classes) {
   const routeStr = route.toString().replace(/^(\d+).*/, '$1');
   const line = topologyLine(routeStr);
   if (!line) return null;
-  const normDir = direction.toLowerCase().replace(/bound$/, '').trim();
+  const normDir = normalizeDirectionForTopology(direction);
   const boardingIdx = topologyStopIndex(line, boardingStop);
-  if (boardingIdx === -1) return null;
+  if (boardingIdx === -1 || !normDir) return null;
   let goingHigher;
   if (line.name === 'Yonge-University') {
     const unionIdx = topologyStopIndex(line, 'Union');
     if (unionIdx === -1) return null;
-    goingHigher = boardingIdx <= unionIdx ? ['south','s','sb'].includes(normDir) : ['north','n','nb'].includes(normDir);
+    goingHigher = boardingIdx <= unionIdx ? normDir === 'Southbound' : normDir === 'Northbound';
+  } else if (line.direction_order) {
+    if (normDir === line.direction_order.forward) goingHigher = true;
+    else if (normDir === line.direction_order.reverse) goingHigher = false;
+    else return null;
   } else {
-    goingHigher = ['east','e','eb','north','n','nb'].includes(normDir);
+    goingHigher = normDir === 'Eastbound' || normDir === 'Northbound';
   }
   const mask = classes.map(cls => {
     const idx = topologyStopIndex(line, cls);
     if (idx === -1) return false;
-    return goingHigher ? idx > boardingIdx : idx < boardingIdx;
+    return (goingHigher ? idx > boardingIdx : idx < boardingIdx) && topologyPlatformCompatible(line, cls, direction);
   });
   return mask.some(Boolean) ? mask : null;
 }

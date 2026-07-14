@@ -535,4 +535,46 @@ describe('PredictionEngine.guessEndStop', () => {
     expect(fromStation.source).toBe('topology');
     expect(fromIntersection.source).toBe('topology');
   });
+
+  test('510 southbound constraint keeps Nassau platform direction-specific', () => {
+    const constraint = PredictionEngine.getEndStopConstraint({
+      route: '510',
+      startStopName: 'Spadina Station',
+      direction: 'Southbound',
+    });
+
+    expect(constraint.source).toBe('topology');
+    expect(constraint.legalStops).toBeTruthy();
+    expect(constraint.legalStops.has(PredictionEngine._normalizeStopLabel('Spadina Ave at Nassau St South Side'))).toBe(true);
+    expect(constraint.legalStops.has(PredictionEngine._normalizeStopLabel('Spadina Ave at Nassau St'))).toBe(false);
+  });
+
+  test('510 southbound end-stop menu excludes wrong-direction Nassau platform', () => {
+    const history = [
+      ...Array.from({ length: 8 }, (_, i) => makeTrip({
+        route: '510',
+        startStopName: 'Spadina Station',
+        endStopName: 'Spadina Ave at Nassau St',
+        direction: 'Southbound',
+        daysAgo: i + 1,
+      })),
+      makeTrip({
+        route: '510',
+        startStopName: 'Spadina Station',
+        endStopName: 'Spadina Ave at Nassau St South Side',
+        direction: 'Southbound',
+        daysAgo: 1,
+      }),
+    ];
+
+    const top = PredictionEngine.guessTopEndStops(history, {
+      route: '510',
+      startStopName: 'Spadina Station',
+      direction: 'Southbound',
+      time: new Date(),
+    }, 3);
+
+    expect(top.map(p => p.stop)).toContain('Spadina Ave at Nassau St South Side');
+    expect(top.map(p => p.stop)).not.toContain('Spadina Ave at Nassau St');
+  });
 });
