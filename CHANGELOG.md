@@ -10,6 +10,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Fixed
 - **510 end-stop menus now respect platform direction at Spadina/Nassau**: Southbound trips from Spadina Station no longer offer the northbound-only Nassau platform just because it shares the same logical intersection.
+- **GTFS/topology legality now vetoes learned NetworkEngine destination suggestions**: observational trip history can narrow predictions, but it no longer outranks physical route/platform constraints.
 
 ## [1.47.8] — 2026-07-13
 

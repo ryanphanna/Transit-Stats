@@ -191,7 +191,16 @@ function getMask(topology, route, boardingStop, direction, classes, options = {}
   return mask.some(Boolean) ? mask : null;
 }
 
+function combineMasks(primaryMask, secondaryMask) {
+  if (!primaryMask) return secondaryMask || null;
+  if (!secondaryMask) return primaryMask;
+
+  const combined = primaryMask.map((keep, index) => keep && secondaryMask[index]);
+  return combined.some(Boolean) ? combined : primaryMask;
+}
+
 module.exports = {
+  combineMasks,
   filterCandidatesByConstraint,
   filterCandidatesByPlatform,
   getConstraint,

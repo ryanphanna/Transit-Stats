@@ -578,4 +578,39 @@ describe('PredictionEngine.guessEndStop', () => {
     expect(top.map(p => p.stop)).toContain('Spadina Ave at Nassau St South Side');
     expect(top.map(p => p.stop)).not.toContain('Spadina Ave at Nassau St');
   });
+
+  test('topology remains the authoritative end-stop legality source', () => {
+    const history = [
+      ...Array.from({ length: 8 }, (_, i) => makeTrip({
+        route: '510',
+        startStopName: 'Spadina Station',
+        endStopName: 'Spadina Ave at Nassau St',
+        direction: 'Southbound',
+        daysAgo: i + 1,
+      })),
+      makeTrip({
+        route: '510',
+        startStopName: 'Spadina Station',
+        endStopName: 'Spadina Ave at Nassau St South Side',
+        direction: 'Southbound',
+        daysAgo: 1,
+      }),
+    ];
+
+    const constraint = PredictionEngine.getEndStopConstraint({
+      route: '510',
+      startStopName: 'Spadina Station',
+      direction: 'Southbound',
+    });
+    const top = PredictionEngine.guessTopEndStops(history, {
+      route: '510',
+      startStopName: 'Spadina Station',
+      direction: 'Southbound',
+      time: new Date(),
+    }, 3);
+
+    expect(constraint.source).toBe('topology');
+    expect(top.map(p => p.stop)).toContain('Spadina Ave at Nassau St South Side');
+    expect(top.map(p => p.stop)).not.toContain('Spadina Ave at Nassau St');
+  });
 });

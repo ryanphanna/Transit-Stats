@@ -348,24 +348,24 @@ const PredictionEngineV3 = {
     if (!boardingStop || !direction) return candidates;
 
     const constraint = this.getEndStopConstraint({ route, startStopName: boardingStop, direction });
-    if (constraint.source === 'network') {
+    if (constraint.source === 'topology' || constraint.source === 'topology+network') {
+      candidates = TopologyConstraints.filterCandidatesByConstraint(candidates, constraint, {
+        canonicalizeStop: this._canonicalizeStop.bind(this),
+        getStopName: t => t.endStopName,
+      });
+    }
+
+    if (constraint.source === 'network' || constraint.source === 'topology+network') {
       const filtered = NetworkEngine.filterCandidates(candidates, this.networkGraph, boardingStop, direction);
-      return filtered !== null
+      candidates = filtered !== null
         ? TopologyConstraints.filterCandidatesByPlatform(filtered, _topology, route, direction, {
           baseRoute: this._baseRoute.bind(this),
           getStopName: t => t.endStopName,
         })
         : candidates;
     }
-    if (constraint.source !== 'topology' || !constraint.legalStops) return candidates;
 
-    // Topology coverage is curated ground truth for covered routes. Once we can
-    // resolve the route/boarding stop/direction, destinations outside that
-    // downstream menu are physically impossible and must be removed.
-    return TopologyConstraints.filterCandidatesByConstraint(candidates, constraint, {
-      canonicalizeStop: this._canonicalizeStop.bind(this),
-      getStopName: t => t.endStopName,
-    });
+    return candidates;
   },
 
   /**
@@ -404,16 +404,23 @@ const PredictionEngineV3 = {
     const normDir = this._normalizeDirection(direction);
     if (!normDir) return { source: 'none', legalStops: null };
 
-    if (this.networkGraph) {
-      const augGraph = NetworkEngine._withTransitiveEdges(this.networkGraph);
-      const reachable = NetworkEngine._getReachableStops(augGraph, boardingStop, normDir);
-      if (reachable) return { source: 'network', legalStops: reachable, routeCovered: true };
-    }
-
-    return TopologyConstraints.getConstraint(_topology, { route, startStopName: boardingStop, direction }, {
+    const topologyConstraint = TopologyConstraints.getConstraint(_topology, { route, startStopName: boardingStop, direction }, {
       baseRoute: this._baseRoute.bind(this),
       canonicalizeStop: this._canonicalizeStop.bind(this),
     });
+
+    if (this.networkGraph) {
+      const augGraph = NetworkEngine._withTransitiveEdges(this.networkGraph);
+      const reachable = NetworkEngine._getReachableStops(augGraph, boardingStop, normDir);
+      if (reachable) {
+        if (topologyConstraint.source === 'topology') {
+          return { ...topologyConstraint, source: 'topology+network', networkStops: reachable };
+        }
+        return { source: 'network', legalStops: reachable, routeCovered: true };
+      }
+    }
+
+    return topologyConstraint;
   },
 
 };

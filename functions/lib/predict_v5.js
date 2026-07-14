@@ -162,13 +162,13 @@ const PredictionEngineV5 = {
       const probs = Array.from(results.probabilities.data);
       const rawTopIdx = probs.reduce((best, value, idx, arr) => value > arr[best] ? idx : best, 0);
 
-      // NetworkEngine mask takes priority — it learns surface routes automatically.
-      // Fall back to topology.json for subway/LRT lines when NetworkEngine has no data.
+      // Topology/GTFS-derived masks are the authoritative physical constraint.
+      // NetworkEngine is observational and can only narrow within that legal set.
       const { NetworkEngine } = require('./network.js');
       const networkMask = NetworkEngine.getMask(context.networkGraph, endStopMeta.classes, context.startStopName, context.direction);
-      const topology = networkMask ? null : TopologyConstraints.getMask(_topology, context.route, context.startStopName, context.direction, endStopMeta.classes);
-      const mask = networkMask || topology;
-      const constraintSource = networkMask ? 'network' : (topology ? 'topology' : 'none');
+      const topology = TopologyConstraints.getMask(_topology, context.route, context.startStopName, context.direction, endStopMeta.classes);
+      const mask = TopologyConstraints.combineMasks(topology, networkMask);
+      const constraintSource = topology && networkMask ? 'topology+network' : (topology ? 'topology' : (networkMask ? 'network' : 'none'));
       if (mask) mask.forEach((keep, i) => { if (!keep) probs[i] = 0; });
       logger.info('End-stop constraint evaluated', {
         version: this.VERSION,
