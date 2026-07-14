@@ -550,6 +550,24 @@ describe('PredictionEngine.guessEndStop', () => {
     expect(constraint.legalStops.has(TopologyConstraints.normalizeStopLabel('Spadina Ave at Nassau St'))).toBe(false);
   });
 
+  test('510 Queens Quay platform variants stay direction-specific', () => {
+    const southbound = PredictionEngine.getEndStopConstraint({
+      route: '510',
+      startStopName: 'Spadina Station',
+      direction: 'Southbound',
+    });
+    const northbound = PredictionEngine.getEndStopConstraint({
+      route: '510',
+      startStopName: 'Union Station',
+      direction: 'Northbound',
+    });
+
+    expect(southbound.legalStops.has(TopologyConstraints.normalizeStopLabel('Queens Quay West at Lower Spadina Ave East Side'))).toBe(true);
+    expect(southbound.legalStops.has(TopologyConstraints.normalizeStopLabel('Spadina Ave at Queens Quay West North Side'))).toBe(false);
+    expect(northbound.legalStops.has(TopologyConstraints.normalizeStopLabel('Spadina Ave at Queens Quay West North Side'))).toBe(true);
+    expect(northbound.legalStops.has(TopologyConstraints.normalizeStopLabel('Queens Quay West at Lower Spadina Ave East Side'))).toBe(false);
+  });
+
   test('510 southbound end-stop menu excludes wrong-direction Nassau platform', () => {
     const history = [
       ...Array.from({ length: 8 }, (_, i) => makeTrip({

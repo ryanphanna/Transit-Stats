@@ -49,6 +49,10 @@
         "Spadina Ave at Queen St West": [
           { "name": "Spadina Ave at Queen St West North Side", "aliases": ["Spadina / Queen", "Queen / Spadina"], "directions": ["Northbound"] },
           { "name": "Spadina Ave at Queen St West South Side", "aliases": ["Spadina / Queen", "Queen / Spadina"], "directions": ["Southbound"] }
+        ],
+        "Queens Quay West at Lower Spadina Ave": [
+          { "name": "Spadina Ave at Queens Quay West North Side", "aliases": ["Queens Quay West at Lower Spadina Ave", "Spadina / Queens Quay West"], "directions": ["Northbound"] },
+          { "name": "Queens Quay West at Lower Spadina Ave East Side", "aliases": ["Queens Quay West at Lower Spadina Ave", "Spadina / Queens Quay West"], "directions": ["Southbound"] }
         ]
       }
     },
