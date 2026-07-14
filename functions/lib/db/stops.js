@@ -4,6 +4,7 @@
 const { db, FieldValue } = require('./core');
 const { AGENCY_CITY } = require('../constants');
 const { getConnectionGroup, areConnectedStops, normalizeStopName } = require('../transfer-connections');
+const TopologyConstraints = require('../topology-constraints');
 let _topology = null;
 try { _topology = require('../topology.json'); } catch (_) { /* optional */ }
 
@@ -65,22 +66,22 @@ function _lookupStopInTopology(stopName, agency, route) {
   const line = _topologyLine(route, agency);
   if (!line || !stopName) return null;
 
-  const lower = stopName.trim().toLowerCase();
+  const lower = TopologyConstraints.normalizeStopLabel(stopName);
   for (const canon of line.stops || []) {
-    if (canon.toLowerCase() === lower) {
+    if (TopologyConstraints.normalizeStopLabel(canon) === lower) {
       return _topologyStop(canon, agency, route, line);
     }
     const variants = (line.directional_stops && line.directional_stops[canon]) || [];
     for (const variant of variants) {
-      if (variant.name?.toLowerCase() === lower) {
+      if (TopologyConstraints.normalizeStopLabel(variant.name) === lower) {
         return _topologyStop(variant.name, agency, route, line, variant.aliases || []);
       }
-      if ((variant.aliases || []).some(a => a.toLowerCase() === lower)) {
+      if ((variant.aliases || []).some(alias => TopologyConstraints.normalizeStopLabel(alias) === lower)) {
         return _topologyStop(variant.name, agency, route, line, variant.aliases || []);
       }
     }
     const aliases = (line.aliases && line.aliases[canon]) || [];
-    if (aliases.some(a => a.toLowerCase() === lower)) {
+    if (aliases.some(alias => TopologyConstraints.normalizeStopLabel(alias) === lower)) {
       return _topologyStop(canon, agency, route, line);
     }
   }
@@ -88,20 +89,7 @@ function _lookupStopInTopology(stopName, agency, route) {
 }
 
 function _topologyLine(route, agency) {
-  if (!_topology || !route || !agency) return null;
-  const routeStr = route.toString().trim();
-  const lines = _topology.lines || {};
-
-  const exact = lines[routeStr];
-  if (exact && exact.network === agency) return exact;
-
-  const lower = routeStr.toLowerCase();
-  for (const line of Object.values(lines)) {
-    if (line.network !== agency) continue;
-    const aliases = line.route_aliases || [];
-    if (aliases.some(a => a.toLowerCase() === lower)) return line;
-  }
-  return null;
+  return TopologyConstraints.getLine(_topology, route, { agency, baseRoute: routeStr => routeStr.toString().trim() });
 }
 
 function _topologyStop(canon, agency, route, line, aliases = null) {

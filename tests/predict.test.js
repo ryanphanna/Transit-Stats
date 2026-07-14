@@ -1,4 +1,5 @@
 import { PredictionEngine } from '../js/predict';
+import TopologyConstraints from '../functions/lib/topology-constraints';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -545,8 +546,8 @@ describe('PredictionEngine.guessEndStop', () => {
 
     expect(constraint.source).toBe('topology');
     expect(constraint.legalStops).toBeTruthy();
-    expect(constraint.legalStops.has(PredictionEngine._normalizeStopLabel('Spadina Ave at Nassau St South Side'))).toBe(true);
-    expect(constraint.legalStops.has(PredictionEngine._normalizeStopLabel('Spadina Ave at Nassau St'))).toBe(false);
+    expect(constraint.legalStops.has(TopologyConstraints.normalizeStopLabel('Spadina Ave at Nassau St South Side'))).toBe(true);
+    expect(constraint.legalStops.has(TopologyConstraints.normalizeStopLabel('Spadina Ave at Nassau St'))).toBe(false);
   });
 
   test('510 southbound end-stop menu excludes wrong-direction Nassau platform', () => {

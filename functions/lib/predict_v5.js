@@ -10,6 +10,7 @@ const meta = require('./model_v5_meta.json');
 const endStopMeta = require('./model_v5_endstop_meta.json');
 const { getStopFeature, normalizeRouteForMl, normalizeDirectionForMl, getGapFeatures, loadPolicies } = require('./ml_utils');
 const logger = require('./logger');
+const TopologyConstraints = require('./topology-constraints');
 
 // Transfer rarity lookup: rare transfers (e.g., 506→510B) get higher weight
 let _transferRarity = null;
@@ -43,97 +44,6 @@ async function getEndStopSession() {
   const ort = require('onnxruntime-node');
   _endStopSession = await ort.InferenceSession.create(path.join(__dirname, 'model_v5_endstop.onnx'));
   return _endStopSession;
-}
-
-// Shared topology helpers
-function normStop(s) {
-  return s.trim().toLowerCase()
-    .replace(/\s*[\/&@]\s*/g, '/')
-    .replace(/\s+at\s+/g, '/');
-}
-
-function topologyLine(routeStr) {
-  if (!_topology) return null;
-  const lines = _topology.lines;
-  if (lines[routeStr]) return lines[routeStr];
-  const lower = routeStr.toLowerCase();
-  for (const line of Object.values(lines)) {
-    if ((line.route_aliases || []).some(a => a.toLowerCase() === lower)) return line;
-  }
-  return null;
-}
-
-function topologyStopIndex(line, stopName) {
-  if (!stopName) return -1;
-  const lower = normStop(stopName);
-  for (let i = 0; i < line.stops.length; i++) {
-    if (normStop(line.stops[i]) === lower) return i;
-    const aliases = (line.aliases && line.aliases[line.stops[i]]) || [];
-    if (aliases.some(a => normStop(a) === lower)) return i;
-    const variants = (line.directional_stops && line.directional_stops[line.stops[i]]) || [];
-    if (variants.some(v => [v.name, ...(v.aliases || [])].filter(Boolean).some(name => normStop(name) === lower))) return i;
-  }
-  return -1;
-}
-
-function topologyPlatformCompatible(line, stopName, direction) {
-  const normDir = normalizeDirectionForTopology(direction);
-  const lower = normStop(stopName);
-  if (!normDir || !lower) return true;
-
-  for (const canon of line.stops || []) {
-    const variants = (line.directional_stops && line.directional_stops[canon]) || [];
-    if (variants.length === 0) continue;
-    let matchedVariant = false;
-    let compatibleVariant = false;
-    for (const variant of variants) {
-      const labels = [variant.name, ...(variant.aliases || [])].filter(Boolean).map(normStop);
-      if (labels.includes(lower)) {
-        matchedVariant = true;
-        if (!variant.directions || variant.directions.includes(normDir)) compatibleVariant = true;
-      }
-    }
-    if (matchedVariant) return compatibleVariant;
-  }
-  return true;
-}
-
-function normalizeDirectionForTopology(direction) {
-  if (!direction) return null;
-  const dir = direction.toString().toLowerCase().replace(/bound$/, '').trim();
-  if (['south', 's', 'sb'].includes(dir)) return 'Southbound';
-  if (['north', 'n', 'nb'].includes(dir)) return 'Northbound';
-  if (['east', 'e', 'eb'].includes(dir)) return 'Eastbound';
-  if (['west', 'w', 'wb'].includes(dir)) return 'Westbound';
-  return null;
-}
-
-function topologyMask(route, boardingStop, direction, classes) {
-  if (!_topology || !boardingStop || !direction) return null;
-  const routeStr = route.toString().replace(/^(\d+).*/, '$1');
-  const line = topologyLine(routeStr);
-  if (!line) return null;
-  const normDir = normalizeDirectionForTopology(direction);
-  const boardingIdx = topologyStopIndex(line, boardingStop);
-  if (boardingIdx === -1 || !normDir) return null;
-  let goingHigher;
-  if (line.name === 'Yonge-University') {
-    const unionIdx = topologyStopIndex(line, 'Union');
-    if (unionIdx === -1) return null;
-    goingHigher = boardingIdx <= unionIdx ? normDir === 'Southbound' : normDir === 'Northbound';
-  } else if (line.direction_order) {
-    if (normDir === line.direction_order.forward) goingHigher = true;
-    else if (normDir === line.direction_order.reverse) goingHigher = false;
-    else return null;
-  } else {
-    goingHigher = normDir === 'Eastbound' || normDir === 'Northbound';
-  }
-  const mask = classes.map(cls => {
-    const idx = topologyStopIndex(line, cls);
-    if (idx === -1) return false;
-    return (goingHigher ? idx > boardingIdx : idx < boardingIdx) && topologyPlatformCompatible(line, cls, direction);
-  });
-  return mask.some(Boolean) ? mask : null;
 }
 
 const PredictionEngineV5 = {
@@ -256,7 +166,7 @@ const PredictionEngineV5 = {
       // Fall back to topology.json for subway/LRT lines when NetworkEngine has no data.
       const { NetworkEngine } = require('./network.js');
       const networkMask = NetworkEngine.getMask(context.networkGraph, endStopMeta.classes, context.startStopName, context.direction);
-      const topology = networkMask ? null : topologyMask(context.route, context.startStopName, context.direction, endStopMeta.classes);
+      const topology = networkMask ? null : TopologyConstraints.getMask(_topology, context.route, context.startStopName, context.direction, endStopMeta.classes);
       const mask = networkMask || topology;
       const constraintSource = networkMask ? 'network' : (topology ? 'topology' : 'none');
       if (mask) mask.forEach((keep, i) => { if (!keep) probs[i] = 0; });
