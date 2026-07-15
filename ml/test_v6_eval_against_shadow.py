@@ -1,0 +1,115 @@
+import argparse
+import os
+import sys
+import unittest
+from datetime import datetime, timezone
+
+sys.path.insert(0, os.path.dirname(__file__))
+
+import v6_eval_against_shadow as evaluator
+from route_normalization import configure_from_dict, reset_policies
+
+
+def trip(trip_id, route, start_stop, end_stop, minute, direction="Southbound", user_id="u1"):
+    return evaluator.TripRow(
+        trip_id=trip_id,
+        user_id=user_id,
+        route=route,
+        agency="TTC",
+        direction=direction,
+        start_stop=start_stop,
+        end_stop=end_stop,
+        start_time=datetime(2026, 7, 15, 12, minute, tzinfo=timezone.utc),
+        raw={},
+    )
+
+
+def args(min_bucket=2):
+    return argparse.Namespace(agency="TTC", min_bucket=min_bucket)
+
+
+class V6EvalAgainstShadowTest(unittest.TestCase):
+    def setUp(self):
+        reset_policies()
+        configure_from_dict({"PRIMARY": "collapse", "DEFAULT": "preserve_variant"})
+
+    def test_route_baseline_uses_prior_sequence_without_leaking_current_trip(self):
+        trips = {
+            "a1": trip("a1", "1", "Davisville", "Spadina Station", 1),
+            "a2": trip("a2", "510", "Spadina Station", "Queens Quay", 2),
+            "b1": trip("b1", "1", "Davisville", "Spadina Station", 3),
+            "b2": trip("b2", "510", "Spadina Station", "Queens Quay", 4),
+            "c1": trip("c1", "1", "Davisville", "Spadina Station", 5),
+            "c2": trip("c2", "510", "Spadina Station", "Queens Quay", 6),
+            "d1": trip("d1", "1", "Davisville", "Spadina Station", 7),
+            "eval": trip("eval", "510", "Spadina Station", "Queens Quay", 8),
+        }
+
+        predictions = evaluator.evaluate_v6_route(trips, ["eval"], args())
+
+        self.assertEqual(predictions["eval"].predicted, "510")
+        self.assertTrue(predictions["eval"].hit)
+        self.assertEqual(predictions["eval"].strategy, "start_stop+prev_route+prev_end+hour+day")
+        self.assertEqual(predictions["eval"].confidence, 1.0)
+
+    def test_route_baseline_does_not_use_future_trips_to_satisfy_bucket(self):
+        trips = {
+            "eval": trip("eval", "510", "Spadina Station", "Queens Quay", 1),
+            "future1": trip("future1", "510", "Spadina Station", "Queens Quay", 2),
+            "future2": trip("future2", "510", "Spadina Station", "Queens Quay", 3),
+        }
+
+        predictions = evaluator.evaluate_v6_route(trips, ["eval"], args())
+
+        self.assertNotIn("eval", predictions)
+
+    def test_endstop_baseline_uses_route_start_direction_previous_route_context(self):
+        trips = {
+            "a1": trip("a1", "1", "Davisville", "Spadina Station", 1),
+            "a2": trip("a2", "510", "Spadina Station", "Queens Quay", 2),
+            "b1": trip("b1", "1", "Davisville", "Spadina Station", 3),
+            "b2": trip("b2", "510", "Spadina Station", "Queens Quay", 4),
+            "c1": trip("c1", "1", "Davisville", "Spadina Station", 5),
+            "c2": trip("c2", "510", "Spadina Station", "Queens Quay", 6),
+            "d1": trip("d1", "1", "Davisville", "Spadina Station", 7),
+            "eval": trip("eval", "510", "Spadina Station", "Queens Quay", 8),
+        }
+
+        predictions = evaluator.evaluate_v6_endstop(trips, ["eval"], args())
+
+        self.assertEqual(predictions["eval"].predicted, "queens quay")
+        self.assertTrue(predictions["eval"].hit)
+        self.assertEqual(predictions["eval"].strategy, "route+start_stop+direction+prev_route+prev_end+hour+day")
+
+    def test_ladder_marks_equal_accuracy_as_fail(self):
+        summary = {
+            "V3": {"hits": 2, "total": 4, "accuracy": 0.5},
+            "V4": {"hits": 2, "total": 4, "accuracy": 0.5},
+            "V5": {"hits": 3, "total": 4, "accuracy": 0.75},
+        }
+
+        rows = evaluator.ladder(summary, ["V3", "V4", "V5"])
+
+        self.assertEqual(rows[0]["status"], "FAIL")
+        self.assertEqual(rows[1]["status"], "PASS")
+
+    def test_clean_trip_rejects_correction_blocked_trip(self):
+        parsed_args = argparse.Namespace(user_id="u1", agency="TTC")
+        row = evaluator.clean_trip("bad", {
+            "userId": "u1",
+            "agency": "TTC",
+            "route": "510",
+            "direction": "Southbound",
+            "startStopName": "Spadina Station",
+            "endStopName": "Queens Quay",
+            "startTime": datetime(2026, 7, 15, 12, 0, tzinfo=timezone.utc),
+            "endTime": datetime(2026, 7, 15, 12, 10, tzinfo=timezone.utc),
+            "stop_matched": True,
+            "correctedFields": ["route"],
+        }, parsed_args, since=None)
+
+        self.assertIsNone(row)
+
+
+if __name__ == "__main__":
+    unittest.main()
