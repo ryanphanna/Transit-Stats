@@ -670,9 +670,10 @@ The V6 route signal is extremely strong on this scoped slice, and it finally beh
 
 - Full TTC history/all sources produced 584 replayed trips. V6 still led top-1 narrowly (279/584, 47.8%) and led top-3 clearly (347/584, 59.4%).
 - All agencies produced 626 replayed trips. V6 led top-1 (282/626, 45.0%) and top-3 (353/626, 56.4%), but the all-agency view mixes normalization policies and should not drive TTC promotion decisions.
-- V6 still falls back to broad `route` buckets often in the full-history replay. The next NetworkEngine experiment should rebuild learned reachability chronologically from completed trips and use it to narrow those broad fallback buckets. Do not seed that graph from GTFS, Atlas, or topology data.
+- `--network` adds a chronological, trips-only NetworkEngine replay and uses learned reachability to narrow V6 candidates. On the TTC SMS slice it regressed V6 from 98/175 top-1 (56.0%) and 114/175 top-3 (65.1%) to 84/175 top-1 (48.0%) and 98/175 top-3 (56.0%).
+- NetworkEngine replay is therefore default-off in the evaluator. The learned graph is useful to measure, but not ready to narrow V6 destination buckets without more analysis of over-filtering and sparse route fallback behavior. Do not seed that graph from GTFS, Atlas, or topology data.
 
 **Next Steps:**
-1. Add chronological NetworkEngine replay to test whether trip-learned reachability improves V6 fallback buckets.
+1. Investigate why chronological NetworkEngine replay over-filters V6 before using it in promotion logic.
 2. Keep collecting real shadow rows so production `predictionStats` can validate replay results.
 3. Keep V3 live until a V6 route + end-stop pair beats it on scoped production slices and a broader replay sample.

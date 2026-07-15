@@ -16,6 +16,7 @@ logger.error = () => {};
 const { PredictionEngineV3 } = require('../functions/lib/predict_v3');
 const { PredictionEngineV4 } = require('../functions/lib/predict_v4');
 const { PredictionEngineV5 } = require('../functions/lib/predict_v5');
+const { NetworkEngine } = require('../functions/lib/network');
 const TopologyConstraints = require('../functions/lib/topology-constraints');
 const topology = require('../functions/lib/topology.json');
 const { canonicalizeStop, normalizeRouteForMl, normalizeDirectionForMl, loadPolicies } = require('../functions/lib/ml_utils');
@@ -43,6 +44,7 @@ function parseArgs(argv) {
     recent: null,
     minHistory: 5,
     jsonOut: null,
+    network: false,
   };
 
   for (let i = 2; i < argv.length; i++) {
@@ -52,6 +54,14 @@ function parseArgs(argv) {
       continue;
     }
     const [rawKey, inlineValue] = arg.slice(2).split('=', 2);
+    if (rawKey === 'network') {
+      args.network = inlineValue === undefined ? true : inlineValue !== 'false';
+      continue;
+    }
+    if (rawKey === 'no-network') {
+      args.network = false;
+      continue;
+    }
     const key = rawKey.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
     const value = inlineValue !== undefined ? inlineValue : argv[++i];
     if (key === 'recent' || key === 'minHistory') args[key] = Number(value);
@@ -237,9 +247,96 @@ function legalEndStops(route, startStopName, direction, agency) {
   return labels.size > 0 ? labels : null;
 }
 
-function createV6State(primaryAgency) {
+function combineLegalSets(primary, secondary) {
+  if (!primary) return secondary || null;
+  if (!secondary) return primary;
+  const combined = new Set([...primary].filter(label => secondary.has(label)));
+  return combined.size > 0 ? combined : primary;
+}
+
+function graphKey(userId, agency, route) {
+  return `${userId || 'global'}:${agency || ''}:${NetworkEngine._baseRoute(route || '')}`;
+}
+
+function getReplayGraph(networkState, userId, agency, route) {
+  const personal = networkState.graphs.get(graphKey(userId, agency, route)) || null;
+  const global = networkState.graphs.get(graphKey('global', agency, route)) || null;
+  const personalConfident = personal && Object.values(personal.edges || {})
+    .some(edge => NetworkEngine._getConfidence(edge) >= NetworkEngine.MIN_TRIPS);
+  return personalConfident ? personal : (global || personal);
+}
+
+function networkLegalEndStops(trip, state, ctx) {
+  if (!state.useNetwork) return null;
+  const graph = getReplayGraph(state.network, trip.userId, trip.agency || state.primaryAgency, trip.route);
+  if (!graph) return null;
+  const classes = [...state.global.get(mapKey(['global'])).keys()];
+  if (classes.length === 0) return null;
+  const mask = NetworkEngine.getMask(graph, classes, trip.startStopName, trip.direction, 2);
+  if (!mask) return null;
+  const legal = new Set();
+  mask.forEach((keep, index) => {
+    if (keep) legal.add(scoreLabel(ctx.route, classes[index], ctx.direction, trip.agency || state.primaryAgency, []));
+  });
+  return legal.size > 0 ? legal : null;
+}
+
+function observeReplayGraph(networkState, trip, previousTrip) {
+  if (!trip.route || !trip.agency || !trip.direction || !trip.startStopName || !trip.endStopName || !trip.duration) return;
+  if (trip.duration <= 0 || trip.duration > 180) return;
+  const normDir = NetworkEngine._normalizeDirection(trip.direction);
+  if (!normDir) return;
+
+  const edgeKey = NetworkEngine._edgeKey(trip.startStopName, normDir, trip.endStopName);
+  const hourKey = String(trip.startTime.getHours());
+  const graphKeys = [
+    graphKey(trip.userId, trip.agency, trip.route),
+    graphKey('global', trip.agency, trip.route),
+  ];
+
+  for (const key of graphKeys) {
+    let graph = networkState.graphs.get(key);
+    if (!graph) {
+      graph = {
+        userId: key.startsWith('global:') ? undefined : trip.userId,
+        agency: trip.agency,
+        route: NetworkEngine._baseRoute(trip.route),
+        global: key.startsWith('global:') || undefined,
+        edges: {},
+      };
+      networkState.graphs.set(key, graph);
+    }
+
+    const edge = graph.edges[edgeKey] || {
+      fromStop: trip.startStopName,
+      toStop: trip.endStopName,
+      direction: normDir,
+      durations: [],
+      durationsByHour: {},
+      tripCount: 0,
+      edgeType: 'observed',
+    };
+    const duration = Math.round(trip.duration);
+    edge.durations = [...(edge.durations || []).slice(-49), duration];
+    const bucket = edge.durationsByHour[hourKey] || [];
+    edge.durationsByHour[hourKey] = [...bucket.slice(-19), duration];
+    edge.tripCount = (edge.tripCount || 0) + 1;
+    edge.medianMinutes = NetworkEngine._median(edge.durations);
+    edge.updatedAt = (trip.endTime || trip.startTime).toISOString();
+    edge.lastObservedAt = edge.updatedAt;
+    graph.edges[edgeKey] = edge;
+  }
+
+  if (previousTrip) {
+    const transferKey = `${trip.agency}:${normalizeStop(trip.startStopName)}:${previousTrip.route}_to_${trip.route}`;
+    networkState.transfers.set(transferKey, (networkState.transfers.get(transferKey) || 0) + 1);
+  }
+}
+
+function createV6State(primaryAgency, useNetwork = false) {
   return {
     primaryAgency,
+    useNetwork,
     routeStartDirPrevGapRich: new Map(),
     routeStartDirPrevRich: new Map(),
     routeStartDirPrevGap: new Map(),
@@ -251,6 +348,10 @@ function createV6State(primaryAgency) {
     byRoute: new Map(),
     global: new Map([[mapKey(['global']), new Map()]]),
     lastByUser: new Map(),
+    network: {
+      graphs: new Map(),
+      transfers: new Map(),
+    },
   };
 }
 
@@ -275,7 +376,10 @@ function v6Context(trip, state) {
 
 function predictV6(trip, state, minBucket) {
   const ctx = v6Context(trip, state);
-  const legal = legalEndStops(ctx.route, ctx.startStop, ctx.direction, trip.agency || state.primaryAgency);
+  const topologyLegal = legalEndStops(ctx.route, ctx.startStop, ctx.direction, trip.agency || state.primaryAgency);
+  const networkLegal = networkLegalEndStops(trip, state, ctx);
+  const legal = combineLegalSets(topologyLegal, networkLegal);
+  const source = networkLegal ? (topologyLegal ? 'topology+network' : 'network') : (topologyLegal ? 'topology' : 'none');
   const choices = [
     [state.routeStartDirPrevGapRich.get(mapKey([ctx.route, ctx.startStop, ctx.direction, ctx.prevRoute, ctx.prevEnd, ctx.gap, ctx.hour, ctx.day])), Math.max(minBucket + 1, 3), 'route+start_stop+direction+prev_route+prev_end+gap+hour+day'],
     [state.routeStartDirPrevRich.get(mapKey([ctx.route, ctx.startStop, ctx.direction, ctx.prevRoute, ctx.prevEnd, ctx.hour, ctx.day])), Math.max(minBucket + 1, 3), 'route+start_stop+direction+prev_route+prev_end+hour+day'],
@@ -291,9 +395,9 @@ function predictV6(trip, state, minBucket) {
 
   for (const [counter, bucket, strategy] of choices) {
     const choice = choose(counter, bucket, legal);
-    if (choice) return { predictions: choice.stops, strategy, actual: ctx.endStop };
+    if (choice) return { predictions: choice.stops, strategy, constraintSource: source, actual: ctx.endStop };
   }
-  return { predictions: [], strategy: null, actual: ctx.endStop };
+  return { predictions: [], strategy: null, constraintSource: source, actual: ctx.endStop };
 }
 
 function updateV6(trip, state) {
@@ -318,16 +422,17 @@ function updateV6(trip, state) {
 }
 
 function emptyMetric() {
-  return { total: 0, coverage: 0, top1: 0, top3: 0, strategies: {} };
+  return { total: 0, coverage: 0, top1: 0, top3: 0, strategies: {}, constraintSources: {} };
 }
 
-function addPrediction(metric, trip, predictions, stopsLibrary, strategy = null) {
+function addPrediction(metric, trip, predictions, stopsLibrary, strategy = null, constraintSource = null) {
   metric.total += 1;
   if (!predictions || predictions.length === 0) return;
   metric.coverage += 1;
   if (actualMatchesPrediction(trip, predictions[0].stop, stopsLibrary)) metric.top1 += 1;
   if (predictions.slice(0, 3).some(pred => actualMatchesPrediction(trip, pred.stop, stopsLibrary))) metric.top3 += 1;
   if (strategy) metric.strategies[strategy] = (metric.strategies[strategy] || 0) + 1;
+  if (constraintSource) metric.constraintSources[constraintSource] = (metric.constraintSources[constraintSource] || 0) + 1;
 }
 
 function summarizeMetric(metric) {
@@ -342,6 +447,7 @@ function summarizeMetric(metric) {
     top3Accuracy: metric.total ? metric.top3 / metric.total : null,
     top3WhenPredicted: metric.coverage ? metric.top3 / metric.coverage : null,
     strategies: metric.strategies,
+    constraintSources: metric.constraintSources,
   };
 }
 
@@ -380,7 +486,7 @@ async function main() {
     .sort((a, b) => a.startTime - b.startTime);
 
   const primaryAgency = args.agency || 'TTC';
-  const v6State = createV6State(primaryAgency);
+  const v6State = createV6State(primaryAgency, args.network);
   const historyByUser = new Map();
   const metrics = {
     V3: emptyMetric(),
@@ -422,7 +528,7 @@ async function main() {
       addPrediction(metrics.V3, trip, v3, stopsLibrary);
       addPrediction(metrics.V4, trip, v4, stopsLibrary);
       addPrediction(metrics.V5, trip, v5, stopsLibrary);
-      addPrediction(metrics.V6, trip, v6.predictions, stopsLibrary, v6.strategy);
+      addPrediction(metrics.V6, trip, v6.predictions, stopsLibrary, v6.strategy, v6.constraintSource);
 
       rows.push({
         tripId: trip.id,
@@ -438,10 +544,12 @@ async function main() {
           V6: v6.predictions,
         },
         v6Strategy: v6.strategy,
+        v6ConstraintSource: v6.constraintSource,
       });
     }
 
     updateV6(trip, v6State);
+    observeReplayGraph(v6State.network, trip, previousTrip);
     historyAsc.push(trip);
     historyByUser.set(trip.userId, historyAsc);
   }
@@ -459,7 +567,7 @@ async function main() {
       addPrediction(resultMetrics.V3, trip, row.predictions.V3, stopsLibrary);
       addPrediction(resultMetrics.V4, trip, row.predictions.V4, stopsLibrary);
       addPrediction(resultMetrics.V5, trip, row.predictions.V5, stopsLibrary);
-      addPrediction(resultMetrics.V6, trip, row.predictions.V6, stopsLibrary, row.v6Strategy);
+      addPrediction(resultMetrics.V6, trip, row.predictions.V6, stopsLibrary, row.v6Strategy, row.v6ConstraintSource);
     }
   } else {
     Object.assign(resultMetrics, metrics);
@@ -474,6 +582,7 @@ async function main() {
   console.log(`  agency: ${args.agency || '*'}`);
   console.log(`  source: ${args.source || '*'}`);
   console.log(`  since: ${args.since || '*'}`);
+  console.log(`  network replay: ${args.network ? 'on' : 'off'}`);
   console.log(`  clean trips loaded: ${trips.length}`);
   console.log(`  eval trips: ${evalRows.length}`);
   console.log('  caveat: V3/V6 are chronological; V4/V5 use current trained artifacts for backtest scoring.');
@@ -481,6 +590,7 @@ async function main() {
     console.log(`  ${key}: top1 ${metric.top1}/${metric.total} (${fmt(metric.top1Accuracy)}), top3 ${metric.top3}/${metric.total} (${fmt(metric.top3Accuracy)}), coverage ${metric.coverage}/${metric.total} (${fmt(metric.coverageRate)})`);
   }
   console.log(`  V6 strategies: ${JSON.stringify(summary.V6.strategies)}`);
+  console.log(`  V6 constraints: ${JSON.stringify(summary.V6.constraintSources)}`);
 
   if (args.jsonOut) {
     const outPath = path.isAbsolute(args.jsonOut) ? args.jsonOut : path.join(REPO_ROOT, args.jsonOut);

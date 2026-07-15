@@ -15,6 +15,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Added
 - **Historical end-stop replay evaluator**: V3/V4/V5/V6 can now be compared across clean trip history instead of only the small production shadow-stat slice.
+- **Chronological NetworkEngine replay toggle**: V6 end-stop replay can now measure trips-only learned reachability separately from topology legality.
 
 ## [1.47.9] — 2026-07-15
 

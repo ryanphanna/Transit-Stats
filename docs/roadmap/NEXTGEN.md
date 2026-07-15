@@ -74,7 +74,8 @@ The NetworkEngine builds a stop-connection graph from observed trips and contrib
 
 - [x] **Transitive reachability** — if A→B and B→C are both observed with sufficient confidence, infer A→C without requiring a direct observation. Reduces the number of trips needed before the graph is useful on a new route.
 - [x] **Hour-slot travel time buckets** — store edge durations bucketed by hour-of-day (`durationsByHour: { "7": [...], "8": [...] }`) instead of one flat pool. Use the current hour's bucket when enough observations exist; fall back to the aggregate.
-- [ ] **Chronological NetworkEngine replay for V6 evaluation** — rebuild the learned graph from completed trips in time order and test whether it improves V6 end-stop fallback buckets. Never read today's full graph for historical trips, and never seed the graph from GTFS/topology.
+- [x] **Chronological NetworkEngine replay for V6 evaluation** — the replay evaluator can rebuild the learned graph from completed trips in time order. It currently regresses V6 on the TTC SMS sample, so it remains default-off.
+- [ ] **NetworkEngine replay regression analysis** — identify why trip-learned reachability over-filters V6 before using it in promotion logic. Never read today's full graph for historical trips, and never seed the graph from GTFS/topology.
 - [ ] **Stop sequence inference productization** — `NetworkEngine.inferStopSequence()` can reconstruct likely stop order from overlapping observations. Next step is deciding where that experimental map is useful without letting it overrule GTFS/topology physical legality.
 - [ ] **Duration prediction model** — NetworkEngine already collects median travel times per edge. A lightweight model on top could give per-trip duration estimates ("this trip will take about 18 minutes") using boarding stop, route, direction, and time-of-day. Useful for the app UI and as a signal in the "likely ended" trip detection logic.
 
