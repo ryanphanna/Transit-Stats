@@ -6,7 +6,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
-## [Unreleased]
+## [1.47.9] — 2026-07-15
 
 ### Fixed
 - **510 end-stop menus now respect platform direction at Spadina/Nassau**: Southbound trips from Spadina Station no longer offer the northbound-only Nassau platform just because it shares the same logical intersection.
