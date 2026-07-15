@@ -670,10 +670,11 @@ The V6 route signal is extremely strong on this scoped slice, and it finally beh
 
 - Full TTC history/all sources produced 584 replayed trips. V6 still led top-1 narrowly (279/584, 47.8%) and led top-3 clearly (347/584, 59.4%).
 - All agencies produced 626 replayed trips. V6 led top-1 (282/626, 45.0%) and top-3 (353/626, 56.4%), but the all-agency view mixes normalization policies and should not drive TTC promotion decisions.
-- `--network` adds a chronological, trips-only NetworkEngine replay and uses learned reachability to narrow V6 candidates. On the TTC SMS slice it regressed V6 from 98/175 top-1 (56.0%) and 114/175 top-3 (65.1%) to 84/175 top-1 (48.0%) and 98/175 top-3 (56.0%).
-- NetworkEngine replay is therefore default-off in the evaluator. The learned graph is useful to measure, but not ready to narrow V6 destination buckets without more analysis of over-filtering and sparse route fallback behavior. Do not seed that graph from GTFS, Atlas, or topology data.
+- `--network` adds a chronological, trips-only NetworkEngine replay and uses learned reachability to narrow V6 candidates. The first hard-filter pass regressed V6 from 98/175 top-1 (56.0%) and 114/175 top-3 (65.1%) to 84/175 top-1 (48.0%) and 98/175 top-3 (56.0%) because sparse learned reachability knocked strong buckets down to weaker route-level fallbacks.
+- NetworkEngine replay now narrows opportunistically inside the current V6 bucket and falls back to topology-only scoring for that same bucket when the trips-only graph over-filters it. With shared-destination duration inference for intermediate stops, `--network` now scores 97/175 top-1 (55.4%) and 112/175 top-3 (64.0%) on the TTC SMS slice.
+- NetworkEngine replay is therefore still default-off in the evaluator. The learned graph is useful to measure, but not ready to drive V6 promotion logic until it produces actual wins instead of only near-parity. Do not seed that graph from GTFS, Atlas, or topology data.
 
 **Next Steps:**
-1. Investigate why chronological NetworkEngine replay over-filters V6 before using it in promotion logic.
+1. Treat NetworkEngine as V6 telemetry or a soft hint until replay/shadow slices show a measurable lift over topology-only V6.
 2. Keep collecting real shadow rows so production `predictionStats` can validate replay results.
 3. Keep V3 live until a V6 route + end-stop pair beats it on scoped production slices and a broader replay sample.

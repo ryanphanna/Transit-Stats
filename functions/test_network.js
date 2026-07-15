@@ -631,6 +631,22 @@ test('getMask: includes transitively reachable stops', () => {
   assert.equal(mask[2], true,  'D unknown to graph — kept');
 });
 
+test('getMask: infers intermediate stops from shared-destination durations', () => {
+  // A->C and B->C are both real trips. If A->C takes longer, B is an
+  // intermediate stop reachable from A using only trip-observed durations.
+  const graph = {
+    edges: {
+      e1: { fromStop: 'Spadina', toStop: 'Castle Frank', direction: 'Eastbound', tripCount: 5, medianMinutes: 11 },
+      e2: { fromStop: 'Bay', toStop: 'Castle Frank', direction: 'Eastbound', tripCount: 5, medianMinutes: 7 },
+    },
+  };
+  const mask = NetworkEngine.getMask(graph, ['Bay', 'Castle Frank', 'Ossington'], 'Spadina', 'Eastbound');
+  assert.ok(mask !== null, 'mask should not be null');
+  assert.equal(mask[0], true, 'Bay inferred as an intermediate reachable stop');
+  assert.equal(mask[1], true, 'Castle Frank directly reachable');
+  assert.equal(mask[2], true, 'Ossington unknown to graph — kept');
+});
+
 test('filterCandidates: includes trips ending at transitively reachable stops', () => {
   const graph = {
     edges: {
@@ -704,19 +720,19 @@ test('inferStopSequence: reconstructs a 4-stop line from mostly non-adjacent obs
 });
 
 test('inferStopSequence: honestly omits a stop with no real or transitive path to the anchor, rather than guessing', () => {
-  // B only ever appears as a trip START (B->D) — never an endpoint of any
-  // edge reachable from the anchor (A), and no chain connects them. There is
-  // genuinely no distance information linking A and B in this dataset.
+  // B only appears in a disconnected edge. There is genuinely no duration
+  // information linking A and B in this dataset.
   const graph = {
     edges: {
       e1: edge('A', 'C', 'Northbound', 5),
       e2: edge('A', 'D', 'Northbound', 7),
-      e3: edge('B', 'D', 'Northbound', 5),
+      e3: edge('B', 'E', 'Northbound', 5),
     },
   };
   const result = NetworkEngine.inferStopSequence(graph, 'Northbound');
   assert.equal(result.stopCount, 3, 'B should be omitted, not guessed');
   assert.ok(!result.order.includes('B'));
+  assert.ok(!result.order.includes('E'));
   assert.deepEqual(new Set(result.order), new Set(['A', 'C', 'D']));
 });
 

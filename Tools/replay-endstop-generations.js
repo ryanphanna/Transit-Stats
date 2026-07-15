@@ -254,6 +254,26 @@ function combineLegalSets(primary, secondary) {
   return combined.size > 0 ? combined : primary;
 }
 
+function chooseWithNetworkFallback(counter, bucket, topologyLegal, networkLegal) {
+  const topologyAndNetwork = combineLegalSets(topologyLegal, networkLegal);
+  const narrowed = choose(counter, bucket, topologyAndNetwork);
+  if (narrowed) {
+    return {
+      choice: narrowed,
+      constraintSource: networkLegal ? (topologyLegal ? 'topology+network' : 'network') : (topologyLegal ? 'topology' : 'none'),
+    };
+  }
+
+  if (!networkLegal) return { choice: null, constraintSource: topologyLegal ? 'topology' : 'none' };
+
+  const fallbackLegal = topologyLegal || null;
+  const fallback = choose(counter, bucket, fallbackLegal);
+  return {
+    choice: fallback,
+    constraintSource: fallback ? (topologyLegal ? 'topology+network-fallback' : 'network-fallback') : null,
+  };
+}
+
 function graphKey(userId, agency, route) {
   return `${userId || 'global'}:${agency || ''}:${NetworkEngine._baseRoute(route || '')}`;
 }
@@ -378,7 +398,6 @@ function predictV6(trip, state, minBucket) {
   const ctx = v6Context(trip, state);
   const topologyLegal = legalEndStops(ctx.route, ctx.startStop, ctx.direction, trip.agency || state.primaryAgency);
   const networkLegal = networkLegalEndStops(trip, state, ctx);
-  const legal = combineLegalSets(topologyLegal, networkLegal);
   const source = networkLegal ? (topologyLegal ? 'topology+network' : 'network') : (topologyLegal ? 'topology' : 'none');
   const choices = [
     [state.routeStartDirPrevGapRich.get(mapKey([ctx.route, ctx.startStop, ctx.direction, ctx.prevRoute, ctx.prevEnd, ctx.gap, ctx.hour, ctx.day])), Math.max(minBucket + 1, 3), 'route+start_stop+direction+prev_route+prev_end+gap+hour+day'],
@@ -394,8 +413,8 @@ function predictV6(trip, state, minBucket) {
   ];
 
   for (const [counter, bucket, strategy] of choices) {
-    const choice = choose(counter, bucket, legal);
-    if (choice) return { predictions: choice.stops, strategy, constraintSource: source, actual: ctx.endStop };
+    const { choice, constraintSource } = chooseWithNetworkFallback(counter, bucket, topologyLegal, networkLegal);
+    if (choice) return { predictions: choice.stops, strategy, constraintSource, actual: ctx.endStop };
   }
   return { predictions: [], strategy: null, constraintSource: source, actual: ctx.endStop };
 }
@@ -606,7 +625,18 @@ async function main() {
   }
 }
 
-main().catch(err => {
-  console.error(err);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch(err => {
+    console.error(err);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  parseArgs,
+  createV6State,
+  chooseWithNetworkFallback,
+  predictV6,
+  updateV6,
+  observeReplayGraph,
+};

@@ -475,6 +475,17 @@ const NetworkEngine = {
    */
   _getTransitiveEdges(graph) {
     const realEdges = Object.values(graph.edges || {}).filter(e => !e.inferred);
+    const inferred = [];
+    const pushInferred = (fromStop, direction, toStop, tripCount, medianMinutes) => {
+      inferred.push({
+        fromStop,
+        toStop,
+        direction,
+        tripCount,
+        medianMinutes,
+        inferred: true,
+      });
+    };
 
     // Build a lookup: normalized fromStop → edges starting there
     const byFromStop = {};
@@ -484,7 +495,6 @@ const NetworkEngine = {
       byFromStop[key].push(e);
     }
 
-    const inferred = [];
     for (const e1 of realEdges) {
       const midKey = this._normalize(e1.toStop);
       const continuations = byFromStop[midKey] || [];
@@ -493,16 +503,42 @@ const NetworkEngine = {
         // Prevent A→B→A cycles
         if (this._normalize(e1.fromStop) === this._normalize(e2.toStop)) continue;
 
-        inferred.push({
-          fromStop: e1.fromStop,
-          toStop: e2.toStop,
-          direction: e1.direction,
-          tripCount: Math.min(e1.tripCount || 0, e2.tripCount || 0),
-          medianMinutes: (e1.medianMinutes != null && e2.medianMinutes != null)
+        pushInferred(
+          e1.fromStop,
+          e1.direction,
+          e2.toStop,
+          Math.min(e1.tripCount || 0, e2.tripCount || 0),
+          (e1.medianMinutes != null && e2.medianMinutes != null)
             ? e1.medianMinutes + e2.medianMinutes
-            : null,
-          inferred: true,
-        });
+            : null
+        );
+      }
+    }
+
+    // Duration triangulation from trips only:
+    // A->C and B->C in the same direction imply A->B when A->C takes longer.
+    // This recovers intermediate stops that were never directly observed from
+    // the boarding stop, without seeding the graph from GTFS/topology.
+    for (let i = 0; i < realEdges.length; i++) {
+      for (let j = i + 1; j < realEdges.length; j++) {
+        const a = realEdges[i];
+        const b = realEdges[j];
+        if (a.direction !== b.direction) continue;
+        if (a.medianMinutes == null || b.medianMinutes == null) continue;
+        if (Math.abs(a.medianMinutes - b.medianMinutes) < 1) continue;
+
+        if (this._normalize(a.toStop) === this._normalize(b.toStop)) {
+          const [longer, shorter] = a.medianMinutes > b.medianMinutes ? [a, b] : [b, a];
+          if (this._normalize(longer.fromStop) !== this._normalize(shorter.fromStop)) {
+            pushInferred(
+              longer.fromStop,
+              longer.direction,
+              shorter.fromStop,
+              Math.min(longer.tripCount || 0, shorter.tripCount || 0),
+              Math.round(longer.medianMinutes - shorter.medianMinutes)
+            );
+          }
+        }
       }
     }
 
