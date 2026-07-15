@@ -45,7 +45,7 @@ This family handles recurring trip patterns that are strong enough to beat gener
 This family learns the structure of the transit network from observed trips.
 
 - **NetworkEngine** — `functions/lib/network.js`
-  Builds a stop-connection graph from completed trips, learns route-stop service and transfer connections, and provides observational reachability signals inside authoritative topology/GTFS constraints.
+  Builds a stop-connection graph from completed trips only, learns route-stop service and transfer connections, and provides observational reachability signals inside authoritative topology/GTFS constraints. GTFS/topology can constrain predictions outside the engine, but must not be fed into the graph.
 
 ### 4. Journey Intelligence
 
@@ -146,7 +146,7 @@ The CJS V3 implementation is the reference. Browser changes should be mirrored o
 
 ### Network Intelligence
 
-- **NetworkEngine** learns stop sequences, travel times, route-stop service, and transfer connections from completed trips. It is observational; it should not overrule topology/GTFS physical legality when those constraints exist.
+- **NetworkEngine** learns stop sequences, travel times, route-stop service, and transfer connections from completed trips only. It is observational; it should not ingest GTFS/topology as graph data or overrule topology/GTFS physical legality when those constraints exist.
 - Lives in `functions/lib/network.js`.
 - See [NETWORK_ENGINE.md](./NETWORK_ENGINE.md) for the detailed notebook.
 

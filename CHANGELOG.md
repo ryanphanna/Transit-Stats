@@ -11,6 +11,10 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 ### Fixed
 - **V6 end-stop evaluation now canonicalizes topology stop aliases**: subway station suffixes no longer count as wrong destinations while directional streetcar platforms remain distinct.
 - **V6 end-stop evaluation now separates transfer gaps from long gaps**: destination buckets no longer pool short connection trips with unrelated later outings from the same stop.
+- **NetworkEngine confidence is now trips-only**: GTFS/topology stop-source metadata no longer makes learned graph edges more trusted than completed-trip observations support.
+
+### Added
+- **Historical end-stop replay evaluator**: V3/V4/V5/V6 can now be compared across clean trip history instead of only the small production shadow-stat slice.
 
 ## [1.47.9] — 2026-07-15
 

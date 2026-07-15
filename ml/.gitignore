@@ -1,2 +1,3 @@
 *.csv
 v6_eval_against_shadow*.json
+endstop_replay*.json

@@ -656,7 +656,23 @@ The V6 route signal is extremely strong on this scoped slice, and it finally beh
 - Removing agency/source filters increased clean context trips from 595 to 637 but still left only 41 paired end-stop windows; V6 end-stop rose to 32/41 (78.0%) in that broader training context, while route fell to 25/33 because route normalization policy changes when no primary agency is specified.
 - Conclusion: the current promotion sample is bottlenecked by available V3/V4/V5 paired shadow rows, not by evaluator filters. To truly expand the pool, production needs more shadow rows or a backfill/replay of historical V3/V4/V5 predictions.
 
+**Historical Replay Check:**
+- Added `Tools/replay-endstop-generations.js` to replay trip-start end-stop predictions over clean trip history instead of requiring `predictionStats` shadow rows.
+- Caveat: V3 and V6 are chronological/no-leakage in this replay. V4/V5 use the current trained artifacts, so their numbers are current-model backtests rather than true historical online predictions.
+- TTC SMS since 2026-05-01 expanded the end-stop evaluation pool from 41 paired shadow rows to 175 replayed trips:
+
+| Model | Top-1 | Top-3 | Coverage |
+|---|---:|---:|---:|
+| V3 | 82/175 (46.9%) | 90/175 (51.4%) | 137/175 (78.3%) |
+| V4 | 76/175 (43.4%) | 81/175 (46.3%) | 175/175 (100.0%) |
+| V5 | 78/175 (44.6%) | 83/175 (47.4%) | 175/175 (100.0%) |
+| V6 | 98/175 (56.0%) | 114/175 (65.1%) | 171/175 (97.7%) |
+
+- Full TTC history/all sources produced 584 replayed trips. V6 still led top-1 narrowly (279/584, 47.8%) and led top-3 clearly (347/584, 59.4%).
+- All agencies produced 626 replayed trips. V6 led top-1 (282/626, 45.0%) and top-3 (353/626, 56.4%), but the all-agency view mixes normalization policies and should not drive TTC promotion decisions.
+- V6 still falls back to broad `route` buckets often in the full-history replay. The next NetworkEngine experiment should rebuild learned reachability chronologically from completed trips and use it to narrow those broad fallback buckets. Do not seed that graph from GTFS, Atlas, or topology data.
+
 **Next Steps:**
-1. Expand paired shadow coverage by collecting or replaying more V3/V4/V5 rows, then re-run this evaluator.
-2. Add coverage reporting for how often V6 uses strong sequence buckets vs fallback.
-3. Keep V3 live until a V6 route + end-stop pair beats it on scoped production slices.
+1. Add chronological NetworkEngine replay to test whether trip-learned reachability improves V6 fallback buckets.
+2. Keep collecting real shadow rows so production `predictionStats` can validate replay results.
+3. Keep V3 live until a V6 route + end-stop pair beats it on scoped production slices and a broader replay sample.

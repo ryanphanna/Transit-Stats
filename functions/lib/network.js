@@ -3,12 +3,13 @@
  *
  * Each completed trip teaches the system: from stop A, heading [direction] on
  * route R, stop B is reachable in N minutes. Over many trips the engine infers
- * stop ordering and directional validity — replacing hand-maintained topology.json
- * for any line it has learned, including branchy networks like BART.
+ * stop ordering and directional validity from trips alone, including branchy
+ * networks like BART. GTFS/topology can constrain prediction outside this
+ * engine, but must never be ingested as graph training data.
  *
  * Changelog:
  *   v1 - Trip observation, duration-based reachability, directional filtering.
- *        Falls back to topology.json when confidence is insufficient.
+ *        Falls back to external constraints when confidence is insufficient.
  *   v1.1 - Route-stop index (routeStopIndex): which routes serve each stop.
  *          Transfer index (transferIndex): which route pairs connect at each stop.
  *          Both updated in observe() alongside the main graph.
@@ -125,7 +126,7 @@ const NetworkEngine = {
         db.collection('networkGraph').doc(this._docId(userId, agency, route)),
         { userId, agency, route: route.toString() }
       ),
-      // Global graph — cold-start, stop disambiguation, shared topology
+      // Global graph — cold-start and shared trip-observed network facts
       writeGraph(
         db.collection('networkGraph').doc(this._globalDocId(agency, route)),
         { agency, route: route.toString(), global: true }
@@ -320,13 +321,6 @@ const NetworkEngine = {
 
   _getConfidence(edge) {
     let score = edge.tripCount || 0;
-    
-    // Boost score if the source is trusted
-    if (edge.fromStopSource === 'verified' || edge.toStopSource === 'verified') score += 2;
-    if (edge.fromStopSource === 'gtfs' || edge.toStopSource === 'gtfs') score += 1;
-    
-    // Topology edges are highly trusted (pre-built sequences)
-    if (edge.edgeType === 'inferred_topology') score += 5;
     
     // Penalty for old edges (simple linear decay over 90 days)
     if (edge.lastObservedAt) {

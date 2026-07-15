@@ -10,9 +10,9 @@ Not a roadmap. Not a feature changelog. This is the internal notebook for the en
 
 **Problem it solved:** topology.json required hand-curated stop sequences for every line. Branchy networks like BART couldn't be represented as a single linear sequence, so learned reachability and trip-duration signals needed a route-agnostic source. The engine builds that empirical graph from completed trips.
 
-**Approach:** Learn the transit graph from completed trips. Each trip is an observed edge: `fromStop → toStop` on a given route, direction, and agency, with a duration. After MIN_TRIPS observations on an edge, the engine trusts it as observational evidence. Works for any network without configuration — BART, Muni, LA Metro, future cities all build their graph automatically.
+**Approach:** Learn the transit graph from completed trips only. Each trip is an observed edge: `fromStop → toStop` on a given route, direction, and agency, with a duration. After MIN_TRIPS observations on an edge, the engine trusts it as observational evidence. Works for any network without configuration — BART, Muni, LA Metro, future cities all build their graph automatically.
 
-**Constraint role:** NetworkEngine is not the physical source of truth. Topology/GTFS-derived constraints are authoritative for covered routes and platforms; NetworkEngine can only narrow inside that legal set. When topology has no coverage for a route/stop/direction, NetworkEngine can provide the best available learned reachability constraint.
+**Constraint role:** NetworkEngine is not the physical source of truth. Topology/GTFS-derived constraints are authoritative for covered routes and platforms, but they live outside the engine. NetworkEngine must not ingest GTFS, Atlas, or topology rows as graph observations; it can only narrow inside external legal sets or fill gaps from completed-trip evidence.
 
 ### Active Signals
 
@@ -24,7 +24,7 @@ Not a roadmap. Not a feature changelog. This is the internal notebook for the en
 | **Hour-slot durations** | Edge durations are stored by hour as well as aggregate median, so trip-duration checks can use time-of-day where enough data exists |
 | **Unknown stop passthrough** | Stops not seen in the graph are kept (don't over-filter new stops) |
 
-**Confidence threshold:** MIN_TRIPS = 3 observations before an edge is trusted.
+**Confidence threshold:** MIN_TRIPS = 3 completed-trip observations before an edge is trusted. Stop source metadata and topology labels do not boost graph confidence.
 
 **Duration tracking:** Each edge stores a rolling window of 50 observed durations plus hour-slot buckets. Median is computed and stored for aggregate and hour-aware duration checks.
 
@@ -60,9 +60,9 @@ One document per user/agency/route combination. Edges are keyed by normalized `f
 ## Version History
 
 ### v1.0.0
-**What changed:** Initial implementation. Replaces topology.json filtering for any route with sufficient trip history. Falls back to topology.json when data is sparse.
+**What changed:** Initial implementation. Added trip-observed reachability filtering for routes with sufficient history, with external topology constraints still available outside the engine when learned data is sparse.
 
-**Current note:** That original priority has been superseded. The live prediction path now combines constraints with topology/GTFS as the authoritative physical guardrail and NetworkEngine as an observational narrowing signal.
+**Current note:** That original priority has been superseded. The live prediction path now combines constraints with topology/GTFS as the authoritative physical guardrail and NetworkEngine as an observational narrowing signal. Those guardrails are applied outside NetworkEngine; they are not training data for the graph.
 
 **Files:**
 | File | Purpose |

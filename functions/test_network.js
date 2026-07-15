@@ -598,14 +598,14 @@ test('observe: deduces surface route adjacency from durations', async () => {
 
 // ─── Phase 4: Confidence Model ───────────────────────────────────────────────
 
-test('_getConfidence: verified source boosts score', () => {
+test('_getConfidence: stop source metadata does not boost score', () => {
   const edge = { tripCount: 1, fromStopSource: 'verified' };
-  assert.equal(NetworkEngine._getConfidence(edge), 3); // 1 + 2
+  assert.equal(NetworkEngine._getConfidence(edge), 1);
 });
 
-test('_getConfidence: topology edges get major boost', () => {
+test('_getConfidence: topology-labeled edges do not boost score', () => {
   const edge = { tripCount: 1, edgeType: 'inferred_topology' };
-  assert.equal(NetworkEngine._getConfidence(edge), 6); // 1 + 5
+  assert.equal(NetworkEngine._getConfidence(edge), 1);
 });
 
 test('_getConfidence: old edges are penalized', () => {
