@@ -12,6 +12,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **510 end-stop menus now respect platform direction at Spadina/Nassau**: Southbound trips from Spadina Station no longer offer the northbound-only Nassau platform just because it shares the same logical intersection.
 - **510 Queens Quay platform variants are now direction-specific**: the remaining collapsed side-platform alias no longer lets a trip suggest the physically wrong platform.
 - **GTFS/topology legality now vetoes learned NetworkEngine destination suggestions**: observational trip history can narrow predictions, but it no longer outranks physical route/platform constraints.
+- **V6 end-stop evaluation now applies topology legality**: the offline destination baseline beats V3 on the scoped TTC SMS slice instead of tying it.
 
 ## [1.47.8] — 2026-07-13
 

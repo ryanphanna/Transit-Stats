@@ -36,6 +36,9 @@ V6 end-stop baseline:
     6. (start_stop + previous_route)
     7. route
     8. global end-stop fallback
+
+    When topology covers the route/start/direction, each bucket is filtered to
+    physically legal downstream stops before V6 can choose from it.
 """
 
 from __future__ import annotations
@@ -56,6 +59,7 @@ from firebase_admin import credentials, firestore
 SCRIPT_DIR = os.path.dirname(__file__)
 REPO_ROOT = os.path.dirname(SCRIPT_DIR)
 KEY_PATH = os.path.expanduser("~/Desktop/Dev/Credentials/Firebase for Transit Stats.json")
+TOPOLOGY_PATH = os.path.join(REPO_ROOT, "functions", "lib", "topology.json")
 
 sys.path.insert(0, SCRIPT_DIR)
 from route_normalization import load_policies, normalize_route_for_ml  # noqa: E402
@@ -158,6 +162,118 @@ def normalize_stop(name: Any) -> str:
 
 def normalize_route(route: Any, agency: str | None, primary_agency: str | None) -> str:
     return str(normalize_route_for_ml(route, agency=agency, primary_agency=primary_agency) or "").strip()
+
+
+def base_route(route: Any) -> str:
+    value = str(route or "").strip()
+    match = re.match(r"^(\d+)", value)
+    return match.group(1) if match else value
+
+
+def load_topology() -> dict[str, Any] | None:
+    if not os.path.exists(TOPOLOGY_PATH):
+        return None
+    with open(TOPOLOGY_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def topology_line(topology: dict[str, Any] | None, route: Any, agency: str | None = None) -> dict[str, Any] | None:
+    if not topology or not route:
+        return None
+    route_value = base_route(route)
+    lines = topology.get("lines") or {}
+    exact = lines.get(route_value)
+    if exact and (not agency or exact.get("network") == agency):
+        return exact
+
+    route_lower = route_value.lower()
+    for line in lines.values():
+        if agency and line.get("network") != agency:
+            continue
+        aliases = [str(alias).lower() for alias in line.get("route_aliases") or []]
+        if route_lower in aliases:
+            return line
+    return None
+
+
+def topology_stop_index(line: dict[str, Any] | None, stop_name: Any) -> int:
+    if not line or not stop_name:
+        return -1
+    target = normalize_stop(stop_name)
+    for index, canon in enumerate(line.get("stops") or []):
+        labels = [canon, *(((line.get("aliases") or {}).get(canon)) or [])]
+        for variant in ((line.get("directional_stops") or {}).get(canon)) or []:
+            labels.extend([variant.get("name"), *((variant.get("aliases") or []))])
+        if target in {normalize_stop(label) for label in labels if label}:
+            return index
+    return -1
+
+
+def topology_going_higher(line: dict[str, Any], boarding_idx: int, direction: Any) -> bool | None:
+    norm_dir = normalize_direction(direction)
+    if boarding_idx < 0 or not norm_dir:
+        return None
+
+    if line.get("name") == "Yonge-University":
+        union_idx = topology_stop_index(line, "Union")
+        if union_idx == -1 or boarding_idx == union_idx:
+            return None
+        return norm_dir == "southbound" if boarding_idx <= union_idx else norm_dir == "northbound"
+
+    direction_order = line.get("direction_order") or {}
+    if direction_order:
+        if norm_dir == normalize_direction(direction_order.get("forward")):
+            return True
+        if norm_dir == normalize_direction(direction_order.get("reverse")):
+            return False
+        return None
+
+    return norm_dir in {"eastbound", "northbound"}
+
+
+def topology_stop_labels(line: dict[str, Any], canon: str, direction: Any) -> set[str]:
+    norm_dir = normalize_direction(direction)
+    variants = ((line.get("directional_stops") or {}).get(canon)) or []
+    if variants:
+        labels: set[str] = set()
+        for variant in variants:
+            variant_dirs = {normalize_direction(value) for value in variant.get("directions") or []}
+            if variant_dirs and norm_dir not in variant_dirs:
+                continue
+            labels.update(
+                normalize_stop(label)
+                for label in [variant.get("name"), *((variant.get("aliases") or []))]
+                if label
+            )
+        return {label for label in labels if label}
+
+    return {
+        normalize_stop(label)
+        for label in [canon, *(((line.get("aliases") or {}).get(canon)) or [])]
+        if label
+    }
+
+
+def topology_legal_endstops(
+    topology: dict[str, Any] | None,
+    route: Any,
+    start_stop: Any,
+    direction: Any,
+    agency: str | None,
+) -> set[str] | None:
+    line = topology_line(topology, route, agency)
+    if not line:
+        return None
+    boarding_idx = topology_stop_index(line, start_stop)
+    going_higher = topology_going_higher(line, boarding_idx, direction)
+    if boarding_idx == -1 or going_higher is None:
+        return None
+
+    legal: set[str] = set()
+    for index, canon in enumerate(line.get("stops") or []):
+        if (going_higher and index > boarding_idx) or (not going_higher and index < boarding_idx):
+            legal.update(topology_stop_labels(line, canon, direction))
+    return legal or None
 
 
 def trip_has_blocking_correction(trip: dict[str, Any] | None) -> bool:
@@ -344,9 +460,18 @@ def update_counter(counter_map: dict[tuple[str, ...], Counter], key: tuple[str, 
         counter_map[key][route] += 1
 
 
-def choose_from_counter(counter: Counter | None, min_bucket: int, strategy: str) -> tuple[str | None, float, str] | None:
+def choose_from_counter(
+    counter: Counter | None,
+    min_bucket: int,
+    strategy: str,
+    legal: set[str] | None = None,
+) -> tuple[str | None, float, str] | None:
     if not counter:
         return None
+    if legal is not None:
+        counter = Counter({key: count for key, count in counter.items() if key in legal})
+        if not counter:
+            return None
     total = sum(counter.values())
     if total < min_bucket:
         return None
@@ -460,6 +585,7 @@ def evaluate_v6_endstop(
     global_endstops: Counter = Counter()
     predictions: dict[str, V6Prediction] = {}
     primary_agency = args.agency
+    topology = load_topology()
 
     sorted_trips = sorted(trips.values(), key=lambda t: t.start_time)
     last_route_by_user: dict[str, str] = {}
@@ -476,15 +602,16 @@ def evaluate_v6_endstop(
         dt = day_type(trip.start_time)
 
         if trip.trip_id in eval_set and current_end:
+            legal = topology_legal_endstops(topology, current_route, current_start, current_direction, trip.agency or primary_agency)
             choice = (
-                choose_from_counter(route_start_dir_prev_rich.get((current_route, current_start, current_direction, prev_route, prev_end, hb, dt)), rich_min_bucket(args), "route+start_stop+direction+prev_route+prev_end+hour+day")
-                or choose_from_counter(route_start_dir_prev_end.get((current_route, current_start, current_direction, prev_route, prev_end)), args.min_bucket, "route+start_stop+direction+prev_route+prev_end")
-                or choose_from_counter(route_start_dir_prev.get((current_route, current_start, current_direction, prev_route)), args.min_bucket, "route+start_stop+direction+prev_route")
-                or choose_from_counter(route_start_dir.get((current_route, current_start, current_direction)), args.min_bucket, "route+start_stop+direction")
-                or choose_from_counter(route_start.get((current_route, current_start)), args.min_bucket, "route+start_stop")
-                or choose_from_counter(start_prev.get((current_start, prev_route)), args.min_bucket, "start_stop+prev_route")
-                or choose_from_counter(by_route.get((current_route,)), args.min_bucket, "route")
-                or choose_from_counter(global_endstops, 1, "global")
+                choose_from_counter(route_start_dir_prev_rich.get((current_route, current_start, current_direction, prev_route, prev_end, hb, dt)), rich_min_bucket(args), "route+start_stop+direction+prev_route+prev_end+hour+day", legal)
+                or choose_from_counter(route_start_dir_prev_end.get((current_route, current_start, current_direction, prev_route, prev_end)), args.min_bucket, "route+start_stop+direction+prev_route+prev_end", legal)
+                or choose_from_counter(route_start_dir_prev.get((current_route, current_start, current_direction, prev_route)), args.min_bucket, "route+start_stop+direction+prev_route", legal)
+                or choose_from_counter(route_start_dir.get((current_route, current_start, current_direction)), args.min_bucket, "route+start_stop+direction", legal)
+                or choose_from_counter(route_start.get((current_route, current_start)), args.min_bucket, "route+start_stop", legal)
+                or choose_from_counter(start_prev.get((current_start, prev_route)), args.min_bucket, "start_stop+prev_route", legal)
+                or choose_from_counter(by_route.get((current_route,)), args.min_bucket, "route", legal)
+                or choose_from_counter(global_endstops, 1, "global", legal)
             )
 
             if choice:

@@ -66,20 +66,44 @@ class V6EvalAgainstShadowTest(unittest.TestCase):
     def test_endstop_baseline_uses_route_start_direction_previous_route_context(self):
         trips = {
             "a1": trip("a1", "1", "Davisville", "Spadina Station", 1),
-            "a2": trip("a2", "510", "Spadina Station", "Queens Quay", 2),
+            "a2": trip("a2", "510", "Spadina Station", "Queens Quay West at Lower Spadina Ave East Side", 2),
             "b1": trip("b1", "1", "Davisville", "Spadina Station", 3),
-            "b2": trip("b2", "510", "Spadina Station", "Queens Quay", 4),
+            "b2": trip("b2", "510", "Spadina Station", "Queens Quay West at Lower Spadina Ave East Side", 4),
             "c1": trip("c1", "1", "Davisville", "Spadina Station", 5),
-            "c2": trip("c2", "510", "Spadina Station", "Queens Quay", 6),
+            "c2": trip("c2", "510", "Spadina Station", "Queens Quay West at Lower Spadina Ave East Side", 6),
             "d1": trip("d1", "1", "Davisville", "Spadina Station", 7),
-            "eval": trip("eval", "510", "Spadina Station", "Queens Quay", 8),
+            "eval": trip("eval", "510", "Spadina Station", "Queens Quay West at Lower Spadina Ave East Side", 8),
         }
 
         predictions = evaluator.evaluate_v6_endstop(trips, ["eval"], args())
 
-        self.assertEqual(predictions["eval"].predicted, "queens quay")
+        self.assertEqual(predictions["eval"].predicted, "queens quay west/lower spadina ave east side")
         self.assertTrue(predictions["eval"].hit)
         self.assertEqual(predictions["eval"].strategy, "route+start_stop+direction+prev_route+prev_end+hour+day")
+
+    def test_endstop_baseline_filters_candidates_to_topology_legal_stops(self):
+        trips = {
+            "illegal1": trip("illegal1", "510", "Spadina Station", "Davisville", 1),
+            "illegal2": trip("illegal2", "510", "Spadina Station", "Davisville", 2),
+            "illegal3": trip("illegal3", "510", "Spadina Station", "Davisville", 3),
+            "legal1": trip("legal1", "510", "Spadina Station", "Queens Quay West at Lower Spadina Ave East Side", 4),
+            "legal2": trip("legal2", "510", "Spadina Station", "Queens Quay West at Lower Spadina Ave East Side", 5),
+            "eval": trip("eval", "510", "Spadina Station", "Queens Quay West at Lower Spadina Ave East Side", 6),
+        }
+
+        predictions = evaluator.evaluate_v6_endstop(trips, ["eval"], args())
+
+        self.assertEqual(predictions["eval"].predicted, "queens quay west/lower spadina ave east side")
+        self.assertTrue(predictions["eval"].hit)
+        self.assertNotEqual(predictions["eval"].predicted, "davisville")
+
+    def test_topology_legal_endstops_uses_directional_510_platform_labels(self):
+        topology = evaluator.load_topology()
+
+        legal = evaluator.topology_legal_endstops(topology, "510", "Spadina Station", "Southbound", "TTC")
+
+        self.assertIn("queens quay west/lower spadina ave east side", legal)
+        self.assertNotIn("davisville", legal)
 
     def test_ladder_marks_equal_accuracy_as_fail(self):
         summary = {
