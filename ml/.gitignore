@@ -1,2 +1,2 @@
 *.csv
-v6_eval_against_shadow.json
+v6_eval_against_shadow*.json

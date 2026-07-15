@@ -59,7 +59,7 @@ Replacing hand-coded scoring weights with a model trained on actual trip history
 - [x] **Scoped V3→V4→V5→V6 promotion evaluator**: `ml/v6_eval_against_shadow.py` compares model generations on the same clean production trip windows and separates architectural capability from promotion evidence.
 - [x] **V6 end-stop baseline**: The no-leakage evaluator now compares V6 destination suggestions against V3/V4/V5 under the same clean production trip scope.
 - [x] **V6 end-stop lift beyond V3**: The topology-filtered V6 destination baseline now beats the live V3 end-stop path on the scoped TTC SMS slice, not just V4/V5.
-- [ ] **Broader V6 validation**: Re-run V6 route + end-stop evaluation on larger and more recent slices before promotion.
+- [ ] **Broader V6 validation**: Collect or replay more paired V3/V4/V5 shadow rows before promotion; widening current filters still leaves only 41 paired end-stop windows.
 - [ ] **Transfer vs. stopover classifier**: Use gap duration + transfer stop identity + route frequency + time of day to learn whether a gap between trips was a connection or a deliberate stop. Replaces the current fixed-threshold journey linking logic.
 - [ ] **GTFS-informed constraints and features**: Use service frequency, route availability, and downstream-stop plausibility as side information or guardrails where they measurably help. Do not make raw GTFS the core model input by default.
 - [ ] **Autonomous retraining**: Same goal as V4/V5 — fully hands-off weekly retraining for V6 once the feature set and evaluation slice are stable.

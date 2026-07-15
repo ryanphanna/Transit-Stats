@@ -6,6 +6,11 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Fixed
+- **V6 end-stop evaluation now canonicalizes topology stop aliases**: subway station suffixes no longer count as wrong destinations while directional streetcar platforms remain distinct.
+
 ## [1.47.9] — 2026-07-15
 
 ### Fixed

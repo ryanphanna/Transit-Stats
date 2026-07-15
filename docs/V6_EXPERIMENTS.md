@@ -596,6 +596,7 @@ Each prediction generation should be structurally smarter than the last, but pro
 - Compared route accuracy on paired trip windows where V3/V4/V5 all produced production shadow rows.
 - Evaluated V6 route and end-stop predictions offline on the same trip IDs, training only on trips that happened earlier than the evaluated trip.
 - Filtered V6 end-stop frequency buckets through shared topology legality when route/start/direction are covered, so broad history cannot choose physically impossible downstream stops.
+- Canonicalized V6 end-stop labels through route topology before training/evaluation, so station suffix aliases like `Bay` vs `Bay Station` count as the same stop while direction-specific streetcar platforms stay distinct.
 
 **Command:**
 ```bash
@@ -629,26 +630,31 @@ GRPC_DNS_RESOLVER=native python3 ml/v6_eval_against_shadow.py <userId> --agency=
 | V3 | 27/41 (65.9%) | live end-stop predictor |
 | V4 | 23/41 (56.1%) | shadow end-stop model |
 | V5 | 23/41 (56.1%) | shadow end-stop model |
-| V6 end-stop baseline | 28/41 (68.3%) | no-leakage route/start/direction/sequence frequency baseline with topology legality |
+| V6 end-stop baseline | 31/41 (75.6%) | no-leakage route/start/direction/sequence frequency baseline with topology legality and route-aware stop canonicalization |
 
 **End-Stop Promotion Ladder:**
 - V3 → V4: fail (-9.8pp)
 - V4 → V5: fail (+0.0pp)
-- V5 → V6 end-stop baseline: pass (+12.2pp)
-- V3 → V6 end-stop baseline: pass (+2.4pp)
+- V5 → V6 end-stop baseline: pass (+19.5pp)
+- V3 → V6 end-stop baseline: pass (+9.8pp)
 
 **V6 End-Stop Strategy Mix:**
-- `route+start_stop+direction+prev_route+prev_end+hour+day`: 7 trips
-- `route+start_stop+direction+prev_route+prev_end`: 17 trips
-- `route+start_stop+direction+prev_route`: 5 trips
-- `route+start_stop+direction`: 10 trips
+- `route+start_stop+direction+prev_route+prev_end+hour+day`: 10 trips
+- `route+start_stop+direction+prev_route+prev_end`: 15 trips
+- `route+start_stop+direction+prev_route`: 6 trips
+- `route+start_stop+direction`: 9 trips
 - `route+start_stop`: 1 trip
-- `route`: 1 trip
 
 **Interpretation:**
-The V6 route signal is extremely strong on this scoped slice, and it finally behaves like a true next-generation step: it uses journey/sequence context rather than just a larger flat classifier. Adding topology legality to the V6 end-stop baseline makes the destination path beat V3 on this same slice, not just V4/V5. Richer context helps explain the decision path, but sparse rich buckets still need strict support thresholds and broader validation before promotion.
+The V6 route signal is extremely strong on this scoped slice, and it finally behaves like a true next-generation step: it uses journey/sequence context rather than just a larger flat classifier. Adding topology legality and route-aware stop canonicalization makes the destination path beat V3 on this same slice, not just V4/V5. Richer context helps explain the decision path, but sparse rich buckets still need strict support thresholds and broader validation before promotion.
+
+**Sample Pool Check:**
+- Removing the `since=2026-05-01` filter did not add paired shadow rows: TTC SMS stayed at 33 route windows and 41 end-stop windows.
+- Removing the SMS source filter also stayed at 33 route windows and 41 end-stop windows.
+- Removing agency/source filters increased clean context trips from 595 to 637 but still left only 41 paired end-stop windows; V6 end-stop rose to 32/41 (78.0%) in that broader training context, while route fell to 25/33 because route normalization policy changes when no primary agency is specified.
+- Conclusion: the current promotion sample is bottlenecked by available V3/V4/V5 paired shadow rows, not by evaluator filters. To truly expand the pool, production needs more shadow rows or a backfill/replay of historical V3/V4/V5 predictions.
 
 **Next Steps:**
-1. Validate the V6 route + end-stop result on a larger and more recent slice before promotion.
+1. Expand paired shadow coverage by collecting or replaying more V3/V4/V5 rows, then re-run this evaluator.
 2. Add coverage reporting for how often V6 uses strong sequence buckets vs fallback.
 3. Keep V3 live until a V6 route + end-stop pair beats it on scoped production slices.

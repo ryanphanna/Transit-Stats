@@ -209,6 +209,58 @@ def topology_stop_index(line: dict[str, Any] | None, stop_name: Any) -> int:
     return -1
 
 
+def stop_label_forms(name: Any) -> set[str]:
+    value = normalize_stop(name)
+    if not value:
+        return set()
+    forms = {value}
+    if value.endswith(" station"):
+        forms.add(value[:-8].strip())
+    else:
+        forms.add(f"{value} station")
+    return {form for form in forms if form}
+
+
+def stop_labels_match(a: Any, b: Any) -> bool:
+    return bool(stop_label_forms(a) & stop_label_forms(b))
+
+
+def topology_canonical_stop(
+    topology: dict[str, Any] | None,
+    route: Any,
+    stop_name: Any,
+    direction: Any,
+    agency: str | None,
+) -> str:
+    normalized = normalize_stop(stop_name)
+    line = topology_line(topology, route, agency)
+    if not line or not normalized:
+        return normalized
+
+    norm_dir = normalize_direction(direction)
+    for canon in line.get("stops") or []:
+        variants = ((line.get("directional_stops") or {}).get(canon)) or []
+        if variants:
+            matched_variant: str | None = None
+            for variant in variants:
+                labels = [variant.get("name"), *((variant.get("aliases") or []))]
+                if not any(stop_labels_match(stop_name, label) for label in labels if label):
+                    continue
+                variant_name = normalize_stop(variant.get("name"))
+                variant_dirs = {normalize_direction(value) for value in variant.get("directions") or []}
+                if norm_dir and (not variant_dirs or norm_dir in variant_dirs):
+                    return variant_name
+                matched_variant = matched_variant or variant_name
+            if matched_variant:
+                return matched_variant
+
+        labels = [canon, *(((line.get("aliases") or {}).get(canon)) or [])]
+        if any(stop_labels_match(stop_name, label) for label in labels if label):
+            return normalize_stop(canon)
+
+    return normalized
+
+
 def topology_going_higher(line: dict[str, Any], boarding_idx: int, direction: Any) -> bool | None:
     norm_dir = normalize_direction(direction)
     if boarding_idx < 0 or not norm_dir:
@@ -240,18 +292,13 @@ def topology_stop_labels(line: dict[str, Any], canon: str, direction: Any) -> se
             variant_dirs = {normalize_direction(value) for value in variant.get("directions") or []}
             if variant_dirs and norm_dir not in variant_dirs:
                 continue
-            labels.update(
-                normalize_stop(label)
-                for label in [variant.get("name"), *((variant.get("aliases") or []))]
-                if label
-            )
+            variant_name = normalize_stop(variant.get("name"))
+            if variant_name:
+                labels.add(variant_name)
         return {label for label in labels if label}
 
-    return {
-        normalize_stop(label)
-        for label in [canon, *(((line.get("aliases") or {}).get(canon)) or [])]
-        if label
-    }
+    canon_label = normalize_stop(canon)
+    return {canon_label} if canon_label else set()
 
 
 def topology_legal_endstops(
@@ -593,9 +640,9 @@ def evaluate_v6_endstop(
 
     for trip in sorted_trips:
         current_route = normalize_route(trip.route, trip.agency, primary_agency)
-        current_start = normalize_stop(trip.start_stop)
         current_direction = normalize_direction(trip.direction)
-        current_end = normalize_stop(trip.end_stop)
+        current_start = topology_canonical_stop(topology, current_route, trip.start_stop, current_direction, trip.agency or primary_agency)
+        current_end = topology_canonical_stop(topology, current_route, trip.end_stop, current_direction, trip.agency or primary_agency)
         prev_route = last_route_by_user.get(trip.user_id) or ""
         prev_end = last_end_by_user.get(trip.user_id) or ""
         hb = hour_bucket(trip.start_time)

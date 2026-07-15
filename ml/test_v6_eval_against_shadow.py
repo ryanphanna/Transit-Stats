@@ -105,6 +105,30 @@ class V6EvalAgainstShadowTest(unittest.TestCase):
         self.assertIn("queens quay west/lower spadina ave east side", legal)
         self.assertNotIn("davisville", legal)
 
+    def test_topology_canonical_stop_collapses_station_suffix_aliases(self):
+        topology = evaluator.load_topology()
+
+        self.assertEqual(
+            evaluator.topology_canonical_stop(topology, "1", "College Station", "Southbound", "TTC"),
+            "college",
+        )
+        self.assertEqual(
+            evaluator.topology_canonical_stop(topology, "2", "Bay Station", "Westbound", "TTC"),
+            "bay",
+        )
+
+    def test_topology_canonical_stop_keeps_directional_platforms_distinct(self):
+        topology = evaluator.load_topology()
+
+        self.assertEqual(
+            evaluator.topology_canonical_stop(topology, "510", "Spadina Ave at Nassau St", "Southbound", "TTC"),
+            "spadina ave/nassau st",
+        )
+        self.assertEqual(
+            evaluator.topology_canonical_stop(topology, "510", "Spadina Ave at Nassau St South Side", "Southbound", "TTC"),
+            "spadina ave/nassau st south side",
+        )
+
     def test_ladder_marks_equal_accuracy_as_fail(self):
         summary = {
             "V3": {"hits": 2, "total": 4, "accuracy": 0.5},
