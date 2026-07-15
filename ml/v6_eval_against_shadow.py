@@ -28,14 +28,16 @@ V6 route baseline:
 
 V6 end-stop baseline:
     Predicts the current destination from historical frequencies in this order:
-    1. (route + start_stop + direction + previous_route + previous_end_stop + hour_bucket + day_type)
-    2. (route + start_stop + direction + previous_route + previous_end_stop)
-    3. (route + start_stop + direction + previous_route)
-    4. (route + start_stop + direction)
-    5. (route + start_stop)
-    6. (start_stop + previous_route)
-    7. route
-    8. global end-stop fallback
+    1. (route + start_stop + direction + previous_route + previous_end_stop + gap + hour_bucket + day_type)
+    2. (route + start_stop + direction + previous_route + previous_end_stop + hour_bucket + day_type)
+    3. (route + start_stop + direction + previous_route + previous_end_stop + gap)
+    4. (route + start_stop + direction + previous_route + previous_end_stop)
+    5. (route + start_stop + direction + previous_route)
+    6. (route + start_stop + direction)
+    7. (route + start_stop)
+    8. (start_stop + previous_route)
+    9. route
+    10. global end-stop fallback
 
     When topology covers the route/start/direction, each bucket is filtered to
     physically legal downstream stops before V6 can choose from it.
@@ -616,13 +618,26 @@ def day_type(dt: datetime) -> str:
     return "weekend" if dt.weekday() >= 5 else "weekday"
 
 
+def gap_bucket(previous_start: datetime | None, current_start: datetime) -> str:
+    if not previous_start:
+        return "none"
+    minutes = max(0, round((current_start - previous_start).total_seconds() / 60))
+    if minutes <= 30:
+        return "transfer"
+    if minutes <= 120:
+        return "stopover"
+    return "separate"
+
+
 def evaluate_v6_endstop(
     trips: dict[str, TripRow],
     eval_trip_ids: list[str],
     args: argparse.Namespace,
 ) -> dict[str, V6Prediction]:
     eval_set = set(eval_trip_ids)
+    route_start_dir_prev_gap_rich: dict[tuple[str, str, str, str, str, str, str, str], Counter] = defaultdict(Counter)
     route_start_dir_prev_rich: dict[tuple[str, str, str, str, str, str, str], Counter] = defaultdict(Counter)
+    route_start_dir_prev_gap: dict[tuple[str, str, str, str, str, str], Counter] = defaultdict(Counter)
     route_start_dir_prev_end: dict[tuple[str, str, str, str, str], Counter] = defaultdict(Counter)
     route_start_dir_prev: dict[tuple[str, str, str, str], Counter] = defaultdict(Counter)
     route_start_dir: dict[tuple[str, str, str], Counter] = defaultdict(Counter)
@@ -637,6 +652,7 @@ def evaluate_v6_endstop(
     sorted_trips = sorted(trips.values(), key=lambda t: t.start_time)
     last_route_by_user: dict[str, str] = {}
     last_end_by_user: dict[str, str] = {}
+    last_start_by_user: dict[str, datetime] = {}
 
     for trip in sorted_trips:
         current_route = normalize_route(trip.route, trip.agency, primary_agency)
@@ -645,13 +661,16 @@ def evaluate_v6_endstop(
         current_end = topology_canonical_stop(topology, current_route, trip.end_stop, current_direction, trip.agency or primary_agency)
         prev_route = last_route_by_user.get(trip.user_id) or ""
         prev_end = last_end_by_user.get(trip.user_id) or ""
+        gap = gap_bucket(last_start_by_user.get(trip.user_id), trip.start_time)
         hb = hour_bucket(trip.start_time)
         dt = day_type(trip.start_time)
 
         if trip.trip_id in eval_set and current_end:
             legal = topology_legal_endstops(topology, current_route, current_start, current_direction, trip.agency or primary_agency)
             choice = (
-                choose_from_counter(route_start_dir_prev_rich.get((current_route, current_start, current_direction, prev_route, prev_end, hb, dt)), rich_min_bucket(args), "route+start_stop+direction+prev_route+prev_end+hour+day", legal)
+                choose_from_counter(route_start_dir_prev_gap_rich.get((current_route, current_start, current_direction, prev_route, prev_end, gap, hb, dt)), rich_min_bucket(args), "route+start_stop+direction+prev_route+prev_end+gap+hour+day", legal)
+                or choose_from_counter(route_start_dir_prev_rich.get((current_route, current_start, current_direction, prev_route, prev_end, hb, dt)), rich_min_bucket(args), "route+start_stop+direction+prev_route+prev_end+hour+day", legal)
+                or choose_from_counter(route_start_dir_prev_gap.get((current_route, current_start, current_direction, prev_route, prev_end, gap)), args.min_bucket, "route+start_stop+direction+prev_route+prev_end+gap", legal)
                 or choose_from_counter(route_start_dir_prev_end.get((current_route, current_start, current_direction, prev_route, prev_end)), args.min_bucket, "route+start_stop+direction+prev_route+prev_end", legal)
                 or choose_from_counter(route_start_dir_prev.get((current_route, current_start, current_direction, prev_route)), args.min_bucket, "route+start_stop+direction+prev_route", legal)
                 or choose_from_counter(route_start_dir.get((current_route, current_start, current_direction)), args.min_bucket, "route+start_stop+direction", legal)
@@ -673,7 +692,9 @@ def evaluate_v6_endstop(
                 )
 
         if current_end:
+            update_counter(route_start_dir_prev_gap_rich, (current_route, current_start, current_direction, prev_route, prev_end, gap, hb, dt), current_end)
             update_counter(route_start_dir_prev_rich, (current_route, current_start, current_direction, prev_route, prev_end, hb, dt), current_end)
+            update_counter(route_start_dir_prev_gap, (current_route, current_start, current_direction, prev_route, prev_end, gap), current_end)
             update_counter(route_start_dir_prev_end, (current_route, current_start, current_direction, prev_route, prev_end), current_end)
             update_counter(route_start_dir_prev, (current_route, current_start, current_direction, prev_route), current_end)
             update_counter(route_start_dir, (current_route, current_start, current_direction), current_end)
@@ -683,6 +704,7 @@ def evaluate_v6_endstop(
             global_endstops[current_end] += 1
         last_route_by_user[trip.user_id] = current_route
         last_end_by_user[trip.user_id] = current_end
+        last_start_by_user[trip.user_id] = trip.start_time
 
     return predictions
 

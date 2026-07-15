@@ -2,7 +2,7 @@ import argparse
 import os
 import sys
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -19,7 +19,7 @@ def trip(trip_id, route, start_stop, end_stop, minute, direction="Southbound", u
         direction=direction,
         start_stop=start_stop,
         end_stop=end_stop,
-        start_time=datetime(2026, 7, 15, 12, minute, tzinfo=timezone.utc),
+        start_time=datetime(2026, 7, 15, 12, 0, tzinfo=timezone.utc) + timedelta(minutes=minute),
         raw={},
     )
 
@@ -79,7 +79,7 @@ class V6EvalAgainstShadowTest(unittest.TestCase):
 
         self.assertEqual(predictions["eval"].predicted, "queens quay west/lower spadina ave east side")
         self.assertTrue(predictions["eval"].hit)
-        self.assertEqual(predictions["eval"].strategy, "route+start_stop+direction+prev_route+prev_end+hour+day")
+        self.assertEqual(predictions["eval"].strategy, "route+start_stop+direction+prev_route+prev_end+gap+hour+day")
 
     def test_endstop_baseline_filters_candidates_to_topology_legal_stops(self):
         trips = {
@@ -128,6 +128,42 @@ class V6EvalAgainstShadowTest(unittest.TestCase):
             evaluator.topology_canonical_stop(topology, "510", "Spadina Ave at Nassau St South Side", "Southbound", "TTC"),
             "spadina ave/nassau st south side",
         )
+
+    def test_gap_bucket_separates_transfer_and_separate_patterns(self):
+        self.assertEqual(
+            evaluator.gap_bucket(
+                datetime(2026, 7, 15, 12, 0, tzinfo=timezone.utc),
+                datetime(2026, 7, 15, 12, 20, tzinfo=timezone.utc),
+            ),
+            "transfer",
+        )
+        self.assertEqual(
+            evaluator.gap_bucket(
+                datetime(2026, 7, 15, 8, 0, tzinfo=timezone.utc),
+                datetime(2026, 7, 15, 12, 0, tzinfo=timezone.utc),
+            ),
+            "separate",
+        )
+
+    def test_endstop_baseline_uses_gap_context_when_supported(self):
+        trips = {
+            "transfer_prev1": trip("transfer_prev1", "1", "Davisville", "Spadina Station", 0),
+            "transfer_end1": trip("transfer_end1", "510", "Spadina Station", "Queens Quay West at Lower Spadina Ave East Side", 10),
+            "transfer_prev2": trip("transfer_prev2", "1", "Davisville", "Spadina Station", 20),
+            "transfer_end2": trip("transfer_end2", "510", "Spadina Station", "Queens Quay West at Lower Spadina Ave East Side", 30),
+            "separate_prev1": trip("separate_prev1", "1", "Davisville", "Spadina Station", 40),
+            "separate_end1": trip("separate_end1", "510", "Spadina Station", "Spadina Ave at Nassau St South Side", 180),
+            "separate_prev2": trip("separate_prev2", "1", "Davisville", "Spadina Station", 181),
+            "separate_end2": trip("separate_end2", "510", "Spadina Station", "Spadina Ave at Nassau St South Side", 320),
+            "eval_prev": trip("eval_prev", "1", "Davisville", "Spadina Station", 321),
+            "eval": trip("eval", "510", "Spadina Station", "Queens Quay West at Lower Spadina Ave East Side", 330),
+        }
+
+        predictions = evaluator.evaluate_v6_endstop(trips, ["eval"], args())
+
+        self.assertEqual(predictions["eval"].predicted, "queens quay west/lower spadina ave east side")
+        self.assertTrue(predictions["eval"].hit)
+        self.assertIn("+gap", predictions["eval"].strategy)
 
     def test_ladder_marks_equal_accuracy_as_fail(self):
         summary = {

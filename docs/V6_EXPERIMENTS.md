@@ -597,6 +597,7 @@ Each prediction generation should be structurally smarter than the last, but pro
 - Evaluated V6 route and end-stop predictions offline on the same trip IDs, training only on trips that happened earlier than the evaluated trip.
 - Filtered V6 end-stop frequency buckets through shared topology legality when route/start/direction are covered, so broad history cannot choose physically impossible downstream stops.
 - Canonicalized V6 end-stop labels through route topology before training/evaluation, so station suffix aliases like `Bay` vs `Bay Station` count as the same stop while direction-specific streetcar platforms stay distinct.
+- Added trip-gap buckets to V6 end-stop context (`transfer`, `stopover`, `separate`) so short connections are not pooled with unrelated long-gap trips from the same route/start/direction context.
 
 **Command:**
 ```bash
@@ -630,7 +631,7 @@ GRPC_DNS_RESOLVER=native python3 ml/v6_eval_against_shadow.py <userId> --agency=
 | V3 | 27/41 (65.9%) | live end-stop predictor |
 | V4 | 23/41 (56.1%) | shadow end-stop model |
 | V5 | 23/41 (56.1%) | shadow end-stop model |
-| V6 end-stop baseline | 31/41 (75.6%) | no-leakage route/start/direction/sequence frequency baseline with topology legality and route-aware stop canonicalization |
+| V6 end-stop baseline | 31/41 (75.6%) | no-leakage route/start/direction/sequence frequency baseline with topology legality, route-aware stop canonicalization, and trip-gap context |
 
 **End-Stop Promotion Ladder:**
 - V3 → V4: fail (-9.8pp)
@@ -639,14 +640,15 @@ GRPC_DNS_RESOLVER=native python3 ml/v6_eval_against_shadow.py <userId> --agency=
 - V3 → V6 end-stop baseline: pass (+9.8pp)
 
 **V6 End-Stop Strategy Mix:**
-- `route+start_stop+direction+prev_route+prev_end+hour+day`: 10 trips
-- `route+start_stop+direction+prev_route+prev_end`: 15 trips
+- `route+start_stop+direction+prev_route+prev_end+gap+hour+day`: 10 trips
+- `route+start_stop+direction+prev_route+prev_end+gap`: 14 trips
 - `route+start_stop+direction+prev_route`: 6 trips
 - `route+start_stop+direction`: 9 trips
 - `route+start_stop`: 1 trip
+- `route+start_stop+direction+prev_route+prev_end`: 1 trip
 
 **Interpretation:**
-The V6 route signal is extremely strong on this scoped slice, and it finally behaves like a true next-generation step: it uses journey/sequence context rather than just a larger flat classifier. Adding topology legality and route-aware stop canonicalization makes the destination path beat V3 on this same slice, not just V4/V5. Richer context helps explain the decision path, but sparse rich buckets still need strict support thresholds and broader validation before promotion.
+The V6 route signal is extremely strong on this scoped slice, and it finally behaves like a true next-generation step: it uses journey/sequence context rather than just a larger flat classifier. Adding topology legality and route-aware stop canonicalization makes the destination path beat V3 on this same slice, not just V4/V5. Gap context did not change top-1 accuracy on this small paired slice, but it moved most V6 decisions into transfer-aware buckets, which better matches the live prediction context. Richer context helps explain the decision path, but sparse rich buckets still need strict support thresholds and broader validation before promotion.
 
 **Sample Pool Check:**
 - Removing the `since=2026-05-01` filter did not add paired shadow rows: TTC SMS stayed at 33 route windows and 41 end-stop windows.

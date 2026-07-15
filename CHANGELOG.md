@@ -10,6 +10,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Fixed
 - **V6 end-stop evaluation now canonicalizes topology stop aliases**: subway station suffixes no longer count as wrong destinations while directional streetcar platforms remain distinct.
+- **V6 end-stop evaluation now separates transfer gaps from long gaps**: destination buckets no longer pool short connection trips with unrelated later outings from the same stop.
 
 ## [1.47.9] — 2026-07-15
 
