@@ -22,7 +22,7 @@ This document complements the [roadmap](./roadmap/NEXTGEN.md) and the [feature c
 
 This family handles route and end-stop inference at trip start.
 
-- **V3** — `functions/lib/predict.js`
+- **V3** — `functions/lib/predict_v3.js`
   Live heuristic weighted-voting model for route and end-stop guesses. (See [detailed history subpage](./intelligence/V3.md) for the v1–v3.3 archive.)
 - **V4** — `functions/lib/predict_v4.js`
   Candidate logistic-regression route and end-stop models trained from trip history.
@@ -45,7 +45,7 @@ This family handles recurring trip patterns that are strong enough to beat gener
 This family learns the structure of the transit network from observed trips.
 
 - **NetworkEngine** — `functions/lib/network.js`
-  Builds a stop-connection graph from completed trips, learns route-stop service and transfer connections, and filters directionally impossible end-stop candidates.
+  Builds a stop-connection graph from completed trips, learns route-stop service and transfer connections, and provides observational reachability signals inside authoritative topology/GTFS constraints.
 
 ### 4. Journey Intelligence
 
@@ -62,7 +62,7 @@ This family reasons about whether multiple trips belong to the same journey.
 
 **Role:** Live route and end-stop inference.
 
-**What it does:** Predicts the next route and likely end stop at trip start using heuristic weighted voting over trip history, plus route/topology/network constraints.
+**What it does:** Predicts the next route and likely end stop at trip start using heuristic weighted voting over trip history, plus route, topology/GTFS, and learned network constraints.
 
 **Current version / history:** See [detailed version history (v1–v3.3)](./intelligence/V3.md). The signals and config below are the currently active ones.
 
@@ -77,6 +77,8 @@ This family reasons about whether multiple trips belong to the same journey.
 | **Day similarity** | Both | Weekday/weekend boundary is a hard penalty (0.1×). Within weekdays, adjacent days score higher than distant ones. Within weekend, Sat/Sun score 0.7. |
 | **Sequence boost** | `guess` | 1.5× multiplier applied when the last completed trip ended at the current boarding stop (i.e. this looks like a transfer). Window: 3 hours. |
 | **Route family grouping** | `guess` | Variant suffixes stripped (510a, 510b → 510) so route variants pool votes rather than splitting signal. Returns most-voted specific variant within the winning family. |
+| **Topology/GTFS physical constraint** | `guessEndStop` | Authoritative downstream-stop and platform legality guardrail for covered routes. Eliminates impossible destinations before voting. |
+| **Network reachability constraint** | `guessEndStop` | Learned graph can narrow candidates inside the physical constraint, or provide a fallback constraint when topology has no route coverage. |
 | **Duration similarity** | `guessEndStop` | Gaussian on trip duration (σ = 5 min). Used to weight end-stop candidates when current trip duration is known mid-trip. |
 | **Trip validity filter** | Both | Excludes malformed trips from the candidate pool — stop names that look like sentence fragments from bad SMS parses, routes with no digits that are probably partial words. |
 | **Stop canonicalization** | Both | Aliases and spelling variants collapse to one canonical stop name via the stops library. Prevents the same stop from being treated as multiple distinct stops. |
@@ -126,10 +128,11 @@ Detailed version history, benchmarks, and per-iteration notes: [docs/intelligenc
 
 | File | Module format | Use |
 |---|---|---|
-| `functions/lib/predict.js` | CommonJS | Cloud Functions (Node) |
-| `js/predict.js` | ESM | Browser client |
+| `functions/lib/predict_v3.js` | CommonJS | Live V3 implementation for Cloud Functions |
+| `functions/lib/predict.js` | CommonJS | Compatibility wrapper exporting V3 as `PredictionEngine` |
+| `js/predict.js` | ESM | Browser helper mirroring the V3 topology constraint surface |
 
-Both files implement the same engine. Changes must be applied to both. The CJS version is the reference — apply changes there first, then mirror to ESM.
+The CJS V3 implementation is the reference. Browser changes should be mirrored only for the subset exposed client-side; shared legality logic belongs in `functions/lib/topology-constraints.js`.
 
 ---
 
@@ -143,7 +146,7 @@ Both files implement the same engine. Changes must be applied to both. The CJS v
 
 ### Network Intelligence
 
-- **NetworkEngine** learns stop sequences, travel times, route-stop service, and transfer connections from completed trips.
+- **NetworkEngine** learns stop sequences, travel times, route-stop service, and transfer connections from completed trips. It is observational; it should not overrule topology/GTFS physical legality when those constraints exist.
 - Lives in `functions/lib/network.js`.
 - See [NETWORK_ENGINE.md](./NETWORK_ENGINE.md) for the detailed notebook.
 

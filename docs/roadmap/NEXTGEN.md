@@ -15,7 +15,7 @@ The engine's primary goal is to eliminate the "Friction" of transit tracking. Th
 - **Accuracy analysis tooling**: `predictionStats`, export scripts, and audit tools for monitoring hit rates during model evaluation.
 - **Stop Name Resolution**: Basic library-based fuzzy matching for text-to-coordinate conversion.
 - **Trip Export Pipeline** (`ml/export_trips.py`): Pulls completed trip history from Firestore into a CSV for ML training.
-- **TTC Topology** (`ml/topology.json`): Ordered stop sequences for Lines 1, 2, 4, 5 — used to filter directionally impossible predictions.
+- **Topology constraints** (`functions/lib/topology.json`): Ordered stop sequences and directional platform variants used as physical legality guardrails for end-stop prediction.
 - **Route models (V4/V5)**: Shared export + training pipeline for logistic-regression and XGBoost route prediction, with route normalization and artifact export into `functions/lib/`.
 - **End-stop models (V4/V5)**: Separate logistic-regression and XGBoost end-stop classifiers, trained from the same reviewed trip export and tracked in `ml/MODEL_LOG.md`.
 
@@ -46,12 +46,12 @@ Replacing hand-coded scoring weights with a model trained on actual trip history
 - [ ] **Model interpretability pass**: Improve tooling for understanding why route models choose one corridor over another, especially around overlapping TTC transfer hubs.
 
 ### 3. Inference Integration — V4 & V5
-- [ ] **End-stop inference integration**: Promote the trained end-stop models from evaluation artifacts into the live prediction path so V4/V5 can run in parallel evaluation against or replace V3 destination voting in production.
+- [x] **End-stop shadow inference integration**: V4/V5 end-stop models now run in the trip-start path and store candidate predictions for evaluation while V3 remains user-facing.
+- [ ] **End-stop user-facing promotion**: Calibrate V4/V5 end-stop confidence and promote only if scoped production slices consistently beat V3.
 
 ### 4. Model Evolution — V5 (Gradient Boosted Tree)
-- [ ] **Richer signals**: Previous route, time since last trip, week of term, holiday flag, weather, TTC service alerts — add as features and let the model determine relevance.
-- [ ] **Replace hand-coded route-family heuristics with configurable agency policies**: The current ML route normalization is shared and much cleaner than before, but still needs to evolve into a fully configurable per-agency policy layer instead of relying on TTC-led assumptions.
-- [ ] **End-stop promotion**: V3 still owns the live end-stop path. Use the trained V4/V5 end-stop models to run in parallel evaluation, calibrate, and eventually replace the hand-coded end-stop engine where they consistently outperform it.
+- [ ] **Richer external signals**: Week of term, holiday flag, weather, TTC service alerts, and route/service frequency — add as features and let the model determine relevance.
+- [x] **Configurable agency route policies**: Route normalization now uses explicit per-agency policies in the Python training pipeline and JS inference helpers instead of hardcoded TTC-led assumptions.
 - [ ] **Replace V4** once V5 consistently outperforms in candidate evaluation.
 
 ### 5. Model Evolution — V6 (Journey-Context ML)
@@ -66,11 +66,11 @@ Replacing hand-coded scoring weights with a model trained on actual trip history
 
 ## NetworkEngine Improvements
 
-The NetworkEngine builds a stop-connection graph from observed trips and acts as the primary directional filter for end stop prediction. `topology.json` is a cold-start fallback only — NetworkEngine takes over once an edge has ≥3 observations.
+The NetworkEngine builds a stop-connection graph from observed trips and contributes learned reachability and duration signals. It is observational: topology/GTFS-derived constraints remain authoritative for covered routes and platforms, while NetworkEngine narrows inside that legal set or fills gaps where no physical topology exists yet.
 
-- [ ] **Transitive reachability** — if A→B and B→C are both observed with sufficient confidence, infer A→C without requiring a direct observation. Reduces the number of trips needed before the graph is useful on a new route.
-- [ ] **Hour-slot travel time buckets** — store edge durations bucketed by hour-of-day (`durationsByHour: { "7": [...], "8": [...] }`) instead of one flat pool. Use the current hour's bucket when ≥3 observations exist; fall back to the aggregate. Rush hour and off-peak travel times are currently conflated into one median.
-- [ ] **Full stop sequence inference** — reconstruct ordered stop sequences from overlapping trip observations (A→B + B→C + C→D = inferred stop order). Eventually allows topology.json to be retired for all agencies, not just used as a TTC cold-start fallback.
+- [x] **Transitive reachability** — if A→B and B→C are both observed with sufficient confidence, infer A→C without requiring a direct observation. Reduces the number of trips needed before the graph is useful on a new route.
+- [x] **Hour-slot travel time buckets** — store edge durations bucketed by hour-of-day (`durationsByHour: { "7": [...], "8": [...] }`) instead of one flat pool. Use the current hour's bucket when enough observations exist; fall back to the aggregate.
+- [ ] **Stop sequence inference productization** — `NetworkEngine.inferStopSequence()` can reconstruct likely stop order from overlapping observations. Next step is deciding where that experimental map is useful without letting it overrule GTFS/topology physical legality.
 - [ ] **Duration prediction model** — NetworkEngine already collects median travel times per edge. A lightweight model on top could give per-trip duration estimates ("this trip will take about 18 minutes") using boarding stop, route, direction, and time-of-day. Useful for the app UI and as a signal in the "likely ended" trip detection logic.
 
 ---
@@ -80,7 +80,7 @@ The NetworkEngine builds a stop-connection graph from observed trips and acts as
 Taking the system beyond a single user's trip history.
 
 - [ ] **Multi-user global model**: V4/V5 currently train on one user's trips. A shared model trained across all users would generalize far better — especially for cold-start on new routes, new stops, and unusual trip times. Even a global prior that gets fine-tuned per user would significantly outperform the current personal-data-only approach. Requires careful privacy handling (no raw trip data shared; aggregate patterns only).
-- [ ] **Population-level stop intelligence**: The NetworkEngine global graph already aggregates stop sequences across users. Extend this to the route-stop and transfer indexes — a stop that many users have boarded route 510 from is ground truth for "510 serves this stop," regardless of any individual's history.
+- [ ] **Population-level stop intelligence**: Route-stop and transfer indexes already aggregate agency-level observations. Use and audit those indexes more broadly as supporting evidence for service-at-stop facts without letting them overrule GTFS/topology legality.
 - [ ] **Agency-wide pattern sharing**: Transfer connections, typical trip durations, and stop sequences are objective facts about the transit network. These should be learned once from all users and shared, not re-learned independently per rider.
 
 ---

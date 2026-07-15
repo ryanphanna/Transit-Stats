@@ -34,7 +34,7 @@ All stored `predictionStats` entries reflect old V4.4/V5.4 models (pre-direction
 
 **Audit command:**
 ```bash
-node Tools/audit-prediction-shadow.js N8f5vS0sLjgjwxMCSUZUkVFv7ax2 --agency=TTC --source=sms
+node Tools/audit-prediction-shadow.js <userId> --agency=TTC --source=sms
 ```
 
 | Metric | V3 (Heuristic) | V4 (LogReg) | V5 (XGBoost) |
@@ -65,7 +65,7 @@ The paired slice matters because broad historical candidate totals still include
 
 **Audit command used:**
 ```bash
-node ../Tools/audit-prediction-shadow.js N8f5vS0sLjgjwxMCSUZUkVFv7ax2 --agency=TTC --source=sms --since=2026-05-01
+node ../Tools/audit-prediction-shadow.js <userId> --agency=TTC --source=sms --since=2026-05-01
 ```
 
 | Metric | V3 (Heuristic) | V4 (LogReg) | V5 (XGBoost) |

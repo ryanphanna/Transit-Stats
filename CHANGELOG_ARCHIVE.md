@@ -62,7 +62,7 @@ For recent changes, see [CHANGELOG.md](./CHANGELOG.md).
 - **SMS Stop Name Prioritization**: Confirmation replies now prefer canonical stop names over numeric codes.
 
 ### Changed
-- **Documentation synchronized**: Updated all core guides including [README.md](./README.md), [ROADMAP_TECHNICAL.md](./docs/ROADMAP_TECHNICAL.md), [ROADMAP_NEXTGEN.md](./docs/ROADMAP_NEXTGEN.md), [CLAUDE.md](./CLAUDE.md), and [AGENTS.md](./AGENTS.md).
+- **Documentation synchronized**: Updated all core guides including [README.md](./README.md), [ROADMAP_TECHNICAL.md](./docs/roadmap/TECHNICAL.md), [ROADMAP_NEXTGEN.md](./docs/roadmap/NEXTGEN.md), [CLAUDE.md](./CLAUDE.md), and [AGENTS.md](./AGENTS.md).
 - **Legacy Cleanup**: Deleted the deprecated `js/main.js` entry point.
 - **Agency mapping pruned**: Removed speculative timezone/city data for unused agencies to maintain a lean resource profile.
 

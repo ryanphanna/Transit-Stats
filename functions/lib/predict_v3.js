@@ -36,7 +36,8 @@ const PredictionEngineV3 = {
   /**
    * Learned network graph for the current trip's route/agency.
    * Set before calling guessEndStop / guessTopEndStops.
-   * When set, used as a higher-priority filter than topology.json.
+   * When set, used to narrow end-stop candidates inside authoritative
+   * topology/GTFS-derived constraints.
    */
   networkGraph: null,
 

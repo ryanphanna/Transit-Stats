@@ -11,9 +11,9 @@ It follows a deliberate "scientist" approach:
 
 This is separate from the main design thinking in `V6_DESIGN_SPIKE.md` and from live accuracy tracking in `ACCURACY_LOG.md` / `MODEL_LOG.md`.
 
-See also the [V6 section in INTELLIGENCE.md](../INTELLIGENCE.md#v6) for the high-level overview.
+See also the [V6 section in INTELLIGENCE.md](./INTELLIGENCE.md#v6) for the high-level overview.
 
-**Data quality note:** V6 experiments depend heavily on high-quality training and evaluation data. We are actively evolving correction practices to better record user intent rather than immediately sanitizing data (see [Trip Corrections > Recording User Intent](../TRIP_CORRECTIONS.md#recording-user-intent-in-corrections)). This philosophy directly affects what signals we can measure in future experiments.
+**Data quality note:** V6 experiments depend heavily on high-quality training and evaluation data. We are actively evolving correction practices to better record user intent rather than immediately sanitizing data (see [Trip Corrections > Recording User Intent](./TRIP_CORRECTIONS.md#recording-user-intent-in-corrections)). This philosophy directly affects what signals we can measure in future experiments.
 
 ## Experimental Philosophy
 
@@ -39,7 +39,7 @@ This reduces risk and ensures we only invest in real model work once we have evi
    - Results (with sample sizes)
    - Interpretation
    - Next hypothesis or action
-3. Link to any scripts or Notion comments where raw work lives.
+3. Link to any repo-local scripts, generated artifacts, or GitHub issues that preserve the raw work.
 
 ---
 
@@ -68,7 +68,6 @@ The data and failure modes strongly support exploring a Journey-Sequence model a
 
 **Related Links:**
 - `V6_DESIGN_SPIKE.md` (main design document)
-- Notion task: Prediction Engine V6
 
 ---
 
@@ -105,7 +104,7 @@ Adding features derived from the previous 2–3 trips in a journey (e.g. recent 
 
 **Related Links:**
 - Script: `ml/v6_sequence_audit.py`
-- Notion task comments for raw output
+- Repo-local experiment output and scripts listed above
 
 ---
 
@@ -224,7 +223,7 @@ Keep pushing on getting more journey-linked trips (especially repeats on high-tr
 
 ---
 
-*This document is the living experiment log for V6. All work is kept under the single approved Notion task.*
+*This document is the living experiment log for V6.*
 
 ---
 
@@ -560,7 +559,10 @@ Transfer patterns are *highly* predictive. V5 XGBoost + prev_route features now 
 
 V5 has access to far more historical data than V6's 62 training trips, making the transfer+temporal combination extremely powerful.
 
-**Decision: V5 is Production-Ready**  
+**Decision at the time: V5 appeared production-ready**
+
+**Superseded note:** Later production accuracy audits showed this conclusion was too broad. V3 remains the live predictor, and V4/V5 promotion decisions now require scoped production slices rather than training/holdout results alone. See `ml/ACCURACY_LOG.md`.
+
 V5 (70.2%) clearly outperforms V6 (56.2%) even though V6 was designed for transfer learning. V5's advantage: historical + structured features + mature XGBoost tuning.
 
 **V6 Status:**  
@@ -570,7 +572,7 @@ V6 remains valuable for:
 3. **Post-deployment: collect more journey-linked data**, then re-baseline V6 transfer learning with 150+ trips.
 
 **Next Steps:**
-1. Deploy V5 as primary route model in production (replaces V4/old V5).
+1. Keep V5 in candidate evaluation until scoped production slices justify promotion.
 2. Keep V6 shadow logging (confidence + predictions) for research.
 3. Monitor V5 top-1 accuracy weekly in production.
 4. Re-baseline V6 after 4 weeks of additional journey data accumulation.
@@ -579,4 +581,3 @@ V6 remains valuable for:
 - Prior: V6 Temporal Holdout Validation (56.2% on 16 test trips)
 - Modified: `ml/train_routes.py` (added prev_route one-hot features)
 - New: `ml/v6_predict_with_confidence.py` (V6 confidence scoring)
-

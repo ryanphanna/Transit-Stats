@@ -60,5 +60,3 @@ This spike was deliberately kept small and focused on leveraging recent architec
 [docs/V6_EXPERIMENTS.md](./V6_EXPERIMENTS.md)
 
 ---
-
-*All work kept under the single "Prediction Engine V6" Notion task.*
