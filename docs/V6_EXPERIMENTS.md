@@ -45,10 +45,10 @@ This reduces risk and ensures we only invest in real model work once we have evi
 
 ## 2026-05-27 — Initial V6 Direction Spike
 
-**Hypothesis:**  
+**Hypothesis:**
 V5 (XGBoost) is still fundamentally a single-trip classifier. Moving to explicit journey/sequence context should deliver the next meaningful accuracy jump, especially on transfers and overlapping corridors.
 
-**Method:**  
+**Method:**
 - Reviewed recent accuracy trends in `ACCURACY_LOG.md` and `MODEL_LOG.md`
 - Analyzed failure modes from `ml/analyze_predictions.py`
 - Mapped current architecture against new infrastructure (background finalization + reliable journey linking)
@@ -59,7 +59,7 @@ V5 (XGBoost) is still fundamentally a single-trip classifier. Moving to explicit
 - Current models already receive limited sequence signals (`last_end_stop`, `prev_route`, gap), but these are flat features rather than true sequence modeling.
 - The new background finalization and journey linking systems now produce clean `journeyId` data that was not reliably available before.
 
-**Interpretation:**  
+**Interpretation:**
 The data and failure modes strongly support exploring a Journey-Sequence model as the primary direction for V6. Other promising directions (graph-native, continual adaptation, Rocket signals) are secondary.
 
 **Next Steps:**
@@ -73,10 +73,10 @@ The data and failure modes strongly support exploring a Journey-Sequence model a
 
 ## 2026-05-27 — Sequence Signal Audit (v1)
 
-**Hypothesis:**  
+**Hypothesis:**
 Looking at the previous 2–3 trips within the same journey provides meaningful additional signal for route and end-stop prediction compared to the features V5 currently uses.
 
-**Method:**  
+**Method:**
 - Used the 483 exported trips from `ml/trips.csv`
 - Created journey groups: real `journey_id` when available, otherwise time-based fallback per user (45-minute gap)
 - Measured basic sequence statistics (previous route match, transfer rate, previous end-stop match)
@@ -90,7 +90,7 @@ Looking at the previous 2–3 trips within the same journey provides meaningful 
 | Current start stop == previous end stop (transfer) | 67.6% | 185 |
 | Current end stop == previous end stop | 0.5% | 185 |
 
-**Interpretation:**  
+**Interpretation:**
 - Very low same-route continuation (makes sense — most people change routes on transfers).
 - Extremely strong transfer signal (67.6% of follow-on trips start where the previous one ended).
 - Almost zero same end-stop continuation.
@@ -581,3 +581,69 @@ V6 remains valuable for:
 - Prior: V6 Temporal Holdout Validation (56.2% on 16 test trips)
 - Modified: `ml/train_routes.py` (added prev_route one-hot features)
 - New: `ml/v6_predict_with_confidence.py` (V6 confidence scoring)
+
+---
+
+## 2026-07-15 — V6 Against Production Shadow Slice
+
+**Hypothesis:**
+Each prediction generation should be structurally smarter than the last, but promotion still requires production evidence on the same scoped trip slice. A V6 journey/sequence baseline should beat V5 if previous-trip context is the right next capability step.
+
+**Method:**
+- Added `ml/v6_eval_against_shadow.py`.
+- Read Firestore `predictionStats` + clean `trips` directly, using the same correction/review exclusions as the training and audit scripts.
+- Scoped to TTC SMS trips since 2026-05-01.
+- Compared route accuracy on paired trip windows where V3/V4/V5 all produced production shadow rows.
+- Evaluated V6 route and end-stop predictions offline on the same trip IDs, training only on trips that happened earlier than the evaluated trip.
+
+**Command:**
+```bash
+GRPC_DNS_RESOLVER=native python3 ml/v6_eval_against_shadow.py <userId> --agency=TTC --source=sms --since=2026-05-01 --json-out ml/v6_eval_against_shadow.json
+```
+
+**Route Results:**
+
+| Model | Accuracy | Notes |
+|---|---:|---|
+| V3 | 25/33 (75.8%) | live heuristic predictor |
+| V4 | 24/33 (72.7%) | learned logistic regression |
+| V5 | 13/33 (39.4%) | XGBoost shadow route results on this production slice |
+| V6 route baseline | 31/33 (93.9%) | no-leakage journey/sequence frequency baseline |
+
+**Promotion Ladder:**
+- V3 → V4: fail (-3.0pp)
+- V4 → V5: fail (-33.3pp)
+- V5 → V6 route baseline: pass (+54.5pp)
+
+**V6 Strategy Mix:**
+- `start_stop+prev_route`: 27 trips
+- `start_stop`: 6 trips
+
+**End-Stop Results:**
+
+| Model | Accuracy | Notes |
+|---|---:|---|
+| V3 | 27/41 (65.9%) | live end-stop predictor |
+| V4 | 23/41 (56.1%) | shadow end-stop model |
+| V5 | 23/41 (56.1%) | shadow end-stop model |
+| V6 end-stop baseline | 27/41 (65.9%) | no-leakage route/start/direction/sequence frequency baseline |
+
+**End-Stop Promotion Ladder:**
+- V3 → V4: fail (-9.8pp)
+- V4 → V5: fail (+0.0pp)
+- V5 → V6 end-stop baseline: pass (+9.8pp)
+- V3 → V6 end-stop baseline: tie (+0.0pp)
+
+**V6 End-Stop Strategy Mix:**
+- `route+start_stop+direction+prev_route`: 30 trips
+- `route+start_stop+direction`: 9 trips
+- `route+start_stop`: 1 trip
+- `route`: 1 trip
+
+**Interpretation:**
+The V6 route signal is extremely strong on this scoped slice, and it finally behaves like a true next-generation step: it uses journey/sequence context rather than just a larger flat classifier. The first V6 end-stop baseline also beats V4/V5 and ties V3, but it does not yet beat the live V3 destination path. V6 is therefore promising, but not a full replacement until end-stop accuracy exceeds V3 under the same topology/GTFS legality rules.
+
+**Next Steps:**
+1. Improve the V6 end-stop baseline until it beats V3, not just V4/V5.
+2. Add coverage reporting for how often V6 uses strong sequence buckets vs fallback.
+3. Keep V3 live until a V6 route + end-stop pair beats it on scoped production slices.
