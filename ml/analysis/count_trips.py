@@ -3,7 +3,7 @@ Quick diagnostic — counts all trips in Firestore and breaks down why trips
 are excluded from the ML export.
 
 Usage:
-    python ml/count_trips.py
+    python ml/analysis/count_trips.py
 """
 
 import os

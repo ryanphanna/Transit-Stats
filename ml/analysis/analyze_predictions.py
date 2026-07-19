@@ -3,7 +3,7 @@ Analyze predictionStats from Firestore — confusion matrix, confidence
 calibration, version breakdown, and miss patterns.
 
 Usage:
-    python3 ml/analyze_predictions.py
+    python3 ml/analysis/analyze_predictions.py
 """
 
 import os
