@@ -1,5 +1,6 @@
 import { requireAuth } from '../shared/auth-guard.js';
 import { initHeader } from '../shared/header.js';
+import { refreshIcons } from '../shared/icons.js';
 import { Admin } from '../admin.js';
 import { Trips } from '../trips.js';
 import { RouteTracker } from '../route-tracker.js';
@@ -10,14 +11,6 @@ import { Profile } from '../profile.js';
 window.Admin = Admin;
 window.Utils = Utils;
 window.Trips = Trips;
-
-function refreshIcons() {
-    if (window.lucide) {
-        lucide.createIcons();
-    } else {
-        setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 100);
-    }
-}
 
 function closeAllModals() {
     document.getElementById('modal-backdrop')?.classList.add('hidden');

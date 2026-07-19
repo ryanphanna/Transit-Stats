@@ -13,6 +13,9 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+### Fixed
+- **Closed a gap in the `profiles` Firestore rule** that let an owner write arbitrary extra fields on profile update (only `isAdmin`/`isPremium` were previously pinned) — updates are now restricted to the known client-writable field set.
+
 ## [1.47.10] — 2026-07-15
 
 ### Fixed

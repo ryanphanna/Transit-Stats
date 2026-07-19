@@ -1,13 +1,9 @@
 import { requireAuth } from '../shared/auth-guard.js';
 import { initHeader } from '../shared/header.js';
+import { refreshIcons } from '../shared/icons.js';
 import { Profile } from '../profile.js';
 import { Auth } from '../auth.js';
 import { UI } from '../ui-utils.js';
-
-function refreshIcons() {
-    if (window.lucide) lucide.createIcons();
-    else setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 100);
-}
 
 async function init() {
     const { user, isAdmin } = await requireAuth();

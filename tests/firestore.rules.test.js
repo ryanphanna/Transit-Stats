@@ -118,6 +118,44 @@ describe('firestore.rules: profile privilege boundaries', () => {
         expect(snap.data().isPremium).toBe(true);
         expect(snap.data().isAdmin).toBe(true);
     });
+
+    test('owner can update legitimate profile fields together', async () => {
+        await testEnv.withSecurityRulesDisabled(async (context) => {
+            await setDoc(doc(context.firestore(), 'profiles/user_1'), {
+                displayName: 'User',
+                defaultAgency: 'TTC',
+                isPublic: false,
+                isPremium: false,
+                isAdmin: false,
+            });
+        });
+
+        const db = authedDb('user_1', 'user@example.com');
+        await assertSucceeds(updateDoc(doc(db, 'profiles/user_1'), {
+            displayName: 'New Name',
+            defaultAgency: 'GO',
+            isPublic: true,
+            betaFeatures: { rocket: true },
+            updatedAt: new Date(),
+        }));
+    });
+
+    test('owner cannot write an unlisted field via profile update', async () => {
+        await testEnv.withSecurityRulesDisabled(async (context) => {
+            await setDoc(doc(context.firestore(), 'profiles/user_1'), {
+                displayName: 'User',
+                defaultAgency: 'TTC',
+                isPublic: false,
+                isPremium: false,
+                isAdmin: false,
+            });
+        });
+
+        const db = authedDb('user_1', 'user@example.com');
+        await assertFails(updateDoc(doc(db, 'profiles/user_1'), {
+            secretRole: 'superuser',
+        }));
+    });
 });
 
 describe('firestore.rules: trips are never publicly readable', () => {
