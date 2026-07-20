@@ -32,6 +32,7 @@
     "stop_11th_broadway",
     "stop_12th_st__oakland_city_center_station",
     "stop_48th_avenue",
+    "stop_bathurst_college",
     "stop_bathurst_king",
     "stop_bathurst_nassau",
     "stop_bathurst_queen_w",
@@ -312,7 +313,7 @@
     "prev_route_stouffville",
     "prev_route_t"
   ],
-  "top1_accuracy": 0.6957,
-  "top3_accuracy": 0.8696,
-  "n_trips": 571
+  "top1_accuracy": 0.7203,
+  "top3_accuracy": 0.8814,
+  "n_trips": 588
 }
