@@ -295,8 +295,8 @@ async function answerQueryWithGemini(
   const apiKey = geminiApiKey.value();
   if (!apiKey) return 'AI unavailable right now.';
 
-  const admin = require('firebase-admin');
-  const db = admin.firestore();
+  const { getFirestore } = require('firebase-admin/firestore');
+  const db = getFirestore();
 
   // Define tools available to the AI
   const tools = [
@@ -985,9 +985,8 @@ async function lookupAgencyTimezone(agency, traceId = null) {
   if (KNOWN_AGENCY_TIMEZONES[canonical]) return KNOWN_AGENCY_TIMEZONES[canonical];
 
   // 2. Firestore cache (skip for ambiguous names — they can't be cached safely)
-  const admin = require('firebase-admin');
-  const { FieldValue } = require('firebase-admin/firestore');
-  const db = admin.firestore();
+  const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+  const db = getFirestore();
   const isAmbiguous = AMBIGUOUS_AGENCIES.has(canonical);
   if (!isAmbiguous) {
     try {

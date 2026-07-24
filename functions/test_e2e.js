@@ -24,8 +24,8 @@ process.env.TS_TEST_MODE = '1';
 
 const { test, before, after, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const admin = require('firebase-admin');
-const { FieldValue, Timestamp } = require('firebase-admin/firestore');
+const { initializeApp, getApps } = require('firebase-admin/app');
+const { getFirestore, FieldValue, Timestamp } = require('firebase-admin/firestore');
 
 // Emulator connection — emulators:exec sets these env vars for the child process.
 // Must match .firebaserc's project, or writes land in a Firestore emulator
@@ -34,13 +34,13 @@ const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 // FIRESTORE_EMULATOR_HOST still keeps everything fully local; no real project touched.
 const EMULATOR_PROJECT_ID = 'transitstats-21ba4';
 
-if (!admin.apps.length) {
-  admin.initializeApp({
+if (!getApps().length) {
+  initializeApp({
     projectId: EMULATOR_PROJECT_ID,
   });
 }
 
-const db = admin.firestore();
+const db = getFirestore();
 
 const { dispatch } = require('./lib/dispatcher');
 const { getCapturedReplies, clearCapturedReplies } = require('./lib/twilio');

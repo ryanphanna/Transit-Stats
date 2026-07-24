@@ -4,11 +4,12 @@
  * SMS webhook for Twilio-based trip tracking.
  */
 
-const admin = require('firebase-admin');
+const { initializeApp, getApps } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
 
 // Initialize Admin SDK if not already initialized
-if (admin.apps.length === 0) {
-  admin.initializeApp({
+if (getApps().length === 0) {
+  initializeApp({
     serviceAccountId: 'firebase-adminsdk-fbsvc@transitstats-21ba4.iam.gserviceaccount.com',
   });
 }
@@ -38,7 +39,7 @@ exports.onStopCreated = onDocumentCreated('stops/{stopId}', async (event) => {
   const stop = event.data?.data();
   if (!stop) return;
   try {
-    const db = admin.firestore();
+    const db = getFirestore();
     const outcome = await enrichStopDoc(db, event.params.stopId, stop);
     console.log(`onStopCreated ${event.params.stopId}: ${outcome}`);
   } catch (err) {

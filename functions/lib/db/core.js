@@ -1,15 +1,15 @@
-/**
- * Firebase Admin SDK initialization — shared by all db modules
- */
-const admin = require('firebase-admin');
-const { FieldValue, Timestamp } = require('firebase-admin/firestore');
+const { initializeApp, getApps, getApp } = require('firebase-admin/app');
+const { getFirestore, FieldValue, Timestamp } = require('firebase-admin/firestore');
 
-if (!admin.apps.length) {
-  admin.initializeApp({
+let adminApp;
+if (!getApps().length) {
+  adminApp = initializeApp({
     serviceAccountId: 'firebase-adminsdk-fbsvc@transitstats-21ba4.iam.gserviceaccount.com',
   });
+} else {
+  adminApp = getApp();
 }
 
-const db = admin.firestore();
+const db = getFirestore();
 
-module.exports = { admin, db, FieldValue, Timestamp };
+module.exports = { admin: adminApp, db, FieldValue, Timestamp };

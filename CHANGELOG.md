@@ -11,6 +11,10 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 ### Security
 - **Patched a high-severity `fast-xml-parser` vulnerability** (GHSA-8r6m-32jq-jx6q) by overriding and updating its version to the secure `5.10.1` release.
 
+### Changed
+- **Upgraded `firebase-admin` to v14.2.0** and **`firebase-functions` to v7.3.0** (integrating Dependabot PRs #162, #163, and #164) and refactored the Functions codebase to use the new v14 modular app and database APIs.
+- **Upgraded `setup-python` GitHub Action to v7** (integrating Dependabot PR #161).
+
 ## [1.47.11] — 2026-07-18
 
 ### Fixed

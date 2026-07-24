@@ -3,20 +3,20 @@
  */
 
 const { onRequest } = require('firebase-functions/v2/https');
-const admin = require('firebase-admin');
-const { FieldValue, Timestamp } = require('firebase-admin/firestore');
+const { initializeApp, getApps } = require('firebase-admin/app');
+const { getFirestore, FieldValue, Timestamp } = require('firebase-admin/firestore');
 const { dispatch } = require('./lib/dispatcher');
 const { apiContextStorage, sendSmsReply } = require('./lib/twilio');
 const logger = require('./lib/logger');
 
 // Initialize Admin SDK if not already done
-if (admin.apps.length === 0) {
-  admin.initializeApp({
+if (getApps().length === 0) {
+  initializeApp({
     serviceAccountId: 'firebase-adminsdk-fbsvc@transitstats-21ba4.iam.gserviceaccount.com',
   });
 }
 
-const db = admin.firestore();
+const db = getFirestore();
 
 /** Local short trace ID generator */
 function generateTraceIdLocal() {

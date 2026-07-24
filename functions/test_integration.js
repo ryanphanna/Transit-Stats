@@ -21,13 +21,15 @@ process.env.GOOGLE_APPLICATION_CREDENTIALS =
 
 const { test, before, after, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const admin = require('firebase-admin');
+const { initializeApp, getApps, deleteApp } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
 
 // Initialize Admin SDK before anything else loads db modules
-if (!admin.apps.length) {
-  admin.initializeApp();
+let integrationApp;
+if (!getApps().length) {
+  integrationApp = initializeApp();
 }
-const db = admin.firestore();
+const db = getFirestore();
 
 const { dispatch } = require('./lib/dispatcher');
 const { getCapturedReplies, clearCapturedReplies } = require('./lib/twilio');
@@ -97,7 +99,9 @@ after(async () => {
   // Clean up pending state if any
   await db.collection('smsState').doc(TEST_PHONE).delete().catch(() => {});
   console.log('🧹 Test data cleaned up');
-  await admin.app().delete();
+  if (integrationApp) {
+    await deleteApp(integrationApp);
+  }
 });
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
