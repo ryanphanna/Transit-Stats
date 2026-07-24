@@ -3,7 +3,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const admin = require('firebase-admin');
+const { initializeApp, getApps, cert } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const KEY_PATH = path.join(process.env.HOME, 'Desktop/Dev/Credentials/Firebase for Transit Stats.json');
@@ -292,7 +293,7 @@ function networkLegalEndStops(trip, state, ctx) {
   if (!graph) return null;
   const classes = [...state.global.get(mapKey(['global'])).keys()];
   if (classes.length === 0) return null;
-  const mask = NetworkEngine.getMask(graph, classes, trip.startStopName, trip.direction, 2);
+  const mask = NetworkEngine.getMask(graph, classes, trip.startStopName, trip.direction, 2, trip.startTime);
   if (!mask) return null;
   const legal = new Set();
   mask.forEach((keep, index) => {
@@ -476,10 +477,10 @@ function fmt(value) {
 
 async function loadFirestore() {
   if (!fs.existsSync(KEY_PATH)) throw new Error(`Service account key not found at ${KEY_PATH}`);
-  if (!admin.apps.length) {
-    admin.initializeApp({ credential: admin.credential.cert(require(KEY_PATH)) });
+  if (!getApps().length) {
+    initializeApp({ credential: cert(require(KEY_PATH)) });
   }
-  return admin.firestore();
+  return getFirestore();
 }
 
 async function main() {

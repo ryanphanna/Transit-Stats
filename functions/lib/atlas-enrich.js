@@ -21,6 +21,13 @@ const ATLAS_R2_BASE = process.env.ATLAS_R2_BASE || 'https://pub-85dc05d357954b63
 // slugs must match Atlas public/data/index.json.
 const AGENCY_SLUGS = {
   'TTC': 'ttc',
+  'OC Transpo': 'octranspo',
+  'GO Transit': 'go',
+  'MiWay': 'miway',
+  'YRT': 'yrt',
+  'Brampton Transit': 'brampton',
+  'Durham Transit': 'drt',
+  'HSR': 'hamilton',
 };
 
 // Per-instance cache: the meta file is ~1 MB and refreshed weekly upstream.

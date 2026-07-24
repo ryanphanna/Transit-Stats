@@ -14,6 +14,10 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 ### Changed
 - **Upgraded `firebase-admin` to v14.2.0** and **`firebase-functions` to v7.3.0** (integrating Dependabot PRs #162, #163, and #164) and refactored the Functions codebase to use the new v14 modular app and database APIs.
 - **Upgraded `setup-python` GitHub Action to v7** (integrating Dependabot PR #161).
+- **Expanded stop enrichment** (`functions/lib/atlas-enrich.js`) to support all configured transit agencies (GO, MiWay, YRT, etc.) from Atlas R2 data (shipped for Issue #152).
+
+### Fixed
+- **Fixed chronological age-decay leakage** and **stop canonicalization mismatch** in `NetworkEngine` (resolving V6 end-stop replay regressions for Issue #156).
 
 ## [1.47.11] — 2026-07-18
 

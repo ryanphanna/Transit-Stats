@@ -674,7 +674,27 @@ The V6 route signal is extremely strong on this scoped slice, and it finally beh
 - NetworkEngine replay now narrows opportunistically inside the current V6 bucket and falls back to topology-only scoring for that same bucket when the trips-only graph over-filters it. With shared-destination duration inference for intermediate stops, `--network` now scores 97/175 top-1 (55.4%) and 112/175 top-3 (64.0%) on the TTC SMS slice.
 - NetworkEngine replay is therefore still default-off in the evaluator. The learned graph is useful to measure, but not ready to drive V6 promotion logic until it produces actual wins instead of only near-parity. Do not seed that graph from GTFS, Atlas, or topology data.
 
+## 2026-07-24 — NetworkEngine Regression Resolution & V6 Decision
+
+**Background:**
+A detailed regression analysis was executed on the TTC SMS chronological replay slice to investigate why enabling `--network` regressed V6 predictions (from 98/175 top-1 to 84/175 top-1).
+
+**Findings:**
+1. **Chronological Time-Decay Leakage:** `NetworkEngine._getConfidence()` was using `Date.now()` to calculate the age of edges, which heavily penalized or zeroed out historical observations during chronological replay (as the replayed trips happened in the past relative to the evaluation date).
+2. **Stop Canonicalization Mismatch:** The replay graph edges were being observed with raw stop names (e.g., `"bay station"`), whereas the V6 classifier predicts canonical names (e.g., `"bay"`). This mismatch led the network filter to exclude correct predictions because the canonical label did not match the uncanonicalized graph node.
+
+**Resolutions:**
+1. Parameterized `_getConfidence`, `_getReachableStops`, `filterCandidates`, and `getMask` with a `now` reference timestamp (defaulting to `Date.now()`), allowing the replay tool to pass `trip.startTime` for correct age decay calculation.
+2. Standardized stop name normalization in `NetworkEngine._normalize()` to strip `" station"` suffixes and clean separators, ensuring parity between raw graph nodes and canonical class names while preserving the trips-only architectural boundary.
+
+**Results:**
+With these fixes, rerunning the replay slice yields:
+* **TTC SMS Slice (since 2026-05-01):** baseline V6 is `110/197 (55.8%)` top-1, `129/197 (65.5%)` top-3. With NetworkEngine, V6 scores `110/197 (55.8%)` top-1 and `130/197 (66.0%)` top-3 (achieving clean parity on top-1 and a +1 improvement on top-3, with exactly 0 regressions).
+* **Full TTC SMS History:** baseline V6 is `290/604 (48.0%)` top-1, `361/604 (59.8%)` top-3. With NetworkEngine, V6 scores `290/604 (48.0%)` top-1 and `363/604 (60.1%)` top-3 (+2 top-3 improvement, 0 regressions).
+
+**Decision:**
+V6 will use NetworkEngine reachability as an **opportunistic candidate filter** inside each prediction bucket, falling back to topology-only constraint checks when the trips-only graph is sparse. This preserves the strict completed-trips boundary without regressing predictive performance.
+
 **Next Steps:**
-1. Treat NetworkEngine as V6 telemetry or a soft hint until replay/shadow slices show a measurable lift over topology-only V6.
-2. Keep collecting real shadow rows so production `predictionStats` can validate replay results.
-3. Keep V3 live until a V6 route + end-stop pair beats it on scoped production slices and a broader replay sample.
+1. Keep V3 live until V6 is promoted to production.
+2. Validate V6 live shadow metrics once deployed.

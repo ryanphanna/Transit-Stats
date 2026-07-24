@@ -260,14 +260,14 @@ const NetworkEngine = {
    * @param {string} direction
    * @returns {Array|null}
    */
-  filterCandidates(candidates, graph, boardingStop, direction) {
+  filterCandidates(candidates, graph, boardingStop, direction, now = Date.now()) {
     if (!graph || !boardingStop || !direction) return null;
 
     const normDir = this._normalizeDirection(direction);
     if (!normDir) return null;
 
     const augGraph = this._withTransitiveEdges(graph);
-    const reachable = this._getReachableStops(augGraph, boardingStop, normDir);
+    const reachable = this._getReachableStops(augGraph, boardingStop, normDir, this.MIN_TRIPS, now);
     if (!reachable) return null; // Insufficient data — don't filter
 
     const filtered = candidates.filter(t => {
@@ -287,7 +287,7 @@ const NetworkEngine = {
    *
    * @private
    */
-  _getReachableStops(graph, boardingStop, normDir, minTrips = this.MIN_TRIPS) {
+  _getReachableStops(graph, boardingStop, normDir, minTrips = this.MIN_TRIPS, now = Date.now()) {
     const normBoarding = this._normalize(boardingStop);
     const reachable = new Set();
     let hasConfidentEdge = false;
@@ -296,7 +296,7 @@ const NetworkEngine = {
       if (this._normalize(edge.fromStop) !== normBoarding) continue;
       if (edge.direction !== normDir) continue;
 
-      if (this._getConfidence(edge) >= minTrips) {
+      if (this._getConfidence(edge, now) >= minTrips) {
         reachable.add(this._normalize(edge.toStop));
         hasConfidentEdge = true;
       }
@@ -309,7 +309,7 @@ const NetworkEngine = {
       for (const edge of Object.values(graph.edges || {})) {
         if (this._normalize(edge.toStop) !== normBoarding) continue;
         if (edge.direction !== oppositeDir) continue;
-        if (this._getConfidence(edge) >= minTrips) {
+        if (this._getConfidence(edge, now) >= minTrips) {
           reachable.add(this._normalize(edge.fromStop));
           hasConfidentEdge = true;
         }
@@ -319,12 +319,12 @@ const NetworkEngine = {
     return hasConfidentEdge ? reachable : null;
   },
 
-  _getConfidence(edge) {
+  _getConfidence(edge, now = Date.now()) {
     let score = edge.tripCount || 0;
     
     // Penalty for old edges (simple linear decay over 90 days)
     if (edge.lastObservedAt) {
-      const msOld = Date.now() - new Date(edge.lastObservedAt).getTime();
+      const msOld = new Date(now).getTime() - new Date(edge.lastObservedAt).getTime();
       const daysOld = msOld / (1000 * 60 * 60 * 24);
       if (daysOld > 90) {
         score *= 0.5;
@@ -364,12 +364,12 @@ const NetworkEngine = {
    * @param {string} direction
    * @returns {boolean[]|null}
    */
-  getMask(graph, classes, boardingStop, direction, minTrips = 2) {
+  getMask(graph, classes, boardingStop, direction, minTrips = this.MIN_TRIPS, now = Date.now()) {
     if (!graph || !boardingStop || !direction) return null;
     const normDir = this._normalizeDirection(direction);
     if (!normDir) return null;
     const augGraph = this._withTransitiveEdges(graph);
-    const reachable = this._getReachableStops(augGraph, boardingStop, normDir, minTrips);
+    const reachable = this._getReachableStops(augGraph, boardingStop, normDir, minTrips, now);
     if (!reachable) return null;
     return classes.map(cls => {
       const norm = this._normalize(cls);
@@ -622,7 +622,14 @@ const NetworkEngine = {
 
   _normalize(stop) {
     if (!stop) return '';
-    return stop.toString().toLowerCase().trim();
+    let val = stop.toString().toLowerCase().trim()
+      .replace(/\s+(and|at)\s+/g, '/')
+      .replace(/\s*[/&@]\s*/g, '/')
+      .replace(/\s+/g, ' ');
+    if (val.endsWith(' station')) {
+      val = val.slice(0, -8).trim();
+    }
+    return val;
   },
 
   _normalizeDirection(dir) {
