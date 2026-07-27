@@ -6,6 +6,11 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Security
+- **Patched high-severity `postcss` path traversal and `brace-expansion` denial-of-service vulnerabilities** in the root dependency tree.
+
 ## [1.47.13] — 2026-07-24
 
 ### Security
