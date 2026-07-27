@@ -110,6 +110,7 @@
     "stop_queen_st_west_spadina_ave",
     "stop_queens_quay",
     "stop_queens_quay_bathurst",
+    "stop_queens_quay_loop_lower_spadina_ave",
     "stop_runnymede_station",
     "stop_santa_fe_depot",
     "stop_sentinel_the_pond",
@@ -256,6 +257,7 @@
     "last_stop_tmu_station",
     "last_stop_union_station",
     "last_stop_uptown_core_terminal",
+    "last_stop_vaughan_metropolitan_centre",
     "last_stop_wellesley_station",
     "last_stop_wilson_station",
     "last_stop_woodbine_station",
@@ -313,7 +315,7 @@
     "prev_route_stouffville",
     "prev_route_t"
   ],
-  "top1_accuracy": 0.7203,
-  "top3_accuracy": 0.8814,
-  "n_trips": 588
+  "top1_accuracy": 0.7438,
+  "top3_accuracy": 0.8926,
+  "n_trips": 604
 }
