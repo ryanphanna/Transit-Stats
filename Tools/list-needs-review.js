@@ -10,8 +10,9 @@
  *   /Users/ryan/Desktop/Dev/Credentials/Firebase for Transit Stats.json
  */
 
-const admin = require('firebase-admin');
 
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
 const KEY_PATH = '/Users/ryan/Desktop/Dev/Credentials/Firebase for Transit Stats.json';
 
 function parseArgs(argv) {
@@ -42,10 +43,10 @@ async function run() {
     process.exit(1);
   }
 
-  admin.initializeApp({
-    credential: admin.credential.cert(require(KEY_PATH)),
+  initializeApp({
+    credential: cert(require(KEY_PATH)),
   });
-  const db = admin.firestore();
+  const db = getFirestore();
 
   const snap = await db.collection('trips').where('userId', '==', args.userId).get();
   const rows = snap.docs

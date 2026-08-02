@@ -2,11 +2,12 @@
  * rollback-trip-hubs.js
  * Removes denormalized hubId fields from trip records.
  */
-const admin = require('firebase-admin');
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const KEY_PATH = '/Users/ryan/Desktop/Dev/Credentials/Firebase for Transit Stats.json';
 
-admin.initializeApp({ credential: admin.credential.cert(require(KEY_PATH)) });
-const db = admin.firestore();
+initializeApp({ credential: cert(require(KEY_PATH)) });
+const db = getFirestore();
 
 async function rollback() {
   console.log('--- Trip Hub Rollback Engine ---');
@@ -18,8 +19,8 @@ async function rollback() {
     const data = doc.data();
     if (data.startHubId !== undefined || data.endHubId !== undefined) {
       batch.update(doc.ref, {
-        startHubId: admin.firestore.FieldValue.delete(),
-        endHubId: admin.firestore.FieldValue.delete()
+        startHubId: FieldValue.delete(),
+        endHubId: FieldValue.delete()
       });
       count++;
       if (count % 400 === 0) {

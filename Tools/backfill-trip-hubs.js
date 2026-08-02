@@ -7,14 +7,15 @@
  *   node Tools/backfill-trip-hubs.js [--dry-run]
  */
 
-const admin = require('firebase-admin');
 const { normalizeStopName } = require('../functions/lib/transfer-connections');
 
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const KEY_PATH = '/Users/ryan/Desktop/Dev/Credentials/Firebase for Transit Stats.json';
 const DRY_RUN = process.argv.includes('--dry-run');
 
-admin.initializeApp({ credential: admin.credential.cert(require(KEY_PATH)) });
-const db = admin.firestore();
+initializeApp({ credential: cert(require(KEY_PATH)) });
+const db = getFirestore();
 
 async function backfill() {
   console.log('--- Trip Hub Backfill Engine ---');
@@ -78,7 +79,7 @@ async function backfill() {
         batch.update(ref, {
           startHubId: startHubId || null,
           endHubId: endHubId || null,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          updatedAt: FieldValue.serverTimestamp()
         });
         batchSize++;
         

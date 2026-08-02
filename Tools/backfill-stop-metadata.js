@@ -6,15 +6,16 @@
  *    official name suffix doesn't contradict it
  * Also writes stopRoutes/TTC_{code} docs (full route list per stop).
  */
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const fs = require('fs');
 const readline = require('readline');
 const path = require('path');
-const admin = require(path.join('/Users/ryan/Desktop/Production/Transit Stats/functions/node_modules/firebase-admin'));
 
-admin.initializeApp({
-  credential: admin.credential.cert(require('/Users/ryan/Desktop/Dev/Credentials/Firebase for Transit Stats.json')),
+initializeApp({
+  credential: cert(require('/Users/ryan/Desktop/Dev/Credentials/Firebase for Transit Stats.json')),
 });
-const db = admin.firestore();
+const db = getFirestore();
 const GTFS = path.join(__dirname, 'ttc_gtfs');
 
 function parseCsvLine(line) {
@@ -93,7 +94,7 @@ const nameSuffixDirection = n => { const m = /\b(north|south|east|west)\s*side\b
     if (t.dir) rec.dirs.set(t.dir, (rec.dirs.get(t.dir) || 0) + 1);
   }
 
-  const now = admin.firestore.FieldValue.serverTimestamp();
+  const now = FieldValue.serverTimestamp();
   let updatedStops = 0, wroteStopRoutes = 0, setDirection = 0, addedRoutes = 0, addedAlias = 0;
 
   for (const s of ourStops) {
@@ -114,10 +115,10 @@ const nameSuffixDirection = n => { const m = /\b(north|south|east|west)\s*side\b
     if (!s.direction && proposedDir) { update.direction = proposedDir; setDirection++; }
     const existingRoutes = (s.routes || []).map(x => String(x));
     const newRoutes = routeList.filter(r => !existingRoutes.some(x => x.toLowerCase() === r.toLowerCase()));
-    if (newRoutes.length) { update.routes = admin.firestore.FieldValue.arrayUnion(...newRoutes); addedRoutes++; }
+    if (newRoutes.length) { update.routes = FieldValue.arrayUnion(...newRoutes); addedRoutes++; }
     const knownNames = [s.name, ...(s.aliases || [])].filter(Boolean).map(n => n.toLowerCase());
     if (officialName && !knownNames.includes(officialName.toLowerCase())) {
-      update.aliases = admin.firestore.FieldValue.arrayUnion(officialName);
+      update.aliases = FieldValue.arrayUnion(officialName);
       addedAlias++;
     }
     if (Object.keys(update).length) {

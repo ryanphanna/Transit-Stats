@@ -13,9 +13,10 @@
  *   /Users/ryan/Desktop/Dev/Credentials/Firebase for Transit Stats.json
  */
 
-const admin = require('firebase-admin');
 const { NetworkEngine } = require('../functions/lib/network');
 
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
 const KEY_PATH = '/Users/ryan/Desktop/Dev/Credentials/Firebase for Transit Stats.json';
 
 const targetStops = process.argv.slice(2);
@@ -24,11 +25,11 @@ if (!targetStops.length) {
   process.exit(1);
 }
 
-admin.initializeApp({
-  credential: admin.credential.cert(require(KEY_PATH)),
+initializeApp({
+  credential: cert(require(KEY_PATH)),
 });
 
-const db = admin.firestore();
+const db = getFirestore();
 
 async function run() {
   // Load stops library

@@ -14,8 +14,9 @@
  *   /Users/ryan/Desktop/Dev/Credentials/Firebase for Transit Stats.json
  */
 
-const admin = require('firebase-admin');
 
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const KEY_PATH = '/Users/ryan/Desktop/Dev/Credentials/Firebase for Transit Stats.json';
 const APPLY = process.argv.includes('--apply');
 
@@ -139,10 +140,10 @@ async function run() {
     process.exit(1);
   }
 
-  admin.initializeApp({
-    credential: admin.credential.cert(require(KEY_PATH)),
+  initializeApp({
+    credential: cert(require(KEY_PATH)),
   });
-  const db = admin.firestore();
+  const db = getFirestore();
 
   const groups = GROUPS.filter((g) => !args.agency || g.agency === args.agency);
   const snap = await db.collection('trips').where('userId', '==', args.userId).get();
@@ -175,7 +176,7 @@ async function run() {
     for (const trip of chunk) {
       batch.update(db.collection('trips').doc(trip.id), {
         manually_verified: true,
-        needs_review: admin.firestore.FieldValue.delete(),
+        needs_review: FieldValue.delete(),
       });
     }
     await batch.commit();

@@ -8,14 +8,15 @@
  *   node Tools/migrate-hubs-to-firestore.js [--dry-run]
  */
 
-const admin = require('firebase-admin');
 const { CONNECTION_GROUPS, normalizeStopName } = require('../functions/lib/transfer-connections');
 
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const KEY_PATH = '/Users/ryan/Desktop/Dev/Credentials/Firebase for Transit Stats.json';
 const DRY_RUN = process.argv.includes('--dry-run');
 
-admin.initializeApp({ credential: admin.credential.cert(require(KEY_PATH)) });
-const db = admin.firestore();
+initializeApp({ credential: cert(require(KEY_PATH)) });
+const db = getFirestore();
 
 async function migrate() {
   console.log('--- Hub Migration Engine ---');
@@ -71,7 +72,7 @@ async function migrate() {
       batch.update(ref, {
         hubId: update.hubId,
         verified: true,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        updatedAt: FieldValue.serverTimestamp()
       });
     }
   }

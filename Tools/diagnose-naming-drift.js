@@ -3,15 +3,16 @@
  * Scans the networkGraph collection and flags edges where the stop names
  * do not match the canonical names in the stops library.
  */
-const admin = require('firebase-admin');
+const { initializeApp, getApps } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
 const { NetworkEngine } = require('../functions/lib/network');
 const { lookupStop } = require('../functions/lib/db/stops');
 
 // Initialize Firebase (assumes GOOGLE_APPLICATION_CREDENTIALS is set)
-if (admin.apps.length === 0) {
-  admin.initializeApp();
+if (getApps().length === 0) {
+  initializeApp();
 }
-const db = admin.firestore();
+const db = getFirestore();
 
 async function diagnose() {
   console.log('--- Network Naming Drift Diagnosis ---');

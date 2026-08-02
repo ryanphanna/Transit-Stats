@@ -7,15 +7,16 @@
  *  - direction: majority of trip_headsign direction prefixes at the stop
  *  - cross-check: side-of-street suffix in the official GTFS stop name
  */
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
 const fs = require('fs');
 const readline = require('readline');
 const path = require('path');
-const admin = require(path.join('/Users/ryan/Desktop/Production/Transit Stats/functions/node_modules/firebase-admin'));
 
-admin.initializeApp({
-  credential: admin.credential.cert(require('/Users/ryan/Desktop/Dev/Credentials/Firebase for Transit Stats.json')),
+initializeApp({
+  credential: cert(require('/Users/ryan/Desktop/Dev/Credentials/Firebase for Transit Stats.json')),
 });
-const db = admin.firestore();
+const db = getFirestore();
 const GTFS = path.join(__dirname, 'ttc_gtfs');
 
 // Minimal CSV line parser (TTC feed has no embedded commas in the fields we use,

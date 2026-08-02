@@ -10,13 +10,14 @@
  *   node Tools/create-normalized-stops.js [--dry-run]
  */
 
-const admin = require('firebase-admin');
 
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
 const KEY_PATH = '/Users/ryan/Desktop/Dev/Credentials/Firebase for Transit Stats.json';
 const DRY_RUN = process.argv.includes('--dry-run');
 
-admin.initializeApp({ credential: admin.credential.cert(require(KEY_PATH)) });
-const db = admin.firestore();
+initializeApp({ credential: cert(require(KEY_PATH)) });
+const db = getFirestore();
 
 const STOPS = [
   // ── Spadina line (510) ─────────────────────────────────────────────────
