@@ -55,6 +55,7 @@
     "stop_bay_station",
     "stop_bloor_yonge_station",
     "stop_college_beverley",
+    "stop_college_st_spadina_ave",
     "stop_college_station",
     "stop_davisville",
     "stop_finch_west_station",
@@ -122,7 +123,7 @@
     "dir_southbound",
     "dir_westbound"
   ],
-  "top1_accuracy": 0.7797,
+  "top1_accuracy": 0.8983,
   "top3_accuracy": 0.9831,
-  "n_trips": 291
+  "n_trips": 293
 }

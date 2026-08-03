@@ -242,6 +242,7 @@
     "last_stop_spadina_ave_nassau_st_south_side",
     "last_stop_spadina_ave_queen_st_west_north_side",
     "last_stop_spadina_ave_queen_st_west_south_side",
+    "last_stop_spadina_ave_sussex_ave",
     "last_stop_spadina_bremner",
     "last_stop_spadina_dundas",
     "last_stop_spadina_harbord",
@@ -315,7 +316,7 @@
     "prev_route_stouffville",
     "prev_route_t"
   ],
-  "top1_accuracy": 0.7438,
-  "top3_accuracy": 0.8926,
-  "n_trips": 604
+  "top1_accuracy": 0.6748,
+  "top3_accuracy": 0.8943,
+  "n_trips": 614
 }
