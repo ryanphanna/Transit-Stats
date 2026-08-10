@@ -105,5 +105,16 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .auth-route-map { animation: authMapDrift 18s ease-in-out infinite alternate; }
+  .auth-route { stroke-dasharray: 0.07 0.035; animation: authRouteFlow 8s linear infinite; }
+  .auth-route-blue { animation-duration: 10s; animation-delay: -2.5s; }
+  .auth-route-red { animation-duration: 7s; animation-delay: -4s; }
+  .auth-route-green { animation-duration: 12s; animation-delay: -1.5s; }
+  .auth-station circle { transform-box: fill-box; transform-origin: center; animation: authStationPulse 3.5s ease-in-out infinite; }
+  .auth-station circle:nth-child(2) { animation-delay: -1.1s; }
+  .auth-station circle:nth-child(3) { animation-delay: -2.2s; }
+  .auth-station circle:nth-child(4) { animation-delay: -0.6s; }
+  .auth-station circle:nth-child(5) { animation-delay: -1.8s; }
+  @keyframes authRouteFlow { to { stroke-dashoffset: -0.105; } }
+  @keyframes authStationPulse { 0%, 100% { transform: scale(0.88); opacity: 0.75; } 50% { transform: scale(1.18); opacity: 1; } }
   @keyframes authMapDrift { to { transform: rotate(-2deg) translate(1.5%, -1%); } }
 }
