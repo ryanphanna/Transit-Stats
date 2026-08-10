@@ -13,14 +13,17 @@ document.body.classList.toggle('dark', _theme === 'dark');
 export function requireAuth(options = {}) {
     return new Promise((resolve) => {
         auth.onAuthStateChanged(async (user) => {
+            const loginUrl = window.location.hostname === 'admin.transitstats.fyi'
+                ? 'https://transitstats.fyi/'
+                : '/';
             if (!user) {
-                window.location.href = '/';
+                window.location.href = loginUrl;
                 return;
             }
             const verification = await Auth.checkWhitelist(user.email, user.uid);
             if (!verification.allowed) {
                 await Auth.signOut();
-                window.location.href = '/';
+                window.location.href = loginUrl;
                 return;
             }
             if (options.adminOnly && !verification.isAdmin) {

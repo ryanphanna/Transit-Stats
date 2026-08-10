@@ -154,7 +154,11 @@ function init() {
     document.body.classList.toggle('dark', localStorage.getItem('ts_theme') === 'dark');
 
     auth.onAuthStateChanged((user) => {
-        if (user) window.location.href = '/dashboard';
+        if (user) {
+            window.location.href = window.location.hostname === 'admin.transitstats.fyi'
+                ? '/admin'
+                : '/dashboard';
+        }
     });
 
     setupListeners();

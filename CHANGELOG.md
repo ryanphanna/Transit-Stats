@@ -14,6 +14,10 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Local transit theming** — the homepage quietly adapts its route colours to the visitor’s approximate city when available.
 - **Personal trip-paths beta** — see your saved rides over the scheduled route shapes, using Atlas stop coordinates when a trip is missing saved coordinates.
 
+### Changed
+- **Map basemaps are now quieter and label-free** so personal trip data stays the visual focus.
+- **Internal tools now have a separate admin surface** so the rider site stays focused on trips and maps.
+
 ### Fixed
 - **The map now ignores malformed trip coordinates** instead of opening at a world-level zoom.
 - **The map now renders saved trip points** instead of stopping after Leaflet initializes.

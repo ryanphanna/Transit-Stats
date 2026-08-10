@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "transitstats-21ba4"
-  }
+  },
+  "targets": {
+    "transitstats-21ba4": {
+      "hosting": {
+        "main": [
+          "transitstats-21ba4"
+        ],
+        "admin": [
+          "transitstats-admin"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

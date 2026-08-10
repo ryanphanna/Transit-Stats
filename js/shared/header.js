@@ -10,21 +10,22 @@ function _render(isAdmin, currentPage) {
     const root = document.getElementById('app-root');
     if (!root) return;
 
-    const navItems = [
-        { id: 'map', label: 'Map', icon: 'map', href: '/map' },
-        { id: 'admin', label: 'Stops', icon: 'database', href: '/admin' },
-        { id: 'users', label: 'Users', icon: 'users', href: '/users' },
-        { id: 'insights', label: 'Insights', icon: 'line-chart', href: '/insights' },
-    ];
-
-    if (isAdmin) {
-        navItems.push({ id: 'rocket', label: 'Rocket', icon: 'rocket', href: '/rocket' });
-    }
+    const adminHost = window.location.hostname === 'admin.transitstats.fyi';
+    const adminSurface = adminHost || ['admin', 'users', 'insights', 'rocket'].includes(currentPage);
+    const navItems = adminSurface
+        ? [
+            { id: 'admin', label: 'Stops', icon: 'database', href: '/admin' },
+            { id: 'users', label: 'Users', icon: 'users', href: '/users' },
+            { id: 'insights', label: 'Insights', icon: 'line-chart', href: '/insights' },
+            ...(isAdmin ? [{ id: 'rocket', label: 'Rocket', icon: 'rocket', href: '/rocket' }] : []),
+        ]
+        : [{ id: 'map', label: 'Map', icon: 'map', href: '/map' }];
+    const logoHref = adminHost ? 'https://transitstats.fyi/' : '/dashboard';
 
     const headerHtml = `
         <header class="header">
             <div class="header-container">
-                <a href="/dashboard" class="logo">
+                <a href="${logoHref}" class="logo">
                      <div class="logo-icon"><i data-lucide="zap"></i></div>
                      <span class="logo-text">TransitStats</span>
                 </a>
@@ -50,4 +51,3 @@ function _render(isAdmin, currentPage) {
     root.insertAdjacentHTML('afterbegin', headerHtml);
     if (window.lucide) lucide.createIcons();
 }
-

@@ -71,15 +71,15 @@ export const MapEngine = {
         const isV2 = document.body.classList.contains('v2-clean');
         const isDark = document.body.classList.contains('dark');
         
-        let tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-        let attribution = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+        let tileUrl = 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+        let attribution = '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
         if (isV2) {
             // Minimalist Grayscale (CartoDB Positron)
-            tileUrl = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+            tileUrl = 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
             attribution = '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
         } else if (isDark) {
-            tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+            tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
             attribution = '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
         }
 
