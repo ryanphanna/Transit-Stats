@@ -18,10 +18,16 @@
         <section id="view-map" class="view map-view active">
             <div id="main-map" class="full-map"></div>
             <div class="map-controls">
-                <div class="filter-pills">
-                    <button class="pill active" data-filter="boarding">Boarding</button>
-                    <button class="pill" data-filter="exiting">Exiting</button>
-                    <button class="pill" data-filter="both">Both</button>
+                <div class="map-controls-left">
+                    <div class="filter-pills">
+                        <button class="pill active" data-filter="boarding">Boarding</button>
+                        <button class="pill" data-filter="exiting">Exiting</button>
+                        <button class="pill" data-filter="both">Both</button>
+                    </div>
+                    <div class="filter-pills map-view-pills">
+                        <button class="pill active" data-view="points">Points</button>
+                        <button class="pill" data-view="heatmap">Heatmap</button>
+                    </div>
                 </div>
                 <button id="btn-locate" class="btn btn-circle" title="Find Me"><i data-lucide="locate-fixed"></i></button>
             </div>
@@ -30,6 +36,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha256-XJrs/DDkVkUZ29zdzFOkGCJ9zHVo5hnpdi3c7HYJ7Uc=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.4.1/leaflet.markercluster.js" integrity="sha512-MQlyPV+ol2lp4KodaU/Xmrn+txc1TP15pOBF/2Sfre7MRsA/pB4Vy58bEqe9u7a7DczMLtU5wT8n7OblJepKbg==" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
     <script type="module" src="js/pages/map.js"></script>
 </body>
 </html>

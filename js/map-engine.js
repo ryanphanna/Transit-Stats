@@ -1,5 +1,6 @@
 import { UI } from './ui-utils.js';
 import { PredictionEngine } from './predict.js';
+import { Visuals } from './visuals.js';
 
 /**
  * TransitStats V2 Map Engine
@@ -9,6 +10,7 @@ export const MapEngine = {
     map: null,
     trips: [],
     filter: 'boarding', // 'boarding', 'exiting', 'both'
+    displayMode: 'points', // 'points' or 'heatmap'
     layers: {
         base: null,
         transit: null,
@@ -96,12 +98,22 @@ export const MapEngine = {
     },
 
     setupControls() {
-        const pills = document.querySelectorAll('.map-controls .pill');
-        pills.forEach(pill => {
+        const filterPills = document.querySelectorAll('[data-filter]');
+        filterPills.forEach(pill => {
             pill.addEventListener('click', () => {
-                pills.forEach(p => p.classList.remove('active'));
+                filterPills.forEach(p => p.classList.remove('active'));
                 pill.classList.add('active');
                 this.filter = pill.dataset.filter;
+                this.renderMarkers();
+            });
+        });
+
+        const displayPills = document.querySelectorAll('[data-view]');
+        displayPills.forEach(pill => {
+            pill.addEventListener('click', () => {
+                displayPills.forEach(p => p.classList.remove('active'));
+                pill.classList.add('active');
+                this.displayMode = pill.dataset.view;
                 this.renderMarkers();
             });
         });
@@ -185,12 +197,21 @@ export const MapEngine = {
         return loc;
     },
 
+    refreshStopLookup() {
+        this._stopLookup.clear();
+        this._skipLookup.clear();
+        this._hasIndexedStops = false;
+        this._lastLibSize = 0;
+        this.renderMarkers();
+    },
+
     renderMarkers() {
         if (!this.map || !this.layers.markers) return;
 
         const start = performance.now();
         // Clear existing
         this.layers.markers.clearLayers();
+        Visuals.clear(this.map);
 
         // Always check if we need to rebuild the index (e.g. library finished loading)
         const currentLibSize = PredictionEngine.stopsLibrary?.length || 0;
@@ -243,11 +264,15 @@ export const MapEngine = {
             }
         });
 
+        if (this.displayMode === 'heatmap') {
+            Visuals.renderLocationHeatmap(points, this.map);
+        }
+
         // Batch add markers for performance
         const markers = [];
         const isV2 = document.body.classList.contains('v2-clean');
 
-        points.forEach(p => {
+        if (this.displayMode === 'points') points.forEach(p => {
             let color = p.type === 'boarding' ? '#4f46e5' : '#10b981';
             let radius = 6;
             let opacity = 0.8;
@@ -269,7 +294,7 @@ export const MapEngine = {
             markers.push(marker);
         });
 
-        if (markers.length > 0) {
+        if (markers.length > 0 && this.displayMode === 'points') {
             this.layers.markers.addLayers(markers);
         }
 
@@ -283,7 +308,7 @@ export const MapEngine = {
                 console.warn("MapEngine: Fit bounds failed", err);
             }
         }
-        console.log(`MapEngine: Rendered ${points.length} markers in ${Math.round(performance.now() - start)}ms`);
+        console.log(`MapEngine: Rendered ${points.length} ${this.displayMode} points in ${Math.round(performance.now() - start)}ms`);
     },
 
     locateUser() {
