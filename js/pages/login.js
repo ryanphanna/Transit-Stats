@@ -114,7 +114,7 @@ async function verifyCode() {
 
     try {
         await Auth.verifyPhoneCode(normalizedPhone, DOM.codeInput.value.trim());
-        setStatus('Verified. Opening your map…', 'success');
+        setStatus('Verified. You’re all set.', 'success');
     } catch (error) {
         setStatus(error.message);
         DOM.codeInput.select();
