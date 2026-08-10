@@ -29,7 +29,7 @@ const TRANSIT_THEMES = [
 ];
 
 async function applyLocalTransitTheme() {
-    const fallbackLabel = 'Every ride becomes part of the picture.';
+    const fallbackLabel = 'A living map of your transit life.';
     const view = document.querySelector('.auth-view');
     const label = document.getElementById('auth-theme-label');
     if (!view || !label) return;
@@ -49,7 +49,7 @@ async function applyLocalTransitTheme() {
         ['gold', 'blue', 'red', 'green'].forEach((name, index) => {
             view.style.setProperty(`--auth-route-${name}`, theme.colors[index]);
         });
-        label.textContent = `${theme.label} · every ride becomes part of the picture.`;
+        label.textContent = 'A living map of your transit life.';
     } catch {
         label.textContent = fallbackLabel;
     }
