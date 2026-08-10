@@ -29,11 +29,9 @@ const TRANSIT_THEMES = [
 ];
 
 async function applyLocalTransitTheme() {
-    const fallbackLabel = 'A living map of your transit life.';
     const view = document.querySelector('.auth-view');
-    const label = document.getElementById('auth-theme-label');
     const featuredLine = document.getElementById('auth-featured-line');
-    if (!view || !label || !featuredLine) return;
+    if (!view) return;
 
     try {
         const controller = new AbortController();
@@ -50,11 +48,8 @@ async function applyLocalTransitTheme() {
         ['gold', 'blue', 'red', 'green'].forEach((name, index) => {
             view.style.setProperty(`--auth-route-${name}`, theme.colors[index]);
         });
-        featuredLine.textContent = theme.featuredLine;
-        label.textContent = 'A living map of your transit life.';
-    } catch {
-        label.textContent = fallbackLabel;
-    }
+        if (featuredLine) featuredLine.textContent = theme.featuredLine;
+    } catch { /* Default colours remain in place. */ }
 }
 
 function normalizePhone(phone) {
