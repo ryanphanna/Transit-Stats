@@ -15,6 +15,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Personal trip-paths beta** — see your saved rides over the scheduled route shapes, using Atlas stop coordinates when a trip is missing saved coordinates.
 
 ### Fixed
+- **The map now ignores malformed trip coordinates** instead of opening at a world-level zoom.
 - **The map now renders saved trip points** instead of stopping after Leaflet initializes.
 - **Phone sign-in now restores older linked accounts** instead of failing before the dashboard opens.
 - **Map pages no longer fail during startup** when the browser loads the shared topology constraint module.

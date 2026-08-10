@@ -274,10 +274,25 @@ export const MapEngine = {
         }
 
         // Fit bounds only on first load or when filters change
-        if (points.length > 0 && this._isFirstLoad) {
+        const validPoints = points
+            .map(point => [Number(point.lat), Number(point.lng)])
+            .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng)
+                && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180);
+
+        if (validPoints.length > 0 && this._isFirstLoad) {
             try {
-                const bounds = L.latLngBounds(points.map(p => [p.lat, p.lng]));
-                this.map.fitBounds(bounds, { padding: [60, 60], animate: false });
+                const bounds = L.latLngBounds(validPoints);
+                const southWest = bounds.getSouthWest();
+                const northEast = bounds.getNorthEast();
+                const latitudeSpan = Math.abs(northEast.lat - southWest.lat);
+                const longitudeSpan = Math.abs(northEast.lng - southWest.lng);
+
+                if (latitudeSpan < 0.001 && longitudeSpan < 0.001) {
+                    this.map.setView(validPoints[0], 13, { animate: false });
+                } else {
+                    this.map.fitBounds(bounds, { padding: [60, 60], animate: false, maxZoom: 15 });
+                }
+                this.map.invalidateSize({ animate: false });
                 this._isFirstLoad = false;
             } catch (err) {
                 console.warn("MapEngine: Fit bounds failed", err);
