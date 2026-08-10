@@ -1,6 +1,6 @@
 /* --- Phone-first homepage --- */
 .auth-view {
-  min-height: 100svh;
+  min-height: 100svh !important;
   height: auto;
   padding: 0 !important;
   display: grid;
