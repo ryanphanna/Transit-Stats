@@ -6,6 +6,11 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Added
+- **Phone-first homepage sign-in** — reopen your ridership dashboard with an SMS code instead of remembering an email or password.
+
 ## [1.47.15] — 2026-08-09
 
 ### Security

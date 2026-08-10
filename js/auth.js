@@ -4,6 +4,8 @@ import { auth, db } from './firebase.js';
  * TransitStats V2 Authentication Module
  */
 export const Auth = {
+    phoneApiUrl: 'https://us-central1-transitstats-21ba4.cloudfunctions.net/api',
+
     // --- Rate Limiting ---
     getRateLimit() {
         try {
@@ -96,6 +98,30 @@ export const Auth = {
     async sendPasswordReset(email) {
         if (!email) throw new Error('Email required');
         await auth.sendPasswordResetEmail(email.toLowerCase());
+    },
+
+    async requestPhoneCode(phoneNumber) {
+        const response = await fetch(this.phoneApiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'request_otp', phoneNumber })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Could not send a verification code.');
+        return data;
+    },
+
+    async verifyPhoneCode(phoneNumber, code) {
+        const response = await fetch(this.phoneApiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'verify_otp', phoneNumber, code })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'That code could not be verified.');
+        if (!data.token) throw new Error('Verification succeeded but sign-in could not be completed.');
+        await auth.signInWithCustomToken(data.token);
+        return data;
     },
 
     signOut() {

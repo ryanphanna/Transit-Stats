@@ -4,7 +4,9 @@
 
 const { onRequest } = require('firebase-functions/v2/https');
 const { initializeApp, getApps } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
 const { getFirestore, FieldValue, Timestamp } = require('firebase-admin/firestore');
+const { randomInt } = require('crypto');
 const { dispatch } = require('./lib/dispatcher');
 const { apiContextStorage, sendSmsReply } = require('./lib/twilio');
 const logger = require('./lib/logger');
@@ -17,6 +19,7 @@ if (getApps().length === 0) {
 }
 
 const db = getFirestore();
+const adminAuth = getAuth();
 
 /** Local short trace ID generator */
 function generateTraceIdLocal() {
@@ -59,11 +62,13 @@ async function handleRequestOtp(req, res, traceId) {
     const phoneDoc = await db.collection('phoneNumbers').doc(phoneNumber).get();
     if (!phoneDoc.exists) {
       logger.warn('OTP Request denied: Phone number not registered', { phoneNumber, traceId }, traceId);
-      res.status(400).json({ error: 'This phone number is not registered. Please register your number via SMS first.' });
+      res.status(400).json({
+        error: 'This phone number is not registered. Please register your number via SMS first.'
+      });
       return;
     }
 
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const code = randomInt(100000, 1000000).toString();
     const expiresAt = Timestamp.fromDate(new Date(Date.now() + 10 * 60 * 1000));
     
     await db.collection('phoneLoginVerification').doc(phoneNumber).set({
@@ -138,7 +143,7 @@ async function handleVerifyOtp(req, res, traceId) {
     }
 
     const userId = phoneDoc.data().userId;
-    const customToken = await admin.auth().createCustomToken(userId);
+    const customToken = await adminAuth.createCustomToken(userId);
 
     logger.info('OTP verification successful. Minted custom token.', { phoneNumber, userId, traceId }, traceId);
     res.status(200).json({ success: true, token: customToken });
@@ -186,7 +191,7 @@ async function handleApiRequest(req, res) {
     const idToken = authHeader.split('Bearer ')[1];
     let decodedToken;
     try {
-      decodedToken = await admin.auth().verifyIdToken(idToken);
+      decodedToken = await adminAuth.verifyIdToken(idToken);
     } catch (authErr) {
       logger.warn('API authentication failed: Invalid ID token', { error: authErr.message, traceId }, traceId);
       res.status(401).json({ error: 'Unauthorized: Invalid token' });
@@ -212,7 +217,9 @@ async function handleApiRequest(req, res) {
 
     if (phoneQuery.empty) {
       logger.warn('API request failed: No registered phone number', { uid, email, traceId }, traceId);
-      res.status(400).json({ error: 'Failed: No registered phone number found for this account. Please register your phone number first.' });
+      res.status(400).json({
+        error: 'Failed: No registered phone number found for this account. Please register your phone number first.'
+      });
       return;
     }
 

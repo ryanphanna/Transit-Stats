@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TransitStats</title>
+    <title>TransitStats — Your transit life, mapped.</title>
+    <meta name="description" content="Log your transit life by text, then see every ride mapped and explained.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -13,40 +14,79 @@
 <body>
     <main id="app-root">
         <section id="view-auth" class="view auth-view active">
-            <div class="auth-card card">
-                <div class="brand-icon"><i data-lucide="bus"></i></div>
-                <h1 class="auth-title">TransitStats</h1>
-                <p class="auth-subtitle">Your Personal Transit Dashboard</p>
+            <div class="auth-content">
+                <header class="auth-brand" aria-label="TransitStats">
+                    <span class="auth-brand-mark"><i data-lucide="route"></i></span>
+                    <span>TransitStats</span>
+                </header>
 
-                <div id="auth-email-step">
-                    <div class="form-group mb-3">
-                        <input type="email" id="auth-email" class="input-center" placeholder="Enter your email address">
-                    </div>
-                    <button id="btn-auth-continue" class="btn btn-primary full-width btn-inactive">Continue</button>
-                    <p class="auth-footer-note mt-4">Invite only.</p>
+                <div class="auth-copy">
+                    <p class="auth-eyebrow">A personal record of every ride</p>
+                    <h1 class="auth-title">Your transit life, <em>mapped.</em></h1>
+                    <p class="auth-subtitle">Text when you board. TransitStats remembers the trip, learns your patterns, and turns your daily movement into something you can actually see.</p>
                 </div>
 
-                <div id="auth-password-step" class="hidden">
-                    <div class="auth-active-user">
-                        <span class="auth-label">Signing in as</span>
-                        <strong id="auth-display-email" class="auth-email-text"></strong>
+                <div class="auth-card card">
+                    <div class="auth-card-heading">
+                        <div>
+                            <p class="auth-form-eyebrow">Welcome back</p>
+                            <h2>Open your map</h2>
+                        </div>
+                        <i data-lucide="arrow-up-right" aria-hidden="true"></i>
                     </div>
 
-                    <div id="auth-login-options" class="auth-options mt-4">
-                        <button id="btn-auth-magic" class="btn btn-primary full-width mb-3">Send Magic Link</button>
-                        <button id="btn-auth-use-password" class="btn btn-outline full-width">Sign in with Password</button>
+                    <div id="auth-phone-step">
+                        <label class="sr-only" for="auth-phone">Phone number</label>
+                        <div class="auth-input-wrap">
+                            <i data-lucide="smartphone" aria-hidden="true"></i>
+                            <input type="tel" id="auth-phone" inputmode="tel" autocomplete="tel" placeholder="Your phone number">
+                        </div>
+                        <button id="btn-auth-request-code" class="btn btn-primary full-width" disabled>Text me a code <i data-lucide="arrow-right" aria-hidden="true"></i></button>
+                        <p class="auth-help">We’ll send a one-time code by SMS. No password or email required.</p>
                     </div>
 
-                    <div id="auth-password-input-group" class="hidden form-group mt-4">
-                        <input type="password" id="auth-password" class="input-center" placeholder="••••••••">
-                        <button id="btn-auth-forgot" class="btn btn-link full-width mt-4">Forgot Password?</button>
-                        <button id="btn-auth-signin" class="btn btn-primary full-width mt-4">Sign In</button>
+                    <div id="auth-code-step" class="hidden">
+                        <div class="auth-sent-row">
+                            <div>
+                                <span class="auth-label">Code sent to</span>
+                                <strong id="auth-phone-display"></strong>
+                            </div>
+                            <button id="btn-auth-change-phone" class="btn btn-link">Change</button>
+                        </div>
+                        <label class="sr-only" for="auth-code">Verification code</label>
+                        <input type="text" id="auth-code" class="auth-code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+                        <button id="btn-auth-verify-code" class="btn btn-primary full-width" disabled>Open TransitStats <i data-lucide="arrow-right" aria-hidden="true"></i></button>
+                        <button id="btn-auth-resend-code" class="btn btn-link full-width">Resend code</button>
                     </div>
 
-                    <div id="auth-status" class="status-msg hidden mt-4"></div>
+                    <div id="auth-status" class="status-msg hidden" role="status" aria-live="polite"></div>
                 </div>
+
+                <p class="auth-invite-note"><i data-lucide="lock-keyhole" aria-hidden="true"></i> Invite-only for now.</p>
             </div>
-            <div id="auth-map" class="auth-map-bg"></div>
+
+            <div class="auth-visual" aria-hidden="true">
+                <div class="auth-visual-grid"></div>
+                <svg class="auth-route-map" viewBox="0 0 760 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M-80 640C95 600 110 405 270 415C410 424 382 690 560 655C695 629 625 380 840 290" stroke="#f8c84b" stroke-width="14" stroke-linecap="round"/>
+                    <path d="M40 120C178 214 176 350 310 350C462 350 485 166 720 116" stroke="#4a6cf7" stroke-width="11" stroke-linecap="round"/>
+                    <path d="M158 940C228 815 338 785 342 618C347 456 527 465 616 352C679 272 637 170 790 38" stroke="#ee6a52" stroke-width="10" stroke-linecap="round"/>
+                    <path d="M-40 270C120 260 164 510 316 514C469 518 472 767 808 760" stroke="#3bb58a" stroke-width="9" stroke-linecap="round"/>
+                    <g fill="#fff" stroke="#17213d" stroke-width="5">
+                        <circle cx="270" cy="415" r="13"/><circle cx="342" cy="618" r="13"/><circle cx="485" cy="166" r="13"/>
+                        <circle cx="560" cy="655" r="13"/><circle cx="316" cy="514" r="13"/>
+                    </g>
+                    <g fill="#17213d">
+                        <circle cx="119" cy="610" r="4"/><circle cx="205" cy="406" r="4"/><circle cx="430" cy="353" r="4"/><circle cx="636" cy="352" r="4"/><circle cx="530" cy="760" r="4"/>
+                    </g>
+                </svg>
+                <div class="auth-visual-caption">
+                    <span class="auth-live-dot"></span>
+                    <span>Every ride becomes part of the picture.</span>
+                </div>
+                <div class="auth-stat-card auth-stat-card-top"><strong>1,284</strong><span>rides remembered</span></div>
+                <div class="auth-stat-card auth-stat-card-bottom"><span>Most travelled</span><strong>Line 2 · Bloor–Danforth</strong></div>
+            </div>
         </section>
     </main>
 
