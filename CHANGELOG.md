@@ -12,7 +12,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Phone-first homepage sign-in** — reopen your ridership dashboard with an SMS code instead of remembering an email or password.
 
 ### Fixed
-- **Homepage now fits short desktop windows without scrolling** while keeping the full map and sign-in flow visible on mobile.
+- **Homepage now fits short desktop windows without clipping content** while keeping the full map and sign-in flow visible on mobile.
 
 ## [1.47.15] — 2026-08-09
 

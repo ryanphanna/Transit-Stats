@@ -1,12 +1,12 @@
 /* --- Phone-first homepage --- */
 .auth-view {
-  height: 100svh;
-  min-height: 0;
+  min-height: 100svh;
+  height: auto;
   padding: 0 !important;
   display: grid;
   grid-template-columns: minmax(420px, 0.9fr) minmax(480px, 1.1fr);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   background: #f7f8fc;
 }
 
