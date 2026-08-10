@@ -11,6 +11,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 ### Added
 - **Phone-first homepage sign-in** — reopen your ridership dashboard with an SMS code instead of remembering an email or password.
 - **Animated homepage map** — flowing routes and pulsing stations make the ridership graphic feel alive.
+- **Local transit theming** — the homepage quietly adapts its route colours to the visitor’s approximate city when available.
 
 ### Fixed
 - **Homepage now fills normal laptop windows without clipping content** while keeping the full map and sign-in flow visible on mobile.

@@ -3,6 +3,10 @@
   min-height: 100svh !important;
   height: auto;
   padding: 0 !important;
+  --auth-route-gold: #f8c84b;
+  --auth-route-blue: #4a6cf7;
+  --auth-route-red: #ee6a52;
+  --auth-route-green: #3bb58a;
   display: grid;
   grid-template-columns: minmax(420px, 0.9fr) minmax(480px, 1.1fr);
   position: relative;
@@ -62,6 +66,10 @@
 .auth-visual { position: relative; overflow: hidden; background: #17213d; }
 .auth-visual-grid { position: absolute; inset: 0; opacity: 0.13; background-image: linear-gradient(rgba(255,255,255,0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.45) 1px, transparent 1px); background-size: 52px 52px; transform: perspective(600px) rotateY(-16deg) scale(1.25); transform-origin: left center; }
 .auth-route-map { position: absolute; width: 115%; height: 115%; top: -8%; left: -4%; opacity: 0.92; transform: rotate(-5deg); }
+.auth-route-gold { stroke: var(--auth-route-gold); }
+.auth-route-blue { stroke: var(--auth-route-blue); }
+.auth-route-red { stroke: var(--auth-route-red); }
+.auth-route-green { stroke: var(--auth-route-green); }
 .auth-visual::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 45% 44%, transparent 0 28%, rgba(23,33,61,0.25) 72%), linear-gradient(90deg, rgba(23,33,61,0.5), transparent 35%); pointer-events: none; }
 .auth-visual-caption, .auth-stat-card { position: absolute; z-index: 1; color: #fff; }
 .auth-visual-caption { left: 42px; bottom: 42px; display: flex; align-items: center; gap: 10px; font-size: 0.77rem; letter-spacing: 0.02em; }

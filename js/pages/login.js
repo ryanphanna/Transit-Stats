@@ -16,6 +16,45 @@ const DOM = {
 
 let normalizedPhone = '';
 
+const TRANSIT_THEMES = [
+    { match: ['toronto'], label: 'Toronto transit colours', colors: ['#f8c84b', '#009b4e', '#8b4a9c', '#ee6a52'] },
+    { match: ['mississauga'], label: 'MiWay colours', colors: ['#f58220', '#0072bc', '#00a99d', '#f8c84b'] },
+    { match: ['vaughan', 'markham', 'richmond hill', 'york region'], label: 'YRT colours', colors: ['#0072bc', '#f8c84b', '#ee6a52', '#3bb58a'] },
+    { match: ['montreal'], label: 'Montréal transit colours', colors: ['#0072bc', '#ee6a52', '#f8c84b', '#3bb58a'] },
+    { match: ['vancouver', 'burnaby', 'surrey'], label: 'TransLink colours', colors: ['#0072bc', '#f8c84b', '#ee6a52', '#3bb58a'] },
+    { match: ['new york', 'brooklyn', 'queens', 'bronx'], label: 'MTA colours', colors: ['#ee6a52', '#4a6cf7', '#3bb58a', '#f8c84b'] },
+    { match: ['chicago'], label: 'CTA colours', colors: ['#ee6a52', '#4a6cf7', '#8b4a9c', '#3bb58a'] },
+    { match: ['san francisco'], label: 'Muni colours', colors: ['#ee6a52', '#4a6cf7', '#f8c84b', '#3bb58a'] },
+    { match: ['london'], label: 'TfL colours', colors: ['#ee6a52', '#4a6cf7', '#f8c84b', '#3bb58a'] }
+];
+
+async function applyLocalTransitTheme() {
+    const fallbackLabel = 'Every ride becomes part of the picture.';
+    const view = document.querySelector('.auth-view');
+    const label = document.getElementById('auth-theme-label');
+    if (!view || !label) return;
+
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 2500);
+        const response = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+        clearTimeout(timeout);
+        if (!response.ok) throw new Error('Location lookup unavailable');
+
+        const location = await response.json();
+        const searchText = `${location.city || ''} ${location.region || ''}`.toLowerCase();
+        const theme = TRANSIT_THEMES.find((candidate) => candidate.match.some((name) => searchText.includes(name)));
+        if (!theme) return;
+
+        ['gold', 'blue', 'red', 'green'].forEach((name, index) => {
+            view.style.setProperty(`--auth-route-${name}`, theme.colors[index]);
+        });
+        label.textContent = `${theme.label} · every ride becomes part of the picture.`;
+    } catch {
+        label.textContent = fallbackLabel;
+    }
+}
+
 function normalizePhone(phone) {
     const digits = phone.replace(/\D/g, '');
     if (digits.length === 10) return `+1${digits}`;
@@ -123,6 +162,7 @@ function init() {
 
     setupListeners();
     syncButtons();
+    applyLocalTransitTheme();
     if (window.lucide) lucide.createIcons();
 }
 
