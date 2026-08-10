@@ -27,12 +27,6 @@
   pointer-events: none;
 }
 
-.map-controls-left {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 .filter-pills {
   display: flex;
   background: var(--bg-card);
@@ -61,10 +55,6 @@
   color: white;
 }
 
-.map-view-pills .pill.active {
-  background: var(--text-primary);
-}
-
 #btn-locate {
   background: var(--bg-card);
   backdrop-filter: blur(12px);
@@ -82,11 +72,3 @@
 .view.map-view {
   flex-direction: column;
 }
-
-@media (max-width: 640px) {
-  .map-controls { top: 14px; left: 14px; right: 14px; }
-  .map-controls-left { max-width: calc(100% - 52px); }
-  .filter-pills .pill { padding: 7px 10px; font-size: 0.76rem; }
-}
-
-

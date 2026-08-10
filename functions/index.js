@@ -17,6 +17,7 @@ if (getApps().length === 0) {
 const { sms } = require('./sms');
 const { api } = require('./api');
 const { atlasStops } = require('./atlas-stops');
+const { atlasRoutes } = require('./atlas-routes');
 const { publicProfile } = require('./lib/public-profile');
 const { onDocumentWritten, onDocumentCreated } = require('firebase-functions/v2/firestore');
 const finalization = require('./lib/finalization');
@@ -28,9 +29,9 @@ exports.sms = sms;
 // Export the iOS companion app API endpoint
 exports.api = api;
 
-// Public proxy for Atlas stop coordinates. Atlas artifacts are public, but the
-// proxy keeps the browser independent of Atlas bucket CORS configuration.
+// Public Atlas proxies used by the isolated trip-paths and heatmap betas.
 exports.atlasStops = atlasStops;
+exports.atlasRoutes = atlasRoutes;
 
 // Public profile stats — the only sanctioned way to read another user's trip
 // data. Trips are not publicly readable via Firestore rules; this endpoint
