@@ -15,6 +15,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Personal trip-paths beta** — see your saved rides over the scheduled route shapes, using Atlas stop coordinates when a trip is missing saved coordinates.
 
 ### Fixed
+- **Map pages no longer fail during startup** when the browser loads the shared topology constraint module.
 - **Homepage now fills normal laptop windows without clipping content** while keeping the full map and sign-in flow visible on mobile.
 - **TTC homepage palette now uses the actual yellow, green, purple, and orange line colours** instead of a misleading red route.
 

@@ -1,5 +1,5 @@
 import topology from '../functions/lib/topology.json';
-import TopologyConstraints from '../functions/lib/topology-constraints.js';
+import * as TopologyConstraints from './topology-constraints.js';
 
 /**
  * TransitStats V2 - Prediction Engine

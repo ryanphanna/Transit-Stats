@@ -1,5 +1,5 @@
 const ATLAS_STOPS_PROXY = import.meta.env.VITE_ATLAS_STOPS_URL
-    || 'https://us-central1-transitstats-21ba4.cloudfunctions.net/atlasStops';
+    || (import.meta.env.DEV ? '/atlas-dev/stops' : 'https://us-central1-transitstats-21ba4.cloudfunctions.net/atlasStops');
 
 export const ATLAS_AGENCY_SLUGS = {
     'TTC': 'ttc',
