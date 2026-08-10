@@ -87,7 +87,7 @@
   .auth-card { padding: 21px; }
 }
 
-@media (min-width: 861px) and (max-height: 700px) {
+@media (min-width: 861px) and (max-height: 920px) {
   .auth-content { padding: 12px clamp(24px, 4vw, 56px); }
   .auth-copy { margin: 10px 0; }
   .auth-title { font-size: clamp(2.35rem, 5.4vw, 3.1rem); }
