@@ -31,7 +31,7 @@
 .auth-copy { margin: clamp(60px, 10vh, 120px) 0 42px; }
 .auth-eyebrow, .auth-form-eyebrow { margin: 0 0 14px; color: #69738f; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase; }
 .auth-title { max-width: 560px; margin: 0; color: #17213d; font-size: clamp(3.1rem, 5.3vw, 5.7rem); font-weight: 850; letter-spacing: -0.075em; line-height: 0.93; }
-.auth-title em { color: #ee6a52; font-style: normal; }
+.auth-title em { color: #69738f; font-style: normal; }
 .auth-subtitle { max-width: 485px; margin: 26px 0 0; color: #69738f; font-size: 1.05rem; line-height: 1.65; }
 
 .auth-card { width: 100%; max-width: 560px; padding: 25px; background: rgba(255,255,255,0.92); border: 1px solid rgba(23,33,61,0.08); border-radius: 22px; box-shadow: 0 22px 70px rgba(35,48,88,0.12); }
