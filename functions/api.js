@@ -143,6 +143,20 @@ async function handleVerifyOtp(req, res, traceId) {
     }
 
     const userId = phoneDoc.data().userId;
+    if (typeof userId !== 'string' || !userId.trim()) {
+      res.status(400).json({ error: 'Registration record is missing its account link.' });
+      return;
+    }
+
+    // Older phone registrations can outlive their Firebase Auth user. Restore
+    // the original UID so the existing Firestore trips remain attached.
+    try {
+      await adminAuth.getUser(userId);
+    } catch (error) {
+      if (error.code !== 'auth/user-not-found') throw error;
+      await adminAuth.createUser({ uid: userId });
+    }
+
     const customToken = await adminAuth.createCustomToken(userId);
 
     logger.info('OTP verification successful. Minted custom token.', { phoneNumber, userId, traceId }, traceId);

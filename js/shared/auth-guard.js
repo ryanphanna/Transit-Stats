@@ -17,7 +17,7 @@ export function requireAuth(options = {}) {
                 window.location.href = '/';
                 return;
             }
-            const verification = await Auth.checkWhitelist(user.email);
+            const verification = await Auth.checkWhitelist(user.email, user.uid);
             if (!verification.allowed) {
                 await Auth.signOut();
                 window.location.href = '/';

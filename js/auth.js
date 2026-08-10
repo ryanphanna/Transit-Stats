@@ -35,19 +35,35 @@ export const Auth = {
     },
 
     // --- Whitelist Check ---
-    async checkWhitelist(email) {
+    async checkWhitelist(email, userId = null) {
         try {
-            const doc = await db.collection('allowedUsers').doc(email.toLowerCase()).get();
-            if (!doc.exists) return { allowed: false, error: 'Access denied. This app is invite-only.' };
-            return { allowed: true, isAdmin: doc.data().isAdmin === true };
+            if (email) {
+                const doc = await db.collection('allowedUsers').doc(email.toLowerCase()).get();
+                if (!doc.exists) return { allowed: false, error: 'Access denied. This app is invite-only.' };
+                return { allowed: true, isAdmin: doc.data().isAdmin === true };
+            }
+
+            if (!userId) return { allowed: false, error: 'Access denied. This app is invite-only.' };
+            const phoneSnap = await db.collection('phoneNumbers').where('userId', '==', userId).limit(1).get();
+            if (phoneSnap.empty) return { allowed: false, error: 'Access denied. This app is invite-only.' };
+            const profile = await db.collection('profiles').doc(userId).get();
+            return { allowed: true, isAdmin: profile.exists && profile.data().isAdmin === true };
         } catch (err) {
             console.error('Whitelist check failed, retrying:', err);
             // Retry once before giving up — guards against transient network errors
             // on page load signing out valid users.
             try {
-                const doc = await db.collection('allowedUsers').doc(email.toLowerCase()).get();
-                if (!doc.exists) return { allowed: false, error: 'Access denied. This app is invite-only.' };
-                return { allowed: true, isAdmin: doc.data().isAdmin === true };
+                if (email) {
+                    const doc = await db.collection('allowedUsers').doc(email.toLowerCase()).get();
+                    if (!doc.exists) return { allowed: false, error: 'Access denied. This app is invite-only.' };
+                    return { allowed: true, isAdmin: doc.data().isAdmin === true };
+                }
+
+                if (!userId) return { allowed: false, error: 'Access denied. This app is invite-only.' };
+                const phoneSnap = await db.collection('phoneNumbers').where('userId', '==', userId).limit(1).get();
+                if (phoneSnap.empty) return { allowed: false, error: 'Access denied. This app is invite-only.' };
+                const profile = await db.collection('profiles').doc(userId).get();
+                return { allowed: true, isAdmin: profile.exists && profile.data().isAdmin === true };
             } catch (retryErr) {
                 console.error('Whitelist check failed after retry:', retryErr);
                 return { allowed: false, error: 'Verification failed. Try again.' };
