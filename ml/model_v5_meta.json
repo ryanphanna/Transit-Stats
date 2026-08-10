@@ -156,6 +156,7 @@
     "last_stop_bay_station",
     "last_stop_bloor_yonge_station",
     "last_stop_broadview_mortimer",
+    "last_stop_caledonia",
     "last_stop_carlaw_gerrard",
     "last_stop_carlton_church",
     "last_stop_carlton_jarvis",
@@ -316,7 +317,7 @@
     "prev_route_stouffville",
     "prev_route_t"
   ],
-  "top1_accuracy": 0.8211,
-  "top3_accuracy": 0.8943,
-  "n_trips": 614
+  "top1_accuracy": 0.84,
+  "top3_accuracy": 0.896,
+  "n_trips": 625
 }
