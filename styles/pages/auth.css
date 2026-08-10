@@ -8,7 +8,7 @@
   --auth-route-red: #8b4a9c;
   --auth-route-green: #e87511;
   display: grid;
-  grid-template-columns: minmax(420px, 0.9fr) minmax(480px, 1.1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   position: relative;
   overflow: visible;
   background: #f7f8fc;
