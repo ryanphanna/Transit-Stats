@@ -270,7 +270,7 @@ export const MapEngine = {
         });
 
         if (markers.length > 0) {
-            this.layers.markers.addLayers(markers);
+            markers.forEach(marker => this.layers.markers.addLayer(marker));
         }
 
         // Fit bounds only on first load or when filters change
