@@ -15,6 +15,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Fixed
 - **Homepage now fills normal laptop windows without clipping content** while keeping the full map and sign-in flow visible on mobile.
+- **TTC homepage palette now uses the actual yellow, green, purple, and orange line colours** instead of a misleading red route.
 
 ## [1.47.15] — 2026-08-09
 

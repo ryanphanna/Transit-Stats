@@ -17,22 +17,23 @@ const DOM = {
 let normalizedPhone = '';
 
 const TRANSIT_THEMES = [
-    { match: ['toronto'], label: 'Toronto transit colours', colors: ['#f8c84b', '#009b4e', '#8b4a9c', '#ee6a52'] },
-    { match: ['mississauga'], label: 'MiWay colours', colors: ['#f58220', '#0072bc', '#00a99d', '#f8c84b'] },
-    { match: ['vaughan', 'markham', 'richmond hill', 'york region'], label: 'YRT colours', colors: ['#0072bc', '#f8c84b', '#ee6a52', '#3bb58a'] },
-    { match: ['montreal'], label: 'Montréal transit colours', colors: ['#0072bc', '#ee6a52', '#f8c84b', '#3bb58a'] },
-    { match: ['vancouver', 'burnaby', 'surrey'], label: 'TransLink colours', colors: ['#0072bc', '#f8c84b', '#ee6a52', '#3bb58a'] },
-    { match: ['new york', 'brooklyn', 'queens', 'bronx'], label: 'MTA colours', colors: ['#ee6a52', '#4a6cf7', '#3bb58a', '#f8c84b'] },
-    { match: ['chicago'], label: 'CTA colours', colors: ['#ee6a52', '#4a6cf7', '#8b4a9c', '#3bb58a'] },
-    { match: ['san francisco'], label: 'Muni colours', colors: ['#ee6a52', '#4a6cf7', '#f8c84b', '#3bb58a'] },
-    { match: ['london'], label: 'TfL colours', colors: ['#ee6a52', '#4a6cf7', '#f8c84b', '#3bb58a'] }
+    { match: ['toronto'], label: 'Toronto transit colours', featuredLine: 'Line 2 · Bloor–Danforth', colors: ['#f8c84b', '#009b4e', '#8b4a9c', '#e87511'] },
+    { match: ['mississauga'], label: 'MiWay colours', featuredLine: 'MiWay · Route 10', colors: ['#f58220', '#0072bc', '#00a99d', '#f8c84b'] },
+    { match: ['vaughan', 'markham', 'richmond hill', 'york region'], label: 'YRT colours', featuredLine: 'Viva Blue', colors: ['#0072bc', '#f8c84b', '#ee6a52', '#3bb58a'] },
+    { match: ['montreal'], label: 'Montréal transit colours', featuredLine: 'Orange line', colors: ['#0072bc', '#ee6a52', '#f8c84b', '#3bb58a'] },
+    { match: ['vancouver', 'burnaby', 'surrey'], label: 'TransLink colours', featuredLine: 'Expo Line', colors: ['#0072bc', '#f8c84b', '#ee6a52', '#3bb58a'] },
+    { match: ['new york', 'brooklyn', 'queens', 'bronx'], label: 'MTA colours', featuredLine: '7 · Flushing–Main St', colors: ['#ee6a52', '#4a6cf7', '#3bb58a', '#f8c84b'] },
+    { match: ['chicago'], label: 'CTA colours', featuredLine: 'Red Line', colors: ['#ee6a52', '#4a6cf7', '#8b4a9c', '#3bb58a'] },
+    { match: ['san francisco'], label: 'Muni colours', featuredLine: 'Muni Metro', colors: ['#ee6a52', '#4a6cf7', '#f8c84b', '#3bb58a'] },
+    { match: ['london'], label: 'TfL colours', featuredLine: 'Central line', colors: ['#ee6a52', '#4a6cf7', '#f8c84b', '#3bb58a'] }
 ];
 
 async function applyLocalTransitTheme() {
     const fallbackLabel = 'A living map of your transit life.';
     const view = document.querySelector('.auth-view');
     const label = document.getElementById('auth-theme-label');
-    if (!view || !label) return;
+    const featuredLine = document.getElementById('auth-featured-line');
+    if (!view || !label || !featuredLine) return;
 
     try {
         const controller = new AbortController();
@@ -49,6 +50,7 @@ async function applyLocalTransitTheme() {
         ['gold', 'blue', 'red', 'green'].forEach((name, index) => {
             view.style.setProperty(`--auth-route-${name}`, theme.colors[index]);
         });
+        featuredLine.textContent = theme.featuredLine;
         label.textContent = 'A living map of your transit life.';
     } catch {
         label.textContent = fallbackLabel;

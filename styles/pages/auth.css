@@ -4,9 +4,9 @@
   height: auto;
   padding: 0 !important;
   --auth-route-gold: #f8c84b;
-  --auth-route-blue: #4a6cf7;
-  --auth-route-red: #ee6a52;
-  --auth-route-green: #3bb58a;
+  --auth-route-blue: #009b4e;
+  --auth-route-red: #8b4a9c;
+  --auth-route-green: #e87511;
   display: grid;
   grid-template-columns: minmax(420px, 0.9fr) minmax(480px, 1.1fr);
   position: relative;
