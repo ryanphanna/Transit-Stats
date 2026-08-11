@@ -19,6 +19,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Internal tools now have a separate admin surface** so the rider site stays focused on trips and maps.
 
 ### Fixed
+- **Admin sign-in now stays on the admin hostname** so the separate admin session can complete instead of redirecting back to the rider homepage.
 - **The map now ignores malformed trip coordinates** instead of opening at a world-level zoom.
 - **The map now renders saved trip points** instead of stopping after Leaflet initializes.
 - **Phone sign-in now restores older linked accounts** instead of failing before the dashboard opens.

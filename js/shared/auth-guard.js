@@ -13,9 +13,7 @@ document.body.classList.toggle('dark', _theme === 'dark');
 export function requireAuth(options = {}) {
     return new Promise((resolve) => {
         auth.onAuthStateChanged(async (user) => {
-            const loginUrl = window.location.hostname === 'admin.transitstats.fyi'
-                ? 'https://transitstats.fyi/'
-                : '/';
+    const loginUrl = '/';
             if (!user) {
                 window.location.href = loginUrl;
                 return;
