@@ -130,22 +130,13 @@
             </div>
 
             <section class="dashboard-route-tracker">
-                <div class="card">
+                <div class="card route-tracker-card-compact">
                     <div class="card-header route-tracker-header">
                         <div>
-                            <h3><i data-lucide="map" class="icon-inline"></i> Route Tracker</h3>
-                            <p class="route-tracker-subtitle">See which routes you’ve ridden and what’s still missing.</p>
+                            <h3><i data-lucide="route" class="icon-inline"></i> Routes</h3>
+                            <p class="route-tracker-subtitle">Your route coverage, by agency.</p>
                         </div>
-                        <select id="routeTrackerAgency" aria-label="Route Tracker agency">
-                            <option value="TTC">TTC</option>
-                            <option value="OC Transpo">OC Transpo</option>
-                            <option value="GO Transit">GO Transit</option>
-                            <option value="MiWay">MiWay</option>
-                            <option value="YRT">YRT</option>
-                            <option value="Brampton Transit">Brampton Transit</option>
-                            <option value="Durham Transit">Durham Transit</option>
-                            <option value="HSR">HSR</option>
-                        </select>
+                        <a class="route-tracker-link" href="/routes">View all routes <span aria-hidden="true">→</span></a>
                     </div>
                     <div id="routeTrackerContent"></div>
                 </div>

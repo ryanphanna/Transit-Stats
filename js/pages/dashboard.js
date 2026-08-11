@@ -127,12 +127,8 @@ async function init() {
     Trips.init();
     Trips._readyPromise.then(() => {
         Stats.init();
-        RouteTracker.init();
+        RouteTracker.init({ compact: true });
         refreshIcons();
-    });
-
-    document.getElementById('routeTrackerAgency')?.addEventListener('change', (e) => {
-        RouteTracker.setAgency(e.target.value);
     });
 
     refreshIcons();

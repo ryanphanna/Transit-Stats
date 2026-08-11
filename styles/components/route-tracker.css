@@ -25,6 +25,44 @@
   font-weight: 600;
 }
 
+.routes-page-container {
+  max-width: 1080px;
+}
+
+.routes-page-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.routes-page-heading .eyebrow {
+  margin: 0 0 6px;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.routes-page-heading h1 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: clamp(2rem, 4vw, 3rem);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.routes-page-heading p:not(.eyebrow) {
+  margin: 10px 0 0;
+  color: var(--text-muted);
+}
+
+.routes-page-card .card-header h3 {
+  color: var(--text-primary);
+}
+
 .dashboard-route-tracker {
   width: min(100%, 1360px);
   margin: 24px auto 0;
@@ -33,6 +71,57 @@
 
 .dashboard-route-tracker > .card {
   margin-bottom: 0;
+}
+
+.route-tracker-card-compact .route-tracker-header {
+  align-items: center;
+}
+
+.route-tracker-link {
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.route-tracker-link:hover {
+  text-decoration: underline;
+}
+
+.rt-compact-summary {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.rt-compact-stat {
+  flex: 1;
+  padding: 14px 16px;
+  border: 1px solid var(--border-outer);
+  border-radius: 10px;
+  background: var(--bg-muted);
+}
+
+.rt-compact-stat strong,
+.rt-compact-stat span {
+  display: block;
+}
+
+.rt-compact-stat strong {
+  font-size: 1.3rem;
+  line-height: 1.1;
+}
+
+.rt-compact-stat span {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.rt-compact-stat-highlight strong {
+  color: var(--accent);
 }
 
 .rt-route-list {
@@ -143,6 +232,16 @@
 }
 
 @media (max-width: 640px) {
+  .routes-page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .routes-page-heading .btn {
+    width: 100%;
+  }
+
   .route-tracker-header {
     flex-direction: column;
     gap: 12px;
@@ -150,6 +249,22 @@
 
   .route-tracker-header select {
     width: 100%;
+  }
+
+  .route-tracker-card-compact .route-tracker-header {
+    align-items: flex-start;
+  }
+
+  .rt-compact-summary {
+    gap: 8px;
+  }
+
+  .rt-compact-stat {
+    padding: 11px 10px;
+  }
+
+  .rt-compact-stat strong {
+    font-size: 1.05rem;
   }
 
   .rt-route-list {

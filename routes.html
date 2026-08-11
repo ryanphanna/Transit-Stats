@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Routes — TransitStats</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+    <link rel="stylesheet" href="styles/main.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <main id="app-root">
+        <section class="view routes-view active">
+            <div class="container routes-page-container">
+                <div class="routes-page-heading">
+                    <div>
+                        <p class="eyebrow">Your transit life</p>
+                        <h1>Routes</h1>
+                        <p>See the network you’ve explored and what’s still out there.</p>
+                    </div>
+                    <a class="btn btn-ghost" href="/dashboard">Back to dashboard</a>
+                </div>
+
+                <div class="card routes-page-card">
+                    <div class="card-header route-tracker-header">
+                        <div>
+                            <h3><i data-lucide="route" class="icon-inline"></i> Route coverage</h3>
+                            <p class="route-tracker-subtitle">Branches and shuttles count toward their base route.</p>
+                        </div>
+                        <label class="sr-only" for="routeTrackerAgency">Transit agency</label>
+                        <select id="routeTrackerAgency" aria-label="Transit agency">
+                            <option value="TTC">TTC</option>
+                            <option value="OC Transpo">OC Transpo</option>
+                            <option value="GO Transit">GO Transit</option>
+                            <option value="MiWay">MiWay</option>
+                            <option value="YRT">YRT</option>
+                            <option value="Brampton Transit">Brampton Transit</option>
+                            <option value="Durham Transit">Durham Transit</option>
+                            <option value="HSR">HSR</option>
+                        </select>
+                    </div>
+                    <div id="routeTrackerContent">
+                        <div class="loading-state">Loading routes...</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script type="module" src="js/pages/routes.js"></script>
+</body>
+</html>

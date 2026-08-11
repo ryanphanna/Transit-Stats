@@ -20,6 +20,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Internal tools now have a separate admin surface** so the rider site stays focused on trips and maps.
 - **Route Tracker now uses the full dashboard width** instead of being squeezed into the profile column.
 - **Route Tracker now shows a compact coverage summary** instead of listing every missing route by default.
+- **Route Tracker now has its own Routes page** so the dashboard stays focused while the full network remains easy to explore.
 - **Settings now uses the available page width** instead of reserving an empty second column.
 
 ### Fixed

@@ -19,7 +19,10 @@ function _render(isAdmin, currentPage) {
             { id: 'insights', label: 'Insights', icon: 'line-chart', href: '/insights' },
             ...(isAdmin ? [{ id: 'rocket', label: 'Rocket', icon: 'rocket', href: '/rocket' }] : []),
         ]
-        : [{ id: 'map', label: 'Map', icon: 'map', href: '/map' }];
+        : [
+            { id: 'map', label: 'Map', icon: 'map', href: '/map' },
+            { id: 'routes', label: 'Routes', icon: 'route', href: '/routes' },
+        ];
     const logoHref = adminHost ? 'https://transitstats.fyi/' : '/dashboard';
 
     const headerHtml = `

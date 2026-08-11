@@ -73,7 +73,7 @@
           ]
         },
         {
-          "source": "/{dashboard,settings,map,admin,users,insights,public,rocket}",
+          "source": "/{dashboard,routes,settings,map,admin,users,insights,public,rocket}",
           "headers": [
             {
               "key": "Cache-Control",
@@ -90,6 +90,10 @@
         {
           "source": "/settings",
           "destination": "/settings.html"
+        },
+        {
+          "source": "/routes",
+          "destination": "/routes.html"
         },
         {
           "source": "**",
@@ -152,7 +156,7 @@
           ]
         },
         {
-          "source": "/{dashboard,settings,map,admin,users,insights,public,rocket}",
+          "source": "/{dashboard,routes,settings,map,admin,users,insights,public,rocket}",
           "headers": [
             {
               "key": "Cache-Control",

@@ -33,8 +33,10 @@ const IDB_STORE = 'atlasRoutes';
 
 export const RouteTracker = {
     currentAgency: null,
+    compact: false,
     routesCache: {},    // agency -> routes[]
-    init: function () {
+    init: function ({ compact = false } = {}) {
+        this.compact = compact;
         // Default to user's profile agency, fall back to TTC
         const profileAgency = window.currentUserProfile?.defaultAgency;
         this.currentAgency = profileAgency || 'TTC';
@@ -229,6 +231,22 @@ export const RouteTracker = {
         const riddenCount = ridden.length;
         const missingCount = Math.max(total - riddenCount, 0);
         const pct = total > 0 ? Math.round((riddenCount / total) * 100) : 0;
+
+        if (this.compact) {
+            container.innerHTML = `
+                <div class="rt-compact-summary">
+                    <div class="rt-compact-stat">
+                        <strong>${riddenCount} of ${total}</strong>
+                        <span>${UI.escapeHtml(this.currentAgency)} routes ridden</span>
+                    </div>
+                    <div class="rt-compact-stat rt-compact-stat-highlight">
+                        <strong>${pct}%</strong>
+                        <span>Atlas coverage</span>
+                    </div>
+                </div>
+            `;
+            return;
+        }
 
         container.innerHTML = `
             <div class="rt-summary">
