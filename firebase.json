@@ -71,6 +71,15 @@
               "value": "no-cache, no-store, max-age=0, must-revalidate"
             }
           ]
+        },
+        {
+          "source": "/{dashboard,settings,map,admin,users,insights,public,rocket}",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0, must-revalidate"
+            }
+          ]
         }
       ],
       "rewrites": [
@@ -135,6 +144,15 @@
         },
         {
           "source": "**/*.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, max-age=0, must-revalidate"
+            }
+          ]
+        },
+        {
+          "source": "/{dashboard,settings,map,admin,users,insights,public,rocket}",
           "headers": [
             {
               "key": "Cache-Control",
