@@ -13,6 +13,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Animated homepage map** — flowing routes and pulsing stations make the ridership graphic feel alive.
 - **Local transit theming** — the homepage quietly adapts its route colours to the visitor’s approximate city when available.
 - **Personal trip-paths beta** — see your saved rides over the scheduled route shapes, using Atlas stop coordinates when a trip is missing saved coordinates.
+- **Atlas-first stop resolution beta** — compare Atlas matches, Firestore fallbacks, and unresolved trip stops without changing the production map or trip data.
 - **Route Tracker now loads agency route inventories** and compares them with saved rides.
 
 ### Changed

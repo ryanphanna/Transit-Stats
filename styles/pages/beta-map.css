@@ -71,9 +71,57 @@
   text-transform: uppercase;
 }
 
+.beta-map-diagnostics {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  max-width: min(720px, calc(100% - 48px));
+  padding: 10px 12px;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+  font-size: 0.72rem;
+}
+
+.beta-map-diagnostics strong {
+  color: var(--text-primary);
+}
+
+.beta-map-diagnostics span::before {
+  content: '·';
+  margin-right: 12px;
+  color: var(--text-muted);
+}
+
+.beta-map-diagnostics b {
+  color: var(--accent);
+}
+
+.beta-map-diagnostics small {
+  flex-basis: 100%;
+  color: var(--text-muted);
+  font-size: 0.66rem;
+}
+
 @media (max-width: 640px) {
   .beta-map-controls { top: 14px; left: 14px; right: 14px; }
   .beta-map-control-groups { max-width: calc(100% - 110px); }
   .beta-map-pills .pill { padding: 7px 10px; font-size: 0.74rem; }
   .beta-map-label { padding: 8px 9px; font-size: 0.62rem; }
+  .beta-map-diagnostics {
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+    max-width: none;
+    gap: 4px 8px;
+    font-size: 0.65rem;
+  }
 }

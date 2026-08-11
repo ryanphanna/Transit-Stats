@@ -3,6 +3,7 @@ import { initHeader } from '../shared/header.js';
 import { db } from '../firebase.js';
 import { ATLAS_AGENCY_SLUGS as STOP_AGENCIES, loadAtlasStops } from '../atlas-stops.js';
 import { ATLAS_AGENCY_SLUGS as ROUTE_AGENCIES, loadAtlasRoutes } from '../atlas-routes.js';
+import { buildStopIndex, resolveStopLocation, validLocation } from '../atlas-stop-resolver.js';
 
 const state = {
     map: null,
@@ -18,56 +19,61 @@ const state = {
     layers: { paths: null, points: null }
 };
 
-const normalize = value => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-
-function validLocation(location) {
-    const lat = Number(location?.lat);
-    const lng = Number(location?.lng ?? location?.lon);
-    return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+function emptyResolutionStats() {
+    return { saved: 0, atlas: 0, firestore: 0, unresolved: 0 };
 }
 
-function rebuildStopIndex() {
-    const index = new Map();
-    [...state.atlasStops, ...state.firestoreStops].forEach(stop => {
-        const location = validLocation(stop);
-        if (!location) return;
-        [stop.name, stop.code, ...(stop.aliases || [])].forEach(label => {
-            const key = normalize(label);
-            if (key) index.set(key, location);
-        });
+function buildPointData() {
+    const stopIndex = buildStopIndex({
+        atlasStops: state.atlasStops,
+        firestoreStops: state.firestoreStops,
     });
-    return index;
-}
-
-function getTripLocation(trip, side, stopIndex) {
-    const saved = validLocation(side === 'boarding'
-        ? (trip.boardingLocation || trip.boardLocation)
-        : trip.exitLocation);
-    if (saved) return saved;
-
-    const stopName = side === 'boarding'
-        ? (trip.startStopName || trip.startStop)
-        : (trip.endStopName || trip.endStop);
-    return stopIndex.get(normalize(stopName)) || null;
-}
-
-function buildPoints() {
-    const stopIndex = rebuildStopIndex();
     const showBoarding = state.filter === 'boarding' || state.filter === 'both';
     const showExiting = state.filter === 'exiting' || state.filter === 'both';
     const points = [];
+    const diagnostics = {
+        boarding: emptyResolutionStats(),
+        exiting: emptyResolutionStats(),
+    };
 
-    state.trips.slice(0, 1000).forEach(trip => {
-        if (showBoarding) {
-            const location = getTripLocation(trip, 'boarding', stopIndex);
-            if (location) points.push({ ...location, type: 'boarding', trip });
-        }
-        if (showExiting) {
-            const location = getTripLocation(trip, 'exiting', stopIndex);
-            if (location) points.push({ ...location, type: 'exiting', trip });
+    const limitedTrips = state.trips.slice(0, 1000);
+    limitedTrips.forEach(trip => {
+        for (const [side, visible] of [['boarding', showBoarding], ['exiting', showExiting]]) {
+            const resolution = resolveStopLocation(trip, side, stopIndex);
+            diagnostics[side][resolution.source]++;
+            if (visible && resolution.location) {
+                points.push({ ...resolution.location, type: side, trip });
+            }
         }
     });
-    return points;
+
+    return {
+        points,
+        diagnostics,
+        tripCount: limitedTrips.length,
+        capped: state.trips.length > limitedTrips.length,
+    };
+}
+
+function renderDiagnostics({ boarding, exiting, tripCount, capped }) {
+    const container = document.getElementById('beta-map-diagnostics');
+    if (!container) return;
+
+    const totals = ['saved', 'atlas', 'firestore', 'unresolved'].reduce((result, source) => {
+        result[source] = boarding[source] + exiting[source];
+        return result;
+    }, {});
+    const resolved = totals.saved + totals.atlas + totals.firestore;
+    const capNote = capped ? ` · showing first ${tripCount} trips` : '';
+
+    container.innerHTML = `
+        <strong>Stop locations</strong>
+        <span><b>${resolved}</b> matched</span>
+        <span><b>${totals.atlas}</b> Atlas</span>
+        <span><b>${totals.firestore}</b> Firestore fallback</span>
+        <span><b>${totals.unresolved}</b> unresolved</span>
+        <small>Boarding ${boarding.saved + boarding.atlas + boarding.firestore}/${tripCount} · Exiting ${exiting.saved + exiting.atlas + exiting.firestore}/${tripCount}${capNote}</small>
+    `;
 }
 
 function clearLayers() {
@@ -109,8 +115,7 @@ function renderPaths() {
     return coordinates;
 }
 
-function renderPoints() {
-    const points = buildPoints();
+function renderPoints(points) {
     points.forEach(point => L.circleMarker([point.lat, point.lng], {
         radius: 6,
         fillColor: point.type === 'boarding' ? '#4f46e5' : '#10b981',
@@ -124,7 +129,9 @@ function renderPoints() {
 function render() {
     if (!state.map) return;
     clearLayers();
-    const coordinates = state.view === 'paths' ? renderPaths() : renderPoints();
+    const pointData = buildPointData();
+    renderDiagnostics({ ...pointData.diagnostics, tripCount: pointData.tripCount, capped: pointData.capped });
+    const coordinates = state.view === 'paths' ? renderPaths() : renderPoints(pointData.points);
     if (coordinates.length > 0 && !state.hasFit) {
         state.map.fitBounds(L.latLngBounds(coordinates), { padding: [60, 60], animate: false });
         state.hasFit = true;

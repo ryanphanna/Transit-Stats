@@ -12,7 +12,7 @@ export const ATLAS_AGENCY_SLUGS = {
     'HSR': 'hamilton'
 };
 
-async function fetchAgencyStops(slug) {
+async function fetchAgencyStops(agency, slug) {
     const response = await fetch(`${ATLAS_STOPS_PROXY}?agency=${encodeURIComponent(slug)}`);
     if (!response.ok) throw new Error(`Atlas stop data unavailable for ${slug}`);
 
@@ -23,16 +23,21 @@ async function fetchAgencyStops(slug) {
             name: stop.name,
             lat: Number(stop.lat),
             lng: Number(stop.lon),
+            agency,
             source: 'atlas'
         }))
         .filter(stop => stop.name && Number.isFinite(stop.lat) && Number.isFinite(stop.lng));
 }
 
 export async function loadAtlasStops(agencies) {
-    const slugs = [...new Set(agencies.map(agency => ATLAS_AGENCY_SLUGS[agency]).filter(Boolean))];
-    if (slugs.length === 0) return [];
+    const agencySlugs = [...new Set(agencies)]
+        .filter(agency => ATLAS_AGENCY_SLUGS[agency])
+        .map(agency => [agency, ATLAS_AGENCY_SLUGS[agency]]);
+    if (agencySlugs.length === 0) return [];
 
-    const results = await Promise.allSettled(slugs.map(fetchAgencyStops));
+    const results = await Promise.allSettled(
+        agencySlugs.map(([agency, slug]) => fetchAgencyStops(agency, slug))
+    );
     return results
         .filter(result => result.status === 'fulfilled')
         .flatMap(result => result.value);
