@@ -113,7 +113,7 @@ async function init() {
     await Profile.load(user);
 
     const profileName = document.getElementById('profile-name');
-    if (profileName) profileName.textContent = user.displayName || user.email.split('@')[0];
+    if (profileName) profileName.textContent = Profile.getDisplayName(user) || 'Traveler';
 
     setupTripEditListeners();
     setupStatsToggle();

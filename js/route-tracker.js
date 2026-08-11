@@ -12,7 +12,8 @@ import { UI } from './ui-utils.js';
  * doesn't carry or when the fetch fails.
  */
 
-const ATLAS_R2_BASE = 'https://pub-85dc05d357954b6399c9a44018a3221e.r2.dev';
+const ATLAS_ROUTES_PROXY = import.meta.env.VITE_ATLAS_ROUTES_URL
+    || (import.meta.env.DEV ? '/atlas-dev/routes' : 'https://us-central1-transitstats-21ba4.cloudfunctions.net/atlasRoutes');
 
 // Transit Stats agency name -> Atlas slug (must match Atlas index.json).
 const ATLAS_SLUGS = {
@@ -113,25 +114,13 @@ export const RouteTracker = {
         return routes;
     },
 
-    /** Unique routes from the agency's Atlas GeoJSON; null on any failure. */
+    /** Unique route metadata from Atlas; null on any failure. */
     _fetchAtlasRoutes: async function (slug) {
         try {
-            const res = await fetch(`${ATLAS_R2_BASE}/atlas/${slug}.json`);
+            const res = await fetch(`${ATLAS_ROUTES_PROXY}?agency=${encodeURIComponent(slug)}&all=true`);
             if (!res.ok) return null;
-            const fc = await res.json();
-            const byShortName = new Map();
-            for (const f of fc.features || []) {
-                const p = f.properties || {};
-                if (!p.routeShortName) continue;
-                const key = String(p.routeShortName);
-                const existing = byShortName.get(key);
-                if (!existing) {
-                    byShortName.set(key, { routeShortName: key, routeLongName: p.routeLongName || '' });
-                } else if (!existing.routeLongName && p.routeLongName) {
-                    existing.routeLongName = p.routeLongName;
-                }
-            }
-            return byShortName.size > 0 ? [...byShortName.values()] : null;
+            const data = await res.json();
+            return Array.isArray(data.routes) && data.routes.length > 0 ? data.routes : null;
         } catch (err) {
             console.warn('RouteTracker: Atlas fetch failed, falling back to Firestore', err);
             return null;
@@ -201,13 +190,20 @@ export const RouteTracker = {
         if (!window.Trips?.allTrips) return new Set();
         return new Set(
             window.Trips.allTrips
-                .filter(t => t.agency === agency && t.route)
-                .map(t => String(t.route).trim().toLowerCase())
+                .filter(t => (t.agency || 'TTC') === agency && t.route)
+                .map(t => this._normalizeRoute(t.route))
         );
     },
 
+    _normalizeRoute: function (value) {
+        return String(value || '')
+            .trim()
+            .toLowerCase()
+            .replace(/^(route|line)\s+/i, '');
+    },
+
     _render: function (container, routes, riddenSet) {
-        const normalize = r => String(r.routeShortName).trim().toLowerCase();
+        const normalize = r => this._normalizeRoute(r.routeShortName);
         const ridden = routes.filter(r => riddenSet.has(normalize(r)));
         const unridden = routes.filter(r => !riddenSet.has(normalize(r)));
         const total = routes.length;

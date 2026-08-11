@@ -44,8 +44,9 @@ input:-webkit-autofill { animation-name: onAutofillStart; }
 /* --- Dashboard Grid --- */
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 320px 1fr 280px;
-  gap: 32px;
+  max-width: 1360px;
+  grid-template-columns: 280px minmax(0, 1fr) 300px;
+  gap: 24px;
 }
 
 @media (max-width: 1200px) {
@@ -382,6 +383,5 @@ input:-webkit-autofill { animation-name: onAutofillStart; }
 
 /* Layout adjustments */
 .sparkline-container { display: none; } /* Hide old sparkline */
-
 
 

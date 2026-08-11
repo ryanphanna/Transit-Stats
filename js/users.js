@@ -69,7 +69,7 @@ export const Users = {
         if (counter) counter.textContent = `${premiumCount} premium / ${this.profiles.length} total`;
 
         list.innerHTML = this.profiles.map(u => {
-            const name = Utils.hide(u.displayName || u.name || u.email?.split('@')[0] || 'Unknown');
+            const name = Utils.hide(u.displayName || u.name || 'Traveler');
             const email = Utils.hide(u.email || '—');
             const phone = u.phone ? Utils.hide(u.phone) : '<span style="color:var(--text-muted)">No phone</span>';
             const badge = u.isPremium

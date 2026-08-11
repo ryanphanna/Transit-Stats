@@ -42,14 +42,32 @@ exports.atlasRoutes = onRequest({
     .split(',')
     .map(route => route.trim())
     .filter(Boolean));
+  const metadataOnly = String(req.query.all || '').toLowerCase() === 'true';
 
-  if (!ALLOWED_SLUGS.has(slug) || routeSet.size === 0) {
+  if (!ALLOWED_SLUGS.has(slug) || (!metadataOnly && routeSet.size === 0)) {
     res.status(400).json({ error: 'Unsupported agency or missing routes' });
     return;
   }
 
   try {
     const data = await getAgencyRoutes(slug);
+    if (metadataOnly) {
+      const routes = new Map();
+      for (const feature of data.features || []) {
+        const properties = feature.properties || {};
+        const routeShortName = String(properties.routeShortName || '').trim();
+        if (!routeShortName || routes.has(routeShortName)) continue;
+        routes.set(routeShortName, {
+          routeShortName,
+          routeLongName: String(properties.routeLongName || '').trim(),
+        });
+      }
+
+      res.set('Cache-Control', 'public, max-age=3600');
+      res.status(200).json({ routes: [...routes.values()] });
+      return;
+    }
+
     const features = (data.features || []).filter(feature => {
       const properties = feature.properties || {};
       return routeSet.has(String(properties.routeShortName || '').trim())

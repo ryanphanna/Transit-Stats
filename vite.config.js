@@ -70,14 +70,28 @@ export default defineConfig({
 
                         if (match[1] === 'routes') {
                             const routes = new Set((requestUrl.searchParams.get('routes') || '').split(',').filter(Boolean));
-                            data = {
-                                type: 'FeatureCollection',
-                                features: (data.features || []).filter(feature => {
+                            if (requestUrl.searchParams.get('all') === 'true') {
+                                const routeMetadata = new Map();
+                                for (const feature of data.features || []) {
                                     const props = feature.properties || {};
-                                    return routes.has(String(props.routeShortName || '').trim())
-                                        || routes.has(String(props.routeId || '').trim());
-                                })
-                            };
+                                    const routeShortName = String(props.routeShortName || '').trim();
+                                    if (!routeShortName || routeMetadata.has(routeShortName)) continue;
+                                    routeMetadata.set(routeShortName, {
+                                        routeShortName,
+                                        routeLongName: String(props.routeLongName || '').trim(),
+                                    });
+                                }
+                                data = { routes: [...routeMetadata.values()] };
+                            } else {
+                                data = {
+                                    type: 'FeatureCollection',
+                                    features: (data.features || []).filter(feature => {
+                                        const props = feature.properties || {};
+                                        return routes.has(String(props.routeShortName || '').trim())
+                                            || routes.has(String(props.routeId || '').trim());
+                                    })
+                                };
+                            }
                         }
 
                         res.setHeader('Content-Type', 'application/json');

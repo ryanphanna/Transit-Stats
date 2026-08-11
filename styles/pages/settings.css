@@ -151,7 +151,7 @@ input:focus, select:focus {
 }
 
 .settings-page-container {
-    max-width: 820px;
+    max-width: 1100px;
     margin: 0 auto;
     padding: 0 24px;
 }
@@ -168,7 +168,7 @@ input:focus, select:focus {
 
 .settings-page-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 24px;
     align-items: start;
 }
@@ -338,6 +338,5 @@ input:checked + .slider:before {
 .slider.round:before {
   border-radius: 50%;
 }
-
 
 

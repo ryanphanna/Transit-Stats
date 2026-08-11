@@ -12,6 +12,12 @@ export const Profile = {
     currentTriplet: ['subway', 'subway', 'subway'],
     activeSlot: null,
 
+    getDisplayName(user = auth.currentUser) {
+        const displayName = this.data?.displayName || user?.displayName || '';
+        const emailPrefix = user?.email?.split('@')[0] || '';
+        return displayName && displayName !== emailPrefix ? displayName : '';
+    },
+
     async init() {
         this.setupListeners();
         this.initEmojiPicker();
@@ -199,7 +205,7 @@ export const Profile = {
         const triplet = Identity.generate();
         const defaultData = {
             userId: user.uid,
-            displayName: user.displayName || user.email.split('@')[0],
+            displayName: user.displayName || 'Traveler',
             username: Identity.toSlug(triplet), // Auto-generate themed slug
             defaultAgency: 'TTC',
             isPremium: false,
@@ -239,12 +245,12 @@ export const Profile = {
         if (phoneEl) phoneEl.textContent = this.phone || 'Not linked';
         
         const nameEl = document.getElementById('settings-name');
-        if (nameEl) nameEl.value = this.data?.displayName || auth.currentUser?.displayName || '';
+        if (nameEl) nameEl.value = this.getDisplayName();
 
         // Update Global Header/Dashboard Name
         const profileName = document.getElementById('profile-name');
         if (profileName) {
-            profileName.textContent = this.data?.displayName || auth.currentUser?.displayName || email?.split('@')[0] || 'Traveler';
+            profileName.textContent = this.getDisplayName() || 'Traveler';
         }
         
         if (agencyEl && this.data?.defaultAgency) {
