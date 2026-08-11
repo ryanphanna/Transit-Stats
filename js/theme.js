@@ -30,7 +30,7 @@
     if (document.body) apply(preference);
     else document.addEventListener('DOMContentLoaded', () => apply(preference), { once: true });
 
-    window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change', () => {
         if (window.TransitTheme.getPreference() === 'system') apply('system');
     });
 })();

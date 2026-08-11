@@ -29,6 +29,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Settings now uses the available page width** instead of reserving an empty second column.
 
 ### Fixed
+- **Theme bootstrap now ships inside every built page** so saved themes work in production without a flash or missing script.
 - **Incomplete trips now stay clearly marked** and map labels no longer show `undefined` when stop data is missing.
 - **Public and signed-in maps now share the same visual language** without exposing private trip details.
 - **Settings and navigation actions are now clearer** with visible save controls, working emoji selection, consistent branding, and a shared sign-out action.

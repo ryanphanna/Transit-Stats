@@ -1,5 +1,8 @@
 
 import { defineConfig } from 'vite';
+import fs from 'node:fs';
+
+const themeBootstrap = fs.readFileSync(new URL('./js/theme.js', import.meta.url), 'utf8');
 
 export default defineConfig({
     root: './',
@@ -106,7 +109,7 @@ export default defineConfig({
             transformIndexHtml() {
                 return [{
                     tag: 'script',
-                    attrs: { src: '/js/theme.js' },
+                    children: themeBootstrap,
                     injectTo: 'head-prepend',
                 }];
             }

@@ -241,7 +241,8 @@ input:focus, select:focus {
   border-bottom: 1px solid rgba(0,0,0,0.05);
 }
 
-body.dark .info-row:not(:last-child) {
+body.dark .info-row:not(:last-child),
+html[data-theme="dark"] .info-row:not(:last-child) {
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
@@ -338,5 +339,4 @@ input:checked + .slider:before {
 .slider.round:before {
   border-radius: 50%;
 }
-
 
