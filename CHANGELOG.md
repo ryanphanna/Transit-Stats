@@ -18,6 +18,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Changed
 - **Map basemaps are now quieter and label-free** so personal trip data stays the visual focus.
+- **Trip-path beta lines now use uniform strokes and route colours** so overlapping routes remain readable.
+- **Trip-path beta now clips lines to each verified ride** so the map shows where you rode, not every stop on the route.
 - **Internal tools now have a separate admin surface** so the rider site stays focused on trips and maps.
 - **Route Tracker now uses the full dashboard width** instead of being squeezed into the profile column.
 - **Route Tracker now shows a compact coverage summary** instead of listing every missing route by default.
@@ -31,6 +33,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Admin sign-in now stays on the admin hostname** so the separate admin session can complete instead of redirecting back to the rider homepage.
 - **The map now ignores malformed trip coordinates** instead of opening at a world-level zoom.
 - **The map now renders saved trip points** instead of stopping after Leaflet initializes.
+- **Profile map stop matching now prefers Atlas and reports fallback coverage** so missing coordinates are visible instead of silently dropped.
 - **Phone sign-in now restores older linked accounts** instead of failing before the dashboard opens.
 - **Map pages no longer fail during startup** when the browser loads the shared topology constraint module.
 - **Homepage now fills normal laptop windows without clipping content** while keeping the full map and sign-in flow visible on mobile.

@@ -13,7 +13,15 @@ export const ATLAS_AGENCY_SLUGS = {
 };
 
 function routeValues(trips) {
-    return [...new Set(trips.map(trip => String(trip.route || '').trim()).filter(Boolean))];
+    const routes = new Set();
+    trips.forEach(trip => {
+        const route = String(trip.route || '').trim();
+        if (!route) return;
+        routes.add(route);
+        const base = route.match(/^(\d+)/)?.[1];
+        if (base) routes.add(base);
+    });
+    return [...routes];
 }
 
 export async function loadAtlasRoutes(trips) {

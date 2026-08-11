@@ -1,5 +1,6 @@
 import { UI } from './ui-utils.js';
 import { PredictionEngine } from './predict.js';
+import { buildStopIndex, resolveStopLocation } from './atlas-stop-resolver.js';
 
 /**
  * TransitStats V2 Map Engine
@@ -21,6 +22,8 @@ export const MapEngine = {
     _isFirstLoad: true,
     _renderTimer: null,
     _lastLibSize: 0,
+    _stopIndex: new Map(),
+    _stopSourcesReady: false,
 
     init(initialTrips = [], initialCenter = null) {
         console.log("MapEngine.init: Started", { tripsCount: initialTrips.length });
@@ -123,6 +126,14 @@ export const MapEngine = {
         });
     },
 
+    setStopSources({ atlasStops = [], firestoreStops = [] } = {}) {
+        PredictionEngine.stopsLibrary = firestoreStops;
+        this._stopIndex = buildStopIndex({ atlasStops, firestoreStops });
+        this._stopSourcesReady = true;
+        this._skipLookup.clear();
+        if (this.map) this.renderMarkers();
+    },
+
     /**
      * Build an O(1) lookup Map for stop locations from the stopsLibrary.
      * Dramatically improves performance over linear searching.
@@ -185,6 +196,41 @@ export const MapEngine = {
         return loc;
     },
 
+    _resolveStop(trip, side) {
+        if (this._stopSourcesReady) return resolveStopLocation(trip, side, this._stopIndex);
+
+        const saved = side === 'boarding'
+            ? (trip.boardingLocation || trip.boardLocation)
+            : trip.exitLocation;
+        if (saved && Number.isFinite(Number(saved.lat)) && Number.isFinite(Number(saved.lng ?? saved.lon))) {
+            return { location: { lat: Number(saved.lat), lng: Number(saved.lng ?? saved.lon) }, source: 'saved' };
+        }
+
+        const stopName = side === 'boarding'
+            ? (trip.startStopName || trip.startStop)
+            : (trip.endStopName || trip.endStop);
+        const location = this._getStopLocation(stopName);
+        return { location, source: location ? 'firestore' : 'unresolved' };
+    },
+
+    _renderDiagnostics(stats, tripCount) {
+        const container = document.getElementById('map-diagnostics');
+        if (!container) return;
+        const totals = ['saved', 'atlas', 'firestore', 'unresolved'].reduce((result, source) => {
+            result[source] = stats.boarding[source] + stats.exiting[source];
+            return result;
+        }, {});
+        const resolved = totals.saved + totals.atlas + totals.firestore;
+        container.innerHTML = `
+            <strong>Stop locations</strong>
+            <span><b>${resolved}</b> matched</span>
+            <span><b>${totals.atlas}</b> Atlas</span>
+            <span><b>${totals.firestore}</b> Firestore fallback</span>
+            <span><b>${totals.unresolved}</b> unresolved</span>
+            <small>Boarding ${stats.boarding.saved + stats.boarding.atlas + stats.boarding.firestore}/${tripCount} · Exiting ${stats.exiting.saved + stats.exiting.atlas + stats.exiting.firestore}/${tripCount}</small>
+        `;
+    },
+
     renderMarkers() {
         if (!this.map || !this.layers.markers) return;
 
@@ -199,6 +245,10 @@ export const MapEngine = {
         }
 
         const points = [];
+        const resolutionStats = {
+            boarding: { saved: 0, atlas: 0, firestore: 0, unresolved: 0 },
+            exiting: { saved: 0, atlas: 0, firestore: 0, unresolved: 0 },
+        };
         const isBoth = this.filter === 'both';
         const showBoarding = this.filter === 'boarding' || isBoth;
         const showExiting = this.filter === 'exiting' || isBoth;
@@ -211,11 +261,10 @@ export const MapEngine = {
 
         limitedTrips.forEach(trip => {
             // Process Boarding
+            const boarding = this._resolveStop(trip, 'boarding');
+            resolutionStats.boarding[boarding.source] += 1;
             if (showBoarding) {
-                let bLoc = trip.boardingLocation;
-                if (!bLoc || isNaN(bLoc.lat)) {
-                    bLoc = this._getStopLocation(trip.startStopName || trip.startStop);
-                }
+                const bLoc = boarding.location;
                 if (bLoc && !isNaN(bLoc.lat)) {
                     points.push({
                         lat: bLoc.lat,
@@ -227,11 +276,10 @@ export const MapEngine = {
             }
 
             // Process Exiting
+            const exiting = this._resolveStop(trip, 'exiting');
+            resolutionStats.exiting[exiting.source] += 1;
             if (showExiting) {
-                let eLoc = trip.exitLocation;
-                if (!eLoc || isNaN(eLoc.lat)) {
-                    eLoc = this._getStopLocation(trip.endStopName || trip.endStop);
-                }
+                const eLoc = exiting.location;
                 if (eLoc && !isNaN(eLoc.lat)) {
                     points.push({
                         lat: eLoc.lat,
@@ -272,6 +320,8 @@ export const MapEngine = {
         if (markers.length > 0) {
             markers.forEach(marker => this.layers.markers.addLayer(marker));
         }
+
+        this._renderDiagnostics(resolutionStats, limitedTrips.length);
 
         // Fit bounds only on first load or when filters change
         const validPoints = points

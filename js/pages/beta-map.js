@@ -3,7 +3,8 @@ import { initHeader } from '../shared/header.js';
 import { db } from '../firebase.js';
 import { ATLAS_AGENCY_SLUGS as STOP_AGENCIES, loadAtlasStops } from '../atlas-stops.js';
 import { ATLAS_AGENCY_SLUGS as ROUTE_AGENCIES, loadAtlasRoutes } from '../atlas-routes.js';
-import { buildStopIndex, resolveStopLocation, validLocation } from '../atlas-stop-resolver.js';
+import { buildStopIndex, resolveStopLocation } from '../atlas-stop-resolver.js';
+import { clipFeatureToTrip, routeMatches } from '../route-segment.js';
 
 const state = {
     map: null,
@@ -81,38 +82,61 @@ function clearLayers() {
     state.layers.points.clearLayers();
 }
 
-function routeKey(route) {
-    return String(route || '').trim();
+function buildPathData() {
+    const stopIndex = buildStopIndex({
+        atlasStops: state.atlasStops,
+        firestoreStops: state.firestoreStops,
+    });
+    const segments = [];
+    let unresolved = 0;
+    const limitedTrips = state.trips.slice(0, 1000);
+
+    limitedTrips.forEach(trip => {
+        const start = resolveStopLocation(trip, 'boarding', stopIndex);
+        const end = resolveStopLocation(trip, 'exiting', stopIndex);
+        if (!start.location || !end.location) {
+            unresolved += 1;
+            return;
+        }
+
+        const agencySlug = ROUTE_AGENCIES[trip.agency || 'TTC'];
+        const candidates = state.routeFeatures.filter(feature => {
+            const route = feature.properties?.routeShortName || feature.properties?.routeId;
+            return feature.__agencySlug === agencySlug && routeMatches(route, trip.route);
+        });
+        const match = candidates
+            .map(feature => ({ feature, line: clipFeatureToTrip(feature, trip, start.location, end.location) }))
+            .find(candidate => candidate.line);
+        if (match) segments.push({ ...match, trip });
+        else unresolved += 1;
+    });
+
+    return {
+        segments,
+        tripCount: limitedTrips.length,
+        unresolved,
+        capped: state.trips.length > limitedTrips.length,
+    };
 }
 
 function renderPaths() {
-    const counts = new Map();
-    state.trips.forEach(trip => {
-        const slug = ROUTE_AGENCIES[trip.agency || 'TTC'];
-        const key = `${slug}:${routeKey(trip.route)}`;
-        counts.set(key, (counts.get(key) || 0) + 1);
-    });
-
+    const pathData = buildPathData();
     const coordinates = [];
-    state.routeFeatures.forEach(feature => {
+    pathData.segments.forEach(({ feature, line, trip }) => {
         const properties = feature.properties || {};
-        const route = routeKey(properties.routeShortName || properties.routeId);
-        const count = counts.get(`${feature.__agencySlug}:${route}`) || 0;
-        if (!count || feature.geometry?.type !== 'LineString') return;
-
-        const line = feature.geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+        const route = String(properties.routeShortName || properties.routeId || trip.route || '').trim();
         const color = /^[0-9a-f]{6}$/i.test(properties.routeColor || '')
             ? `#${properties.routeColor}`
             : '#4f46e5';
         L.polyline(line, {
             color,
-            weight: Math.min(11, 3 + Math.log2(count + 1) * 2),
-            opacity: 0.35 + Math.min(0.55, count / 20)
-        }).bindPopup(`${route} · ${count} logged ${count === 1 ? 'ride' : 'rides'}`).addTo(state.layers.paths);
+            weight: 2.5,
+            opacity: 0.65
+        }).bindPopup(`${route} · ${trip.startStopName || trip.startStop || 'Boarding stop'} → ${trip.endStopName || trip.endStop || 'Exit stop'}`).addTo(state.layers.paths);
         coordinates.push(...line);
     });
 
-    return coordinates;
+    return { coordinates, pathData };
 }
 
 function renderPoints(points) {
@@ -131,7 +155,16 @@ function render() {
     clearLayers();
     const pointData = buildPointData();
     renderDiagnostics({ ...pointData.diagnostics, tripCount: pointData.tripCount, capped: pointData.capped });
-    const coordinates = state.view === 'paths' ? renderPaths() : renderPoints(pointData.points);
+    const rendered = state.view === 'paths' ? renderPaths() : { coordinates: renderPoints(pointData.points) };
+    if (state.view === 'paths') {
+        const { pathData } = rendered;
+        const container = document.getElementById('beta-map-diagnostics');
+        if (container) {
+            const pathNote = pathData.capped ? ` · showing first ${pathData.tripCount} trips` : '';
+            container.querySelector('small').textContent += ` · Paths ${pathData.segments.length}/${pathData.tripCount} clipped${pathData.unresolved ? ` · ${pathData.unresolved} without a verified segment` : ''}${pathNote}`;
+        }
+    }
+    const coordinates = rendered.coordinates;
     if (coordinates.length > 0 && !state.hasFit) {
         state.map.fitBounds(L.latLngBounds(coordinates), { padding: [60, 60], animate: false });
         state.hasFit = true;
