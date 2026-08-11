@@ -9,6 +9,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 ## [Unreleased]
 
 ### Added
+- **Theme choices and multi-agency route coverage** — choose System, Light, or Dark and see route progress across every agency you have ridden.
 - **Phone-first homepage sign-in** — reopen your ridership dashboard with an SMS code instead of remembering an email or password.
 - **Animated homepage map** — flowing routes and pulsing stations make the ridership graphic feel alive.
 - **Local transit theming** — the homepage quietly adapts its route colours to the visitor’s approximate city when available.
@@ -28,6 +29,9 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Settings now uses the available page width** instead of reserving an empty second column.
 
 ### Fixed
+- **Incomplete trips now stay clearly marked** and map labels no longer show `undefined` when stop data is missing.
+- **Public and signed-in maps now share the same visual language** without exposing private trip details.
+- **Settings and navigation actions are now clearer** with visible save controls, working emoji selection, consistent branding, and a shared sign-out action.
 - **Route Tracker now counts the user’s actual trips** instead of always reporting zero routes ridden.
 - **Route Tracker now groups route branches and shuttles under their Atlas base route** so coverage is not undercounted.
 - **Display names no longer fall back to email prefixes** such as `rhanna` when no name was chosen.

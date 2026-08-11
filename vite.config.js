@@ -102,6 +102,13 @@ export default defineConfig({
                         res.end(JSON.stringify({ error: error.message }));
                     }
                 });
+            },
+            transformIndexHtml() {
+                return [{
+                    tag: 'script',
+                    attrs: { src: '/js/theme.js' },
+                    injectTo: 'head-prepend',
+                }];
             }
         }
     ],

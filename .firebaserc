@@ -10,6 +10,9 @@
         ],
         "admin": [
           "transitstats-admin"
+        ],
+        "beta": [
+          "transitstats-beta"
         ]
       }
     }

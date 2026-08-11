@@ -93,6 +93,7 @@ body.dark .header {
     display: flex;
     gap: 8px;
     align-items: center;
+    margin-left: 16px;
 }
 
 .nav-item {
@@ -184,6 +185,11 @@ body.dark .header {
     background: var(--bg-muted);
 }
 
+.header-logout.confirming {
+    color: var(--danger);
+    border-color: var(--danger);
+}
+
 /* --- Mobile Header --- */
 @media (max-width: 768px) {
     .header-container { padding: 0 12px; gap: 4px; }
@@ -192,5 +198,4 @@ body.dark .header {
     .nav-item { padding: 8px 10px; gap: 0; }
     .header-actions { gap: 4px; }
 }
-
 

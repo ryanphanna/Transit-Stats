@@ -1,6 +1,12 @@
 import { UI } from './ui-utils.js';
 import { PredictionEngine } from './predict.js';
 import { buildStopIndex, resolveStopLocation } from './atlas-stop-resolver.js';
+import { getTripRouteLabel, getTripStopLabel } from './trip-display.js';
+
+export function getMapMarkerLabel(trip = {}, side = 'boarding') {
+    const verb = side === 'boarding' ? 'Boarded' : 'Exited';
+    return `${verb} ${getTripRouteLabel(trip)} at ${getTripStopLabel(trip, side)}`;
+}
 
 /**
  * TransitStats V2 Map Engine
@@ -270,7 +276,7 @@ export const MapEngine = {
                         lat: bLoc.lat,
                         lng: bLoc.lng,
                         type: 'boarding',
-                        label: `Boarded ${trip.route} at ${trip.startStopName || trip.startStop}`
+                        label: getMapMarkerLabel(trip, 'boarding')
                     });
                 }
             }
@@ -285,7 +291,7 @@ export const MapEngine = {
                         lat: eLoc.lat,
                         lng: eLoc.lng,
                         type: 'exiting',
-                        label: `Exited ${trip.route} at ${trip.endStopName || trip.endStop}`
+                        label: getMapMarkerLabel(trip, 'exiting')
                     });
                 }
             }

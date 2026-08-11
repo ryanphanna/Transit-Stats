@@ -151,7 +151,7 @@ function setupListeners() {
 }
 
 function init() {
-    document.body.classList.toggle('dark', localStorage.getItem('ts_theme') === 'dark');
+    window.TransitTheme?.apply(window.TransitTheme.getPreference());
 
     auth.onAuthStateChanged((user) => {
         if (user) {

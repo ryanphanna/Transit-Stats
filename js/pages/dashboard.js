@@ -14,6 +14,7 @@ import { db } from '../firebase.js';
 
 window.Trips = Trips;
 window.Utils = Utils;
+window.RouteTracker = RouteTracker;
 window.refreshIcons = refreshIcons;
 
 // --- Trip Edit Modal ---

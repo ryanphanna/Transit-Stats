@@ -130,6 +130,22 @@
   gap: 8px;
 }
 
+.rt-agency-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.rt-agency-section {
+  padding: 16px;
+  border: 1px solid var(--border-outer);
+  border-radius: 12px;
+  background: var(--bg-muted);
+}
+
+.rt-agency-section .rt-list-heading {
+  margin-bottom: 12px;
+}
+
 .rt-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

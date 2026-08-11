@@ -8,6 +8,7 @@ import { Profile } from '../profile.js';
 async function init() {
     const { user, isAdmin } = await requireAuth();
     await Profile.load(user);
+    window.RouteTracker = RouteTracker;
     initHeader({ isAdmin, currentPage: 'routes' });
 
     document.getElementById('routeTrackerAgency')?.addEventListener('change', (event) => {

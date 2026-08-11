@@ -88,6 +88,10 @@
           "destination": "/public.html"
         },
         {
+          "source": "/beta-map",
+          "destination": "/beta-map.html"
+        },
+        {
           "source": "/settings",
           "destination": "/settings.html"
         },
@@ -189,6 +193,32 @@
         {
           "source": "/map",
           "destination": "/map.html"
+        },
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    {
+      "target": "beta",
+      "public": "dist",
+      "predeploy": ["npm run build"],
+      "cleanUrls": true,
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**",
+        "functions/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/public",
+          "destination": "/public.html"
+        },
+        {
+          "source": "/{dashboard,routes,settings,map,beta-map,admin,users,insights,public,rocket}",
+          "destination": "/index.html"
         },
         {
           "source": "**",

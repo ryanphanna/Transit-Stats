@@ -2,8 +2,9 @@ import { auth } from '../firebase.js';
 import { Auth } from '../auth.js';
 
 // Apply theme immediately to prevent flash of unstyled content
-const _theme = localStorage.getItem('ts_theme') || 'light';
-document.body.classList.toggle('dark', _theme === 'dark');
+const _theme = localStorage.getItem('ts_theme') || 'system';
+if (window.TransitTheme) window.TransitTheme.apply(_theme);
+else document.body.classList.toggle('dark', _theme === 'dark');
 
 /**
  * Resolves when auth is confirmed. Redirects to / if not authed or not whitelisted.

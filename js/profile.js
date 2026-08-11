@@ -27,6 +27,7 @@ export const Profile = {
         const agencySelect = document.getElementById('settings-agency');
         const betaPredictions = document.getElementById('settings-beta-predictions');
         const publicProfile = document.getElementById('settings-public-profile');
+        const themeSelect = document.getElementById('settings-theme');
 
         agencySelect?.addEventListener('change', (e) => {
             this.updateSetting('defaultAgency', e.target.value);
@@ -64,6 +65,11 @@ export const Profile = {
                 console.error('Trip sync failed:', err);
                 UI.showNotification('Failed to sync trips: ' + err.message);
             }
+        });
+
+        themeSelect?.addEventListener('change', (e) => {
+            window.TransitTheme?.apply(e.target.value);
+            this.updateSetting('theme', e.target.value);
         });
 
         document.getElementById('btn-save-identity')?.addEventListener('click', () => {
@@ -240,6 +246,7 @@ export const Profile = {
         const betaEl = document.getElementById('settings-beta-predictions');
         const publicProfileEl = document.getElementById('settings-public-profile');
         const publicLinkEl = document.getElementById('settings-public-link');
+        const themeEl = document.getElementById('settings-theme');
 
         if (emailEl) emailEl.textContent = email || auth.currentUser?.email || '—';
         if (phoneEl) phoneEl.textContent = this.phone || 'Not linked';
@@ -265,12 +272,20 @@ export const Profile = {
             publicProfileEl.checked = !!this.data?.isPublic;
         }
 
+        if (themeEl) {
+            const theme = this.data?.theme || window.TransitTheme?.getPreference() || 'system';
+            themeEl.value = theme;
+            window.TransitTheme?.apply(theme);
+        }
+
         // --- Identity UI ---
         const username = this.data?.username;
         if (username) {
             this.currentTriplet = username.split('_');
             const saveBtn = document.getElementById('btn-save-identity');
             if (saveBtn) saveBtn.style.display = 'none';
+            const help = document.getElementById('settings-identity-help');
+            if (help) help.textContent = 'This public identity cannot be changed after it is reserved.';
         }
         
         document.querySelectorAll('.emoji-slot').forEach((slot, i) => {

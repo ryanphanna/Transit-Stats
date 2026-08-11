@@ -1,3 +1,5 @@
+import { Auth } from '../auth.js';
+
 /**
  * Shared Header Component
  * Injects navigation into the page.
@@ -46,6 +48,9 @@ function _render(isAdmin, currentPage) {
                     <a href="/settings" class="icon-btn ${currentPage === 'settings' ? 'active' : ''}" title="Settings">
                         <i data-lucide="settings"></i>
                     </a>
+                    <button id="btn-header-logout" class="icon-btn header-logout" title="Sign out" aria-label="Sign out">
+                        <i data-lucide="log-out"></i>
+                    </button>
                 </div>
             </div>
         </header>
@@ -53,4 +58,28 @@ function _render(isAdmin, currentPage) {
 
     root.insertAdjacentHTML('afterbegin', headerHtml);
     if (window.lucide) lucide.createIcons();
+
+    const logout = document.getElementById('btn-header-logout');
+    let armed = false;
+    let timer = null;
+    logout?.addEventListener('click', async () => {
+        if (!armed) {
+            armed = true;
+            logout.classList.add('confirming');
+            logout.setAttribute('aria-label', 'Tap again to sign out');
+            logout.title = 'Tap again to sign out';
+            timer = setTimeout(() => {
+                armed = false;
+                logout.classList.remove('confirming');
+                logout.setAttribute('aria-label', 'Sign out');
+                logout.title = 'Sign out';
+            }, 3000);
+            return;
+        }
+
+        clearTimeout(timer);
+        logout.disabled = true;
+        await Auth.signOut();
+        window.location.href = '/';
+    });
 }

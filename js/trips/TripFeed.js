@@ -1,5 +1,6 @@
 import { Utils } from '../utils.js';
 import { TripController } from './TripController.js';
+import { getTripRouteLabel, getTripStatusLabel, getTripStopLabel } from '../trip-display.js';
 
 /**
  * TripFeed - Manages the UI rendering for the trip cards and feed.
@@ -49,8 +50,10 @@ export const TripFeed = {
         const startTime = trip.startTime?.toDate ? trip.startTime.toDate() : new Date(trip.startTime || Date.now());
         const dateStr = isNaN(startTime.getTime()) ? '—' : startTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-        const startStop = Utils.normalizeIntersectionStop(trip.startStopName || trip.startStop) || 'Unknown Station';
-        const endStop = Utils.normalizeIntersectionStop(trip.endStopName || trip.endStop) || 'Pending...';
+        const startStop = Utils.normalizeIntersectionStop(getTripStopLabel(trip, 'boarding'));
+        const endStop = Utils.normalizeIntersectionStop(getTripStopLabel(trip, 'exiting'));
+        const route = getTripRouteLabel(trip);
+        const status = getTripStatusLabel(trip);
 
         const dirAbbr = { Northbound: 'NB', Southbound: 'SB', Eastbound: 'EB', Westbound: 'WB', Inbound: 'IB', Outbound: 'OB' };
         const direction = trip.direction ? (dirAbbr[trip.direction] || trip.direction) : '';
@@ -69,7 +72,7 @@ export const TripFeed = {
             <div class="trip-card-body">
                 <div class="trip-info">
                     <div class="trip-main">
-                        <div class="trip-route-pill">${Utils.hide(trip.route)}</div>
+                        <div class="trip-route-pill">${Utils.hide(route)}</div>
                         <div class="trip-path">
                             <span class="stop-name">${Utils.hide(startStop)}</span>
                             <span class="path-arrow">→</span>
@@ -80,6 +83,7 @@ export const TripFeed = {
                 </div>
                 <div class="trip-meta text-right">
                     <div class="trip-date">${Utils.hide(dateStr)}</div>
+                    ${status ? `<div class="trip-status text-xxs">${Utils.hide(status)}</div>` : ''}
                     ${direction ? `<div class="trip-direction font-bold text-xxs">${Utils.hide(direction)}</div>` : ''}
                     ${trip.vehicle ? `<div class="trip-vehicle text-xxs opacity-70">${Utils.hide(trip.vehicle)}</div>` : ''}
                     <div class="trip-duration text-secondary text-xs">${parseInt(trip.duration) || 0} min</div>

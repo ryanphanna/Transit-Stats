@@ -6,6 +6,7 @@ import { MapEngine } from './map-engine.js';
 import { PredictionEngine } from './predict.js';
 import { ModalManager } from './shared/modal-engine.js';
 import { UI } from './ui-utils.js';
+import { getTripRouteLabel } from './trip-display.js';
 
 /**
  * TransitStats Trips Orchestrator
@@ -83,7 +84,7 @@ export const Trips = {
         MapEngine.updateTrips(trips);
 
         // Update Profile Status
-        this.updateProfileStatus(active);
+        this.updateProfileStatus(active, trips);
 
         // Keep Route Tracker in sync after Firestore sends a new trip snapshot.
         if (window.RouteTracker?.currentAgency) window.RouteTracker.refresh();
@@ -113,7 +114,7 @@ export const Trips = {
         ModalManager.open('modal-edit-trip');
     },
 
-    updateProfileStatus(active) {
+    updateProfileStatus(active, trips = []) {
         const el = document.getElementById('profile-status');
         if (!el) return;
         
@@ -124,10 +125,12 @@ export const Trips = {
         
         if (active) {
             indicator.classList.add('active');
-            text.textContent = `Riding ${active.route}`;
+            text.textContent = `Riding ${getTripRouteLabel(active)}`;
         } else {
             indicator.classList.remove('active');
-            text.textContent = 'Ready to ride';
+            text.textContent = trips[0]?.incomplete
+                ? 'Last ride marked incomplete'
+                : trips.length > 0 ? 'Ready for your next ride' : 'Ready for your first ride';
         }
     },
 

@@ -25,8 +25,8 @@
   z-index: 2;
 }
 
-.auth-brand { display: flex; align-items: center; gap: 12px; color: #17213d; font-size: 1.15rem; font-weight: 850; letter-spacing: -0.04em; }
-.auth-brand-mark { width: 34px; height: 34px; display: grid; place-items: center; color: #fff; background: #17213d; border-radius: 11px; }
+.auth-brand { display: flex; align-items: center; gap: 12px; font-size: 1.15rem; font-weight: 850; letter-spacing: -0.04em; }
+.auth-brand-mark { width: 34px; height: 34px; display: grid; place-items: center; color: #fff; background: var(--accent-gradient); border-radius: 11px; }
 .auth-brand-mark svg { width: 19px; height: 19px; stroke-width: 2.5; }
 .auth-copy { margin: clamp(60px, 10vh, 120px) 0 58px; }
 .auth-eyebrow, .auth-form-eyebrow { margin: 0 0 14px; color: #69738f; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase; }
