@@ -20,6 +20,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Map basemaps are now quieter and label-free** so personal trip data stays the visual focus.
 - **Trip-path beta lines now use uniform strokes and route colours** so overlapping routes remain readable.
 - **Trip-path beta now clips lines to each verified ride** so the map shows where you rode, not every stop on the route.
+- **Map controls and diagnostics now stay above the Leaflet map** so filters and match counts remain visible.
 - **Internal tools now have a separate admin surface** so the rider site stays focused on trips and maps.
 - **Route Tracker now uses the full dashboard width** instead of being squeezed into the profile column.
 - **Route Tracker now shows a compact coverage summary** instead of listing every missing route by default.

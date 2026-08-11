@@ -23,7 +23,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  z-index: var(--z-ui);
+  z-index: 1000;
   pointer-events: none;
 }
 
@@ -73,7 +73,7 @@
   position: absolute;
   left: 24px;
   bottom: 24px;
-  z-index: var(--z-ui);
+  z-index: 1000;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
