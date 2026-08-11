@@ -24,6 +24,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Fixed
 - **Route Tracker now counts the user’s actual trips** instead of always reporting zero routes ridden.
+- **Route Tracker now groups route branches and shuttles under their Atlas base route** so coverage is not undercounted.
 - **Display names no longer fall back to email prefixes** such as `rhanna` when no name was chosen.
 - **Admin sign-in now stays on the admin hostname** so the separate admin session can complete instead of redirecting back to the rider homepage.
 - **The map now ignores malformed trip coordinates** instead of opening at a world-level zoom.

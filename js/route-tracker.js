@@ -72,7 +72,7 @@ export const RouteTracker = {
                 return;
             }
 
-            const riddenSet = this._getRiddenSet(this.currentAgency);
+            const riddenSet = this._getRiddenSet(this.currentAgency, routes);
             this._render(container, routes, riddenSet);
         } catch (err) {
             console.error('RouteTracker error:', err);
@@ -184,13 +184,35 @@ export const RouteTracker = {
         }
     },
 
-    _getRiddenSet: function (agency) {
+    _getRiddenSet: function (agency, routes) {
         if (!TripController.allTrips) return new Set();
+
+        // Atlas is the source of truth for the routes we display. Trip logs
+        // often contain branches or service variants (e.g. 510a/510b) that
+        // should count toward the base Atlas route (510), not create extra
+        // routes in the tracker.
+        const atlasRouteKeys = new Set(
+            (routes || []).map(route => this._normalizeRoute(route.routeShortName))
+        );
+
         return new Set(
             TripController.allTrips
                 .filter(t => (t.agency || 'TTC') === agency && t.route)
-                .map(t => this._normalizeRoute(t.route))
+                .map(t => this._matchRouteToAtlas(t.route, atlasRouteKeys))
+                .filter(Boolean)
         );
+    },
+
+    _matchRouteToAtlas: function (value, atlasRouteKeys) {
+        const normalized = this._normalizeRoute(value);
+        if (!normalized) return null;
+        if (atlasRouteKeys.has(normalized)) return normalized;
+
+        // Branches, shuttles, and short-turn labels generally begin with the
+        // base numeric route: 510a, 510b shuttle, 506 bus b, etc. Only accept
+        // the fallback when Atlas actually contains that numeric base route.
+        const numericBase = normalized.match(/^(\d+)/)?.[1];
+        return numericBase && atlasRouteKeys.has(numericBase) ? numericBase : null;
     },
 
     _normalizeRoute: function (value) {
