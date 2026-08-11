@@ -41,6 +41,68 @@
   gap: 8px;
 }
 
+.rt-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.rt-summary-stat {
+  padding: 14px 16px;
+  border: 1px solid var(--border-outer);
+  border-radius: 10px;
+  background: var(--bg-muted);
+}
+
+.rt-summary-stat strong,
+.rt-summary-stat span {
+  display: block;
+}
+
+.rt-summary-stat strong {
+  font-size: 1.45rem;
+  line-height: 1.1;
+}
+
+.rt-summary-stat span {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.rt-summary-stat-highlight strong {
+  color: var(--accent);
+}
+
+.rt-progress {
+  margin-bottom: 20px;
+}
+
+.rt-progress-label,
+.rt-list-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.rt-progress-label {
+  margin-bottom: 7px;
+}
+
+.rt-progress-label strong {
+  color: var(--text-secondary);
+}
+
+.rt-list-heading {
+  margin-bottom: 10px;
+  color: var(--text-secondary);
+}
+
 .rt-route-item {
   display: flex;
   align-items: center;
@@ -92,5 +154,17 @@
 
   .rt-route-list {
     grid-template-columns: 1fr;
+  }
+
+  .rt-summary {
+    gap: 8px;
+  }
+
+  .rt-summary-stat {
+    padding: 11px 10px;
+  }
+
+  .rt-summary-stat strong {
+    font-size: 1.15rem;
   }
 }

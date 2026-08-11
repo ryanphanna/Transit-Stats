@@ -1,6 +1,7 @@
 
 import { db } from './firebase.js';
 import { UI } from './ui-utils.js';
+import { TripController } from './trips/TripController.js';
 
 /**
  * Route Tracker Module
@@ -33,8 +34,6 @@ const IDB_STORE = 'atlasRoutes';
 export const RouteTracker = {
     currentAgency: null,
     routesCache: {},    // agency -> routes[]
-    currentView: 'unridden',
-
     init: function () {
         // Default to user's profile agency, fall back to TTC
         const profileAgency = window.currentUserProfile?.defaultAgency;
@@ -48,7 +47,6 @@ export const RouteTracker = {
 
     setAgency: function (agency) {
         this.currentAgency = agency;
-        this.currentView = 'unridden';
         this._loadAndRender();
     },
 
@@ -187,9 +185,9 @@ export const RouteTracker = {
     },
 
     _getRiddenSet: function (agency) {
-        if (!window.Trips?.allTrips) return new Set();
+        if (!TripController.allTrips) return new Set();
         return new Set(
-            window.Trips.allTrips
+            TripController.allTrips
                 .filter(t => (t.agency || 'TTC') === agency && t.route)
                 .map(t => this._normalizeRoute(t.route))
         );
@@ -205,63 +203,46 @@ export const RouteTracker = {
     _render: function (container, routes, riddenSet) {
         const normalize = r => this._normalizeRoute(r.routeShortName);
         const ridden = routes.filter(r => riddenSet.has(normalize(r)));
-        const unridden = routes.filter(r => !riddenSet.has(normalize(r)));
         const total = routes.length;
         const riddenCount = ridden.length;
+        const missingCount = Math.max(total - riddenCount, 0);
         const pct = total > 0 ? Math.round((riddenCount / total) * 100) : 0;
 
-        const showUnridden = this.currentView !== 'ridden';
-        const listHtml = this._renderList(showUnridden ? unridden : ridden, !showUnridden);
-
         container.innerHTML = `
-            <div style="margin-bottom: 16px;">
-                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
-                    <span style="font-size: 0.85em; color: var(--text-muted); font-weight: 600;">${riddenCount} of ${total} routes</span>
-                    <span style="font-size: 1.4em; font-weight: 800; color: var(--accent-electric);">${pct}%</span>
+            <div class="rt-summary">
+                <div class="rt-summary-stat">
+                    <strong>${riddenCount}</strong>
+                    <span>Routes ridden</span>
                 </div>
-                <div class="mastery-bar-bg">
-                    <div class="mastery-bar-fill" style="width: 0%;" data-width="${pct}%"></div>
+                <div class="rt-summary-stat">
+                    <strong>${missingCount}</strong>
+                    <span>Still to explore</span>
+                </div>
+                <div class="rt-summary-stat rt-summary-stat-highlight">
+                    <strong>${pct}%</strong>
+                    <span>Atlas coverage</span>
                 </div>
             </div>
 
-            <div style="display: flex; gap: 6px; margin-bottom: 14px; background: var(--bg-tertiary); padding: 4px; border-radius: 8px;">
-                <button id="rtBtnUnridden" class="toggle-btn rt-toggle ${showUnridden ? 'active' : ''}" style="flex: 1; padding: 4px 8px; border: none; border-radius: 6px; font-size: 0.8em; font-weight: 700; cursor: pointer; background: ${showUnridden ? 'var(--bg-primary)' : 'transparent'};">
-                    Missing (${unridden.length})
-                </button>
-                <button id="rtBtnRidden" class="toggle-btn rt-toggle ${!showUnridden ? 'active' : ''}" style="flex: 1; padding: 4px 8px; border: none; border-radius: 6px; font-size: 0.8em; font-weight: 700; cursor: pointer; background: ${!showUnridden ? 'var(--bg-primary)' : 'transparent'};">
-                    Ridden (${ridden.length})
-                </button>
+            <div class="rt-progress" aria-label="${pct}% of Atlas routes ridden">
+                <div class="rt-progress-label">
+                    <span>Coverage</span>
+                    <strong>${riddenCount} of ${total}</strong>
+                </div>
+                <div class="mastery-bar-bg">
+                    <div class="mastery-bar-fill" style="width: ${pct}%;"></div>
+                </div>
+            </div>
+
+            <div class="rt-list-heading">
+                <span>Routes you’ve ridden</span>
+                <span>${riddenCount}</span>
             </div>
 
             <div id="rtRouteList" class="rt-route-list">
-                ${listHtml}
+                ${this._renderList(ridden, true)}
             </div>
         `;
-
-        // Animate progress bar
-        setTimeout(() => {
-            const bar = container.querySelector('.mastery-bar-fill');
-            if (bar) bar.style.width = bar.getAttribute('data-width');
-        }, 100);
-
-        // Toggle handlers
-        container.querySelector('#rtBtnUnridden').addEventListener('click', () => {
-            this.currentView = 'unridden';
-            container.querySelector('#rtBtnUnridden').style.background = 'var(--bg-primary)';
-            container.querySelector('#rtBtnRidden').style.background = 'transparent';
-            container.querySelector('#rtBtnUnridden').classList.add('active');
-            container.querySelector('#rtBtnRidden').classList.remove('active');
-            container.querySelector('#rtRouteList').innerHTML = this._renderList(unridden, false);
-        });
-
-        container.querySelector('#rtBtnRidden').addEventListener('click', () => {
-            this.currentView = 'ridden';
-            container.querySelector('#rtBtnRidden').style.background = 'var(--bg-primary)';
-            container.querySelector('#rtBtnUnridden').style.background = 'transparent';
-            container.querySelector('#rtBtnRidden').classList.add('active');
-            container.querySelector('#rtBtnUnridden').classList.remove('active');
-            container.querySelector('#rtRouteList').innerHTML = this._renderList(ridden, true);
-        });
     },
 
     _renderList: function (routes, isRidden) {

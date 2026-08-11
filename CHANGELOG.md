@@ -19,9 +19,11 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Map basemaps are now quieter and label-free** so personal trip data stays the visual focus.
 - **Internal tools now have a separate admin surface** so the rider site stays focused on trips and maps.
 - **Route Tracker now uses the full dashboard width** instead of being squeezed into the profile column.
+- **Route Tracker now shows a compact coverage summary** instead of listing every missing route by default.
 - **Settings now uses the available page width** instead of reserving an empty second column.
 
 ### Fixed
+- **Route Tracker now counts the user’s actual trips** instead of always reporting zero routes ridden.
 - **Display names no longer fall back to email prefixes** such as `rhanna` when no name was chosen.
 - **Admin sign-in now stays on the admin hostname** so the separate admin session can complete instead of redirecting back to the rider homepage.
 - **The map now ignores malformed trip coordinates** instead of opening at a world-level zoom.

@@ -84,6 +84,9 @@ export const Trips = {
 
         // Update Profile Status
         this.updateProfileStatus(active);
+
+        // Keep Route Tracker in sync after Firestore sends a new trip snapshot.
+        if (window.RouteTracker?.currentAgency) window.RouteTracker.refresh();
     },
 
     openEditModal(trip) {
