@@ -2,8 +2,9 @@ import { auth } from '../firebase.js';
 import { Auth } from '../auth.js';
 
 // Apply theme immediately to prevent flash of unstyled content
-const _theme = localStorage.getItem('ts_theme') || 'light';
-document.body.classList.toggle('dark', _theme === 'dark');
+const _theme = localStorage.getItem('ts_theme') || 'system';
+if (window.TransitTheme) window.TransitTheme.apply(_theme);
+else document.body.classList.toggle('dark', _theme === 'dark');
 
 /**
  * Resolves when auth is confirmed. Redirects to / if not authed or not whitelisted.
@@ -13,14 +14,15 @@ document.body.classList.toggle('dark', _theme === 'dark');
 export function requireAuth(options = {}) {
     return new Promise((resolve) => {
         auth.onAuthStateChanged(async (user) => {
+    const loginUrl = '/';
             if (!user) {
-                window.location.href = '/';
+                window.location.href = loginUrl;
                 return;
             }
-            const verification = await Auth.checkWhitelist(user.email);
+            const verification = await Auth.checkWhitelist(user.email, user.uid);
             if (!verification.allowed) {
                 await Auth.signOut();
-                window.location.href = '/';
+                window.location.href = loginUrl;
                 return;
             }
             if (options.adminOnly && !verification.isAdmin) {

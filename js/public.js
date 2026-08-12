@@ -78,12 +78,12 @@ function initPublicMap(points) {
         attributionControl: false
     }).setView([43.70, -79.42], 12);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png').addTo(map);
-
-    // Transit Routes Overlay
-    L.tileLayer('https://tile.memomaps.de/tilegen/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        opacity: 0.4
+    const isDark = document.documentElement.dataset.theme === 'dark'
+        || document.body.classList.contains('dark');
+    const tileTheme = isDark ? 'dark_nolabels' : 'light_nolabels';
+    L.tileLayer(`https://{s}.basemaps.cartocdn.com/${tileTheme}/{z}/{x}/{y}{r}.png`, {
+        maxZoom: 19,
+        attribution: '© CARTO © OpenStreetMap',
     }).addTo(map);
 
     if (points && points.length > 0) {

@@ -7,7 +7,7 @@ import { Stats } from '../stats.js';
 window.Trips = Trips;
 
 async function init() {
-    const { user, isAdmin } = await requireAuth();
+    const { user, isAdmin } = await requireAuth({ adminOnly: true });
     initHeader({ isAdmin, currentPage: 'insights' });
 
     Trips.init();

@@ -3,7 +3,6 @@ import { initHeader } from '../shared/header.js';
 import { refreshIcons } from '../shared/icons.js';
 import { Admin } from '../admin.js';
 import { Trips } from '../trips.js';
-import { RouteTracker } from '../route-tracker.js';
 import { Utils } from '../utils.js';
 import { UI } from '../ui-utils.js';
 import { Profile } from '../profile.js';
@@ -24,19 +23,12 @@ function setupModalListeners() {
     });
 }
 
-function setupRouteTracker() {
-    document.getElementById('routeTrackerAgency')?.addEventListener('change', (e) => {
-        RouteTracker.setAgency(e.target.value);
-    });
-}
-
 async function init() {
     const { user, isAdmin } = await requireAuth({ adminOnly: true });
     await Profile.load(user);
     initHeader({ isAdmin, currentPage: 'admin' });
 
     setupModalListeners();
-    setupRouteTracker();
 
     await Admin.init();
 
@@ -45,8 +37,6 @@ async function init() {
     
     // Now that trips are loaded, reload admin data
     await Admin.loadAll();
-
-    RouteTracker.init();
 
     refreshIcons();
 }

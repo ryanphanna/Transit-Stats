@@ -1,5 +1,12 @@
 import { UI } from './ui-utils.js';
 import { PredictionEngine } from './predict.js';
+import { buildStopIndex, resolveStopLocation } from './atlas-stop-resolver.js';
+import { getTripRouteLabel, getTripStopLabel } from './trip-display.js';
+
+export function getMapMarkerLabel(trip = {}, side = 'boarding') {
+    const verb = side === 'boarding' ? 'Boarded' : 'Exited';
+    return `${verb} ${getTripRouteLabel(trip)} at ${getTripStopLabel(trip, side)}`;
+}
 
 /**
  * TransitStats V2 Map Engine
@@ -21,6 +28,8 @@ export const MapEngine = {
     _isFirstLoad: true,
     _renderTimer: null,
     _lastLibSize: 0,
+    _stopIndex: new Map(),
+    _stopSourcesReady: false,
 
     init(initialTrips = [], initialCenter = null) {
         console.log("MapEngine.init: Started", { tripsCount: initialTrips.length });
@@ -71,15 +80,15 @@ export const MapEngine = {
         const isV2 = document.body.classList.contains('v2-clean');
         const isDark = document.body.classList.contains('dark');
         
-        let tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-        let attribution = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+        let tileUrl = 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+        let attribution = '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
         if (isV2) {
             // Minimalist Grayscale (CartoDB Positron)
-            tileUrl = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+            tileUrl = 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
             attribution = '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
         } else if (isDark) {
-            tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+            tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
             attribution = '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
         }
 
@@ -121,6 +130,14 @@ export const MapEngine = {
             this.renderMarkers();
             this._renderTimer = null;
         });
+    },
+
+    setStopSources({ atlasStops = [], firestoreStops = [] } = {}) {
+        PredictionEngine.stopsLibrary = firestoreStops;
+        this._stopIndex = buildStopIndex({ atlasStops, firestoreStops });
+        this._stopSourcesReady = true;
+        this._skipLookup.clear();
+        if (this.map) this.renderMarkers();
     },
 
     /**
@@ -185,6 +202,41 @@ export const MapEngine = {
         return loc;
     },
 
+    _resolveStop(trip, side) {
+        if (this._stopSourcesReady) return resolveStopLocation(trip, side, this._stopIndex);
+
+        const saved = side === 'boarding'
+            ? (trip.boardingLocation || trip.boardLocation)
+            : trip.exitLocation;
+        if (saved && Number.isFinite(Number(saved.lat)) && Number.isFinite(Number(saved.lng ?? saved.lon))) {
+            return { location: { lat: Number(saved.lat), lng: Number(saved.lng ?? saved.lon) }, source: 'saved' };
+        }
+
+        const stopName = side === 'boarding'
+            ? (trip.startStopName || trip.startStop)
+            : (trip.endStopName || trip.endStop);
+        const location = this._getStopLocation(stopName);
+        return { location, source: location ? 'firestore' : 'unresolved' };
+    },
+
+    _renderDiagnostics(stats, tripCount) {
+        const container = document.getElementById('map-diagnostics');
+        if (!container) return;
+        const totals = ['saved', 'atlas', 'firestore', 'unresolved'].reduce((result, source) => {
+            result[source] = stats.boarding[source] + stats.exiting[source];
+            return result;
+        }, {});
+        const resolved = totals.saved + totals.atlas + totals.firestore;
+        container.innerHTML = `
+            <strong>Stop locations</strong>
+            <span><b>${resolved}</b> matched</span>
+            <span><b>${totals.atlas}</b> Atlas</span>
+            <span><b>${totals.firestore}</b> Firestore fallback</span>
+            <span><b>${totals.unresolved}</b> unresolved</span>
+            <small>Boarding ${stats.boarding.saved + stats.boarding.atlas + stats.boarding.firestore}/${tripCount} · Exiting ${stats.exiting.saved + stats.exiting.atlas + stats.exiting.firestore}/${tripCount}</small>
+        `;
+    },
+
     renderMarkers() {
         if (!this.map || !this.layers.markers) return;
 
@@ -199,6 +251,10 @@ export const MapEngine = {
         }
 
         const points = [];
+        const resolutionStats = {
+            boarding: { saved: 0, atlas: 0, firestore: 0, unresolved: 0 },
+            exiting: { saved: 0, atlas: 0, firestore: 0, unresolved: 0 },
+        };
         const isBoth = this.filter === 'both';
         const showBoarding = this.filter === 'boarding' || isBoth;
         const showExiting = this.filter === 'exiting' || isBoth;
@@ -211,33 +267,31 @@ export const MapEngine = {
 
         limitedTrips.forEach(trip => {
             // Process Boarding
+            const boarding = this._resolveStop(trip, 'boarding');
+            resolutionStats.boarding[boarding.source] += 1;
             if (showBoarding) {
-                let bLoc = trip.boardingLocation;
-                if (!bLoc || isNaN(bLoc.lat)) {
-                    bLoc = this._getStopLocation(trip.startStopName || trip.startStop);
-                }
+                const bLoc = boarding.location;
                 if (bLoc && !isNaN(bLoc.lat)) {
                     points.push({
                         lat: bLoc.lat,
                         lng: bLoc.lng,
                         type: 'boarding',
-                        label: `Boarded ${trip.route} at ${trip.startStopName || trip.startStop}`
+                        label: getMapMarkerLabel(trip, 'boarding')
                     });
                 }
             }
 
             // Process Exiting
+            const exiting = this._resolveStop(trip, 'exiting');
+            resolutionStats.exiting[exiting.source] += 1;
             if (showExiting) {
-                let eLoc = trip.exitLocation;
-                if (!eLoc || isNaN(eLoc.lat)) {
-                    eLoc = this._getStopLocation(trip.endStopName || trip.endStop);
-                }
+                const eLoc = exiting.location;
                 if (eLoc && !isNaN(eLoc.lat)) {
                     points.push({
                         lat: eLoc.lat,
                         lng: eLoc.lng,
                         type: 'exiting',
-                        label: `Exited ${trip.route} at ${trip.endStopName || trip.endStop}`
+                        label: getMapMarkerLabel(trip, 'exiting')
                     });
                 }
             }
@@ -270,14 +324,31 @@ export const MapEngine = {
         });
 
         if (markers.length > 0) {
-            this.layers.markers.addLayers(markers);
+            markers.forEach(marker => this.layers.markers.addLayer(marker));
         }
 
+        this._renderDiagnostics(resolutionStats, limitedTrips.length);
+
         // Fit bounds only on first load or when filters change
-        if (points.length > 0 && this._isFirstLoad) {
+        const validPoints = points
+            .map(point => [Number(point.lat), Number(point.lng)])
+            .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng)
+                && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180);
+
+        if (validPoints.length > 0 && this._isFirstLoad) {
             try {
-                const bounds = L.latLngBounds(points.map(p => [p.lat, p.lng]));
-                this.map.fitBounds(bounds, { padding: [60, 60], animate: false });
+                const bounds = L.latLngBounds(validPoints);
+                const southWest = bounds.getSouthWest();
+                const northEast = bounds.getNorthEast();
+                const latitudeSpan = Math.abs(northEast.lat - southWest.lat);
+                const longitudeSpan = Math.abs(northEast.lng - southWest.lng);
+
+                if (latitudeSpan < 0.001 && longitudeSpan < 0.001) {
+                    this.map.setView(validPoints[0], 13, { animate: false });
+                } else {
+                    this.map.fitBounds(bounds, { padding: [60, 60], animate: false, maxZoom: 15 });
+                }
+                this.map.invalidateSize({ animate: false });
                 this._isFirstLoad = false;
             } catch (err) {
                 console.warn("MapEngine: Fit bounds failed", err);

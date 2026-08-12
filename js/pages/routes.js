@@ -1,21 +1,23 @@
 import { requireAuth } from '../shared/auth-guard.js';
 import { initHeader } from '../shared/header.js';
 import { refreshIcons } from '../shared/icons.js';
+import { Trips } from '../trips.js';
+import { RouteTracker } from '../route-tracker.js';
 import { Profile } from '../profile.js';
-import { UI } from '../ui-utils.js';
 
 async function init() {
     const { user, isAdmin } = await requireAuth();
-    initHeader({ isAdmin, currentPage: 'settings' });
-
     await Profile.load(user);
-    await Profile.init();
+    window.RouteTracker = RouteTracker;
+    initHeader({ isAdmin, currentPage: 'routes' });
 
-    document.getElementById('btn-reset-password')?.addEventListener('click', async () => {
-        await Auth.sendPasswordReset(user.email);
-        UI.showNotification('Password reset email sent.');
+    document.getElementById('routeTrackerAgency')?.addEventListener('change', (event) => {
+        RouteTracker.setAgency(event.target.value);
     });
 
+    await Trips.init();
+    await Trips._readyPromise;
+    RouteTracker.init();
     refreshIcons();
 }
 

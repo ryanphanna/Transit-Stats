@@ -6,6 +6,45 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Added
+- **Theme choices and multi-agency route coverage** — choose System, Light, or Dark and see route progress across every agency you have ridden.
+- **Phone-first homepage sign-in** — reopen your ridership dashboard with an SMS code instead of remembering an email or password.
+- **Animated homepage map** — flowing routes and pulsing stations make the ridership graphic feel alive.
+- **Local transit theming** — the homepage quietly adapts its route colours to the visitor’s approximate city when available.
+- **Personal trip-paths beta** — see your saved rides over the scheduled route shapes, using Atlas stop coordinates when a trip is missing saved coordinates.
+- **Atlas-first stop resolution beta** — compare Atlas matches, Firestore fallbacks, and unresolved trip stops without changing the production map or trip data.
+- **Route Tracker now loads agency route inventories** and compares them with saved rides.
+
+### Changed
+- **Map basemaps are now quieter and label-free** so personal trip data stays the visual focus.
+- **Trip-path beta lines now use uniform strokes and route colours** so overlapping routes remain readable.
+- **Trip-path beta now clips lines to each verified ride** so the map shows where you rode, not every stop on the route.
+- **Map controls and diagnostics now stay above the Leaflet map** so filters and match counts remain visible.
+- **Internal tools now have a separate admin surface** so the rider site stays focused on trips and maps.
+- **Route Tracker now uses the full dashboard width** instead of being squeezed into the profile column.
+- **Route Tracker now shows a compact coverage summary** instead of listing every missing route by default.
+- **Route Tracker now has its own Routes page** so the dashboard stays focused while the full network remains easy to explore.
+- **Settings now uses the available page width** instead of reserving an empty second column.
+
+### Fixed
+- **Theme bootstrap now ships inside every built page** so saved themes work in production without a flash or missing script.
+- **Incomplete trips now stay clearly marked** and map labels no longer show `undefined` when stop data is missing.
+- **Public and signed-in maps now share the same visual language** without exposing private trip details.
+- **Settings and navigation actions are now clearer** with visible save controls, working emoji selection, consistent branding, and a shared sign-out action.
+- **Route Tracker now counts the user’s actual trips** instead of always reporting zero routes ridden.
+- **Route Tracker now groups route branches and shuttles under their Atlas base route** so coverage is not undercounted.
+- **Display names no longer fall back to email prefixes** such as `rhanna` when no name was chosen.
+- **Admin sign-in now stays on the admin hostname** so the separate admin session can complete instead of redirecting back to the rider homepage.
+- **The map now ignores malformed trip coordinates** instead of opening at a world-level zoom.
+- **The map now renders saved trip points** instead of stopping after Leaflet initializes.
+- **Profile map stop matching now prefers Atlas and reports fallback coverage** so missing coordinates are visible instead of silently dropped.
+- **Phone sign-in now restores older linked accounts** instead of failing before the dashboard opens.
+- **Map pages no longer fail during startup** when the browser loads the shared topology constraint module.
+- **Homepage now fills normal laptop windows without clipping content** while keeping the full map and sign-in flow visible on mobile.
+- **TTC homepage palette now uses the actual yellow, green, purple, and orange line colours** instead of a misleading red route.
+
 ## [1.47.15] — 2026-08-09
 
 ### Security

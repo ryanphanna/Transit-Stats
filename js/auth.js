@@ -4,6 +4,8 @@ import { auth, db } from './firebase.js';
  * TransitStats V2 Authentication Module
  */
 export const Auth = {
+    phoneApiUrl: 'https://us-central1-transitstats-21ba4.cloudfunctions.net/api',
+
     // --- Rate Limiting ---
     getRateLimit() {
         try {
@@ -33,19 +35,35 @@ export const Auth = {
     },
 
     // --- Whitelist Check ---
-    async checkWhitelist(email) {
+    async checkWhitelist(email, userId = null) {
         try {
-            const doc = await db.collection('allowedUsers').doc(email.toLowerCase()).get();
-            if (!doc.exists) return { allowed: false, error: 'Access denied. This app is invite-only.' };
-            return { allowed: true, isAdmin: doc.data().isAdmin === true };
+            if (email) {
+                const doc = await db.collection('allowedUsers').doc(email.toLowerCase()).get();
+                if (!doc.exists) return { allowed: false, error: 'Access denied. This app is invite-only.' };
+                return { allowed: true, isAdmin: doc.data().isAdmin === true };
+            }
+
+            if (!userId) return { allowed: false, error: 'Access denied. This app is invite-only.' };
+            const phoneSnap = await db.collection('phoneNumbers').where('userId', '==', userId).limit(1).get();
+            if (phoneSnap.empty) return { allowed: false, error: 'Access denied. This app is invite-only.' };
+            const profile = await db.collection('profiles').doc(userId).get();
+            return { allowed: true, isAdmin: profile.exists && profile.data().isAdmin === true };
         } catch (err) {
             console.error('Whitelist check failed, retrying:', err);
             // Retry once before giving up — guards against transient network errors
             // on page load signing out valid users.
             try {
-                const doc = await db.collection('allowedUsers').doc(email.toLowerCase()).get();
-                if (!doc.exists) return { allowed: false, error: 'Access denied. This app is invite-only.' };
-                return { allowed: true, isAdmin: doc.data().isAdmin === true };
+                if (email) {
+                    const doc = await db.collection('allowedUsers').doc(email.toLowerCase()).get();
+                    if (!doc.exists) return { allowed: false, error: 'Access denied. This app is invite-only.' };
+                    return { allowed: true, isAdmin: doc.data().isAdmin === true };
+                }
+
+                if (!userId) return { allowed: false, error: 'Access denied. This app is invite-only.' };
+                const phoneSnap = await db.collection('phoneNumbers').where('userId', '==', userId).limit(1).get();
+                if (phoneSnap.empty) return { allowed: false, error: 'Access denied. This app is invite-only.' };
+                const profile = await db.collection('profiles').doc(userId).get();
+                return { allowed: true, isAdmin: profile.exists && profile.data().isAdmin === true };
             } catch (retryErr) {
                 console.error('Whitelist check failed after retry:', retryErr);
                 return { allowed: false, error: 'Verification failed. Try again.' };
@@ -96,6 +114,30 @@ export const Auth = {
     async sendPasswordReset(email) {
         if (!email) throw new Error('Email required');
         await auth.sendPasswordResetEmail(email.toLowerCase());
+    },
+
+    async requestPhoneCode(phoneNumber) {
+        const response = await fetch(this.phoneApiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'request_otp', phoneNumber })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Could not send a verification code.');
+        return data;
+    },
+
+    async verifyPhoneCode(phoneNumber, code) {
+        const response = await fetch(this.phoneApiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'verify_otp', phoneNumber, code })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'That code could not be verified.');
+        if (!data.token) throw new Error('Verification succeeded but sign-in could not be completed.');
+        await auth.signInWithCustomToken(data.token);
+        return data;
     },
 
     signOut() {

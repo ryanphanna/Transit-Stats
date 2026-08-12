@@ -1,133 +1,169 @@
 import { auth } from '../firebase.js';
 import { Auth } from '../auth.js';
-import { UI } from '../ui-utils.js';
-
-// Apply theme immediately
-const _theme = localStorage.getItem('ts_theme') || 'light';
-document.body.classList.toggle('dark', _theme === 'dark');
-
-// Toast container (settings modal not needed on login)
-const _toast = document.createElement('div');
-_toast.id = 'toast-container';
-_toast.className = 'toast-container';
-document.body.appendChild(_toast);
 
 const DOM = {
-    emailInput: document.getElementById('auth-email'),
-    passwordInput: document.getElementById('auth-password'),
-    btnContinue: document.getElementById('btn-auth-continue'),
-    btnSignIn: document.getElementById('btn-auth-signin'),
-    btnMagic: document.getElementById('btn-auth-magic'),
-    btnUsePassword: document.getElementById('btn-auth-use-password'),
-    btnForgot: document.getElementById('btn-auth-forgot'),
-    emailStep: document.getElementById('auth-email-step'),
-    passwordStep: document.getElementById('auth-password-step'),
-    passwordInputGroup: document.getElementById('auth-password-input-group'),
-    loginOptions: document.getElementById('auth-login-options'),
-    displayEmail: document.getElementById('auth-display-email'),
-    statusMsg: document.getElementById('auth-status')
+    phoneStep: document.getElementById('auth-phone-step'),
+    codeStep: document.getElementById('auth-code-step'),
+    phoneInput: document.getElementById('auth-phone'),
+    phoneDisplay: document.getElementById('auth-phone-display'),
+    codeInput: document.getElementById('auth-code'),
+    requestCode: document.getElementById('btn-auth-request-code'),
+    verifyCode: document.getElementById('btn-auth-verify-code'),
+    resendCode: document.getElementById('btn-auth-resend-code'),
+    changePhone: document.getElementById('btn-auth-change-phone'),
+    status: document.getElementById('auth-status')
 };
 
-function showError(msg) {
-    if (!DOM.statusMsg) return;
-    DOM.statusMsg.textContent = msg;
-    DOM.statusMsg.style.color = 'var(--danger)';
-    DOM.statusMsg.classList.remove('hidden');
+let normalizedPhone = '';
+
+const TRANSIT_THEMES = [
+    { match: ['toronto'], label: 'Toronto transit colours', featuredLine: 'Line 2 · Bloor–Danforth', colors: ['#f8c84b', '#009b4e', '#8b4a9c', '#e87511'] },
+    { match: ['mississauga'], label: 'MiWay colours', featuredLine: 'MiWay · Route 10', colors: ['#f58220', '#0072bc', '#00a99d', '#f8c84b'] },
+    { match: ['vaughan', 'markham', 'richmond hill', 'york region'], label: 'YRT colours', featuredLine: 'Viva Blue', colors: ['#0072bc', '#f8c84b', '#ee6a52', '#3bb58a'] },
+    { match: ['montreal'], label: 'Montréal transit colours', featuredLine: 'Orange line', colors: ['#0072bc', '#ee6a52', '#f8c84b', '#3bb58a'] },
+    { match: ['vancouver', 'burnaby', 'surrey'], label: 'TransLink colours', featuredLine: 'Expo Line', colors: ['#0072bc', '#f8c84b', '#ee6a52', '#3bb58a'] },
+    { match: ['new york', 'brooklyn', 'queens', 'bronx'], label: 'MTA colours', featuredLine: '7 · Flushing–Main St', colors: ['#ee6a52', '#4a6cf7', '#3bb58a', '#f8c84b'] },
+    { match: ['chicago'], label: 'CTA colours', featuredLine: 'Red Line', colors: ['#ee6a52', '#4a6cf7', '#8b4a9c', '#3bb58a'] },
+    { match: ['san francisco'], label: 'Muni colours', featuredLine: 'Muni Metro', colors: ['#ee6a52', '#4a6cf7', '#f8c84b', '#3bb58a'] },
+    { match: ['london'], label: 'TfL colours', featuredLine: 'Central line', colors: ['#ee6a52', '#4a6cf7', '#f8c84b', '#3bb58a'] }
+];
+
+async function applyLocalTransitTheme() {
+    const view = document.querySelector('.auth-view');
+    const featuredLine = document.getElementById('auth-featured-line');
+    if (!view) return;
+
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 2500);
+        const response = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+        clearTimeout(timeout);
+        if (!response.ok) throw new Error('Location lookup unavailable');
+
+        const location = await response.json();
+        const searchText = `${location.city || ''} ${location.region || ''}`.toLowerCase();
+        const theme = TRANSIT_THEMES.find((candidate) => candidate.match.some((name) => searchText.includes(name)));
+        if (!theme) return;
+
+        ['gold', 'blue', 'red', 'green'].forEach((name, index) => {
+            view.style.setProperty(`--auth-route-${name}`, theme.colors[index]);
+        });
+        if (featuredLine) featuredLine.textContent = theme.featuredLine;
+    } catch { /* Default colours remain in place. */ }
 }
 
-function showSuccess(msg) {
-    if (!DOM.statusMsg) return;
-    DOM.statusMsg.textContent = msg;
-    DOM.statusMsg.style.color = 'var(--success)';
-    DOM.statusMsg.classList.remove('hidden');
+function normalizePhone(phone) {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 10) return `+1${digits}`;
+    if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+    return phone.trim().startsWith('+') ? `+${digits}` : `+${digits}`;
+}
+
+function formatPhone(phone) {
+    if (phone.length === 12 && phone.startsWith('+1')) {
+        return `(${phone.slice(2, 5)}) ${phone.slice(5, 8)}-${phone.slice(8)}`;
+    }
+    return phone;
+}
+
+function setStatus(message, type = 'error') {
+    DOM.status.textContent = message;
+    DOM.status.className = `status-msg auth-status ${type}`;
+    DOM.status.classList.remove('hidden');
+}
+
+function clearStatus() {
+    DOM.status.textContent = '';
+    DOM.status.className = 'status-msg auth-status hidden';
+}
+
+function setBusy(button, busy, busyText, idleText) {
+    button.disabled = busy;
+    button.innerHTML = busy ? busyText : `${idleText} <i data-lucide="arrow-right" aria-hidden="true"></i>`;
+    if (window.lucide) lucide.createIcons();
+}
+
+function syncButtons() {
+    DOM.requestCode.disabled = normalizePhone(DOM.phoneInput.value).replace(/\D/g, '').length < 10;
+    DOM.verifyCode.disabled = DOM.codeInput.value.trim().length !== 6;
+}
+
+async function requestCode() {
+    normalizedPhone = normalizePhone(DOM.phoneInput.value);
+    clearStatus();
+    setBusy(DOM.requestCode, true, 'Sending…', 'Text me a code');
+
+    try {
+        await Auth.requestPhoneCode(normalizedPhone);
+        DOM.phoneDisplay.textContent = formatPhone(normalizedPhone);
+        DOM.phoneStep.classList.add('hidden');
+        DOM.codeStep.classList.remove('hidden');
+        DOM.codeInput.value = '';
+        DOM.codeInput.focus();
+    } catch (error) {
+        setStatus(error.message);
+    } finally {
+        setBusy(DOM.requestCode, false, 'Sending…', 'Text me a code');
+        syncButtons();
+    }
+}
+
+async function verifyCode() {
+    clearStatus();
+    setBusy(DOM.verifyCode, true, 'Opening…', 'Open TransitStats');
+
+    try {
+        await Auth.verifyPhoneCode(normalizedPhone, DOM.codeInput.value.trim());
+        setStatus('Verified. You’re all set.', 'success');
+    } catch (error) {
+        setStatus(error.message);
+        DOM.codeInput.select();
+    } finally {
+        setBusy(DOM.verifyCode, false, 'Opening…', 'Open TransitStats');
+        syncButtons();
+    }
+}
+
+function resetToPhoneStep() {
+    clearStatus();
+    DOM.codeStep.classList.add('hidden');
+    DOM.phoneStep.classList.remove('hidden');
+    DOM.phoneInput.focus();
+    syncButtons();
 }
 
 function setupListeners() {
-    const syncBtn = () => {
-        DOM.btnContinue.classList.toggle('btn-inactive', !DOM.emailInput.value.trim());
-    };
-    DOM.emailInput.addEventListener('input', syncBtn);
-    DOM.emailInput.addEventListener('change', syncBtn);
-    DOM.emailInput.addEventListener('blur', syncBtn);
-    DOM.emailInput.addEventListener('animationstart', syncBtn);
-    DOM.emailInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') DOM.btnContinue.click(); });
-
-    DOM.btnContinue.addEventListener('click', () => {
-        const email = DOM.emailInput.value.trim();
-        if (!email) { DOM.emailInput.focus(); return; }
-        DOM.displayEmail.textContent = email;
-        DOM.emailStep.classList.add('hidden');
-        DOM.passwordStep.classList.remove('hidden');
-        DOM.statusMsg.classList.add('hidden');
+    DOM.phoneInput.addEventListener('input', syncButtons);
+    DOM.phoneInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !DOM.requestCode.disabled) requestCode();
     });
-
-    DOM.btnMagic.addEventListener('click', async () => {
-        const email = DOM.emailInput.value.trim();
-        try {
-            DOM.btnMagic.disabled = true;
-            DOM.btnMagic.textContent = 'Sending...';
-            await Auth.sendMagicLink(email);
-            showSuccess('Magic link sent! Check your email.');
-        } catch (err) {
-            showError(err.message);
-        } finally {
-            DOM.btnMagic.disabled = false;
-            DOM.btnMagic.textContent = 'Send Magic Link';
-        }
+    DOM.codeInput.addEventListener('input', () => {
+        DOM.codeInput.value = DOM.codeInput.value.replace(/\D/g, '').slice(0, 6);
+        syncButtons();
     });
-
-    DOM.btnUsePassword.addEventListener('click', () => {
-        DOM.loginOptions.classList.add('hidden');
-        DOM.passwordInputGroup.classList.remove('hidden');
-        DOM.passwordInput.focus();
+    DOM.codeInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !DOM.verifyCode.disabled) verifyCode();
     });
-
-    DOM.btnSignIn.addEventListener('click', async () => {
-        const email = DOM.emailInput.value.trim();
-        const pwd = DOM.passwordInput.value;
-        if (!email || !pwd) return;
-        try {
-            DOM.btnSignIn.disabled = true;
-            DOM.btnSignIn.textContent = 'Signing in...';
-            DOM.statusMsg.classList.add('hidden');
-            await Auth.signInWithPassword(email, pwd);
-        } catch (err) {
-            showError(Auth.getErrorMessage(err.code || err.message));
-        } finally {
-            DOM.btnSignIn.disabled = false;
-            DOM.btnSignIn.textContent = 'Sign In';
-        }
-    });
-
-    DOM.passwordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') DOM.btnSignIn.click(); });
-
-    DOM.btnForgot.addEventListener('click', async () => {
-        const email = DOM.emailInput.value.trim();
-        try {
-            DOM.btnForgot.disabled = true;
-            DOM.btnForgot.textContent = 'Sending...';
-            await Auth.sendPasswordReset(email);
-            showSuccess('Reset email sent!');
-        } catch (err) {
-            showError(err.message);
-        } finally {
-            DOM.btnForgot.disabled = false;
-            DOM.btnForgot.textContent = 'Forgot Password?';
-        }
-    });
+    DOM.requestCode.addEventListener('click', requestCode);
+    DOM.verifyCode.addEventListener('click', verifyCode);
+    DOM.resendCode.addEventListener('click', requestCode);
+    DOM.changePhone.addEventListener('click', resetToPhoneStep);
 }
 
-async function init() {
-    // Complete magic link sign-in if applicable
-    await Auth.completeMagicLinkSignIn();
+function init() {
+    window.TransitTheme?.apply(window.TransitTheme.getPreference());
 
-    // If already authed, go straight to dashboard
     auth.onAuthStateChanged((user) => {
-        if (user) window.location.href = '/dashboard';
+        if (user) {
+            window.location.href = window.location.hostname === 'admin.transitstats.fyi'
+                ? '/admin'
+                : '/dashboard';
+        }
     });
 
     setupListeners();
-
+    syncButtons();
+    applyLocalTransitTheme();
     if (window.lucide) lucide.createIcons();
 }
 

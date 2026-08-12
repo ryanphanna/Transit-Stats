@@ -14,6 +14,7 @@ import { db } from '../firebase.js';
 
 window.Trips = Trips;
 window.Utils = Utils;
+window.RouteTracker = RouteTracker;
 window.refreshIcons = refreshIcons;
 
 // --- Trip Edit Modal ---
@@ -113,7 +114,7 @@ async function init() {
     await Profile.load(user);
 
     const profileName = document.getElementById('profile-name');
-    if (profileName) profileName.textContent = user.displayName || user.email.split('@')[0];
+    if (profileName) profileName.textContent = Profile.getDisplayName(user) || 'Traveler';
 
     setupTripEditListeners();
     setupStatsToggle();
@@ -127,12 +128,8 @@ async function init() {
     Trips.init();
     Trips._readyPromise.then(() => {
         Stats.init();
-        RouteTracker.init();
+        RouteTracker.init({ compact: true });
         refreshIcons();
-    });
-
-    document.getElementById('routeTrackerAgency')?.addEventListener('change', (e) => {
-        RouteTracker.setAgency(e.target.value);
     });
 
     refreshIcons();

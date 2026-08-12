@@ -33,7 +33,7 @@
                                         <span class="settings-sub-label">Display Name</span>
                                         <input type="text" id="settings-name" class="minimal-input" placeholder="Enter name...">
                                     </div>
-                                    <button id="btn-save-name" class="btn btn-sm btn-ghost p-1" title="Save name"><i data-lucide="save" class="icon-inline m-0" style="width:14px;"></i></button>
+                                    <button id="btn-save-name" class="btn btn-sm btn-outline" title="Save name"><i data-lucide="save" class="icon-inline"></i>Save name</button>
                                 </div>
                                 <div class="settings-row">
                                     <div class="settings-label-group">
@@ -65,8 +65,15 @@
                                     </select>
                                 </div>
                                 <div class="settings-row">
-                                    <span class="settings-main-label text-xs">Theme</span>
-                                    <div class="status-indicator active" title="System Match"></div>
+                                    <div class="settings-label-group">
+                                        <span class="settings-main-label text-xs">Theme</span>
+                                        <span class="settings-sub-label">Choose how TransitStats looks on this device</span>
+                                    </div>
+                                    <select id="settings-theme" class="minimal-select" aria-label="Theme">
+                                        <option value="system">System</option>
+                                        <option value="light">Light</option>
+                                        <option value="dark">Dark</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -91,6 +98,7 @@
                                         </div>
                                         <button id="btn-save-identity" class="btn btn-sm btn-primary">Save Identity</button>
                                     </div>
+                                    <span id="settings-identity-help" class="settings-sub-label"></span>
                                     <div id="settings-username-display" class="settings-main-label text-xxs text-muted"></div>
                                 </div>
                                 <div class="settings-row">
@@ -104,11 +112,6 @@
                                     <div class="emoji-grid"></div>
                                 </div>
                             </div>
-                        </div>
-
-                        <!-- Sign Out -->
-                        <div class="mt-4">
-                            <button id="btn-logout" class="btn btn-danger-outline full-width">Sign Out</button>
                         </div>
 
                     </div>

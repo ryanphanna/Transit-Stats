@@ -1,3 +1,5 @@
+import { Auth } from '../auth.js';
+
 /**
  * Shared Header Component
  * Injects navigation into the page.
@@ -10,21 +12,25 @@ function _render(isAdmin, currentPage) {
     const root = document.getElementById('app-root');
     if (!root) return;
 
-    const navItems = [
-        { id: 'map', label: 'Map', icon: 'map', href: '/map' },
-        { id: 'admin', label: 'Stops', icon: 'database', href: '/admin' },
-        { id: 'users', label: 'Users', icon: 'users', href: '/users' },
-        { id: 'insights', label: 'Insights', icon: 'line-chart', href: '/insights' },
-    ];
-
-    if (isAdmin) {
-        navItems.push({ id: 'rocket', label: 'Rocket', icon: 'rocket', href: '/rocket' });
-    }
+    const adminHost = window.location.hostname === 'admin.transitstats.fyi';
+    const adminSurface = adminHost || ['admin', 'users', 'insights', 'rocket'].includes(currentPage);
+    const navItems = adminSurface
+        ? [
+            { id: 'admin', label: 'Stops', icon: 'database', href: '/admin' },
+            { id: 'users', label: 'Users', icon: 'users', href: '/users' },
+            { id: 'insights', label: 'Insights', icon: 'line-chart', href: '/insights' },
+            ...(isAdmin ? [{ id: 'rocket', label: 'Rocket', icon: 'rocket', href: '/rocket' }] : []),
+        ]
+        : [
+            { id: 'map', label: 'Map', icon: 'map', href: '/map' },
+            { id: 'routes', label: 'Routes', icon: 'route', href: '/routes' },
+        ];
+    const logoHref = adminHost ? 'https://transitstats.fyi/' : '/dashboard';
 
     const headerHtml = `
         <header class="header">
             <div class="header-container">
-                <a href="/dashboard" class="logo">
+                <a href="${logoHref}" class="logo">
                      <div class="logo-icon"><i data-lucide="zap"></i></div>
                      <span class="logo-text">TransitStats</span>
                 </a>
@@ -42,6 +48,9 @@ function _render(isAdmin, currentPage) {
                     <a href="/settings" class="icon-btn ${currentPage === 'settings' ? 'active' : ''}" title="Settings">
                         <i data-lucide="settings"></i>
                     </a>
+                    <button id="btn-header-logout" class="icon-btn header-logout" title="Sign out" aria-label="Sign out">
+                        <i data-lucide="log-out"></i>
+                    </button>
                 </div>
             </div>
         </header>
@@ -49,5 +58,28 @@ function _render(isAdmin, currentPage) {
 
     root.insertAdjacentHTML('afterbegin', headerHtml);
     if (window.lucide) lucide.createIcons();
-}
 
+    const logout = document.getElementById('btn-header-logout');
+    let armed = false;
+    let timer = null;
+    logout?.addEventListener('click', async () => {
+        if (!armed) {
+            armed = true;
+            logout.classList.add('confirming');
+            logout.setAttribute('aria-label', 'Tap again to sign out');
+            logout.title = 'Tap again to sign out';
+            timer = setTimeout(() => {
+                armed = false;
+                logout.classList.remove('confirming');
+                logout.setAttribute('aria-label', 'Sign out');
+                logout.title = 'Sign out';
+            }, 3000);
+            return;
+        }
+
+        clearTimeout(timer);
+        logout.disabled = true;
+        await Auth.signOut();
+        window.location.href = '/';
+    });
+}
