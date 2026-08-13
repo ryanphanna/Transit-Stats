@@ -35,7 +35,6 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Routes now keeps the main agency detailed and summarizes other agencies compactly** with progress bars instead of a long route wall.
 - **Routes now highlights the main agency’s top five routes** while keeping the complete route list collapsed until needed.
 - **Routes now hides other-agency coverage until route data is available** so incomplete inventory is not presented as rider-facing information.
-- **Beta now has an isolated GTFS route heatmap** that colours route corridors by personal ride frequency without changing the main map.
 
 ### Fixed
 - **Route coverage progress bars now display** on agency pages such as HSR instead of showing only the route count.

@@ -95,6 +95,10 @@
           "destination": "/public.html"
         },
         {
+          "source": "/beta-map",
+          "destination": "/beta-map.html"
+        },
+        {
           "source": "/settings",
           "destination": "/settings.html"
         },
@@ -234,31 +238,7 @@
           "destination": "/public.html"
         },
         {
-          "source": "/dashboard",
-          "destination": "/dashboard.html"
-        },
-        {
-          "source": "/routes",
-          "destination": "/routes.html"
-        },
-        {
-          "source": "/map",
-          "destination": "/map.html"
-        },
-        {
-          "source": "/beta-map",
-          "destination": "/beta-map.html"
-        },
-        {
-          "source": "/settings",
-          "destination": "/settings.html"
-        },
-        {
-          "source": "/beta-heatmap",
-          "destination": "/beta-heatmap.html"
-        },
-        {
-          "source": "/{dashboard,routes,settings,map,admin,users,insights,public,rocket}",
+          "source": "/{dashboard,routes,settings,map,beta-map,admin,users,insights,public,rocket}",
           "destination": "/index.html"
         },
         {
