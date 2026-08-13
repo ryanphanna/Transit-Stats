@@ -18,6 +18,14 @@ describe('trip display fallbacks', () => {
         expect(getTripStopLabel({}, 'boarding', { source: 'saved' })).toBe('Saved stop location');
     });
 
+    test('prefers a canonical GTFS stop name over raw trip text', () => {
+        expect(getTripStopLabel(
+            { startStopName: 'College' },
+            'boarding',
+            { source: 'atlas', label: 'College Station' },
+        )).toBe('College Station');
+    });
+
     test('accepts legacy and newer stop fields', () => {
         expect(getTripStopLabel({ boardingStopName: 'College Station' }, 'boarding')).toBe('College Station');
         expect(getTripStopLabel({ exitingStop: 'Dundas Station' }, 'exiting')).toBe('Dundas Station');
@@ -26,5 +34,10 @@ describe('trip display fallbacks', () => {
     test('uses a safe route fallback', () => {
         expect(getTripRouteLabel({ route: '  510  '})).toBe('510');
         expect(getTripRouteLabel({ route: undefined })).toBe('Unknown route');
+    });
+
+    test('normalizes all-caps route names for riders', () => {
+        expect(getTripRouteLabel({ route: 'PURPLE' })).toBe('Purple');
+        expect(getTripRouteLabel({ route: '54A' })).toBe('54A');
     });
 });

@@ -4,6 +4,8 @@ const STOP_FIELDS = {
 };
 
 export function getTripStopLabel(trip = {}, side = 'boarding', resolution = null) {
+    if (resolution?.label && resolution.source === 'atlas') return resolution.label;
+
     const fields = STOP_FIELDS[side] || STOP_FIELDS.boarding;
     for (const field of fields) {
         const value = trip[field];
@@ -18,7 +20,16 @@ export function getTripStopLabel(trip = {}, side = 'boarding', resolution = null
 
 export function getTripRouteLabel(trip = {}) {
     const route = typeof trip.route === 'string' ? trip.route.trim() : '';
-    return route || 'Unknown route';
+    if (!route) return 'Unknown route';
+
+    // Stored route values can be all-caps display names (for example, PURPLE).
+    // Keep route numbers and short agency-style codes unchanged, but make longer
+    // rider-facing names read naturally in map popups and trip cards.
+    if (/^[A-Z][A-Z\s-]+$/.test(route) && route.replace(/[^A-Z]/g, '').length > 3) {
+        return route.toLowerCase().replace(/(^|[\s-])[a-z]/g, match => match.toUpperCase());
+    }
+
+    return route;
 }
 
 export function getTripStatusLabel(trip = {}) {

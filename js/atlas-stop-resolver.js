@@ -1,7 +1,6 @@
 /**
  * Read-only stop resolution shared by the Atlas beta surfaces.
- * Atlas is preferred; Firestore stops are only a fallback for local aliases
- * and historical data that Atlas does not recognize.
+ * GTFS stop data from Atlas is the only geographic source used by map views.
  */
 
 export function normalizeStopLabel(value) {
@@ -45,12 +44,10 @@ function addStops(index, stops, source) {
     });
 }
 
-export function buildStopIndex({ atlasStops = [], firestoreStops = [] } = {}) {
+export function buildStopIndex({ atlasStops = [] } = {}) {
     const index = new Map();
 
-    // Insert Atlas first so it wins when both sources contain the same key.
     addStops(index, atlasStops, 'atlas');
-    addStops(index, firestoreStops, 'firestore');
     return index;
 }
 
@@ -68,15 +65,6 @@ export function resolveStopLocation(trip, side, index) {
     const stopName = side === 'boarding'
         ? (trip.startStopName || trip.startStop)
         : (trip.endStopName || trip.endStop);
-    const saved = validLocation(side === 'boarding'
-        ? (trip.boardingLocation || trip.boardLocation)
-        : trip.exitLocation);
-    if (saved) return {
-        location: saved,
-        source: 'saved',
-        label: stopName || (stopCode ? `Stop ${stopCode}` : null),
-    };
-
     const agency = trip.agency || 'TTC';
 
     for (const label of [stopCode, stopName]) {

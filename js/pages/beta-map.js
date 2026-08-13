@@ -5,29 +5,29 @@ import { ATLAS_AGENCY_SLUGS as STOP_AGENCIES, loadAtlasStops } from '../atlas-st
 import { ATLAS_AGENCY_SLUGS as ROUTE_AGENCIES, loadAtlasRoutes } from '../atlas-routes.js';
 import { buildStopIndex, resolveStopLocation } from '../atlas-stop-resolver.js';
 import { clipFeatureToTrip, routeMatches } from '../route-segment.js';
+import { getTripStopLabel } from '../trip-display.js';
 
 const state = {
     map: null,
     trips: [],
-    firestoreStops: [],
     atlasStops: [],
     routeFeatures: [],
-    filter: 'boarding',
+    filter: 'both',
     view: 'paths',
     hasFit: false,
     routesLoaded: false,
-    stopsLoaded: false,
+    loadedStopAgencies: new Set(),
+    loadingStopAgencies: new Set(),
     layers: { paths: null, points: null }
 };
 
 function emptyResolutionStats() {
-    return { saved: 0, atlas: 0, firestore: 0, unresolved: 0 };
+    return { atlas: 0, unresolved: 0 };
 }
 
 function buildPointData() {
     const stopIndex = buildStopIndex({
         atlasStops: state.atlasStops,
-        firestoreStops: state.firestoreStops,
     });
     const showBoarding = state.filter === 'boarding' || state.filter === 'both';
     const showExiting = state.filter === 'exiting' || state.filter === 'both';
@@ -43,7 +43,7 @@ function buildPointData() {
             const resolution = resolveStopLocation(trip, side, stopIndex);
             diagnostics[side][resolution.source]++;
             if (visible && resolution.location) {
-                points.push({ ...resolution.location, type: side, trip });
+                points.push({ ...resolution.location, type: side, trip, resolution });
             }
         }
     });
@@ -60,20 +60,19 @@ function renderDiagnostics({ boarding, exiting, tripCount, capped }) {
     const container = document.getElementById('beta-map-diagnostics');
     if (!container) return;
 
-    const totals = ['saved', 'atlas', 'firestore', 'unresolved'].reduce((result, source) => {
+    const totals = ['atlas', 'unresolved'].reduce((result, source) => {
         result[source] = boarding[source] + exiting[source];
         return result;
     }, {});
-    const resolved = totals.saved + totals.atlas + totals.firestore;
+    const resolved = totals.atlas;
     const capNote = capped ? ` · showing first ${tripCount} trips` : '';
 
     container.innerHTML = `
         <strong>Stop locations</strong>
         <span><b>${resolved}</b> matched</span>
         <span><b>${totals.atlas}</b> Atlas</span>
-        <span><b>${totals.firestore}</b> Firestore fallback</span>
         <span><b>${totals.unresolved}</b> unresolved</span>
-        <small>Boarding ${boarding.saved + boarding.atlas + boarding.firestore}/${tripCount} · Exiting ${exiting.saved + exiting.atlas + exiting.firestore}/${tripCount}${capNote}</small>
+        <small>Boarding ${boarding.atlas}/${tripCount} · Exiting ${exiting.atlas}/${tripCount}${capNote}</small>
     `;
 }
 
@@ -85,7 +84,6 @@ function clearLayers() {
 function buildPathData() {
     const stopIndex = buildStopIndex({
         atlasStops: state.atlasStops,
-        firestoreStops: state.firestoreStops,
     });
     const segments = [];
     let unresolved = 0;
@@ -107,7 +105,7 @@ function buildPathData() {
         const match = candidates
             .map(feature => ({ feature, line: clipFeatureToTrip(feature, trip, start.location, end.location) }))
             .find(candidate => candidate.line);
-        if (match) segments.push({ ...match, trip });
+        if (match) segments.push({ ...match, trip, startResolution: start, endResolution: end });
         else unresolved += 1;
     });
 
@@ -122,7 +120,7 @@ function buildPathData() {
 function renderPaths() {
     const pathData = buildPathData();
     const coordinates = [];
-    pathData.segments.forEach(({ feature, line, trip }) => {
+    pathData.segments.forEach(({ feature, line, trip, startResolution, endResolution }) => {
         const properties = feature.properties || {};
         const route = String(properties.routeShortName || properties.routeId || trip.route || '').trim();
         const color = /^[0-9a-f]{6}$/i.test(properties.routeColor || '')
@@ -132,7 +130,7 @@ function renderPaths() {
             color,
             weight: 2.5,
             opacity: 0.65
-        }).bindPopup(`${route} · ${trip.startStopName || trip.startStop || 'Boarding stop'} → ${trip.endStopName || trip.endStop || 'Exit stop'}`).addTo(state.layers.paths);
+        }).bindPopup(`${route} · ${getTripStopLabel(trip, 'boarding', startResolution)} → ${getTripStopLabel(trip, 'exiting', endResolution)}`).addTo(state.layers.paths);
         coordinates.push(...line);
     });
 
@@ -146,7 +144,11 @@ function renderPoints(points) {
         color: '#fff',
         weight: 1.5,
         fillOpacity: 0.85
-    }).bindPopup(`${point.type === 'boarding' ? 'Boarded' : 'Exited'} ${point.trip.route || ''}`).addTo(state.layers.points));
+    }).bindPopup(getTripStopLabel(
+        point.trip,
+        point.type === 'boarding' ? 'boarding' : 'exiting',
+        point.resolution,
+    )).addTo(state.layers.points));
     return points.map(point => [point.lat, point.lng]);
 }
 
@@ -171,13 +173,22 @@ function render() {
     }
 }
 
-async function loadAtlasStopFallbacks() {
-    if (state.stopsLoaded) return;
+async function loadAtlasStopData() {
     const agencies = [...new Set(state.trips.map(trip => trip.agency || 'TTC'))]
         .filter(agency => STOP_AGENCIES[agency]);
-    if (agencies.length === 0) return;
-    state.atlasStops = await loadAtlasStops(agencies);
-    state.stopsLoaded = true;
+    const missing = agencies.filter(agency =>
+        !state.loadedStopAgencies.has(agency) && !state.loadingStopAgencies.has(agency)
+    );
+    if (missing.length === 0) return;
+
+    missing.forEach(agency => state.loadingStopAgencies.add(agency));
+    try {
+        const loadedStops = await loadAtlasStops(missing);
+        state.atlasStops = [...state.atlasStops, ...loadedStops];
+        missing.forEach(agency => state.loadedStopAgencies.add(agency));
+    } finally {
+        missing.forEach(agency => state.loadingStopAgencies.delete(agency));
+    }
     render();
 }
 
@@ -213,14 +224,12 @@ async function init() {
     state.layers.points = L.layerGroup().addTo(state.map);
     setupControls();
 
-    const stopsSnapshot = await db.collection('stops').get();
-    state.firestoreStops = stopsSnapshot.docs.map(doc => doc.data());
     db.collection('trips').where('userId', '==', user.uid).orderBy('startTime', 'desc').onSnapshot(snapshot => {
         state.trips = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         state.hasFit = false;
         render();
         loadAtlasRoutePaths().catch(error => console.warn('Trip paths beta: Atlas routes unavailable', error));
-        loadAtlasStopFallbacks().catch(error => console.warn('Trip paths beta: Atlas stops unavailable', error));
+        loadAtlasStopData().catch(error => console.warn('Trip paths beta: Atlas stops unavailable', error));
     }, error => console.error('Trip paths beta: trip stream failed', error));
 }
 

@@ -1,11 +1,10 @@
 import { UI } from './ui-utils.js';
 import { PredictionEngine } from './predict.js';
 import { buildStopIndex, resolveStopLocation } from './atlas-stop-resolver.js';
-import { getTripRouteLabel, getTripStopLabel } from './trip-display.js';
+import { getTripStopLabel } from './trip-display.js';
 
 export function getMapMarkerLabel(trip = {}, side = 'boarding', resolution = null) {
-    const verb = side === 'boarding' ? 'Boarded' : 'Exited';
-    return `${verb} ${getTripRouteLabel(trip)} at ${getTripStopLabel(trip, side, resolution)}`;
+    return getTripStopLabel(trip, side, resolution);
 }
 
 /**
@@ -15,7 +14,7 @@ export function getMapMarkerLabel(trip = {}, side = 'boarding', resolution = nul
 export const MapEngine = {
     map: null,
     trips: [],
-    filter: 'boarding', // 'boarding', 'exiting', 'both'
+    filter: 'both', // 'boarding', 'exiting', 'both'
     layers: {
         base: null,
         transit: null,

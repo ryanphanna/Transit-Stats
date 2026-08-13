@@ -13,17 +13,28 @@ describe('Atlas stop resolver', () => {
         lng: -79.38,
     };
 
-    it('prefers saved trip coordinates', () => {
+    it('does not use stored coordinates when GTFS has no match', () => {
+        const result = resolveStopLocation({
+            agency: 'TTC',
+            boardingLocation: { lat: 1, lng: 2 },
+            startStopName: 'Unlisted stop',
+        }, 'boarding', buildStopIndex({ atlasStops: [atlasStop] }));
+
+        expect(result).toEqual({ source: 'unresolved', location: null });
+    });
+
+    it('uses the GTFS location and canonical name when available', () => {
         const result = resolveStopLocation({
             agency: 'TTC',
             boardingLocation: { lat: 1, lng: 2 },
             startStopCode: '1234',
+            startStopName: 'College',
         }, 'boarding', buildStopIndex({ atlasStops: [atlasStop] }));
 
         expect(result).toEqual({
-            source: 'saved',
-            label: 'Stop 1234',
-            location: { lat: 1, lng: 2 },
+            source: 'atlas',
+            label: 'College Station',
+            location: { lat: 43.66, lng: -79.38 },
         });
     });
 
@@ -44,7 +55,7 @@ describe('Atlas stop resolver', () => {
         expect(result.location).toEqual({ lat: 43.66, lng: -79.38 });
     });
 
-    it('uses Firestore as a fallback for local aliases', () => {
+    it('does not use Firestore stop records', () => {
         const index = buildStopIndex({
             firestoreStops: [{
                 agency: 'TTC',
@@ -56,7 +67,7 @@ describe('Atlas stop resolver', () => {
         });
 
         const result = resolveStopLocation({ agency: 'TTC', startStopName: 'College Beverley' }, 'boarding', index);
-        expect(result.source).toBe('firestore');
+        expect(result).toEqual({ source: 'unresolved', location: null });
     });
 
     it('reports unresolved stop text without throwing', () => {
