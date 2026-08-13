@@ -219,54 +219,72 @@
   margin-bottom: 22px;
 }
 
-.rt-bubble-chart {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  min-height: 96px;
-  padding: 14px;
+.rt-frequency-chart {
+  padding: 8px 0 0;
   border: 1px solid var(--border-outer);
   border-radius: 12px;
   background: var(--bg-muted);
 }
 
-.rt-route-bubble {
-  display: flex;
-  width: var(--bubble-size);
-  height: var(--bubble-size);
-  flex: 0 0 var(--bubble-size);
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--accent-gradient);
-  color: #fff;
-  box-shadow: 0 5px 12px rgba(16, 185, 129, 0.2);
-  line-height: 1;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+.rt-frequency-svg {
+  display: block;
+  width: 100%;
+  height: 230px;
 }
 
-.rt-route-bubble:hover {
-  transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 8px 18px rgba(16, 185, 129, 0.3);
+.rt-frequency-axis {
+  stroke: var(--border-outer);
+  stroke-width: 2;
 }
 
-.rt-route-bubble strong {
-  max-width: 88%;
-  overflow: hidden;
-  font-size: 0.78rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.rt-frequency-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
 }
 
-.rt-route-bubble span {
-  margin-top: 5px;
-  font-size: 0.62rem;
-  font-weight: 700;
-  opacity: 0.85;
+.rt-frequency-bubble {
+  fill: var(--accent);
+  stroke: var(--bg-card);
+  stroke-width: 4;
+  transition: r 0.2s ease, fill 0.2s ease;
 }
 
+.rt-frequency-point:hover .rt-frequency-bubble,
+.rt-frequency-point:focus .rt-frequency-bubble {
+  fill: var(--accent-light);
+}
+
+.rt-frequency-count,
+.rt-frequency-route {
+  fill: var(--text-secondary);
+  font-family: inherit;
+  font-weight: 800;
+}
+
+.rt-frequency-count {
+  font-size: 18px;
+}
+
+.rt-frequency-route {
+  font-size: 16px;
+}
+
+@media (max-width: 640px) {
+  .rt-frequency-svg {
+    height: 205px;
+  }
+
+  .rt-frequency-count {
+    font-size: 20px;
+  }
+
+  .rt-frequency-route {
+    font-size: 19px;
+  }
+}
 .rt-progress-label,
 .rt-list-heading {
   display: flex;

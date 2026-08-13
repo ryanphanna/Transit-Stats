@@ -331,10 +331,10 @@ export const RouteTracker = {
 
             <section class="rt-frequency" aria-labelledby="rt-frequency-title">
                 <div class="rt-list-heading">
-                    <span id="rt-frequency-title">Routes by frequency</span>
-                    <span>${Math.min(rideCounts.size, 24)} shown</span>
+                    <span id="rt-frequency-title">Ride frequency</span>
+                    <span>${Math.min(rideCounts.size, 12)} shown</span>
                 </div>
-                <div class="rt-bubble-chart" aria-label="Routes sized by number of rides">
+                <div class="rt-frequency-chart" aria-label="Routes plotted by number of rides">
                     ${frequencyBubbles}
                 </div>
             </section>
@@ -359,23 +359,42 @@ export const RouteTracker = {
             }))
             .filter(entry => entry.count > 0)
             .sort((a, b) => b.count - a.count || String(a.route.routeShortName).localeCompare(String(b.route.routeShortName)))
-            .slice(0, 24);
+            .slice(0, 12);
 
         if (entries.length === 0) return '<div class="empty-state">Ride a route to see its frequency here.</div>';
 
         const maxCount = entries[0].count;
-        const maxLog = Math.log1p(maxCount);
-        return entries.map(({ route, count }) => {
-            const scale = maxCount === 1 ? 0.45 : Math.log1p(count) / maxLog;
-            const size = Math.round(52 + (scale * 52));
-            const routeName = UI.escapeHtml(String(route.routeShortName));
-            const rideLabel = `${count} ${count === 1 ? 'ride' : 'rides'}`;
-            return `
-                <div class="rt-route-bubble" role="img" aria-label="Route ${routeName}: ${rideLabel}" title="Route ${routeName} · ${rideLabel}" style="--bubble-size: ${size}px;">
-                    <strong>${routeName}</strong>
-                    <span>${count}</span>
-                </div>`;
-        }).join('');
+        const chartWidth = 1000;
+        const chartHeight = 230;
+        const chartLeft = 48;
+        const chartRight = 952;
+        const chartTop = 24;
+        const chartBottom = 162;
+        const step = entries.length === 1 ? 0 : (chartRight - chartLeft) / (entries.length - 1);
+        const points = entries.map(({ count }, index) => ({
+            x: chartLeft + (step * index),
+            y: chartBottom - ((count / maxCount) * (chartBottom - chartTop)),
+            radius: 7 + (count / maxCount) * 7,
+        }));
+        const path = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
+
+        return `
+            <svg class="rt-frequency-svg" viewBox="0 0 ${chartWidth} ${chartHeight}" role="img" aria-labelledby="rt-frequency-chart-title">
+                <title id="rt-frequency-chart-title">Top routes by number of rides</title>
+                <line class="rt-frequency-axis" x1="${chartLeft}" y1="${chartBottom}" x2="${chartRight}" y2="${chartBottom}" />
+                <path class="rt-frequency-line" d="${path}" />
+                ${entries.map(({ route, count }, index) => {
+                    const point = points[index];
+                    const routeName = UI.escapeHtml(String(route.routeShortName));
+                    const rideLabel = `${count} ${count === 1 ? 'ride' : 'rides'}`;
+                    return `
+                        <g class="rt-frequency-point" tabindex="0" aria-label="Route ${routeName}: ${rideLabel}">
+                            <circle class="rt-frequency-bubble" cx="${point.x}" cy="${point.y}" r="${point.radius}" />
+                            <text class="rt-frequency-count" x="${point.x}" y="${point.y - point.radius - 7}" text-anchor="middle">${count}</text>
+                            <text class="rt-frequency-route" x="${point.x}" y="${chartHeight - 34}" text-anchor="middle">${routeName}</text>
+                        </g>`;
+                }).join('')}
+            </svg>`;
     },
 
     _renderAll: function (container, coverageItems) {
