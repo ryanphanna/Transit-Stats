@@ -215,6 +215,58 @@
   margin-bottom: 20px;
 }
 
+.rt-frequency {
+  margin-bottom: 22px;
+}
+
+.rt-bubble-chart {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-height: 96px;
+  padding: 14px;
+  border: 1px solid var(--border-outer);
+  border-radius: 12px;
+  background: var(--bg-muted);
+}
+
+.rt-route-bubble {
+  display: flex;
+  width: var(--bubble-size);
+  height: var(--bubble-size);
+  flex: 0 0 var(--bubble-size);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent-gradient);
+  color: #fff;
+  box-shadow: 0 5px 12px rgba(16, 185, 129, 0.2);
+  line-height: 1;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rt-route-bubble:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 18px rgba(16, 185, 129, 0.3);
+}
+
+.rt-route-bubble strong {
+  max-width: 88%;
+  overflow: hidden;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rt-route-bubble span {
+  margin-top: 5px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
 .rt-progress-label,
 .rt-list-heading {
   display: flex;

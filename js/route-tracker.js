@@ -227,8 +227,24 @@ export const RouteTracker = {
             TripController.allTrips
                 .filter(t => (t.agency || 'TTC') === agency && t.route)
                 .map(t => this._matchRouteToAtlas(t.route, atlasRouteKeys))
-                .filter(Boolean)
+            .filter(Boolean)
         );
+    },
+
+    _getRideCounts: function (agency, routes) {
+        const atlasRouteKeys = new Set(
+            (routes || []).map(route => this._normalizeRoute(route.routeShortName))
+        );
+        const counts = new Map();
+
+        (TripController.allTrips || [])
+            .filter(trip => !trip.discarded && (trip.agency || 'TTC') === agency && trip.route)
+            .forEach(trip => {
+                const route = this._matchRouteToAtlas(trip.route, atlasRouteKeys);
+                if (route) counts.set(route, (counts.get(route) || 0) + 1);
+            });
+
+        return counts;
     },
 
     _matchRouteToAtlas: function (value, atlasRouteKeys) {
@@ -284,6 +300,9 @@ export const RouteTracker = {
             return;
         }
 
+        const rideCounts = this._getRideCounts(this.currentAgency, routes);
+        const frequencyBubbles = this._renderFrequencyBubbles(routes, rideCounts);
+
         container.innerHTML = `
             <div class="rt-summary">
                 <div class="rt-summary-stat">
@@ -310,8 +329,18 @@ export const RouteTracker = {
                 </div>
             </div>
 
+            <section class="rt-frequency" aria-labelledby="rt-frequency-title">
+                <div class="rt-list-heading">
+                    <span id="rt-frequency-title">Routes by frequency</span>
+                    <span>${Math.min(rideCounts.size, 24)} shown</span>
+                </div>
+                <div class="rt-bubble-chart" aria-label="Routes sized by number of rides">
+                    ${frequencyBubbles}
+                </div>
+            </section>
+
             <div class="rt-list-heading">
-                <span>Routes you’ve ridden</span>
+                <span>All routes you’ve ridden</span>
                 <span>${coverage.riddenCount}</span>
             </div>
 
@@ -319,6 +348,34 @@ export const RouteTracker = {
                 ${this._renderList(coverage.ridden, true)}
             </div>
         `;
+    },
+
+    _renderFrequencyBubbles: function (routes, rideCounts) {
+        const entries = routes
+            .map(route => ({
+                route,
+                key: this._normalizeRoute(route.routeShortName),
+                count: rideCounts.get(this._normalizeRoute(route.routeShortName)) || 0,
+            }))
+            .filter(entry => entry.count > 0)
+            .sort((a, b) => b.count - a.count || String(a.route.routeShortName).localeCompare(String(b.route.routeShortName)))
+            .slice(0, 24);
+
+        if (entries.length === 0) return '<div class="empty-state">Ride a route to see its frequency here.</div>';
+
+        const maxCount = entries[0].count;
+        const maxLog = Math.log1p(maxCount);
+        return entries.map(({ route, count }) => {
+            const scale = maxCount === 1 ? 0.45 : Math.log1p(count) / maxLog;
+            const size = Math.round(52 + (scale * 52));
+            const routeName = UI.escapeHtml(String(route.routeShortName));
+            const rideLabel = `${count} ${count === 1 ? 'ride' : 'rides'}`;
+            return `
+                <div class="rt-route-bubble" role="img" aria-label="Route ${routeName}: ${rideLabel}" title="Route ${routeName} · ${rideLabel}" style="--bubble-size: ${size}px;">
+                    <strong>${routeName}</strong>
+                    <span>${count}</span>
+                </div>`;
+        }).join('');
     },
 
     _renderAll: function (container, coverageItems) {
