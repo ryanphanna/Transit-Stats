@@ -65,6 +65,40 @@ describe('Atlas stop resolver', () => {
         expect(result).toEqual({ source: 'unresolved', location: null });
     });
 
+    it('uses only high-confidence predicted exit labels to find GTFS coordinates', () => {
+        const result = resolveStopLocation({
+            agency: 'TTC',
+            endStopPrediction: { stop: 'College Station', confidence: 100 },
+        }, 'exiting', buildStopIndex({ atlasStops: [atlasStop] }));
+
+        expect(result).toEqual({
+            source: 'atlas',
+            label: 'College Station',
+            location: { lat: 43.66, lng: -79.38 },
+            match: 'prediction-gtfs',
+            predictionConfidence: 100,
+        });
+    });
+
+    it('does not use low-confidence predictions as stop data', () => {
+        const result = resolveStopLocation({
+            agency: 'TTC',
+            endStopPrediction: { stop: 'College Station', confidence: 89 },
+        }, 'exiting', buildStopIndex({ atlasStops: [atlasStop] }));
+
+        expect(result).toEqual({ source: 'unresolved', location: null });
+    });
+
+    it('does not use one isolated high-confidence versioned prediction', () => {
+        const result = resolveStopLocation({
+            agency: 'TTC',
+            endStopPredictionV4: { stop: 'College Station', confidence: 41 },
+            endStopPredictionV5: { stop: 'College Station', confidence: 95 },
+        }, 'exiting', buildStopIndex({ atlasStops: [atlasStop] }));
+
+        expect(result).toEqual({ source: 'unresolved', location: null });
+    });
+
     it('does not assume TTC when a trip has no agency', () => {
         const result = resolveStopLocation({ startStopName: 'College Station' }, 'boarding', buildStopIndex({
             atlasStops: [atlasStop],

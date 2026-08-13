@@ -138,6 +138,31 @@ function addNormalizedAliases(index, stops) {
     });
 }
 
+function predictedExitLabels(trip) {
+    const predictions = [];
+    if (trip.endStopPrediction?.stop && Number(trip.endStopPrediction.confidence) >= 90) {
+        predictions.push(trip.endStopPrediction);
+    }
+
+    const versioned = [trip.endStopPredictionV4, trip.endStopPredictionV5];
+    if (versioned.every(prediction => prediction?.stop && Number(prediction.confidence) >= 90)
+        && normalizeStopLabel(versioned[0].stop) === normalizeStopLabel(versioned[1].stop)) {
+        predictions.push(versioned[0]);
+    }
+
+    for (const prediction of trip.endStopPredictions || []) {
+        if (prediction?.stop && Number(prediction.confidence) >= 90) predictions.push(prediction);
+    }
+
+    return predictions
+        .filter(prediction => prediction?.stop && Number(prediction.confidence) >= 90)
+        .map(prediction => ({
+            label: prediction.stop,
+            confidence: Number(prediction.confidence),
+        }))
+        .filter((prediction, index, all) => all.findIndex(item => normalizeStopLabel(item.label) === normalizeStopLabel(prediction.label)) === index);
+}
+
 export function resolveStopLocation(trip, side, index) {
     const stopCode = side === 'boarding' ? trip.startStopCode : trip.endStopCode;
     const stopName = side === 'boarding'
@@ -152,6 +177,16 @@ export function resolveStopLocation(trip, side, index) {
 
     const fuzzyMatch = fuzzyLookup(index, agency, stopName);
     if (fuzzyMatch) return fuzzyMatch;
+
+    // A high-confidence prediction is only an input label. Coordinates still
+    // come exclusively from the agency's GTFS stop index, and raw stop data
+    // wins whenever it is present.
+    if (side === 'exiting' && !stopCode && !stopName) {
+        for (const prediction of predictedExitLabels(trip)) {
+            const match = lookup(index, agency, prediction.label) || fuzzyLookup(index, agency, prediction.label);
+            if (match) return { ...match, match: 'prediction-gtfs', predictionConfidence: prediction.confidence };
+        }
+    }
 
     return { location: null, source: 'unresolved' };
 }
