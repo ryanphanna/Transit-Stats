@@ -22,6 +22,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Dashboard and Settings now have clearer workspaces**: page intros, grouped content, balanced panels, and compact controls make the core screens easier to scan.
 - **Admin, Users, and Insights now share the same page hierarchy**: each surface has a clear purpose header instead of opening directly into an undifferentiated card.
 - **Public and beta maps now have explicit context panels**: riders can tell whose map they are viewing and what the beta map is showing before interacting with it.
+- **Stops now uses a minimalist full-screen dot map**: numbered clusters and diagnostic panels are removed so the map stays visually quiet and the stop points remain the focus.
 ### Added
 - **Shared sign-in across TransitStats surfaces** — moving between the regular, beta, and admin sites no longer requires another login.
 - **Theme choices and multi-agency route coverage** — choose System, Light, or Dark and see route progress across every agency you have ridden.
