@@ -94,6 +94,7 @@ export const RouteTracker = {
 
             const riddenSet = this._getRiddenSet(this.currentAgency, routes);
             this._render(container, routes, riddenSet);
+            if (!this.compact) await this._appendOtherAgencyCoverage(container);
         } catch (err) {
             console.error('RouteTracker error:', err);
             container.innerHTML = '<div class="empty-state">Error loading routes.</div>';
@@ -106,6 +107,27 @@ export const RouteTracker = {
             .filter(Boolean));
         if (agencies.size === 0) agencies.add(window.currentUserProfile?.defaultAgency || 'TTC');
         return [...agencies];
+    },
+
+    _getOtherAgencyCoverage: async function (primaryAgency) {
+        const tripCounts = new Map();
+        (TripController.allTrips || [])
+            .filter(trip => !trip.discarded)
+            .forEach(trip => {
+                const agency = trip.agency || 'TTC';
+                if (agency !== primaryAgency) tripCounts.set(agency, (tripCounts.get(agency) || 0) + 1);
+            });
+
+        const agencies = [...tripCounts.entries()]
+            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+            .slice(0, 10)
+            .map(([agency]) => agency);
+
+        return (await Promise.all(agencies.map(async agency => {
+            const routes = await this._getRoutes(agency);
+            const riddenSet = this._getRiddenSet(agency, routes);
+            return this._coverage(agency, routes, riddenSet);
+        }))).filter(coverage => coverage.total > 0);
     },
 
     _getRoutes: async function (agency) {
@@ -231,22 +253,6 @@ export const RouteTracker = {
         );
     },
 
-    _getRideCounts: function (agency, routes) {
-        const atlasRouteKeys = new Set(
-            (routes || []).map(route => this._normalizeRoute(route.routeShortName))
-        );
-        const counts = new Map();
-
-        (TripController.allTrips || [])
-            .filter(trip => !trip.discarded && (trip.agency || 'TTC') === agency && trip.route)
-            .forEach(trip => {
-                const route = this._matchRouteToAtlas(trip.route, atlasRouteKeys);
-                if (route) counts.set(route, (counts.get(route) || 0) + 1);
-            });
-
-        return counts;
-    },
-
     _matchRouteToAtlas: function (value, atlasRouteKeys) {
         const normalized = this._normalizeRoute(value);
         if (!normalized) return null;
@@ -300,9 +306,6 @@ export const RouteTracker = {
             return;
         }
 
-        const rideCounts = this._getRideCounts(this.currentAgency, routes);
-        const frequencyBubbles = this._renderFrequencyBubbles(routes, rideCounts);
-
         container.innerHTML = `
             <div class="rt-summary">
                 <div class="rt-summary-stat">
@@ -329,72 +332,38 @@ export const RouteTracker = {
                 </div>
             </div>
 
-            <section class="rt-frequency" aria-labelledby="rt-frequency-title">
-                <div class="rt-list-heading">
-                    <span id="rt-frequency-title">Ride frequency</span>
-                    <span>${Math.min(rideCounts.size, 12)} shown</span>
+            <details class="rt-route-details">
+                <summary><span>All routes you’ve ridden</span><strong>${coverage.riddenCount}</strong></summary>
+                <div id="rtRouteList" class="rt-route-list">
+                    ${this._renderList(coverage.ridden, true)}
                 </div>
-                <div class="rt-frequency-chart" aria-label="Routes plotted by number of rides">
-                    ${frequencyBubbles}
-                </div>
-            </section>
-
-            <div class="rt-list-heading">
-                <span>All routes you’ve ridden</span>
-                <span>${coverage.riddenCount}</span>
-            </div>
-
-            <div id="rtRouteList" class="rt-route-list">
-                ${this._renderList(coverage.ridden, true)}
-            </div>
+            </details>
         `;
     },
 
-    _renderFrequencyBubbles: function (routes, rideCounts) {
-        const entries = routes
-            .map(route => ({
-                route,
-                key: this._normalizeRoute(route.routeShortName),
-                count: rideCounts.get(this._normalizeRoute(route.routeShortName)) || 0,
-            }))
-            .filter(entry => entry.count > 0)
-            .sort((a, b) => b.count - a.count || String(a.route.routeShortName).localeCompare(String(b.route.routeShortName)))
-            .slice(0, 12);
+    _appendOtherAgencyCoverage: async function (container) {
+        const coverageItems = await this._getOtherAgencyCoverage(this.currentAgency);
+        if (coverageItems.length === 0) return;
 
-        if (entries.length === 0) return '<div class="empty-state">Ride a route to see its frequency here.</div>';
-
-        const maxCount = entries[0].count;
-        const chartWidth = 1000;
-        const chartHeight = 230;
-        const chartLeft = 48;
-        const chartRight = 952;
-        const chartTop = 24;
-        const chartBottom = 162;
-        const step = entries.length === 1 ? 0 : (chartRight - chartLeft) / (entries.length - 1);
-        const points = entries.map(({ count }, index) => ({
-            x: chartLeft + (step * index),
-            y: chartBottom - ((count / maxCount) * (chartBottom - chartTop)),
-            radius: 7 + (count / maxCount) * 7,
-        }));
-        const path = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
-
-        return `
-            <svg class="rt-frequency-svg" viewBox="0 0 ${chartWidth} ${chartHeight}" role="img" aria-labelledby="rt-frequency-chart-title">
-                <title id="rt-frequency-chart-title">Top routes by number of rides</title>
-                <line class="rt-frequency-axis" x1="${chartLeft}" y1="${chartBottom}" x2="${chartRight}" y2="${chartBottom}" />
-                <path class="rt-frequency-line" d="${path}" />
-                ${entries.map(({ route, count }, index) => {
-                    const point = points[index];
-                    const routeName = UI.escapeHtml(String(route.routeShortName));
-                    const rideLabel = `${count} ${count === 1 ? 'ride' : 'rides'}`;
-                    return `
-                        <g class="rt-frequency-point" tabindex="0" aria-label="Route ${routeName}: ${rideLabel}">
-                            <circle class="rt-frequency-bubble" cx="${point.x}" cy="${point.y}" r="${point.radius}" />
-                            <text class="rt-frequency-count" x="${point.x}" y="${point.y - point.radius - 7}" text-anchor="middle">${count}</text>
-                            <text class="rt-frequency-route" x="${point.x}" y="${chartHeight - 34}" text-anchor="middle">${routeName}</text>
-                        </g>`;
-                }).join('')}
-            </svg>`;
+        const section = document.createElement('section');
+        section.className = 'rt-other-agencies';
+        section.setAttribute('aria-labelledby', 'rt-other-agencies-title');
+        section.innerHTML = `
+            <div class="rt-list-heading">
+                <span id="rt-other-agencies-title">Other agencies</span>
+                <span>Top ${coverageItems.length}</span>
+            </div>
+            <div class="rt-agency-progress-list">
+                ${coverageItems.map(coverage => `
+                    <div class="rt-agency-progress-row" role="progressbar" aria-label="${UI.escapeHtml(coverage.agency)}: ${coverage.pct}% network coverage" aria-valuenow="${coverage.pct}" aria-valuemin="0" aria-valuemax="100">
+                        <div class="rt-agency-progress-meta">
+                            <strong>${UI.escapeHtml(coverage.agency)}</strong>
+                            <span>${coverage.riddenCount} of ${coverage.total} routes</span>
+                        </div>
+                        <div class="mastery-bar-bg"><div class="mastery-bar-fill" style="width: ${coverage.pct}%;"></div></div>
+                    </div>`).join('')}
+            </div>`;
+        container.appendChild(section);
     },
 
     _renderAll: function (container, coverageItems) {

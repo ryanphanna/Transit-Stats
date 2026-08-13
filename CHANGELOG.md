@@ -9,7 +9,6 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 ## [Unreleased]
 
 ### Added
-- **Routes now show a frequency line chart** with bubbles sized by how often each route was ridden.
 - **Shared sign-in across TransitStats surfaces** — moving between the regular, beta, and admin sites no longer requires another login.
 - **Theme choices and multi-agency route coverage** — choose System, Light, or Dark and see route progress across every agency you have ridden.
 - **Phone-first homepage sign-in** — reopen your ridership dashboard with an SMS code instead of remembering an email or password.
@@ -33,6 +32,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Shared navigation now stays visible while scrolling** and redundant Routes-page back navigation is removed.
 - **Settings is more compact** with Account and Preferences side by side and tighter profile rows.
 - **Routes now opens on the main agency** with a lighter summary instead of an all-agencies selector and nested stat cards.
+- **Routes now keeps the main agency detailed and summarizes other agencies compactly** with progress bars instead of a long route wall.
 
 ### Fixed
 - **Admin navigation now returns to the admin homepage** when the TransitStats logo is clicked.

@@ -33,6 +33,9 @@ quality and coverage improvements.
   for the first cohort.
 - [ ] **Custom Goal Tracker** — users set a monthly trip target with a progress bar
   and streak visualization on the dashboard.
+- [ ] **Route usage bubble scatterplot** — plot routes by recency and riding frequency,
+  with bubble size representing lifetime rides and agency colour providing context.
+  Finalize the axes and interaction model before replacing the current route-frequency view.
 - [ ] **Route Heatmaps** — geographic heat layer showing most-frequent corridors,
   not just stop markers.
 - [ ] **Suggested Routes** — proactive dashboard cards surfacing predicted next trip
