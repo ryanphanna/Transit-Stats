@@ -33,8 +33,12 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Settings is more compact** with Account and Preferences side by side and tighter profile rows.
 - **Routes now opens on the main agency** with a lighter summary instead of an all-agencies selector and nested stat cards.
 - **Routes now keeps the main agency detailed and summarizes other agencies compactly** with progress bars instead of a long route wall.
+- **Routes now highlights the main agency’s top five routes** while keeping the complete route list collapsed until needed.
+- **Routes now hides other-agency coverage until route data is available** so incomplete inventory is not presented as rider-facing information.
 
 ### Fixed
+- **Route coverage progress bars now display** on agency pages such as HSR instead of showing only the route count.
+- **Map popups now use the resolved stop name** when coordinates identify a stop instead of showing an unknown stop label.
 - **Admin navigation now returns to the admin homepage** when the TransitStats logo is clicked.
 - **Map filters now sit below the fixed navigation** instead of covering the logo and page links.
 - **Route coverage now uses rider-facing language** instead of exposing the internal Atlas source name.

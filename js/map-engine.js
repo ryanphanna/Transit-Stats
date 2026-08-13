@@ -3,9 +3,9 @@ import { PredictionEngine } from './predict.js';
 import { buildStopIndex, resolveStopLocation } from './atlas-stop-resolver.js';
 import { getTripRouteLabel, getTripStopLabel } from './trip-display.js';
 
-export function getMapMarkerLabel(trip = {}, side = 'boarding') {
+export function getMapMarkerLabel(trip = {}, side = 'boarding', resolution = null) {
     const verb = side === 'boarding' ? 'Boarded' : 'Exited';
-    return `${verb} ${getTripRouteLabel(trip)} at ${getTripStopLabel(trip, side)}`;
+    return `${verb} ${getTripRouteLabel(trip)} at ${getTripStopLabel(trip, side, resolution)}`;
 }
 
 /**
@@ -276,7 +276,7 @@ export const MapEngine = {
                         lat: bLoc.lat,
                         lng: bLoc.lng,
                         type: 'boarding',
-                        label: getMapMarkerLabel(trip, 'boarding')
+                        label: getMapMarkerLabel(trip, 'boarding', boarding)
                     });
                 }
             }
@@ -291,7 +291,7 @@ export const MapEngine = {
                         lat: eLoc.lat,
                         lng: eLoc.lng,
                         type: 'exiting',
-                        label: getMapMarkerLabel(trip, 'exiting')
+                        label: getMapMarkerLabel(trip, 'exiting', exiting)
                     });
                 }
             }

@@ -215,6 +215,23 @@
   margin-bottom: 20px;
 }
 
+.mastery-bar-bg {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-outer);
+  border-radius: 999px;
+  background: var(--bg-muted);
+}
+
+.mastery-bar-fill {
+  height: 100%;
+  min-width: 2px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-secondary, var(--accent)));
+  transition: width 300ms ease;
+}
+
 .rt-progress-label,
 .rt-list-heading {
   display: flex;
@@ -240,6 +257,41 @@
 
 .rt-route-details {
   border-top: 1px solid var(--border-outer);
+}
+
+.rt-top-routes {
+  margin-bottom: 18px;
+}
+
+.rt-top-route-list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rt-top-route {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--border-outer);
+  border-radius: 10px;
+  background: var(--bg-muted);
+}
+
+.rt-top-route strong {
+  overflow: hidden;
+  color: var(--accent);
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rt-top-route span {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
 }
 
 .rt-route-details summary {
@@ -385,6 +437,10 @@
 
   .rt-route-list {
     grid-template-columns: 1fr;
+  }
+
+  .rt-top-route-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .rt-summary {

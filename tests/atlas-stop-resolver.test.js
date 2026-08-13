@@ -22,6 +22,7 @@ describe('Atlas stop resolver', () => {
 
         expect(result).toEqual({
             source: 'saved',
+            label: 'Stop 1234',
             location: { lat: 1, lng: 2 },
         });
     });

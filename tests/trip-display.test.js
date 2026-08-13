@@ -13,6 +13,11 @@ describe('trip display fallbacks', () => {
         expect(getTripStatusLabel(trip)).toBe('Incomplete');
     });
 
+    test('uses the resolved stop name when the trip text is missing', () => {
+        expect(getTripStopLabel({}, 'boarding', { source: 'atlas', label: 'College Station' })).toBe('College Station');
+        expect(getTripStopLabel({}, 'boarding', { source: 'saved' })).toBe('Saved stop location');
+    });
+
     test('accepts legacy and newer stop fields', () => {
         expect(getTripStopLabel({ boardingStopName: 'College Station' }, 'boarding')).toBe('College Station');
         expect(getTripStopLabel({ exitingStop: 'Dundas Station' }, 'exiting')).toBe('Dundas Station');

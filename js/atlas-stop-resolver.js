@@ -34,11 +34,12 @@ function addStops(index, stops, source) {
     (stops || []).forEach(stop => {
         const location = validLocation(stop);
         if (!location) return;
+        const displayName = stop.name || stop.stopName || stop.code || null;
 
         stopLabels(stop).forEach(label => {
             const key = indexKey(stop.agency, label);
             if (key && !index.has(key)) {
-                index.set(key, { location, source });
+                index.set(key, { location, source, label: displayName });
             }
         });
     });
@@ -63,20 +64,24 @@ function lookup(index, agency, label) {
 }
 
 export function resolveStopLocation(trip, side, index) {
-    const saved = validLocation(side === 'boarding'
-        ? (trip.boardingLocation || trip.boardLocation)
-        : trip.exitLocation);
-    if (saved) return { location: saved, source: 'saved' };
-
     const stopCode = side === 'boarding' ? trip.startStopCode : trip.endStopCode;
     const stopName = side === 'boarding'
         ? (trip.startStopName || trip.startStop)
         : (trip.endStopName || trip.endStop);
+    const saved = validLocation(side === 'boarding'
+        ? (trip.boardingLocation || trip.boardLocation)
+        : trip.exitLocation);
+    if (saved) return {
+        location: saved,
+        source: 'saved',
+        label: stopName || (stopCode ? `Stop ${stopCode}` : null),
+    };
+
     const agency = trip.agency || 'TTC';
 
     for (const label of [stopCode, stopName]) {
         const match = lookup(index, agency, label);
-        if (match) return { location: match.location, source: match.source };
+        if (match) return match;
     }
 
     return { location: null, source: 'unresolved' };

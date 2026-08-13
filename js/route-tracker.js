@@ -35,6 +35,7 @@ export const RouteTracker = {
     currentAgency: null,
     compact: false,
     routesCache: {},    // agency -> routes[]
+    inventoryGaps: [],
     init: function ({ compact = false } = {}) {
         this.compact = compact;
         // The full Routes page starts with the main agency; the dashboard's
@@ -126,8 +127,11 @@ export const RouteTracker = {
         return (await Promise.all(agencies.map(async agency => {
             const routes = await this._getRoutes(agency);
             const riddenSet = this._getRiddenSet(agency, routes);
-            return this._coverage(agency, routes, riddenSet);
-        }))).filter(coverage => coverage.total > 0);
+            return {
+                ...this._coverage(agency, routes, riddenSet),
+                tripCount: tripCounts.get(agency) || 0,
+            };
+        })));
     },
 
     _getRoutes: async function (agency) {
@@ -253,6 +257,22 @@ export const RouteTracker = {
         );
     },
 
+    _getRideCounts: function (agency, routes) {
+        const atlasRouteKeys = new Set(
+            (routes || []).map(route => this._normalizeRoute(route.routeShortName))
+        );
+        const counts = new Map();
+
+        (TripController.allTrips || [])
+            .filter(trip => !trip.discarded && (trip.agency || 'TTC') === agency && trip.route)
+            .forEach(trip => {
+                const route = this._matchRouteToAtlas(trip.route, atlasRouteKeys);
+                if (route) counts.set(route, (counts.get(route) || 0) + 1);
+            });
+
+        return counts;
+    },
+
     _matchRouteToAtlas: function (value, atlasRouteKeys) {
         const normalized = this._normalizeRoute(value);
         if (!normalized) return null;
@@ -306,6 +326,15 @@ export const RouteTracker = {
             return;
         }
 
+        const rideCounts = this._getRideCounts(this.currentAgency, routes);
+        const topRoutes = [...coverage.ridden]
+            .sort((a, b) => {
+                const countDiff = (rideCounts.get(this._normalizeRoute(b.routeShortName)) || 0)
+                    - (rideCounts.get(this._normalizeRoute(a.routeShortName)) || 0);
+                return countDiff || String(a.routeShortName).localeCompare(String(b.routeShortName));
+            })
+            .slice(0, 5);
+
         container.innerHTML = `
             <div class="rt-summary">
                 <div class="rt-summary-stat">
@@ -332,6 +361,19 @@ export const RouteTracker = {
                 </div>
             </div>
 
+            <section class="rt-top-routes" aria-labelledby="rt-top-routes-title">
+                <div class="rt-list-heading">
+                    <span id="rt-top-routes-title">Top routes</span>
+                    <span>Most ridden</span>
+                </div>
+                <div class="rt-top-route-list">
+                    ${topRoutes.length > 0 ? topRoutes.map(route => {
+                        const count = rideCounts.get(this._normalizeRoute(route.routeShortName)) || 0;
+                        return `<div class="rt-top-route"><strong>${UI.escapeHtml(String(route.routeShortName))}</strong><span>${count} ${count === 1 ? 'ride' : 'rides'}</span></div>`;
+                    }).join('') : '<div class="empty-state">Ride a route to see your top routes here.</div>'}
+                </div>
+            </section>
+
             <details class="rt-route-details">
                 <summary><span>All routes you’ve ridden</span><strong>${coverage.riddenCount}</strong></summary>
                 <div id="rtRouteList" class="rt-route-list">
@@ -343,27 +385,36 @@ export const RouteTracker = {
 
     _appendOtherAgencyCoverage: async function (container) {
         const coverageItems = await this._getOtherAgencyCoverage(this.currentAgency);
-        if (coverageItems.length === 0) return;
+        const availableCoverage = coverageItems.filter(coverage => coverage.total > 0);
+        const inventoryGaps = coverageItems.filter(coverage => coverage.total === 0);
+        this.inventoryGaps = inventoryGaps.map(coverage => coverage.agency);
+        if (this.inventoryGaps.length > 0) {
+            console.warn('RouteTracker: route inventory needed for:', this.inventoryGaps);
+        }
+        if (availableCoverage.length === 0 && inventoryGaps.length === 0) return;
 
-        const section = document.createElement('section');
-        section.className = 'rt-other-agencies';
-        section.setAttribute('aria-labelledby', 'rt-other-agencies-title');
-        section.innerHTML = `
-            <div class="rt-list-heading">
-                <span id="rt-other-agencies-title">Other agencies</span>
-                <span>Top ${coverageItems.length}</span>
-            </div>
-            <div class="rt-agency-progress-list">
-                ${coverageItems.map(coverage => `
-                    <div class="rt-agency-progress-row" role="progressbar" aria-label="${UI.escapeHtml(coverage.agency)}: ${coverage.pct}% network coverage" aria-valuenow="${coverage.pct}" aria-valuemin="0" aria-valuemax="100">
-                        <div class="rt-agency-progress-meta">
-                            <strong>${UI.escapeHtml(coverage.agency)}</strong>
-                            <span>${coverage.riddenCount} of ${coverage.total} routes</span>
-                        </div>
-                        <div class="mastery-bar-bg"><div class="mastery-bar-fill" style="width: ${coverage.pct}%;"></div></div>
-                    </div>`).join('')}
-            </div>`;
-        container.appendChild(section);
+        if (availableCoverage.length > 0) {
+            const section = document.createElement('section');
+            section.className = 'rt-other-agencies';
+            section.setAttribute('aria-labelledby', 'rt-other-agencies-title');
+            section.innerHTML = `
+                <div class="rt-list-heading">
+                    <span id="rt-other-agencies-title">Other agencies</span>
+                    <span>Top ${availableCoverage.length}</span>
+                </div>
+                <div class="rt-agency-progress-list">
+                    ${availableCoverage.map(coverage => `
+                        <div class="rt-agency-progress-row" role="progressbar" aria-label="${UI.escapeHtml(coverage.agency)}: ${coverage.pct}% network coverage" aria-valuenow="${coverage.pct}" aria-valuemin="0" aria-valuemax="100">
+                            <div class="rt-agency-progress-meta">
+                                <strong>${UI.escapeHtml(coverage.agency)}</strong>
+                                <span>${coverage.riddenCount} of ${coverage.total} routes</span>
+                            </div>
+                            <div class="mastery-bar-bg"><div class="mastery-bar-fill" style="width: ${coverage.pct}%;"></div></div>
+                        </div>`).join('')}
+                </div>`;
+            container.appendChild(section);
+        }
+
     },
 
     _renderAll: function (container, coverageItems) {
