@@ -38,6 +38,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Routes now hides other-agency coverage until route data is available** so incomplete inventory is not presented as rider-facing information.
 
 ### Fixed
+- **Deployment verification now checks downloaded pages safely** so successful admin and beta publishes are not reported as failures.
 - **Route coverage progress bars now display** on agency pages such as HSR instead of showing only the route count.
 - **Map popups now use the resolved stop name** when coordinates identify a stop instead of showing an unknown stop label.
 - **Admin navigation now returns to the admin homepage** when the TransitStats logo is clicked.
