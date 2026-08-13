@@ -34,6 +34,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Routes now opens on the main agency** with a lighter summary instead of an all-agencies selector and nested stat cards.
 
 ### Fixed
+- **Map filters now sit below the fixed navigation** instead of covering the logo and page links.
 - **Route coverage now uses rider-facing language** instead of exposing the internal Atlas source name.
 - **Clipboard and settings notices are now visible** with valid success and error colours.
 - **Homepage sign-in buttons now keep their bright styling on hover** instead of turning dark.
