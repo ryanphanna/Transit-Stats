@@ -6,6 +6,13 @@ import { ATLAS_AGENCY_SLUGS, loadAtlasStops } from '../atlas-stops.js';
 
 console.log("map.js: Module script loaded");
 
+function setMapLoading(message) {
+    const loading = document.getElementById('map-loading');
+    if (!loading) return;
+    loading.textContent = message || '';
+    loading.hidden = !message;
+}
+
 async function init() {
     try {
         console.log("Map: Init started");
@@ -13,25 +20,29 @@ async function init() {
         console.log("Map: Auth resolved", user.email);
         initHeader({ isAdmin, currentPage: 'map' });
 
-        // Initialize Leaflet immediately with empty data
+        // Initialize Leaflet before any Firestore or Atlas reads. The map is
+        // interactive immediately while the stop library and trip stream load.
         console.log("Map: Initializing MapEngine");
         let normalizedStops = [];
-        try {
-            const stopsSnapshot = await db.collection('stops').get();
-            normalizedStops = stopsSnapshot.docs.map(doc => doc.data());
-        } catch (error) {
-            console.warn('Map: normalized stop aliases unavailable', error);
-        }
-        MapEngine.setStopSources({ atlasStops: [], firestoreStops: normalizedStops });
+        let atlasStops = [];
+        MapEngine.setStopSources({ atlasStops, firestoreStops: normalizedStops });
         MapEngine.init([]);
         setTimeout(() => { if (MapEngine.map) MapEngine.map.invalidateSize(); }, 150);
+        setMapLoading('Loading your trips…');
 
         if (window.lucide) lucide.createIcons();
+
+        // Do not hold map initialization hostage to the normalized-stop read.
+        db.collection('stops').get().then(stopsSnapshot => {
+            normalizedStops = stopsSnapshot.docs.map(doc => doc.data());
+            MapEngine.setStopSources({ atlasStops, firestoreStops: normalizedStops });
+        }).catch(error => {
+            console.warn('Map: normalized stop aliases unavailable', error);
+        });
 
         // Stream trips live — update map as data arrives
         const loadedAtlasAgencies = new Set();
         const loadingAtlasAgencies = new Set();
-        let atlasStops = [];
         const loadMissingAtlasStops = async agencies => {
             const missing = agencies.filter(agency =>
                 !loadedAtlasAgencies.has(agency) && !loadingAtlasAgencies.has(agency)
@@ -46,9 +57,11 @@ async function init() {
                     loadingAtlasAgencies.delete(agency);
                 });
                 MapEngine.setStopSources({ atlasStops, firestoreStops: normalizedStops });
+                setMapLoading(null);
             } catch (err) {
                 missing.forEach(agency => loadingAtlasAgencies.delete(agency));
                 console.warn('Map: Atlas stops unavailable', err);
+                setMapLoading(null);
             }
         };
 
@@ -60,9 +73,13 @@ async function init() {
                 MapEngine.updateTrips(trips);
                 const agencies = [...new Set(trips.map(trip => trip.agency || 'TTC'))]
                     .filter(agency => ATLAS_AGENCY_SLUGS[agency]);
-                loadMissingAtlasStops(agencies);
+                loadMissingAtlasStops(agencies).catch(error => {
+                    console.warn('Map: Atlas stop loading failed', error);
+                    setMapLoading(null);
+                });
             }, err => {
                 console.error('Map trips stream error:', err);
+                setMapLoading('Could not load your trips.');
             });
         
         console.log("Map: Init completed successfully");

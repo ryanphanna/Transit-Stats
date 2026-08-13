@@ -29,6 +29,8 @@ export const MapEngine = {
     _lastLibSize: 0,
     _stopIndex: new Map(),
     _stopSourcesReady: false,
+    _usesMarkerClusters: false,
+    _canvasRenderer: null,
 
     init(initialTrips = [], initialCenter = null) {
         console.log("MapEngine.init: Started", { tripsCount: initialTrips.length });
@@ -61,6 +63,8 @@ export const MapEngine = {
                 preferCanvas: true
             }).setView(center, 13);
             console.log("MapEngine: Leaflet map instance created");
+
+            this._canvasRenderer = L.canvas({ padding: 0.5 });
 
             // Add Zoom Control to Bottom Right
             L.control.zoom({ position: 'bottomright' }).addTo(this.map);
@@ -98,9 +102,18 @@ export const MapEngine = {
 
         this.layers.transit = null;
 
-        // Use standard LayerGroup + Canvas for best stability and speed.
-        // MarkerClusterGroup can be heavy on the main thread for thousands of points.
-        this.layers.markers = L.layerGroup().addTo(this.map);
+        this._usesMarkerClusters = typeof L.markerClusterGroup === 'function';
+        this.layers.markers = this._usesMarkerClusters
+            ? L.markerClusterGroup({
+                chunkedLoading: true,
+                chunkInterval: 50,
+                chunkDelay: 10,
+                maxClusterRadius: 45,
+                removeOutsideVisibleBounds: true,
+                showCoverageOnHover: false,
+            })
+            : L.layerGroup();
+        this.layers.markers.addTo(this.map);
     },
 
     setupControls() {
@@ -299,33 +312,51 @@ export const MapEngine = {
         const isV2 = document.body.classList.contains('v2-clean');
 
         points.forEach(p => {
-            const key = `${p.type}:${p.lat}:${p.lng}:${p.label}`;
-            if (markersByStop.has(key)) return;
-
-            let color = p.type === 'boarding' ? '#4f46e5' : '#10b981';
-            let radius = 6;
-            let opacity = 0.8;
-
-            if (isV2) {
-                color = '#a855f7'; // Purple dots
-                radius = 5;
-                opacity = 0.9;
+            // A stop can have several raw labels. Keep one marker per role and
+            // coordinate, then show distinct labels in one popup.
+            const key = `${p.type}:${p.lat}:${p.lng}`;
+            const existing = markersByStop.get(key);
+            if (existing) {
+                existing.labels.add(p.label);
+                return;
             }
 
-            const marker = L.circleMarker([p.lat, p.lng], {
-                radius: radius,
-                fillColor: color,
-                color: '#fff',
-                weight: 1.5,
-                opacity: 1,
-                fillOpacity: opacity
-            }).bindPopup(p.label);
-            markersByStop.set(key, marker);
+            const radius = isV2 ? 5 : 6;
+            const color = isV2 ? '#a855f7' : (p.type === 'boarding' ? '#4f46e5' : '#10b981');
+            markersByStop.set(key, {
+                lat: p.lat,
+                lng: p.lng,
+                type: p.type,
+                color,
+                radius,
+                labels: new Set([p.label]),
+            });
         });
 
-        if (markersByStop.size > 0) {
-            markersByStop.forEach(marker => this.layers.markers.addLayer(marker));
-        }
+        markersByStop.forEach(point => {
+            const popup = [...point.labels].map(label => UI.escapeHtml(label)).join('<br>');
+            const marker = this._usesMarkerClusters
+                ? L.marker([point.lat, point.lng], {
+                    keyboard: false,
+                    icon: L.divIcon({
+                        className: `map-stop-dot map-stop-dot--${point.type}`,
+                        html: '',
+                        iconSize: [point.radius * 2, point.radius * 2],
+                        iconAnchor: [point.radius, point.radius],
+                    }),
+                })
+                : L.circleMarker([point.lat, point.lng], {
+                    renderer: this._canvasRenderer,
+                    radius: point.radius,
+                    fillColor: point.color,
+                    color: '#fff',
+                    weight: 1.5,
+                    opacity: 1,
+                    fillOpacity: isV2 ? 0.9 : 0.8,
+                });
+            marker.bindPopup(popup);
+            this.layers.markers.addLayer(marker);
+        });
 
         this._renderDiagnostics(resolutionStats, limitedTrips.length);
 

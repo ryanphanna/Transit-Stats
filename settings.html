@@ -39,7 +39,13 @@
                                         <span class="settings-sub-label">Email</span>
                                         <span id="settings-email" class="settings-main-label text-xs">—</span>
                                     </div>
-                                    <button id="btn-reset-password" class="btn btn-sm btn-ghost p-1" title="Password Reset"><i data-lucide="key" class="icon-inline m-0" style="width:14px;"></i></button>
+                                </div>
+                                <div class="settings-row">
+                                    <div class="settings-label-group">
+                                        <span class="settings-main-label">Password</span>
+                                        <span class="settings-sub-label">Set or reset it with your email</span>
+                                    </div>
+                                    <button id="btn-reset-password" class="btn btn-sm btn-outline">Reset password</button>
                                 </div>
                                 <div class="settings-row">
                                     <div class="settings-label-group">
@@ -56,11 +62,8 @@
                             <div class="settings-card premium-card">
                                 <div class="settings-row">
                                     <span class="settings-main-label">Default Agency</span>
-                                    <select id="settings-agency" class="minimal-select">
-                                        <option value="TTC">Toronto (TTC)</option>
-                                        <option value="GO">GO Transit</option>
-                                        <option value="UP">UP Express</option>
-                                        <option value="DRT">Durham Region</option>
+                                    <select id="settings-agency" class="minimal-select" aria-label="Default agency">
+                                        <option value="">Loading agencies…</option>
                                     </select>
                                 </div>
                                 <div class="settings-row">

@@ -21,6 +21,40 @@
   z-index: var(--z-map);
 }
 
+.map-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 900;
+  transform: translate(-50%, -50%);
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow);
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+.map-stop-dot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+}
+
+.map-stop-dot--boarding {
+  background: #4f46e5;
+}
+
+.map-stop-dot--exiting {
+  background: #10b981;
+}
+
 .map-controls {
   position: absolute;
   top: 24px;

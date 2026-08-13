@@ -75,7 +75,8 @@ function showError(msg) {
 function initPublicMap(points) {
     const map = L.map('publicMap', {
         zoomControl: false,
-        attributionControl: false
+        attributionControl: false,
+        preferCanvas: true,
     }).setView([43.70, -79.42], 12);
 
     const isDark = document.documentElement.dataset.theme === 'dark'
@@ -87,20 +88,45 @@ function initPublicMap(points) {
     }).addTo(map);
 
     if (points && points.length > 0) {
-        // Built directly from anonymized {lat,lng,type} points rather than
-        // Visuals.renderHeatmap, which expects full trip objects — the public
-        // profile endpoint never receives raw trips, so it can't build those.
-        const heatPoints = points.map(p => [p.lat, p.lng, p.type === 'start' ? 0.8 : 0.5]);
-        if (typeof L.heatLayer !== 'undefined') {
-            L.heatLayer(heatPoints, {
-                radius: 25,
-                blur: 15,
-                maxZoom: 17,
-                gradient: { 0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red' }
-            }).addTo(map);
-        }
+        // Public profiles receive only anonymous coordinates. Render those
+        // with the same clustered stop-dot treatment as the signed-in map,
+        // without adding labels, routes, or trip details to the public page.
+        const markers = typeof L.markerClusterGroup === 'function'
+            ? L.markerClusterGroup({
+                chunkedLoading: true,
+                chunkInterval: 50,
+                chunkDelay: 10,
+                maxClusterRadius: 45,
+                removeOutsideVisibleBounds: true,
+                showCoverageOnHover: false,
+            }).addTo(map)
+            : L.layerGroup().addTo(map);
 
-        const bounds = points.map(p => [p.lat, p.lng]);
-        map.fitBounds(bounds, { padding: [100, 100] });
+        const seen = new Set();
+        points.forEach(point => {
+            const lat = Number(point.lat);
+            const lng = Number(point.lng);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+            const type = point.type === 'start' ? 'boarding' : 'exiting';
+            const key = `${type}:${lat}:${lng}`;
+            if (seen.has(key)) return;
+            seen.add(key);
+
+            markers.addLayer(L.marker([lat, lng], {
+                keyboard: false,
+                icon: L.divIcon({
+                    className: `map-stop-dot map-stop-dot--${type}`,
+                    html: '',
+                    iconSize: [10, 10],
+                    iconAnchor: [5, 5],
+                }),
+            }));
+        });
+
+        const bounds = points
+            .map(p => [Number(p.lat), Number(p.lng)])
+            .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
+        if (bounds.length > 0) map.fitBounds(bounds, { padding: [100, 100] });
     }
 }

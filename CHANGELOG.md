@@ -14,6 +14,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Maps now use the complete trip history**: the dot map no longer stops after the first 1,000 trips, and repeated trips at one GTFS stop collapse into a single point.
 - **Beta map matching now combines Atlas stops with verified local and cross-agency GTFS supplements**: raw trip records stay unchanged while supported stop names and codes resolve to canonical coordinates.
 - **Beta map matching now verifies high-confidence predicted exits against GTFS**: missing raw exit labels can resolve without using prediction coordinates or changing trip records.
+- **Maps now load progressively with cached, clustered stop data**: repeat visits start faster, public profiles share the same map treatment, and Settings only lists agencies you have actually used.
+- **Account settings now separate Email and Password controls**: password resets are presented as a real security setting instead of an icon beside the email address.
 ### Added
 - **Shared sign-in across TransitStats surfaces** — moving between the regular, beta, and admin sites no longer requires another login.
 - **Theme choices and multi-agency route coverage** — choose System, Light, or Dark and see route progress across every agency you have ridden.

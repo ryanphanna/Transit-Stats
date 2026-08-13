@@ -9,6 +9,7 @@ import { Identity } from './identity.js';
 export const Profile = {
     data: null,
     phone: null,
+    agencies: [],
     currentTriplet: ['subway', 'subway', 'subway'],
     activeSlot: null,
 
@@ -204,6 +205,43 @@ export const Profile = {
         }
     },
 
+    async loadAgencies(user = auth.currentUser) {
+        if (!user) return;
+
+        try {
+            const tripsSnap = await db.collection('trips').where('userId', '==', user.uid).get();
+            this.agencies = [...new Set(tripsSnap.docs
+                .map(doc => String(doc.data().agency || '').trim())
+                .filter(Boolean))];
+        } catch (error) {
+            console.warn('Could not load agencies from trips:', error);
+            this.agencies = [];
+        }
+
+        this.syncAgencyOptions();
+    },
+
+    syncAgencyOptions() {
+        const agencyEl = document.getElementById('settings-agency');
+        if (!agencyEl) return;
+
+        const options = [...new Set([
+            ...this.agencies,
+            this.data?.defaultAgency,
+        ].filter(Boolean))].sort((a, b) => a.localeCompare(b));
+
+        agencyEl.replaceChildren(...(options.length
+            ? options.map(agency => {
+                const option = document.createElement('option');
+                option.value = agency;
+                option.textContent = agency;
+                return option;
+            })
+            : [new Option('No agencies found', '')]));
+        agencyEl.disabled = options.length === 0;
+        if (this.data?.defaultAgency) agencyEl.value = this.data.defaultAgency;
+    },
+
     /**
      * Ensure a profile document exists for the user.
      */
@@ -242,7 +280,6 @@ export const Profile = {
 
         const emailEl = document.getElementById('settings-email');
         const phoneEl = document.getElementById('settings-phone');
-        const agencyEl = document.getElementById('settings-agency');
         const betaEl = document.getElementById('settings-beta-predictions');
         const publicProfileEl = document.getElementById('settings-public-profile');
         const publicLinkEl = document.getElementById('settings-public-link');
@@ -260,9 +297,7 @@ export const Profile = {
             profileName.textContent = this.getDisplayName() || 'Traveler';
         }
         
-        if (agencyEl && this.data?.defaultAgency) {
-            agencyEl.value = this.data.defaultAgency;
-        }
+        this.syncAgencyOptions();
 
         if (betaEl && this.data?.betaFeatures) {
             betaEl.checked = !!this.data.betaFeatures.predictions;
