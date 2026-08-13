@@ -20,6 +20,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **TransitStats now shares one visual system across rider, beta, public, and admin pages**: quieter surfaces, consistent controls, and a designed Heatmap shell replace the old mix of page-specific styles.
 - **Routes now opens on your default agency without an agency picker**: the page stays focused while still summarizing other agencies below.
 - **Dashboard and Settings now have clearer workspaces**: page intros, grouped content, balanced panels, and compact controls make the core screens easier to scan.
+- **Admin, Users, and Insights now share the same page hierarchy**: each surface has a clear purpose header instead of opening directly into an undifferentiated card.
 ### Added
 - **Shared sign-in across TransitStats surfaces** — moving between the regular, beta, and admin sites no longer requires another login.
 - **Theme choices and multi-agency route coverage** — choose System, Light, or Dark and see route progress across every agency you have ridden.

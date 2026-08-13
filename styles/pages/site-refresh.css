@@ -63,12 +63,14 @@
 }
 
 .dashboard-intro,
-.settings-page-header {
+.settings-page-header,
+.admin-page-intro {
   margin-bottom: 24px;
 }
 
 .dashboard-intro h1,
-.settings-page-title {
+.settings-page-title,
+.admin-page-intro h1 {
   margin: 0;
   color: var(--text-primary);
   font-size: clamp(1.7rem, 3vw, 2.35rem);
@@ -77,7 +79,8 @@
 }
 
 .dashboard-intro p:last-child,
-.settings-page-intro {
+.settings-page-intro,
+.admin-page-intro p:last-child {
   margin: 7px 0 0;
   color: var(--text-secondary);
   font-size: 0.86rem;
@@ -155,6 +158,24 @@
   display: grid;
   grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.45fr) minmax(250px, 0.9fr);
   gap: 18px;
+}
+
+.admin-page-intro h1 {
+  margin-bottom: 0;
+}
+
+.admin-page-intro p:last-child {
+  max-width: 620px;
+}
+
+.admin-container,
+.insights-view .container {
+  max-width: 1180px;
+}
+
+.users-view .container,
+#view-users .container {
+  max-width: 920px !important;
 }
 
 .dashboard-route-tracker {
