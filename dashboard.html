@@ -14,11 +14,19 @@
     <main id="app-root">
         <section id="view-dashboard" class="view dashboard-view active">
             <div class="container dashboard-grid">
-                <div class="dashboard-intro">
-                    <p class="page-kicker">Overview</p>
-                    <h1>Your rides</h1>
-                    <p>Recent trips, patterns, and the network you’re building.</p>
-                </div>
+                <section class="dashboard-route-tracker">
+                    <div class="card route-tracker-card-compact">
+                        <div class="card-header route-tracker-header">
+                            <div>
+                                <h3><i data-lucide="route" class="icon-inline"></i> Routes</h3>
+                                <p class="route-tracker-subtitle">Your route coverage, by agency.</p>
+                            </div>
+                            <a class="route-tracker-link" href="/routes">View all routes <span aria-hidden="true">→</span></a>
+                            <a id="dashboard-heatmap-link" class="route-tracker-link hidden" href="/heatmap">Heatmap <span aria-hidden="true">→</span></a>
+                        </div>
+                        <div id="routeTrackerContent"></div>
+                    </div>
+                </section>
                 <div class="dashboard-content">
                 <!-- Left Column -->
                 <aside class="col-profile">
@@ -133,19 +141,6 @@
                         </div>
                     </div>
                 </aside>
-                <section class="dashboard-route-tracker">
-                <div class="card route-tracker-card-compact">
-                    <div class="card-header route-tracker-header">
-                        <div>
-                            <h3><i data-lucide="route" class="icon-inline"></i> Routes</h3>
-                            <p class="route-tracker-subtitle">Your route coverage, by agency.</p>
-                        </div>
-                        <a class="route-tracker-link" href="/routes">View all routes <span aria-hidden="true">→</span></a>
-                        <a id="dashboard-heatmap-link" class="route-tracker-link hidden" href="/heatmap">Heatmap <span aria-hidden="true">→</span></a>
-                    </div>
-                    <div id="routeTrackerContent"></div>
-                </div>
-                </section>
                 </div>
             </div>
         </section>

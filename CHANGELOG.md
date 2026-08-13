@@ -20,6 +20,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **TransitStats now shares one visual system across rider, beta, public, and admin pages**: quieter surfaces, consistent controls, and a designed Heatmap shell replace the old mix of page-specific styles.
 - **Routes now opens on your default agency without an agency picker**: the page stays focused while still summarizing other agencies below.
 - **Dashboard and Settings now have clearer workspaces**: page intros, grouped content, balanced panels, and compact controls make the core screens easier to scan.
+- **Dashboard route coverage now sits near the page introduction**: it is no longer stranded below the main dashboard columns.
+- **Dashboard removes redundant introductory copy**: the useful content starts immediately instead of repeating the page context.
 - **Admin, Users, and Insights now share the same page hierarchy**: each surface has a clear purpose header instead of opening directly into an undifferentiated card.
 - **Public and beta maps now have explicit context panels**: riders can tell whose map they are viewing and what the beta map is showing before interacting with it.
 - **Stops now uses a minimalist dot map**: numbered clusters and diagnostic panels are removed while the shared navigation remains available.

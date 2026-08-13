@@ -62,13 +62,11 @@
   display: block;
 }
 
-.dashboard-intro,
 .settings-page-header,
 .admin-page-intro {
   margin-bottom: 24px;
 }
 
-.dashboard-intro h1,
 .settings-page-title,
 .admin-page-intro h1 {
   margin: 0;
@@ -78,7 +76,6 @@
   letter-spacing: -0.055em;
 }
 
-.dashboard-intro p:last-child,
 .settings-page-intro,
 .admin-page-intro p:last-child {
   margin: 7px 0 0;
@@ -179,7 +176,8 @@
 }
 
 .dashboard-route-tracker {
-  grid-column: 1 / -1;
+  width: 100%;
+  margin-bottom: 18px;
 }
 
 .dashboard-grid > [class*="col-"] > .card,
