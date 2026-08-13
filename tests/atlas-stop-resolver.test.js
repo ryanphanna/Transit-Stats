@@ -35,7 +35,30 @@ describe('Atlas stop resolver', () => {
             source: 'atlas',
             label: 'College Station',
             location: { lat: 43.66, lng: -79.38 },
+            match: 'exact',
         });
+    });
+
+    it('matches rider stop text to the closest GTFS stop name', () => {
+        const result = resolveStopLocation({
+            agency: 'TTC',
+            startStopName: 'College Station',
+        }, 'boarding', buildStopIndex({ atlasStops: [
+            { ...atlasStop, name: 'College Station - Northbound Platform', lat: 43.661, lng: -79.381 },
+            { ...atlasStop, code: '5678', name: 'Dundas Station', lat: 43.65, lng: -79.39 },
+        ] }));
+
+        expect(result.source).toBe('atlas');
+        expect(result.match).toBe('fuzzy');
+        expect(result.label).toBe('College Station - Northbound Platform');
+    });
+
+    it('does not assume TTC when a trip has no agency', () => {
+        const result = resolveStopLocation({ startStopName: 'College Station' }, 'boarding', buildStopIndex({
+            atlasStops: [atlasStop],
+        }));
+
+        expect(result).toEqual({ source: 'unresolved', location: null });
     });
 
     it('prefers Atlas over a conflicting Firestore stop', () => {
@@ -68,6 +91,24 @@ describe('Atlas stop resolver', () => {
 
         const result = resolveStopLocation({ agency: 'TTC', startStopName: 'College Beverley' }, 'boarding', index);
         expect(result).toEqual({ source: 'unresolved', location: null });
+    });
+
+    it('uses normalized-library aliases only to reach an Atlas stop', () => {
+        const result = resolveStopLocation({
+            agency: 'TTC',
+            startStopName: 'College Station alias',
+        }, 'boarding', buildStopIndex({
+            atlasStops: [{ ...atlasStop, name: 'College Station', lat: 43.661, lng: -79.381 }],
+            normalizedStops: [{
+                agency: 'TTC',
+                name: 'College Station',
+                aliases: ['College Station alias'],
+            }],
+        }));
+
+        expect(result.source).toBe('atlas');
+        expect(result.match).toBe('normalized-alias');
+        expect(result.location).toEqual({ lat: 43.661, lng: -79.381 });
     });
 
     it('reports unresolved stop text without throwing', () => {

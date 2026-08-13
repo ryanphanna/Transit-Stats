@@ -15,7 +15,14 @@ async function init() {
 
         // Initialize Leaflet immediately with empty data
         console.log("Map: Initializing MapEngine");
-        MapEngine.setStopSources({ atlasStops: [] });
+        let normalizedStops = [];
+        try {
+            const stopsSnapshot = await db.collection('stops').get();
+            normalizedStops = stopsSnapshot.docs.map(doc => doc.data());
+        } catch (error) {
+            console.warn('Map: normalized stop aliases unavailable', error);
+        }
+        MapEngine.setStopSources({ atlasStops: [], firestoreStops: normalizedStops });
         MapEngine.init([]);
         setTimeout(() => { if (MapEngine.map) MapEngine.map.invalidateSize(); }, 150);
 
@@ -38,7 +45,7 @@ async function init() {
                     loadedAtlasAgencies.add(agency);
                     loadingAtlasAgencies.delete(agency);
                 });
-                MapEngine.setStopSources({ atlasStops });
+                MapEngine.setStopSources({ atlasStops, firestoreStops: normalizedStops });
             } catch (err) {
                 missing.forEach(agency => loadingAtlasAgencies.delete(agency));
                 console.warn('Map: Atlas stops unavailable', err);

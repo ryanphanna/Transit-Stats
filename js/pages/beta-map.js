@@ -11,6 +11,7 @@ const state = {
     map: null,
     trips: [],
     atlasStops: [],
+    normalizedStops: [],
     routeFeatures: [],
     filter: 'both',
     view: 'paths',
@@ -28,6 +29,7 @@ function emptyResolutionStats() {
 function buildPointData() {
     const stopIndex = buildStopIndex({
         atlasStops: state.atlasStops,
+        normalizedStops: state.normalizedStops,
     });
     const showBoarding = state.filter === 'boarding' || state.filter === 'both';
     const showExiting = state.filter === 'exiting' || state.filter === 'both';
@@ -35,13 +37,17 @@ function buildPointData() {
     const diagnostics = {
         boarding: emptyResolutionStats(),
         exiting: emptyResolutionStats(),
+        unmatchedByAgency: {},
     };
 
-    const limitedTrips = state.trips.slice(0, 1000);
-    limitedTrips.forEach(trip => {
+    state.trips.forEach(trip => {
         for (const [side, visible] of [['boarding', showBoarding], ['exiting', showExiting]]) {
             const resolution = resolveStopLocation(trip, side, stopIndex);
             diagnostics[side][resolution.source]++;
+            if (resolution.source === 'unresolved') {
+                const agency = trip.agency || 'Unknown agency';
+                diagnostics.unmatchedByAgency[agency] = (diagnostics.unmatchedByAgency[agency] || 0) + 1;
+            }
             if (visible && resolution.location) {
                 points.push({ ...resolution.location, type: side, trip, resolution });
             }
@@ -51,12 +57,12 @@ function buildPointData() {
     return {
         points,
         diagnostics,
-        tripCount: limitedTrips.length,
-        capped: state.trips.length > limitedTrips.length,
+        tripCount: state.trips.length,
+        capped: false,
     };
 }
 
-function renderDiagnostics({ boarding, exiting, tripCount, capped }) {
+function renderDiagnostics({ boarding, exiting, unmatchedByAgency, tripCount, capped }) {
     const container = document.getElementById('beta-map-diagnostics');
     if (!container) return;
 
@@ -66,6 +72,11 @@ function renderDiagnostics({ boarding, exiting, tripCount, capped }) {
     }, {});
     const resolved = totals.atlas;
     const capNote = capped ? ` · showing first ${tripCount} trips` : '';
+    const unmatched = Object.entries(unmatchedByAgency || {})
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([agency, count]) => `${agency} ${count}`)
+        .join(' · ');
 
     container.innerHTML = `
         <strong>Stop locations</strong>
@@ -73,6 +84,7 @@ function renderDiagnostics({ boarding, exiting, tripCount, capped }) {
         <span><b>${totals.atlas}</b> Atlas</span>
         <span><b>${totals.unresolved}</b> unresolved</span>
         <small>Boarding ${boarding.atlas}/${tripCount} · Exiting ${exiting.atlas}/${tripCount}${capNote}</small>
+        ${unmatched ? `<small>Not mapped: ${unmatched}</small>` : ''}
     `;
 }
 
@@ -84,6 +96,7 @@ function clearLayers() {
 function buildPathData() {
     const stopIndex = buildStopIndex({
         atlasStops: state.atlasStops,
+        normalizedStops: state.normalizedStops,
     });
     const segments = [];
     let unresolved = 0;
@@ -223,6 +236,13 @@ async function init() {
     state.layers.paths = L.layerGroup().addTo(state.map);
     state.layers.points = L.layerGroup().addTo(state.map);
     setupControls();
+
+    try {
+        const stopsSnapshot = await db.collection('stops').get();
+        state.normalizedStops = stopsSnapshot.docs.map(doc => doc.data());
+    } catch (error) {
+        console.warn('Trip paths beta: normalized stop aliases unavailable', error);
+    }
 
     db.collection('trips').where('userId', '==', user.uid).orderBy('startTime', 'desc').onSnapshot(snapshot => {
         state.trips = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));

@@ -133,7 +133,7 @@ export const MapEngine = {
 
     setStopSources({ atlasStops = [], firestoreStops = [] } = {}) {
         PredictionEngine.stopsLibrary = firestoreStops;
-        this._stopIndex = buildStopIndex({ atlasStops, firestoreStops });
+        this._stopIndex = buildStopIndex({ atlasStops, normalizedStops: firestoreStops });
         this._stopSourcesReady = true;
         this._skipLookup.clear();
         if (this.map) this.renderMarkers();
@@ -258,11 +258,9 @@ export const MapEngine = {
         const showBoarding = this.filter === 'boarding' || isBoth;
         const showExiting = this.filter === 'exiting' || isBoth;
 
-        // Safety limit: only render markers for the first 1000 trips to prevent UI freeze
-        const limitedTrips = this.trips.slice(0, 1000);
-        if (this.trips.length > 1000) {
-            console.warn(`MapEngine: Capping render to 1000 trips (from ${this.trips.length}) for stability.`);
-        }
+        // The map represents the complete trip history. Repeated trips at the
+        // same GTFS stop are collapsed into one point below.
+        const limitedTrips = this.trips;
 
         limitedTrips.forEach(trip => {
             // Process Boarding
@@ -297,10 +295,13 @@ export const MapEngine = {
         });
 
         // Batch add markers for performance
-        const markers = [];
+        const markersByStop = new Map();
         const isV2 = document.body.classList.contains('v2-clean');
 
         points.forEach(p => {
+            const key = `${p.type}:${p.lat}:${p.lng}:${p.label}`;
+            if (markersByStop.has(key)) return;
+
             let color = p.type === 'boarding' ? '#4f46e5' : '#10b981';
             let radius = 6;
             let opacity = 0.8;
@@ -319,11 +320,11 @@ export const MapEngine = {
                 opacity: 1,
                 fillOpacity: opacity
             }).bindPopup(p.label);
-            markers.push(marker);
+            markersByStop.set(key, marker);
         });
 
-        if (markers.length > 0) {
-            markers.forEach(marker => this.layers.markers.addLayer(marker));
+        if (markersByStop.size > 0) {
+            markersByStop.forEach(marker => this.layers.markers.addLayer(marker));
         }
 
         this._renderDiagnostics(resolutionStats, limitedTrips.length);

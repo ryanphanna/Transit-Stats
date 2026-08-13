@@ -3,13 +3,26 @@ const ATLAS_ROUTES_PROXY = import.meta.env.VITE_ATLAS_ROUTES_URL
 
 export const ATLAS_AGENCY_SLUGS = {
     TTC: 'ttc',
-    'OC Transpo': 'octranspo',
     'GO Transit': 'go',
+    GO: 'go',
     MiWay: 'miway',
     YRT: 'yrt',
-    'Brampton Transit': 'brampton',
-    'Durham Transit': 'drt',
-    HSR: 'hamilton'
+    HSR: 'hamilton',
+    'LA Metro': 'lacmta',
+    'Niagara Region Transit': 'niagara',
+    BART: 'bart',
+    Muni: 'sfmta',
+    VTA: 'vta',
+    'AC Transit': 'actransit',
+    MTS: 'sdmts',
+    'Golden Gate Transit': 'goldengate',
+    'Santa Rosa CityBus': 'santarosa',
+    'Big Blue Bus': 'bigbluebus',
+    'Oakville Transit': 'oakville',
+    'NFTA Metro': 'nfta',
+    SMART: 'smart-ca',
+    SamTrans: 'samtrans',
+    LADOT: 'ladot'
 };
 
 function routeValues(trips) {

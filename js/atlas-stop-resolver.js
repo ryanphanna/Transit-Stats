@@ -7,6 +7,26 @@ export function normalizeStopLabel(value) {
     return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+function normalizeMatchLabel(value) {
+    return String(value || '')
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/\b(st|street)\b/g, 'street')
+        .replace(/\b(rd|road)\b/g, 'road')
+        .replace(/\b(ave|avenue)\b/g, 'avenue')
+        .replace(/\b(blvd|boulevard)\b/g, 'boulevard')
+        .replace(/\b(dr|drive)\b/g, 'drive')
+        .replace(/\b(hwy|highway)\b/g, 'highway')
+        .replace(/\b(centre|ctr)\b/g, 'center')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
+}
+
+function matchTokens(value) {
+    return new Set(normalizeMatchLabel(value).split(' ').filter(token => token.length > 1));
+}
+
 export function validLocation(location) {
     const lat = Number(location?.lat);
     const lng = Number(location?.lng ?? location?.lon);
@@ -30,24 +50,30 @@ function stopLabels(stop) {
 }
 
 function addStops(index, stops, source) {
+    const stopsByAgency = index.stopsByAgency || new Map();
     (stops || []).forEach(stop => {
         const location = validLocation(stop);
         if (!location) return;
         const displayName = stop.name || stop.stopName || stop.code || null;
+        const key = agencyKey(stop.agency);
+        if (!stopsByAgency.has(key)) stopsByAgency.set(key, []);
+        stopsByAgency.get(key).push({ stop, location, source, label: displayName });
 
         stopLabels(stop).forEach(label => {
-            const key = indexKey(stop.agency, label);
-            if (key && !index.has(key)) {
-                index.set(key, { location, source, label: displayName });
+            const labelKey = indexKey(stop.agency, label);
+            if (labelKey && !index.has(labelKey)) {
+                index.set(labelKey, { location, source, label: displayName, match: 'exact' });
             }
         });
     });
+    index.stopsByAgency = stopsByAgency;
 }
 
-export function buildStopIndex({ atlasStops = [] } = {}) {
+export function buildStopIndex({ atlasStops = [], normalizedStops = [] } = {}) {
     const index = new Map();
 
     addStops(index, atlasStops, 'atlas');
+    addNormalizedAliases(index, normalizedStops);
     return index;
 }
 
@@ -60,17 +86,72 @@ function lookup(index, agency, label) {
         || null;
 }
 
+function fuzzyLookup(index, agency, label) {
+    const query = normalizeMatchLabel(label);
+    const queryTokens = matchTokens(label);
+    if (!query || queryTokens.size === 0) return null;
+
+    const candidates = index.stopsByAgency?.get(agencyKey(agency)) || [];
+    const ranked = candidates.map(candidate => {
+        const name = normalizeMatchLabel(candidate.label);
+        const tokens = matchTokens(candidate.label);
+        const allQueryTokensMatch = [...queryTokens].every(token => tokens.has(token));
+        const commonTokens = [...queryTokens].filter(token => tokens.has(token)).length;
+        let score = 0;
+        if (name === query) score = 100;
+        else if (name.startsWith(query) || query.startsWith(name)) score = 94;
+        else if (allQueryTokensMatch) score = 88;
+        else if (commonTokens > 0) score = (commonTokens / queryTokens.size) * 70;
+        score -= Math.max(0, tokens.size - queryTokens.size) * 0.25;
+        return { ...candidate, score };
+    }).sort((a, b) => b.score - a.score || a.label.length - b.label.length);
+
+    const best = ranked[0];
+    if (!best || best.score < 82) return null;
+    return { location: best.location, source: best.source, label: best.label, match: 'fuzzy' };
+}
+
+function addNormalizedAliases(index, stops) {
+    (stops || []).forEach(stop => {
+        const agencies = stop.agencies || (stop.agency ? [stop.agency] : []);
+        const labels = stopLabels(stop);
+        if (agencies.length === 0 || labels.length === 0) return;
+
+        agencies.forEach(agency => {
+            const canonical = labels
+                .map(label => lookup(index, agency, label) || fuzzyLookup(index, agency, label))
+                .find(Boolean);
+            if (!canonical) return;
+
+            labels.forEach(label => {
+                const key = indexKey(agency, label);
+                if (key && !index.has(key)) {
+                    index.set(key, {
+                        location: canonical.location,
+                        source: 'atlas',
+                        label: canonical.label,
+                        match: 'normalized-alias',
+                    });
+                }
+            });
+        });
+    });
+}
+
 export function resolveStopLocation(trip, side, index) {
     const stopCode = side === 'boarding' ? trip.startStopCode : trip.endStopCode;
     const stopName = side === 'boarding'
         ? (trip.startStopName || trip.startStop)
         : (trip.endStopName || trip.endStop);
-    const agency = trip.agency || 'TTC';
+    const agency = trip.agency || null;
 
     for (const label of [stopCode, stopName]) {
         const match = lookup(index, agency, label);
         if (match) return match;
     }
+
+    const fuzzyMatch = fuzzyLookup(index, agency, stopName);
+    if (fuzzyMatch) return fuzzyMatch;
 
     return { location: null, source: 'unresolved' };
 }

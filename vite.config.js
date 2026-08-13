@@ -52,7 +52,12 @@ export default defineConfig(({ mode, command }) => {
                 name: 'html-ext-fallback',
                 configureServer(server) {
                 const atlasCache = new Map();
-                const allowedAgencies = new Set(['ttc', 'octranspo', 'go', 'miway', 'yrt', 'brampton', 'drt', 'hamilton']);
+                const allowedAgencies = new Set([
+                    'ttc', 'go', 'miway', 'yrt', 'hamilton',
+                    'lacmta', 'niagara', 'bart', 'sfmta', 'vta', 'actransit', 'sdmts',
+                    'goldengate', 'santarosa', 'bigbluebus', 'oakville', 'nfta', 'smart-ca',
+                    'samtrans', 'ladot'
+                ]);
 
                 server.middlewares.use((req, res, next) => {
                     const url = req.url.split('?')[0];

@@ -3,13 +3,13 @@ const { onRequest } = require('firebase-functions/v2/https');
 const ATLAS_R2_BASE = process.env.ATLAS_R2_BASE || 'https://data.transitatlas.fyi';
 const ALLOWED_SLUGS = new Set([
   'ttc',
-  'octranspo',
   'go',
   'miway',
   'yrt',
-  'brampton',
-  'drt',
   'hamilton',
+  'lacmta', 'niagara', 'bart', 'sfmta', 'vta', 'actransit', 'sdmts',
+  'goldengate', 'santarosa', 'bigbluebus', 'oakville', 'nfta', 'smart-ca',
+  'samtrans', 'ladot',
 ]);
 const cache = new Map();
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
