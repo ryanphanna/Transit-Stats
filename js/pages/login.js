@@ -15,6 +15,7 @@ const DOM = {
 };
 
 let normalizedPhone = '';
+let requestBusy = false;
 
 const TRANSIT_THEMES = [
     { match: ['toronto'], label: 'Toronto transit colours', featuredLine: 'Line 2 · Bloor–Danforth', colors: ['#f8c84b', '#009b4e', '#8b4a9c', '#e87511'] },
@@ -84,13 +85,25 @@ function setBusy(button, busy, busyText, idleText) {
 }
 
 function syncButtons() {
-    DOM.requestCode.disabled = normalizePhone(DOM.phoneInput.value).replace(/\D/g, '').length < 10;
+    DOM.requestCode.disabled = requestBusy;
     DOM.verifyCode.disabled = DOM.codeInput.value.trim().length !== 6;
 }
 
+function hasValidPhone() {
+    return normalizePhone(DOM.phoneInput.value).replace(/\D/g, '').length >= 10;
+}
+
 async function requestCode() {
+    if (requestBusy) return;
+    if (!hasValidPhone()) {
+        setStatus('Enter a 10-digit phone number first.');
+        DOM.phoneInput.focus();
+        return;
+    }
+
     normalizedPhone = normalizePhone(DOM.phoneInput.value);
     clearStatus();
+    requestBusy = true;
     setBusy(DOM.requestCode, true, 'Sending…', 'Text me a code');
 
     try {
@@ -103,6 +116,7 @@ async function requestCode() {
     } catch (error) {
         setStatus(error.message);
     } finally {
+        requestBusy = false;
         setBusy(DOM.requestCode, false, 'Sending…', 'Text me a code');
         syncButtons();
     }
