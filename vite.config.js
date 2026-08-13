@@ -33,7 +33,7 @@ export default defineConfig(({ mode, command }) => {
                     insights: './insights.html',
                     map: './map.html',
                     'beta-map': './beta-map.html',
-                    heatmap: './heatmap.html',
+                    'beta-heatmap': './beta-heatmap.html',
                     admin: './admin.html',
                     users: './users.html',
                     settings: './settings.html',
@@ -56,7 +56,7 @@ export default defineConfig(({ mode, command }) => {
 
                 server.middlewares.use((req, res, next) => {
                     const url = req.url.split('?')[0];
-                    const targets = ['/dashboard', '/routes', '/map', '/beta-map', '/heatmap', '/v2', '/v2-home', '/admin', '/users', '/settings', '/insights', '/public'];
+                    const targets = ['/dashboard', '/routes', '/map', '/beta-map', '/beta-heatmap', '/v2', '/v2-home', '/admin', '/users', '/settings', '/insights', '/public'];
                     if (targets.includes(url)) {
                         req.url = url + '.html' + (req.url.includes('?') ? '?' + req.url.split('?')[1] : '');
                     }
@@ -123,15 +123,7 @@ export default defineConfig(({ mode, command }) => {
                 });
                 },
                 transformIndexHtml() {
-                    const buildId = env.VITE_BUILD_SHA || 'local';
                     return [{
-                        tag: 'meta',
-                        attrs: {
-                            name: 'transitstats-build',
-                            content: buildId,
-                        },
-                        injectTo: 'head-prepend',
-                    }, {
                         tag: 'script',
                         children: themeBootstrap,
                         injectTo: 'head-prepend',

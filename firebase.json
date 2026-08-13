@@ -254,8 +254,8 @@
           "destination": "/settings.html"
         },
         {
-          "source": "/heatmap",
-          "destination": "/heatmap.html"
+          "source": "/beta-heatmap",
+          "destination": "/beta-heatmap.html"
         },
         {
           "source": "/{dashboard,routes,settings,map,admin,users,insights,public,rocket}",
