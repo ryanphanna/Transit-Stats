@@ -38,7 +38,7 @@ jobs:
           VITE_BUILD_SHA: ${{ github.sha }}
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_TRANSITSTATS_21BA4 }}' > /tmp/sa.json
-          GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json firebase deploy --only hosting:beta --project transitstats-21ba4
+          GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json firebase deploy --only hosting:beta,functions --project transitstats-21ba4
       - name: Verify deployed build
         env:
           EXPECTED_BUILD: ${{ github.sha }}
