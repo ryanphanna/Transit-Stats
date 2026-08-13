@@ -64,9 +64,10 @@
 }
 
 .dashboard-route-tracker {
-  width: min(100%, 1360px);
-  margin: 24px auto 0;
-  padding: 0 20px;
+  grid-column: 1 / -1;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .dashboard-route-tracker > .card {
@@ -122,6 +123,23 @@
 
 .rt-compact-stat-highlight strong {
   color: var(--accent);
+}
+
+.rt-compact-progress {
+  margin-top: 14px;
+}
+
+.rt-compact-progress-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 7px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.rt-compact-progress-label strong {
+  color: var(--text-secondary);
 }
 
 .rt-route-list {

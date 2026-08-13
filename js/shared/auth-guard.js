@@ -12,14 +12,19 @@ else document.body.classList.toggle('dark', _theme === 'dark');
  * @param {boolean} options.adminOnly — redirect to /dashboard if user is not admin
  */
 export function requireAuth(options = {}) {
+    let checking = false;
+    let resolved = false;
     return new Promise((resolve) => {
         auth.onAuthStateChanged(async (user) => {
-    const loginUrl = '/';
-            if (!user) {
+            if (checking || resolved) return;
+            checking = true;
+            const loginUrl = '/';
+            const sessionUser = user || await Auth.restoreSharedSession();
+            if (!sessionUser) {
                 window.location.href = loginUrl;
                 return;
             }
-            const verification = await Auth.checkWhitelist(user.email, user.uid);
+            const verification = await Auth.checkWhitelist(sessionUser.email, sessionUser.uid);
             if (!verification.allowed) {
                 await Auth.signOut();
                 window.location.href = loginUrl;
@@ -29,9 +34,11 @@ export function requireAuth(options = {}) {
                 window.location.href = '/dashboard';
                 return;
             }
-            window.currentUser = user;
+            await Auth.syncSharedSession(sessionUser);
+            window.currentUser = sessionUser;
             window.isAdmin = verification.isAdmin;
-            resolve({ user, isAdmin: verification.isAdmin });
+            resolved = true;
+            resolve({ user: sessionUser, isAdmin: verification.isAdmin });
         });
     });
 }

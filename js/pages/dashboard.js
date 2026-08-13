@@ -24,6 +24,7 @@ const tripEdit = {
     startStop: document.getElementById('edit-start-stop'),
     endStop: document.getElementById('edit-end-stop'),
     direction: document.getElementById('edit-direction'),
+    directionOther: document.getElementById('edit-direction-other'),
     vehicle: document.getElementById('edit-vehicle'),
     agency: document.getElementById('edit-agency'),
     btnSave: document.getElementById('btn-save-edit'),
@@ -31,13 +32,22 @@ const tripEdit = {
 };
 
 function setupTripEditListeners() {
+    tripEdit.direction?.addEventListener('change', () => {
+        const isOther = tripEdit.direction.value === '__other__';
+        tripEdit.directionOther?.classList.toggle('hidden', !isOther);
+        if (!isOther && tripEdit.directionOther) tripEdit.directionOther.value = '';
+        if (isOther) tripEdit.directionOther?.focus();
+    });
+
     tripEdit.btnSave?.addEventListener('click', async () => {
         const id = tripEdit.id.value;
         const data = {
             route: tripEdit.route.value.trim(),
             startStop: tripEdit.startStop.value.trim(),
             endStop: tripEdit.endStop.value.trim(),
-            direction: tripEdit.direction.value.trim(),
+            direction: tripEdit.direction.value === '__other__'
+                ? tripEdit.directionOther.value.trim()
+                : tripEdit.direction.value.trim(),
             vehicle: tripEdit.vehicle.value.trim(),
             agency: tripEdit.agency.value
         };

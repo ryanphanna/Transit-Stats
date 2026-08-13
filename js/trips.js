@@ -99,6 +99,7 @@ export const Trips = {
             start: document.getElementById('edit-start-stop'),
             end: document.getElementById('edit-end-stop'),
             dir: document.getElementById('edit-direction'),
+            dirOther: document.getElementById('edit-direction-other'),
             vehicle: document.getElementById('edit-vehicle'),
             agency: document.getElementById('edit-agency')
         };
@@ -107,7 +108,15 @@ export const Trips = {
         if (form.route) form.route.value = trip.route || '';
         if (form.start) form.start.value = trip.startStopName || trip.startStop || '';
         if (form.end) form.end.value = trip.endStopName || trip.endStop || '';
-        if (form.dir) form.dir.value = trip.direction || '';
+        if (form.dir) {
+            const direction = trip.direction || '';
+            const hasOption = [...form.dir.options].some(option => option.value === direction);
+            form.dir.value = hasOption ? direction : (direction ? '__other__' : '');
+            if (form.dirOther) {
+                form.dirOther.value = hasOption ? '' : direction;
+                form.dirOther.classList.toggle('hidden', form.dir.value !== '__other__');
+            }
+        }
         if (form.vehicle) form.vehicle.value = trip.vehicle || '';
         if (form.agency) form.agency.value = trip.agency || 'TTC';
 

@@ -84,6 +84,13 @@
       ],
       "rewrites": [
         {
+          "source": "/auth/session",
+          "function": {
+            "functionId": "authSession",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/public",
           "destination": "/public.html"
         },
@@ -171,6 +178,13 @@
       ],
       "rewrites": [
         {
+          "source": "/auth/session",
+          "function": {
+            "functionId": "authSession",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/admin",
           "destination": "/admin.html"
         },
@@ -212,6 +226,13 @@
         "functions/**"
       ],
       "rewrites": [
+        {
+          "source": "/auth/session",
+          "function": {
+            "functionId": "authSession",
+            "region": "us-central1"
+          }
+        },
         {
           "source": "/public",
           "destination": "/public.html"

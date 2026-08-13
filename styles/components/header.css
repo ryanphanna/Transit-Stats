@@ -1,7 +1,9 @@
 /* --- Header --- */
 .header {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   height: 72px;
   background: rgba(248, 250, 252, 0.6);
   backdrop-filter: blur(20px) saturate(180%);
@@ -10,6 +12,11 @@
   z-index: var(--z-header);
   display: flex;
   align-items: center;
+}
+
+/* The shared header no longer takes up document flow once fixed. */
+.header ~ .view {
+  padding-top: 104px;
 }
 body.dark .header,
 html[data-theme="dark"] .header {
@@ -78,6 +85,7 @@ html[data-theme="dark"] .header {
 /* --- Header & Navigation Support --- */
 .header-container {
     max-width: 1400px;
+    width: 100%;
     margin: 0 auto;
     padding: 0 24px;
     height: 100%;

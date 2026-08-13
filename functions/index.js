@@ -16,6 +16,7 @@ if (getApps().length === 0) {
 
 const { sms } = require('./sms');
 const { api } = require('./api');
+const { authSession } = require('./auth-session');
 const { atlasStops } = require('./atlas-stops');
 const { atlasRoutes } = require('./atlas-routes');
 const { publicProfile } = require('./lib/public-profile');
@@ -28,6 +29,10 @@ exports.sms = sms;
 
 // Export the iOS companion app API endpoint
 exports.api = api;
+
+// Shared parent-domain session used to move an authenticated user between
+// the regular, beta, and admin surfaces without putting an ID token in a URL.
+exports.authSession = authSession;
 
 // Public Atlas proxies used by the isolated trip-paths and heatmap betas.
 exports.atlasStops = atlasStops;

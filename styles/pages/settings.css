@@ -1,6 +1,6 @@
 /* --- Settings Specific --- */
 .settings-group {
-    margin-bottom: 24px;
+    margin-bottom: 0;
 }
 
 .settings-group-title {
@@ -9,7 +9,7 @@
     text-transform: uppercase;
     color: var(--text-muted);
     letter-spacing: 0.05em;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -33,7 +33,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 12px;
+    padding: 9px 10px;
 }
 
 .settings-row:not(:last-child) {
@@ -151,13 +151,13 @@ input:focus, select:focus {
 }
 
 .settings-page-container {
-    max-width: 1100px;
+    max-width: 960px;
     margin: 0 auto;
     padding: 0 24px;
 }
 
 .settings-page-header {
-    margin-bottom: 32px;
+    margin-bottom: 18px;
 }
 
 .settings-page-title {
@@ -174,12 +174,30 @@ input:focus, select:focus {
 }
 
 .settings-page-col {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.settings-page-col .settings-group:last-child {
+    grid-column: 1 / -1;
+}
+
+.settings-identity-row {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+}
+
+.settings-identity-row > .settings-sub-label {
+    flex: 0 0 100%;
 }
 
 @media (max-width: 640px) {
     .settings-page-grid { grid-template-columns: 1fr; }
+    .settings-page-col { grid-template-columns: 1fr; }
+    .settings-page-col .settings-group:last-child { grid-column: auto; }
+    .settings-identity-row { flex-direction: column; align-items: flex-start; }
+    .settings-identity-row > .settings-sub-label { flex-basis: auto; }
 }
 
 .premium-card {
@@ -339,4 +357,3 @@ input:checked + .slider:before {
 .slider.round:before {
   border-radius: 50%;
 }
-

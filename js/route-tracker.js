@@ -275,6 +275,10 @@ export const RouteTracker = {
                         <span>Atlas coverage</span>
                     </div>
                 </div>
+                <div class="rt-compact-progress" role="progressbar" aria-label="${coverage.pct}% of ${UI.escapeHtml(coverage.agency)} routes ridden" aria-valuenow="${coverage.pct}" aria-valuemin="0" aria-valuemax="100">
+                    <div class="rt-compact-progress-label"><span>Coverage</span><strong>${coverage.pct}%</strong></div>
+                    <div class="mastery-bar-bg"><div class="mastery-bar-fill" style="width: ${coverage.pct}%;"></div></div>
+                </div>
             `;
             return;
         }
@@ -325,6 +329,10 @@ export const RouteTracker = {
                 <div class="rt-compact-summary">
                     <div class="rt-compact-stat"><strong>${ridden} of ${total}</strong><span>routes ridden across ${coverageItems.length} agencies</span></div>
                     <div class="rt-compact-stat rt-compact-stat-highlight"><strong>${pct}%</strong><span>Atlas coverage</span></div>
+                </div>
+                <div class="rt-compact-progress" role="progressbar" aria-label="${pct}% of routes ridden across all agencies" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100">
+                    <div class="rt-compact-progress-label"><span>Coverage</span><strong>${pct}%</strong></div>
+                    <div class="mastery-bar-bg"><div class="mastery-bar-fill" style="width: ${pct}%;"></div></div>
                 </div>`;
             return;
         }

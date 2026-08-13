@@ -9,6 +9,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 ## [Unreleased]
 
 ### Added
+- **Shared sign-in across TransitStats surfaces** — moving between the regular, beta, and admin sites no longer requires another login.
 - **Theme choices and multi-agency route coverage** — choose System, Light, or Dark and see route progress across every agency you have ridden.
 - **Phone-first homepage sign-in** — reopen your ridership dashboard with an SMS code instead of remembering an email or password.
 - **Animated homepage map** — flowing routes and pulsing stations make the ridership graphic feel alive.
@@ -27,6 +28,9 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Route Tracker now shows a compact coverage summary** instead of listing every missing route by default.
 - **Route Tracker now has its own Routes page** so the dashboard stays focused while the full network remains easy to explore.
 - **Settings now uses the available page width** instead of reserving an empty second column.
+- **Dashboard route coverage now includes a visual progress bar** so the compact card shows progress at a glance.
+- **Shared navigation now stays visible while scrolling** and redundant Routes-page back navigation is removed.
+- **Settings is more compact** with Account and Preferences side by side and tighter profile rows.
 
 ### Fixed
 - **Phone sign-in now loads in production** — hosting deploys preserve the Firebase configuration needed to enable SMS login, including when the phone field is autofilled.

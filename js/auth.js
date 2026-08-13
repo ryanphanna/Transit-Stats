@@ -5,6 +5,8 @@ import { auth, db } from './firebase.js';
  */
 export const Auth = {
     phoneApiUrl: 'https://us-central1-transitstats-21ba4.cloudfunctions.net/api',
+    sharedSessionUrl: '/auth/session',
+    _restorePromise: null,
 
     // --- Rate Limiting ---
     getRateLimit() {
@@ -137,10 +139,63 @@ export const Auth = {
         if (!response.ok) throw new Error(data.error || 'That code could not be verified.');
         if (!data.token) throw new Error('Verification succeeded but sign-in could not be completed.');
         await auth.signInWithCustomToken(data.token);
+        await this.syncSharedSession(auth.currentUser);
         return data;
     },
 
-    signOut() {
+    async syncSharedSession(user = auth.currentUser) {
+        if (!user) return false;
+        try {
+            const idToken = await user.getIdToken();
+            const response = await fetch(this.sharedSessionUrl, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { Authorization: `Bearer ${idToken}` }
+            });
+            if (!response.ok) throw new Error(`Shared session request failed (${response.status})`);
+            return true;
+        } catch (error) {
+            // SSO is additive: a surface can still use its local Firebase session
+            // while a not-yet-deployed or unavailable handoff endpoint recovers.
+            console.warn('Shared session unavailable:', error.message);
+            return false;
+        }
+    },
+
+    async restoreSharedSession() {
+        if (auth.currentUser) return auth.currentUser;
+        if (!this._restorePromise) {
+            this._restorePromise = (async () => {
+                try {
+                    const response = await fetch(this.sharedSessionUrl, { credentials: 'include' });
+                    if (!response.ok) return null;
+                    const data = await response.json();
+                    if (!data.token) return null;
+                    await auth.signInWithCustomToken(data.token);
+                    return auth.currentUser;
+                } catch (error) {
+                    return null;
+                }
+            })().finally(() => {
+                this._restorePromise = null;
+            });
+        }
+        return this._restorePromise;
+    },
+
+    async clearSharedSession() {
+        try {
+            await fetch(this.sharedSessionUrl, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+        } catch (error) {
+            console.warn('Shared session could not be cleared:', error.message);
+        }
+    },
+
+    async signOut() {
+        await this.clearSharedSession();
         return auth.signOut();
     },
 

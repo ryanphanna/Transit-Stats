@@ -167,8 +167,18 @@ function setupListeners() {
 function init() {
     window.TransitTheme?.apply(window.TransitTheme.getPreference());
 
-    auth.onAuthStateChanged((user) => {
+    let restoring = false;
+    auth.onAuthStateChanged(async (user) => {
         if (user) {
+            window.location.href = window.location.hostname === 'admin.transitstats.fyi'
+                ? '/admin'
+                : '/dashboard';
+            return;
+        }
+        if (restoring) return;
+        restoring = true;
+        const restoredUser = await Auth.restoreSharedSession();
+        if (restoredUser) {
             window.location.href = window.location.hostname === 'admin.transitstats.fyi'
                 ? '/admin'
                 : '/dashboard';
