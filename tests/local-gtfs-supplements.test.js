@@ -52,4 +52,14 @@ describe('local GTFS stop supplements', () => {
         expect(result.label).toBe('JAMES at REBECCA');
         expect(result.location).toEqual({ lat: 43.2583, lng: -79.86825 });
     });
+
+    it('maps the Santa Rosa shorthand to the canonical Coddingtown stop', () => {
+        const result = resolveStopLocation({
+            agency: 'Santa Rosa CityBus',
+            startStopName: 'Coddington',
+        }, 'boarding', index);
+
+        expect(result.label).toBe('Coddingtown');
+        expect(result.location).toEqual({ lat: 38.457134, lng: -122.732567 });
+    });
 });

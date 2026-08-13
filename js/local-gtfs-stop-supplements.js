@@ -47,6 +47,16 @@ export const LOCAL_GTFS_STOP_SUPPLEMENTS = {
             aliases: ['1St Street / Mission'],
         },
     ],
+    'Santa Rosa CityBus': [
+        {
+            code: '571',
+            name: 'Coddingtown',
+            lat: 38.457134,
+            lng: -122.732567,
+            aliases: ['Coddington'],
+            sourceAgency: 'Santa Rosa CityBus',
+        },
+    ],
     YRT: [
         {
             name: 'SMARTVMC BUS TERMINAL',
