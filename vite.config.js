@@ -12,10 +12,10 @@ const requiredFirebaseEnv = [
     'VITE_FIREBASE_APP_ID',
 ];
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
     const env = loadEnv(mode, process.cwd(), '');
     const missingFirebaseEnv = requiredFirebaseEnv.filter((key) => !env[key]);
-    if (missingFirebaseEnv.length > 0) {
+    if (command === 'build' && missingFirebaseEnv.length > 0) {
         throw new Error(`Missing Firebase build configuration: ${missingFirebaseEnv.join(', ')}`);
     }
 
