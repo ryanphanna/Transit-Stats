@@ -33,6 +33,7 @@ export default defineConfig(({ mode, command }) => {
                     insights: './insights.html',
                     map: './map.html',
                     'beta-map': './beta-map.html',
+                    'beta-heatmap': './beta-heatmap.html',
                     admin: './admin.html',
                     users: './users.html',
                     settings: './settings.html',
@@ -55,7 +56,7 @@ export default defineConfig(({ mode, command }) => {
 
                 server.middlewares.use((req, res, next) => {
                     const url = req.url.split('?')[0];
-                    const targets = ['/dashboard', '/routes', '/map', '/beta-map', '/v2', '/v2-home', '/admin', '/users', '/settings', '/insights', '/public'];
+                    const targets = ['/dashboard', '/routes', '/map', '/beta-map', '/beta-heatmap', '/v2', '/v2-home', '/admin', '/users', '/settings', '/insights', '/public'];
                     if (targets.includes(url)) {
                         req.url = url + '.html' + (req.url.includes('?') ? '?' + req.url.split('?')[1] : '');
                     }

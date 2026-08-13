@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransitStats — GTFS Heatmap Beta</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha256-tXCrvaljxgtN5LT/Syb5Mm9T+yzPFGH98JVcoJT7JTk=" crossorigin="anonymous">
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/pages/beta-heatmap.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <main id="app-root">
+        <section class="view beta-heatmap-view active">
+            <div id="beta-heatmap" class="beta-heatmap-canvas"></div>
+            <aside class="beta-heatmap-panel" aria-live="polite">
+                <div class="beta-heatmap-heading">
+                    <div>
+                        <p class="eyebrow">Beta experiment</p>
+                        <h1>Route heatmap</h1>
+                    </div>
+                    <span class="beta-heatmap-badge">GTFS</span>
+                </div>
+                <p class="beta-heatmap-description">GTFS route corridors coloured by how often you’ve ridden them.</p>
+                <div id="beta-heatmap-stats" class="beta-heatmap-stats">
+                    <span>Loading your route data…</span>
+                </div>
+                <div class="beta-heatmap-controls" aria-label="Heatmap display">
+                    <button class="pill active" data-scope="ridden" aria-pressed="true">Ridden routes</button>
+                    <button class="pill" data-scope="all" aria-pressed="false">All corridors</button>
+                </div>
+                <div class="beta-heatmap-legend">
+                    <span>Less ridden</span>
+                    <div class="beta-heatmap-gradient" aria-hidden="true"></div>
+                    <span>Most ridden</span>
+                </div>
+                <p id="beta-heatmap-status" class="beta-heatmap-status">Loading GTFS corridors…</p>
+            </aside>
+        </section>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
+    <script type="module" src="js/pages/beta-heatmap.js"></script>
+</body>
+</html>
