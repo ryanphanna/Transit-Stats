@@ -16,9 +16,11 @@ function setMapLoading(message) {
 async function init() {
     try {
         console.log("Map: Init started");
-        const { user, isAdmin } = await requireAuth();
+        // Render navigation before auth, Firestore, and GTFS work so the user
+        // can leave Stops immediately instead of waiting for map startup.
+        initHeader({ currentPage: 'map' });
+        const { user } = await requireAuth();
         console.log("Map: Auth resolved", user.email);
-        initHeader({ isAdmin, currentPage: 'map' });
 
         // Initialize Leaflet before any Firestore or Atlas reads. The map is
         // interactive immediately while the stop library and trip stream load.

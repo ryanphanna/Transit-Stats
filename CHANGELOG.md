@@ -10,6 +10,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 - **Dashboard and route editing are less obstructive**: agency fields now provide real ridden-agency suggestions while allowing custom values, Routes fits in the dashboard sidebar, Stops navigation stays usable during map loading, and route counts aggregate normalized rides correctly.
 - **Top routes now reflect all agencies and show route names**: the list no longer follows the default-agency coverage view, and GTFS route names are shown with the route number as context.
+- **Stops navigation appears before map startup finishes**: leaving the map no longer depends on authentication, Firestore, or GTFS loading completing first.
 - **Map route labels now read naturally**: all-caps names such as `PURPLE` display as `Purple` while route numbers remain unchanged.
 - **Map point popups now show only the stop name**: riders see the place they tapped instead of a verbose `Boarded route at stop` sentence.
 - **Map points now use GTFS only**: canonical stop names and coordinates prevent stored or mismatched stop data from appearing as map locations, with boarding and exit points shown together by default.
