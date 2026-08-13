@@ -309,7 +309,7 @@ export const Profile = {
                 `;
                 document.getElementById('btn-copy-public-link')?.addEventListener('click', () => {
                     navigator.clipboard.writeText(url);
-                    UI.showNotification('Link copied to clipboard!');
+                    UI.showNotification('Link copied to clipboard!', 'success');
                 });
             } else {
                 publicLinkEl.textContent = 'Pick your identity to enable sharing.';

@@ -31,8 +31,11 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Dashboard route coverage now includes a visual progress bar** so the compact card shows progress at a glance.
 - **Shared navigation now stays visible while scrolling** and redundant Routes-page back navigation is removed.
 - **Settings is more compact** with Account and Preferences side by side and tighter profile rows.
+- **Routes now opens on the main agency** with a lighter summary instead of an all-agencies selector and nested stat cards.
 
 ### Fixed
+- **Clipboard and settings notices are now visible** with valid success and error colours.
+- **Homepage sign-in buttons now keep their bright styling on hover** instead of turning dark.
 - **Phone sign-in now loads in production** — hosting deploys preserve the Firebase configuration needed to enable SMS login, including when the phone field is autofilled.
 - **Theme bootstrap now ships inside every built page** so saved themes work in production without a flash or missing script.
 - **Incomplete trips now stay clearly marked** and map labels no longer show `undefined` when stop data is missing.

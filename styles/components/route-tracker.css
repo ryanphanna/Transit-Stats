@@ -178,6 +178,18 @@
   background: var(--bg-muted);
 }
 
+.routes-page-card .rt-summary-stat {
+  padding: 4px 12px;
+  border: 0;
+  border-right: 1px solid var(--border-outer);
+  border-radius: 0;
+  background: transparent;
+}
+
+.routes-page-card .rt-summary-stat:last-child {
+  border-right: 0;
+}
+
 .rt-summary-stat strong,
 .rt-summary-stat span {
   display: block;

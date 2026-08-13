@@ -37,8 +37,9 @@ export const RouteTracker = {
     routesCache: {},    // agency -> routes[]
     init: function ({ compact = false } = {}) {
         this.compact = compact;
-        // Show every agency represented in the user's trips by default.
-        this.currentAgency = 'all';
+        // The full Routes page starts with the main agency; the dashboard's
+        // compact card still summarizes every agency represented in trips.
+        this.currentAgency = compact ? 'all' : 'TTC';
 
         const select = document.getElementById('routeTrackerAgency');
         if (select) select.value = this.currentAgency;
@@ -47,7 +48,7 @@ export const RouteTracker = {
     },
 
     setAgency: function (agency) {
-        this.currentAgency = agency || 'all';
+        this.currentAgency = agency || (this.compact ? 'all' : 'TTC');
         this._loadAndRender();
     },
 

@@ -29,7 +29,9 @@ export const UI = {
      */
     showNotification: function (message, type = 'error') {
         const notification = document.createElement('div');
-        const bgColor = type === 'error' ? 'var(--danger-text)' : 'var(--success)';
+        const bgColor = type === 'error' ? 'var(--danger)' : 'var(--success)';
+        notification.setAttribute('role', type === 'error' ? 'alert' : 'status');
+        notification.setAttribute('aria-live', 'polite');
 
         notification.style.cssText = `
             position: fixed;
@@ -41,7 +43,7 @@ export const UI = {
             padding: 12px 24px;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            z-index: 10000;
+            z-index: var(--z-toast);
             font-weight: 500;
             animation: slideUp 0.3s ease;
         `;
