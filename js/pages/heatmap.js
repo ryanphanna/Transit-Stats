@@ -124,7 +124,7 @@ function setupControls() {
 
 async function init() {
     const { user, isAdmin } = await requireAuth();
-    initHeader({ isAdmin, currentPage: 'map' });
+    initHeader({ isAdmin, currentPage: 'heatmap' });
     state.map = L.map('beta-heatmap', { zoomControl: true, attributionControl: true })
         .setView([43.6532, -79.3832], 11);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {

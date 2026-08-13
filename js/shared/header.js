@@ -14,6 +14,7 @@ function _render(isAdmin, currentPage) {
 
     const adminHost = window.location.hostname === 'admin.transitstats.fyi';
     const adminSurface = adminHost || ['admin', 'users', 'insights', 'rocket'].includes(currentPage);
+    const betaSurface = ['localhost', '127.0.0.1', 'beta.transitstats.fyi'].includes(window.location.hostname);
     const navItems = adminSurface
         ? [
             { id: 'admin', label: 'Stops', icon: 'database', href: '/admin' },
@@ -22,8 +23,9 @@ function _render(isAdmin, currentPage) {
             ...(isAdmin ? [{ id: 'rocket', label: 'Rocket', icon: 'rocket', href: '/rocket' }] : []),
         ]
         : [
-            { id: 'map', label: 'Map', icon: 'map', href: '/map' },
+            { id: 'map', label: 'Stops', icon: 'map-pin', href: '/map' },
             { id: 'routes', label: 'Routes', icon: 'route', href: '/routes' },
+            ...(betaSurface ? [{ id: 'heatmap', label: 'Heatmap', icon: 'layers-2', href: '/heatmap' }] : []),
         ];
     const logoHref = adminHost ? '/admin' : '/dashboard';
 

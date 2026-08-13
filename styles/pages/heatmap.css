@@ -1,5 +1,5 @@
 .beta-heatmap-view {
-  height: calc(100vh - 72px);
+  height: calc(100vh - 64px);
   min-height: 0 !important;
   padding: 0 !important;
   position: relative;
@@ -24,7 +24,7 @@
   border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: var(--shadow);
-  backdrop-filter: blur(16px);
+  backdrop-filter: none;
 }
 
 .beta-heatmap-heading {
@@ -58,6 +58,22 @@
   font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.08em;
+}
+
+.beta-heatmap-view::after {
+  content: 'Route-frequency styling is in progress';
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  z-index: 900;
+  padding: 9px 12px;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
+  font-size: 0.7rem;
+  font-weight: 700;
 }
 
 .beta-heatmap-description {

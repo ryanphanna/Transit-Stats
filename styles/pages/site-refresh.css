@@ -1,0 +1,286 @@
+/* Site-wide visual refresh. Keep page-specific layout rules above this file. */
+:root {
+  --content-width: 1240px;
+}
+
+.view:not(.map-view):not(.beta-map-view):not(.beta-heatmap-view):not(.public-view) {
+  padding-top: 96px;
+}
+
+.container,
+.dashboard-grid,
+.settings-page-container,
+.routes-page-container,
+.admin-container {
+  max-width: var(--content-width);
+}
+
+.card,
+.settings-card,
+.routes-page-card,
+.public-card,
+.admin-view .card,
+.insights-view .card {
+  border-color: var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-header,
+.route-tracker-header,
+.routes-page-heading,
+.settings-page-header {
+  gap: 16px;
+}
+
+.card-header h3,
+.route-tracker-header h3,
+.routes-page-heading h1,
+.settings-page-title {
+  color: var(--text-primary);
+  letter-spacing: -0.035em;
+}
+
+.card-header h3,
+.route-tracker-header h3 {
+  font-size: 0.95rem;
+}
+
+.dashboard-view,
+.routes-view,
+.settings-view,
+.admin-view,
+.insights-view {
+  background: var(--bg-app);
+}
+
+.dashboard-grid {
+  gap: 18px;
+}
+
+.dashboard-grid > [class*="col-"] > .card,
+.dashboard-grid > [class*="col-"] > .profile-card {
+  margin-bottom: 18px;
+}
+
+.trip-card,
+.stat-box,
+.compact-row,
+.insight-row,
+.rt-agency-progress-row,
+.stop-card,
+.inbox-group-header,
+.inbox-item {
+  border-color: var(--border);
+  border-radius: 10px;
+}
+
+.trip-card:hover {
+  transform: none;
+  border-color: var(--accent-light);
+}
+
+.stat-box:hover {
+  transform: none;
+}
+
+.streak-box {
+  background: var(--text-primary);
+  box-shadow: none;
+}
+
+.settings-page-col {
+  align-items: stretch;
+}
+
+.settings-page-col > .settings-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-page-col > .settings-group > .settings-card {
+  flex: 1;
+}
+
+.settings-action {
+  flex: 0 0 auto;
+  min-height: 30px;
+  padding: 5px 9px !important;
+  border-radius: 8px;
+  font-size: 0.72rem !important;
+  font-weight: 700;
+}
+
+.map-controls,
+.beta-map-controls {
+  top: 18px;
+  left: 18px;
+  right: 18px;
+}
+
+.header ~ .beta-map-view,
+.header ~ .beta-heatmap-view {
+  margin-top: 64px;
+}
+
+.filter-pills,
+.beta-map-pills,
+.beta-heatmap-panel,
+.map-diagnostics,
+.beta-map-diagnostics {
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+  backdrop-filter: none;
+}
+
+.filter-pills .pill,
+.beta-map-pills .pill,
+.beta-heatmap-controls .pill {
+  border-radius: 8px;
+}
+
+.filter-pills .pill.active,
+.beta-map-pills .pill.active,
+.beta-heatmap-controls .pill.active {
+  background: var(--accent);
+}
+
+.auth-card,
+.auth-input-wrap {
+  box-shadow: var(--shadow-sm);
+}
+
+.auth-view {
+  background: var(--bg-app);
+}
+
+.auth-title,
+.auth-card-heading h2,
+.auth-sent-row strong {
+  color: var(--text-primary);
+}
+
+.auth-subtitle,
+.auth-eyebrow,
+.auth-form-eyebrow,
+.auth-help,
+.auth-invite-note,
+.auth-label {
+  color: var(--text-secondary);
+}
+
+.auth-visual {
+  background: var(--text-primary);
+}
+
+.auth-card {
+  background: var(--bg-card);
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+}
+
+.auth-input-wrap,
+.auth-code-input {
+  background: var(--bg-muted);
+}
+
+.auth-input-wrap:focus-within,
+.auth-code-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+.auth-card .btn-primary {
+  background: var(--accent);
+  box-shadow: none;
+}
+
+.auth-card .btn-primary:hover:not(:disabled) {
+  background: #087f59;
+  filter: none;
+}
+
+/* Legacy/V2 entry points use the same product language as the main app. */
+.v2-split-body {
+  background: var(--bg-app);
+  color: var(--text-primary);
+}
+
+.v2-left-pane {
+  background: var(--bg-card);
+  box-shadow: none;
+  border-right: 1px solid var(--border);
+}
+
+.v2-title {
+  color: var(--text-primary);
+}
+
+.v2-title span,
+.v2-f-icon {
+  color: var(--accent);
+}
+
+.v2-subtitle,
+.v2-input-hint,
+.v2-f-text span {
+  color: var(--text-secondary);
+}
+
+.v2-input-group,
+.v2-feature-card {
+  background: var(--bg-muted);
+  border-color: var(--border);
+}
+
+.v2-input-group:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+.v2-btn-go {
+  background: var(--accent);
+  border-radius: 10px;
+}
+
+.v2-btn-go:hover {
+  background: #087f59;
+  transform: none;
+}
+
+.v2-right-pane {
+  background: var(--bg-muted);
+}
+
+.v2-guest-card {
+  background: var(--bg-card);
+  backdrop-filter: none;
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+}
+
+.v2-guest-logo {
+  color: var(--text-primary);
+}
+
+.v2-guest-card p {
+  color: var(--text-secondary);
+}
+
+.v2-guest-btn {
+  background: var(--accent);
+}
+
+.v2-guest-btn:hover {
+  background: #087f59;
+}
+
+@media (max-width: 640px) {
+  .view:not(.map-view):not(.beta-map-view):not(.beta-heatmap-view):not(.public-view) {
+    padding-top: 84px;
+  }
+
+  .settings-page-col {
+    gap: 12px;
+  }
+}

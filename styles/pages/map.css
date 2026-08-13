@@ -2,7 +2,7 @@
 .map-view {
   padding: 0 !important;
   margin-top: 0;
-  height: calc(100vh - 72px);
+  height: calc(100vh - 64px);
   min-height: 0 !important;
   position: relative;
   width: 100%;
@@ -11,7 +11,7 @@
 
 /* The shared header is fixed, so the map must begin beneath it. */
 .header ~ .map-view {
-  margin-top: 72px;
+  margin-top: 64px;
 }
 
 .full-map {

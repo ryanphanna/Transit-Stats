@@ -16,6 +16,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Beta map matching now verifies high-confidence predicted exits against GTFS**: missing raw exit labels can resolve without using prediction coordinates or changing trip records.
 - **Maps now load progressively with cached, clustered stop data**: repeat visits start faster, public profiles share the same map treatment, and Settings only lists agencies you have actually used.
 - **Account settings now separate Email and Password controls**: password resets are presented as a real security setting instead of an icon beside the email address.
+- **Default agency is now searchable**: long agency histories stay compact while suggestions remain limited to agencies you have used.
+- **TransitStats now shares one visual system across rider, beta, public, and admin pages**: quieter surfaces, consistent controls, and a designed Heatmap shell replace the old mix of page-specific styles.
 ### Added
 - **Shared sign-in across TransitStats surfaces** — moving between the regular, beta, and admin sites no longer requires another login.
 - **Theme choices and multi-agency route coverage** — choose System, Light, or Dark and see route progress across every agency you have ridden.

@@ -32,7 +32,7 @@
                                         <span class="settings-sub-label">Display Name</span>
                                         <input type="text" id="settings-name" class="minimal-input" placeholder="Enter name...">
                                     </div>
-                                    <button id="btn-save-name" class="btn btn-sm btn-outline" title="Save name"><i data-lucide="save" class="icon-inline"></i>Save name</button>
+                                    <button id="btn-save-name" class="btn btn-sm btn-ghost settings-action" title="Save name">Save</button>
                                 </div>
                                 <div class="settings-row">
                                     <div class="settings-label-group">
@@ -45,7 +45,7 @@
                                         <span class="settings-main-label">Password</span>
                                         <span class="settings-sub-label">Set or reset it with your email</span>
                                     </div>
-                                    <button id="btn-reset-password" class="btn btn-sm btn-outline">Reset password</button>
+                                    <button id="btn-reset-password" class="btn btn-sm btn-ghost settings-action">Reset password</button>
                                 </div>
                                 <div class="settings-row">
                                     <div class="settings-label-group">
@@ -62,9 +62,10 @@
                             <div class="settings-card premium-card">
                                 <div class="settings-row">
                                     <span class="settings-main-label">Default Agency</span>
-                                    <select id="settings-agency" class="minimal-select" aria-label="Default agency">
-                                        <option value="">Loading agencies…</option>
-                                    </select>
+                                    <div class="settings-agency-field">
+                                        <input type="search" id="settings-agency" class="minimal-input settings-agency-input" list="settings-agency-options" autocomplete="off" placeholder="Search agencies…" aria-label="Default agency">
+                                        <datalist id="settings-agency-options"></datalist>
+                                    </div>
                                 </div>
                                 <div class="settings-row">
                                     <div class="settings-label-group">

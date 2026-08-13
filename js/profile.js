@@ -2,6 +2,15 @@ import firebase, { db, auth } from './firebase.js';
 import { UI } from './ui-utils.js';
 import { Identity } from './identity.js';
 
+const AGENCY_DISPLAY_NAMES = {
+    GO: 'GO Transit',
+};
+
+function displayAgencyName(value) {
+    const name = String(value || '').trim();
+    return AGENCY_DISPLAY_NAMES[name] || name;
+}
+
 /**
  * TransitStats - Preference Management
  * Handles user profile settings, beta features, and agency preferences.
@@ -31,7 +40,12 @@ export const Profile = {
         const themeSelect = document.getElementById('settings-theme');
 
         agencySelect?.addEventListener('change', (e) => {
-            this.updateSetting('defaultAgency', e.target.value);
+            const agency = e.target.value.trim();
+            if (!this.agencies.includes(agency) && agency !== displayAgencyName(this.data?.defaultAgency)) {
+                this.syncAgencyOptions();
+                return;
+            }
+            this.updateSetting('defaultAgency', agency);
         });
 
         betaPredictions?.addEventListener('change', (e) => {
@@ -211,7 +225,7 @@ export const Profile = {
         try {
             const tripsSnap = await db.collection('trips').where('userId', '==', user.uid).get();
             this.agencies = [...new Set(tripsSnap.docs
-                .map(doc => String(doc.data().agency || '').trim())
+                .map(doc => displayAgencyName(doc.data().agency))
                 .filter(Boolean))];
         } catch (error) {
             console.warn('Could not load agencies from trips:', error);
@@ -223,23 +237,22 @@ export const Profile = {
 
     syncAgencyOptions() {
         const agencyEl = document.getElementById('settings-agency');
+        const optionsEl = document.getElementById('settings-agency-options');
         if (!agencyEl) return;
 
         const options = [...new Set([
             ...this.agencies,
-            this.data?.defaultAgency,
+            displayAgencyName(this.data?.defaultAgency),
         ].filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
-        agencyEl.replaceChildren(...(options.length
-            ? options.map(agency => {
-                const option = document.createElement('option');
-                option.value = agency;
-                option.textContent = agency;
-                return option;
-            })
-            : [new Option('No agencies found', '')]));
+        optionsEl?.replaceChildren(...options.map(agency => {
+            const option = document.createElement('option');
+            option.value = agency;
+            return option;
+        }));
         agencyEl.disabled = options.length === 0;
-        if (this.data?.defaultAgency) agencyEl.value = this.data.defaultAgency;
+        agencyEl.placeholder = options.length ? 'Search agencies…' : 'No agencies found';
+        if (this.data?.defaultAgency) agencyEl.value = displayAgencyName(this.data.defaultAgency);
     },
 
     /**
@@ -332,14 +345,15 @@ export const Profile = {
         this.updateUsernameDisplay();
 
         if (publicLinkEl) {
-            const baseUrl = window.location.origin === 'http://localhost:5176' ? 'https://transitstats.fyi' : window.location.origin;
+            const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+            const baseUrl = isLocal ? 'https://transitstats.fyi' : window.location.origin;
             const url = username ? `${baseUrl}/public?user=${username}` : '';
             
             if (url) {
                 publicLinkEl.innerHTML = `
                     <div class="public-link-box">
-                        <code class="public-url">${url}</code>
-                        <button id="btn-copy-public-link" class="btn btn-sm btn-outline">Copy</button>
+                        <span class="public-url">${url}</span>
+                        <button id="btn-copy-public-link" class="btn btn-sm btn-ghost">Copy</button>
                     </div>
                 `;
                 document.getElementById('btn-copy-public-link')?.addEventListener('click', () => {
