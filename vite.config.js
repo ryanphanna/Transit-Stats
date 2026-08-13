@@ -1,40 +1,55 @@
 
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import fs from 'node:fs';
 
 const themeBootstrap = fs.readFileSync(new URL('./js/theme.js', import.meta.url), 'utf8');
+const requiredFirebaseEnv = [
+    'VITE_FIREBASE_API_KEY',
+    'VITE_FIREBASE_AUTH_DOMAIN',
+    'VITE_FIREBASE_PROJECT_ID',
+    'VITE_FIREBASE_STORAGE_BUCKET',
+    'VITE_FIREBASE_MESSAGING_SENDER_ID',
+    'VITE_FIREBASE_APP_ID',
+];
 
-export default defineConfig({
-    root: './',
-    build: {
-        outDir: 'dist',
-        emptyOutDir: true,
-        rollupOptions: {
-            input: {
-                index: './index.html',
-                public: './public.html',
-                dashboard: './dashboard.html',
-                routes: './routes.html',
-                insights: './insights.html',
-                map: './map.html',
-                'beta-map': './beta-map.html',
-                admin: './admin.html',
-                users: './users.html',
-                settings: './settings.html',
-                v2: './v2.html',
-                'v2-home': './v2-home.html',
-                rocket: './Tools/Rocket/index.html',
+export default defineConfig(({ mode }) => {
+    const env = loadEnv(mode, process.cwd(), '');
+    const missingFirebaseEnv = requiredFirebaseEnv.filter((key) => !env[key]);
+    if (missingFirebaseEnv.length > 0) {
+        throw new Error(`Missing Firebase build configuration: ${missingFirebaseEnv.join(', ')}`);
+    }
+
+    return {
+        root: './',
+        build: {
+            outDir: 'dist',
+            emptyOutDir: true,
+            rollupOptions: {
+                input: {
+                    index: './index.html',
+                    public: './public.html',
+                    dashboard: './dashboard.html',
+                    routes: './routes.html',
+                    insights: './insights.html',
+                    map: './map.html',
+                    'beta-map': './beta-map.html',
+                    admin: './admin.html',
+                    users: './users.html',
+                    settings: './settings.html',
+                    v2: './v2.html',
+                    'v2-home': './v2-home.html',
+                    rocket: './Tools/Rocket/index.html',
+                },
             },
         },
-    },
-    server: {
-        port: 5176,
-        open: false,
-    },
-    plugins: [
-        {
-            name: 'html-ext-fallback',
-            configureServer(server) {
+        server: {
+            port: 5176,
+            open: false,
+        },
+        plugins: [
+            {
+                name: 'html-ext-fallback',
+                configureServer(server) {
                 const atlasCache = new Map();
                 const allowedAgencies = new Set(['ttc', 'octranspo', 'go', 'miway', 'yrt', 'brampton', 'drt', 'hamilton']);
 
@@ -105,31 +120,32 @@ export default defineConfig({
                         res.end(JSON.stringify({ error: error.message }));
                     }
                 });
-            },
-            transformIndexHtml() {
-                return [{
-                    tag: 'script',
-                    children: themeBootstrap,
-                    injectTo: 'head-prepend',
-                }];
+                },
+                transformIndexHtml() {
+                    return [{
+                        tag: 'script',
+                        children: themeBootstrap,
+                        injectTo: 'head-prepend',
+                    }];
+                }
             }
-        }
-    ],
-    optimizeDeps: {
-        exclude: ['firebase', '@firebase/app', '@firebase/auth', '@firebase/firestore', '@firebase/component', '@firebase/app-compat', '@firebase/auth-compat', '@firebase/firestore-compat']
-    },
-    test: {
-        globals: true,
-        environment: 'jsdom',
-        // setupFiles: ['./tests/setup.js'],
-        include: ['tests/**/*.test.js'],
-        exclude: [
-            '**/node_modules/**',
-            '**/_legacy_v1/**',
-            '**/dist/**',
-            '**/.claude/**',
-            '**/.agent/**',
-            'tests/firestore.rules.test.js',
         ],
-    },
+        optimizeDeps: {
+            exclude: ['firebase', '@firebase/app', '@firebase/auth', '@firebase/firestore', '@firebase/component', '@firebase/app-compat', '@firebase/auth-compat', '@firebase/firestore-compat']
+        },
+        test: {
+            globals: true,
+            environment: 'jsdom',
+            // setupFiles: ['./tests/setup.js'],
+            include: ['tests/**/*.test.js'],
+            exclude: [
+                '**/node_modules/**',
+                '**/_legacy_v1/**',
+                '**/dist/**',
+                '**/.claude/**',
+                '**/.agent/**',
+                'tests/firestore.rules.test.js',
+            ],
+        },
+    };
 });

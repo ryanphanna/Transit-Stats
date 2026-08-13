@@ -41,6 +41,13 @@ jobs:
         # Firebase returns 400 FAILED_PRECONDITION when the build output is
         # identical to the already-live version (e.g. only function code changed).
         # That's a false-positive failure — the site is already up to date.
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
         run: |
           GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json firebase deploy --only hosting --project transitstats-21ba4 2>&1 | tee /tmp/hosting_out.txt; EXIT=${PIPESTATUS[0]}
           if [ $EXIT -ne 0 ] && grep -q "current active version" /tmp/hosting_out.txt; then
