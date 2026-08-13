@@ -19,6 +19,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Route Tracker now loads agency route inventories** and compares them with saved rides.
 
 ### Changed
+- **Main, beta, and admin now deploy independently** so each hostname reflects its own branch.
 - **Map basemaps are now quieter and label-free** so personal trip data stays the visual focus.
 - **Trip-path beta lines now use uniform strokes and route colours** so overlapping routes remain readable.
 - **Trip-path beta now clips lines to each verified ride** so the map shows where you rode, not every stop on the route.

@@ -122,7 +122,15 @@ export default defineConfig(({ mode, command }) => {
                 });
                 },
                 transformIndexHtml() {
+                    const buildId = env.VITE_BUILD_SHA || 'local';
                     return [{
+                        tag: 'meta',
+                        attrs: {
+                            name: 'transitstats-build',
+                            content: buildId,
+                        },
+                        injectTo: 'head-prepend',
+                    }, {
                         tag: 'script',
                         children: themeBootstrap,
                         injectTo: 'head-prepend',
