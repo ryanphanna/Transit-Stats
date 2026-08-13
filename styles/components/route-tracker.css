@@ -303,9 +303,19 @@
 }
 
 .rt-top-route strong {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
   overflow: hidden;
   color: var(--accent);
   font-size: 0.9rem;
+}
+
+.rt-top-route strong small {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

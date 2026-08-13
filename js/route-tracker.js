@@ -105,7 +105,7 @@ export const RouteTracker = {
             }
 
             const riddenSet = this._getRiddenSet(this.currentAgency, routes);
-            this._render(container, routes, riddenSet);
+            await this._render(container, routes, riddenSet);
             if (!this.compact) await this._appendOtherAgencyCoverage(container);
         } catch (err) {
             console.error('RouteTracker error:', err);
@@ -285,6 +285,50 @@ export const RouteTracker = {
         return counts;
     },
 
+    _getTopRideRoutes: async function (limit = 5) {
+        const counts = new Map();
+        const labels = new Map();
+
+        (TripController.allTrips || [])
+            .filter(trip => !trip.discarded && tripRouteValue(trip))
+            .forEach(trip => {
+                const agency = normalizeAgency(trip.agency || 'TTC');
+                const rawRoute = String(tripRouteValue(trip)).trim();
+                const normalizedRoute = this._normalizeRoute(rawRoute);
+                if (!normalizedRoute) return;
+
+                // Keep route frequency about the line rather than a branch or
+                // service suffix, while keeping agencies separate.
+                const routeKey = normalizedRoute.match(/^(\d+)/)?.[1] || normalizedRoute;
+                const key = `${agency}::${routeKey}`;
+                counts.set(key, (counts.get(key) || 0) + 1);
+                if (!labels.has(key)) labels.set(key, { agency, route: routeKey });
+            });
+
+        const topRoutes = [...counts.entries()]
+            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+            .slice(0, limit)
+            .map(([key, count]) => ({ ...labels.get(key), count }));
+
+        const inventories = await Promise.all([...new Set(topRoutes.map(route => route.agency))].map(async agency => [
+            agency,
+            await this._getRoutes(agency),
+        ]));
+        const inventoryByAgency = new Map(inventories);
+
+        return topRoutes.map(route => {
+            const inventory = inventoryByAgency.get(route.agency) || [];
+            const matchingRoute = inventory.find(candidate => {
+                const candidateKey = this._normalizeRoute(candidate.routeShortName);
+                return candidateKey === route.route || candidateKey.match(/^(\d+)/)?.[1] === route.route;
+            });
+            return {
+                ...route,
+                name: matchingRoute?.routeLongName?.trim() || route.route,
+            };
+        });
+    },
+
     _matchRouteToAtlas: function (value, atlasRouteKeys) {
         const normalized = this._normalizeRoute(value);
         if (!normalized) return null;
@@ -315,7 +359,7 @@ export const RouteTracker = {
         return { agency, routes, ridden, total, riddenCount, missingCount, pct };
     },
 
-    _render: function (container, routes, riddenSet) {
+    _render: async function (container, routes, riddenSet) {
         const coverage = this._coverage(this.currentAgency, routes, riddenSet);
 
         if (this.compact) {
@@ -338,17 +382,7 @@ export const RouteTracker = {
             return;
         }
 
-        const rideCounts = this._getRideCounts(this.currentAgency, routes);
-        const topRoutes = [...coverage.ridden]
-            .filter((route, index, allRoutes) => allRoutes.findIndex(candidate =>
-                this._normalizeRoute(candidate.routeShortName) === this._normalizeRoute(route.routeShortName)
-            ) === index)
-            .sort((a, b) => {
-                const countDiff = (rideCounts.get(this._normalizeRoute(b.routeShortName)) || 0)
-                    - (rideCounts.get(this._normalizeRoute(a.routeShortName)) || 0);
-                return countDiff || String(a.routeShortName).localeCompare(String(b.routeShortName));
-            })
-            .slice(0, 5);
+        const topRoutes = await this._getTopRideRoutes();
 
         container.innerHTML = `
             <div class="rt-summary">
@@ -379,12 +413,11 @@ export const RouteTracker = {
             <section class="rt-top-routes" aria-labelledby="rt-top-routes-title">
                 <div class="rt-list-heading">
                     <span id="rt-top-routes-title">Top routes</span>
-                    <span>Most ridden</span>
+                    <span>Across all agencies</span>
                 </div>
                 <div class="rt-top-route-list">
                     ${topRoutes.length > 0 ? topRoutes.map(route => {
-                        const count = rideCounts.get(this._normalizeRoute(route.routeShortName)) || 0;
-                        return `<div class="rt-top-route"><strong>${UI.escapeHtml(String(route.routeShortName))}</strong><span>${count} ${count === 1 ? 'ride' : 'rides'}</span></div>`;
+                        return `<div class="rt-top-route"><strong>${UI.escapeHtml(route.name)} <small>${UI.escapeHtml(route.agency)} · ${UI.escapeHtml(route.route)}</small></strong><span>${route.count} ${route.count === 1 ? 'ride' : 'rides'}</span></div>`;
                     }).join('') : '<div class="empty-state">Ride a route to see your top routes here.</div>'}
                 </div>
             </section>
