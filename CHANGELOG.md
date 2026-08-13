@@ -12,7 +12,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Map point popups now show only the stop name**: riders see the place they tapped instead of a verbose `Boarded route at stop` sentence.
 - **Map points now use GTFS only**: canonical stop names and coordinates prevent stored or mismatched stop data from appearing as map locations, with boarding and exit points shown together by default.
 - **Maps now use the complete trip history**: the dot map no longer stops after the first 1,000 trips, and repeated trips at one GTFS stop collapse into a single point.
-- **Beta map matching now combines Atlas stops with verified local GTFS supplements**: raw trip records stay unchanged while supported stop names and codes resolve to canonical coordinates.
+- **Beta map matching now combines Atlas stops with verified local and cross-agency GTFS supplements**: raw trip records stay unchanged while supported stop names and codes resolve to canonical coordinates.
 ### Added
 - **Shared sign-in across TransitStats surfaces** — moving between the regular, beta, and admin sites no longer requires another login.
 - **Theme choices and multi-agency route coverage** — choose System, Light, or Dark and see route progress across every agency you have ridden.

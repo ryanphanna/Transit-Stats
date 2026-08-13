@@ -90,12 +90,28 @@ export const LOCAL_GTFS_STOP_SUPPLEMENTS = {
             sourceAgency: 'TTC',
         },
         {
+            code: '4913',
+            name: 'JANE ST / NORWOOD AV',
+            lat: 43.843215,
+            lng: -79.53543,
+            aliases: ['Jane / Norwood'],
+            sourceAgency: 'YRT',
+        },
+        {
             code: '14494',
             name: '550 Bayview Ave - Evergreen Brick Works',
             lat: 43.683841,
             lng: -79.364847,
             aliases: ['Brickworks'],
             sourceAgency: 'TTC',
+        },
+        {
+            code: '2714',
+            name: 'MAIN at KENILWORTH',
+            lat: 43.240438,
+            lng: -79.81013,
+            aliases: ['Main / Kenilworth'],
+            sourceAgency: 'HSR',
         },
         {
             code: '11986',
@@ -164,6 +180,14 @@ export const LOCAL_GTFS_STOP_SUPPLEMENTS = {
             lng: -118.43784,
             aliases: ['Sepulveda Blvd / Olympic Blvd'],
             sourceAgency: 'Big Blue Bus',
+        },
+        {
+            code: '16404',
+            name: 'Venice / Normandie',
+            lat: 34.043675,
+            lng: -118.29998,
+            aliases: ['Vincent / Normandie'],
+            sourceAgency: 'LA Metro',
         },
     ],
     'Big Blue Bus': [
@@ -239,6 +263,14 @@ export const LOCAL_GTFS_STOP_SUPPLEMENTS = {
             lat: 43.255465,
             lng: -79.865106,
             aliases: ['King / Catherine'],
+            sourceAgency: 'HSR',
+        },
+        {
+            code: '2714',
+            name: 'MAIN at KENILWORTH',
+            lat: 43.240438,
+            lng: -79.81013,
+            aliases: ['Main / Kenilworth'],
             sourceAgency: 'HSR',
         },
         {
