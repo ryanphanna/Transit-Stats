@@ -1,3 +1,5 @@
+import { LOCAL_GTFS_STOP_SUPPLEMENTS } from './local-gtfs-stop-supplements.js';
+
 const ATLAS_STOPS_PROXY = import.meta.env.VITE_ATLAS_STOPS_URL
     || (import.meta.env.DEV ? '/atlas-dev/stops' : 'https://us-central1-transitstats-21ba4.cloudfunctions.net/atlasStops');
 
@@ -22,7 +24,19 @@ export const ATLAS_AGENCY_SLUGS = {
     'NFTA Metro': 'nfta',
     SMART: 'smart-ca',
     SamTrans: 'samtrans',
-    LADOT: 'ladot'
+    LADOT: 'ladot',
+    Amtrak: 'sdmts',
+    'Flagship Cruises & Events': 'sdmts',
+    'GTAA Terminal Link': 'ttc'
+};
+
+// Some user agencies share physical stops with an Atlas agency. Keep the
+// trip's agency on the returned stop while loading every verified GTFS source
+// needed to resolve that trip endpoint.
+export const ATLAS_STOP_SOURCE_SLUGS = {
+    Amtrak: ['sdmts', 'lacmta'],
+    'Flagship Cruises & Events': ['sdmts'],
+    'GTAA Terminal Link': ['ttc'],
 };
 
 async function fetchAgencyStops(agency, slug) {
@@ -45,13 +59,22 @@ async function fetchAgencyStops(agency, slug) {
 export async function loadAtlasStops(agencies) {
     const agencySlugs = [...new Set(agencies)]
         .filter(agency => ATLAS_AGENCY_SLUGS[agency])
-        .map(agency => [agency, ATLAS_AGENCY_SLUGS[agency]]);
+        .flatMap(agency => (ATLAS_STOP_SOURCE_SLUGS[agency] || [ATLAS_AGENCY_SLUGS[agency]])
+            .map(slug => [agency, slug]));
     if (agencySlugs.length === 0) return [];
 
     const results = await Promise.allSettled(
         agencySlugs.map(([agency, slug]) => fetchAgencyStops(agency, slug))
     );
-    return results
+    const publishedStops = results
         .filter(result => result.status === 'fulfilled')
         .flatMap(result => result.value);
+    const supplements = agencySlugs.flatMap(([agency]) =>
+        (LOCAL_GTFS_STOP_SUPPLEMENTS[agency] || []).map(stop => ({
+            ...stop,
+            agency,
+            source: 'atlas',
+        }))
+    );
+    return [...publishedStops, ...supplements];
 }

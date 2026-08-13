@@ -100,7 +100,7 @@ function buildPathData() {
     });
     const segments = [];
     let unresolved = 0;
-    const limitedTrips = state.trips.slice(0, 1000);
+    const limitedTrips = state.trips;
 
     limitedTrips.forEach(trip => {
         const start = resolveStopLocation(trip, 'boarding', stopIndex);
@@ -126,7 +126,7 @@ function buildPathData() {
         segments,
         tripCount: limitedTrips.length,
         unresolved,
-        capped: state.trips.length > limitedTrips.length,
+        capped: false,
     };
 }
 

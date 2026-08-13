@@ -53,6 +53,18 @@ describe('Atlas stop resolver', () => {
         expect(result.label).toBe('College Station - Northbound Platform');
     });
 
+    it('does not use stored trip coordinates as a map source', () => {
+        const result = resolveStopLocation({
+            agency: 'TTC',
+            boardingLocation: { lat: 43.661, lng: -79.381 },
+        }, 'boarding', buildStopIndex({ atlasStops: [
+            { ...atlasStop, code: '5678', name: 'Dundas Station', lat: 43.65, lng: -79.39 },
+            { ...atlasStop, name: 'College Station', lat: 43.6611, lng: -79.3811 },
+        ] }));
+
+        expect(result).toEqual({ source: 'unresolved', location: null });
+    });
+
     it('does not assume TTC when a trip has no agency', () => {
         const result = resolveStopLocation({ startStopName: 'College Station' }, 'boarding', buildStopIndex({
             atlasStops: [atlasStop],

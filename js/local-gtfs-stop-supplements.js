@@ -1,0 +1,294 @@
+/**
+ * Small, verified stop supplements from the local GTFS archive.
+ *
+ * These are endpoint stops that are present in the local feed but are not in
+ * the currently published Atlas artifact. They are GTFS stop records, not
+ * replacements for the raw trip text.
+ */
+export const LOCAL_GTFS_STOP_SUPPLEMENTS = {
+    'Flagship Cruises & Events': [
+        {
+            code: '99439',
+            name: 'Coronado Ferry Landing',
+            lat: 32.699209,
+            lng: -117.16972,
+            aliases: ['Coronado Ferry Landing'],
+        },
+        {
+            code: '99440',
+            name: 'Broadway Pier',
+            lat: 32.716038,
+            lng: -117.173407,
+            aliases: ['Broadway Pier'],
+        },
+    ],
+    SMART: [
+        {
+            code: '71122',
+            name: 'SMART Santa Rosa North',
+            lat: 38.455219791,
+            lng: -122.73645045,
+            aliases: ['Santa Rosa North'],
+        },
+        {
+            code: '71112',
+            name: 'SMART Santa Rosa Downtown',
+            lat: 38.437582814,
+            lng: -122.72176762,
+            aliases: ['Santa Rosa Downtown'],
+        },
+    ],
+    'AC Transit': [
+        {
+            code: '51969',
+            name: '1st St & Mission St',
+            lat: 37.78947,
+            lng: -122.397352,
+            aliases: ['1St Street / Mission'],
+        },
+    ],
+    YRT: [
+        {
+            name: 'SMARTVMC BUS TERMINAL',
+            lat: 43.7967,
+            lng: -79.5279,
+            aliases: ['Vmc'],
+        },
+    ],
+    MiWay: [
+        {
+            code: 'place_kipsub',
+            name: 'Kipling Bus Terminal',
+            lat: 43.635904,
+            lng: -79.538255,
+            aliases: ['Kipling', 'Kipling Station', 'Kipling Terminal'],
+        },
+    ],
+    TTC: [
+        {
+            code: '02730',
+            name: 'Confederation GO Bus',
+            lat: 43.2425830614163,
+            lng: -79.7599571072281,
+            aliases: ['Confederation'],
+            sourceAgency: 'GO Transit',
+        },
+        {
+            code: 'OA',
+            name: 'Oakville GO',
+            lat: 43.455594,
+            lng: -79.682242,
+            aliases: ['Oakville', 'Oakville Go'],
+            sourceAgency: 'GO Transit',
+        },
+        {
+            code: '5337',
+            name: 'Lawrence Ave West at Bathurst St',
+            lat: 43.719036,
+            lng: -79.430158,
+            aliases: ['Lawrence Av W / Bathurst St'],
+            sourceAgency: 'TTC',
+        },
+        {
+            code: '14494',
+            name: '550 Bayview Ave - Evergreen Brick Works',
+            lat: 43.683841,
+            lng: -79.364847,
+            aliases: ['Brickworks'],
+            sourceAgency: 'TTC',
+        },
+        {
+            code: '11986',
+            name: 'Spadina Ave at Nassau St',
+            lat: 43.655658,
+            lng: -79.399071,
+            aliases: ['Spadina Ave at Nassau 11986'],
+        },
+        {
+            name: 'Spadina Ave at Harbord St',
+            lat: 43.6631,
+            lng: -79.4022,
+            aliases: ['Spadina & Harborf'],
+        },
+    ],
+    'LA Metro': [
+        {
+            name: 'Wilshire / Normandie',
+            lat: 34.061754,
+            lng: -118.300241,
+            aliases: ['Wiltshire / Normandie'],
+        },
+        {
+            code: '30005',
+            name: 'Harbor Gateway Transit Center',
+            lat: 33.869338,
+            lng: -118.287306,
+            aliases: ['Harbour Gateway Transit Center'],
+        },
+        {
+            name: 'La Cienega / Beverly',
+            lat: 34.075999,
+            lng: -118.376589,
+            aliases: ['La Cienega / Beverley'],
+        },
+        {
+            name: 'Beverly / Normandie',
+            lat: 34.076294,
+            lng: -118.300394,
+            aliases: ['Beverley / Normandie'],
+        },
+        {
+            code: '14360',
+            name: 'Santa Monica / 4th',
+            lat: 34.016649,
+            lng: -118.49468,
+            aliases: ['Santa Monica / Fourth'],
+        },
+        {
+            name: 'Harbor Transitway / 37th St / USC',
+            lat: 34.017738,
+            lng: -118.280114,
+            aliases: ['Harbour Transitway / Usc 37'],
+        },
+        {
+            code: '5895',
+            name: 'Sepulveda / Exposition',
+            lat: 34.03573,
+            lng: -118.43443,
+            aliases: ['Sepulveda Blvd / Exposition Blvd'],
+        },
+        {
+            code: '2112',
+            name: 'OLYMPIC WB & SEPULVEDA NS',
+            lat: 34.0403,
+            lng: -118.43784,
+            aliases: ['Sepulveda Blvd / Olympic Blvd'],
+            sourceAgency: 'Big Blue Bus',
+        },
+    ],
+    'Big Blue Bus': [
+        {
+            code: '1070',
+            name: '4TH SB & SANTA MONICA FS',
+            lat: 34.016244,
+            lng: -118.495051,
+            aliases: ['Fourth Street / Santa Monica Place'],
+        },
+        {
+            code: '2112',
+            name: 'OLYMPIC WB & SEPULVEDA NS',
+            lat: 34.0403,
+            lng: -118.43784,
+            aliases: ['Olympic Blvd / Sepulveda Blvd'],
+        },
+        {
+            code: '2026',
+            name: 'OLYMPIC WB & WESTWOOD FS',
+            lat: 34.043841,
+            lng: -118.431899,
+            aliases: ['Olympic Blvd / Westwood Blvd'],
+        },
+    ],
+    HSR: [
+        {
+            code: '9225',
+            name: 'JAMES at REBECCA',
+            lat: 43.2583,
+            lng: -79.86825,
+            sourceAgency: 'HSR',
+        },
+        {
+            code: '13366',
+            name: 'Exhibition Loop at Manitoba Dr',
+            lat: 43.636511,
+            lng: -79.41471,
+            aliases: ['Exhibition Loop / 13366'],
+            sourceAgency: 'TTC',
+        },
+        {
+            code: '13131',
+            name: 'Queens Quay West at Lower Spadina Ave East Side',
+            lat: 43.637757,
+            lng: -79.391176,
+            sourceAgency: 'TTC',
+        },
+        {
+            code: '2920',
+            name: 'MAIN at MACNAB',
+            lat: 43.255821,
+            lng: -79.871999,
+            aliases: ['2920 / Main / Macnab'],
+        },
+        {
+            code: '1131',
+            name: 'GAGE at CUMBERLAND',
+            lat: 43.241012,
+            lng: -79.831682,
+            aliases: ['Gage / Cumberland'],
+        },
+        {
+            code: '1064',
+            name: 'JAMES at WEST HARBOUR GO STATION',
+            lat: 43.265685,
+            lng: -79.865183,
+            aliases: ['James / West Harbour'],
+        },
+        {
+            code: '2737',
+            name: 'KING at CATHARINE',
+            lat: 43.255465,
+            lng: -79.865106,
+            aliases: ['King / Catherine'],
+            sourceAgency: 'HSR',
+        },
+        {
+            code: 'EX',
+            name: 'Exhibition GO',
+            lat: 43.635549,
+            lng: -79.418927,
+            aliases: ['Exhibition'],
+            sourceAgency: 'GO Transit',
+        },
+    ],
+    'Niagara Region Transit': [
+        {
+            code: 'DTT',
+            name: 'ST. CATHARINES BUS TERMINAL',
+            lat: 43.160076,
+            lng: -79.243553,
+            aliases: ['St Catherines Terminal'],
+        },
+        {
+            name: 'VICTORIA AV + MORRISON ST',
+            lat: 43.104519,
+            lng: -79.073227,
+            aliases: ['Victoria / Morrison'],
+        },
+        {
+            code: '6249',
+            name: '5950 VICTORIA AV',
+            lat: 43.08976,
+            lng: -79.079745,
+            aliases: ['5950 Victoria Avenue'],
+        },
+    ],
+    VTA: [
+        {
+            code: '60576',
+            name: 'Stevens Creek & Loma Linda',
+            lat: 37.322919,
+            lng: -121.992759,
+            aliases: ['Stevens Creek / Lima Loma'],
+        },
+    ],
+    'GO Transit': [
+        {
+            code: '13131',
+            name: 'Queens Quay West at Lower Spadina Ave East Side',
+            lat: 43.637757,
+            lng: -79.391176,
+            aliases: ['Queens Quay West / Lower Spadina'],
+            sourceAgency: 'TTC',
+        },
+    ],
+};
