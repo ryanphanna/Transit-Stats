@@ -68,7 +68,7 @@ export const Auth = {
                 return { allowed: true, isAdmin: profile.exists && profile.data().isAdmin === true };
             } catch (retryErr) {
                 console.error('Whitelist check failed after retry:', retryErr);
-                return { allowed: false, error: 'Verification failed. Try again.' };
+                return { allowed: false, retryable: true, error: 'Verification failed. Try again.' };
             }
         }
     },

@@ -1,6 +1,22 @@
 import { auth } from '../firebase.js';
 import { Auth } from '../auth.js';
 
+const AUTH_RESTORE_GRACE_MS = 1500;
+
+function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function verifyWithRetry(user) {
+    let verification;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        verification = await Auth.checkWhitelist(user.email, user.uid);
+        if (verification.allowed || !verification.retryable) return verification;
+        await wait(500 * (attempt + 1));
+    }
+    return verification;
+}
+
 // Apply theme immediately to prevent flash of unstyled content
 const _theme = localStorage.getItem('ts_theme') || 'system';
 if (window.TransitTheme) window.TransitTheme.apply(_theme);
@@ -19,13 +35,23 @@ export function requireAuth(options = {}) {
             if (checking || resolved) return;
             checking = true;
             const loginUrl = '/';
-            const sessionUser = user || await Auth.restoreSharedSession();
+            // A Vite live reload can recreate the page before Firebase has
+            // finished hydrating its LOCAL session. Give that restoration a
+            // short grace period instead of treating the transient null as a
+            // real sign-out.
+            if (!user) await wait(AUTH_RESTORE_GRACE_MS);
+            const sessionUser = auth.currentUser || user || await Auth.restoreSharedSession();
             if (!sessionUser) {
                 window.location.href = loginUrl;
                 return;
             }
-            const verification = await Auth.checkWhitelist(sessionUser.email, sessionUser.uid);
+            const verification = await verifyWithRetry(sessionUser);
             if (!verification.allowed) {
+                if (verification.retryable) {
+                    console.warn('Auth verification is temporarily unavailable; keeping the Firebase session.');
+                    checking = false;
+                    return;
+                }
                 await Auth.signOut();
                 window.location.href = loginUrl;
                 return;
