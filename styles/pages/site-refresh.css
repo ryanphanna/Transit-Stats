@@ -58,6 +58,109 @@
   gap: 18px;
 }
 
+.dashboard-grid {
+  display: block;
+}
+
+.dashboard-intro,
+.settings-page-header {
+  margin-bottom: 24px;
+}
+
+.dashboard-intro h1,
+.settings-page-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: clamp(1.7rem, 3vw, 2.35rem);
+  font-weight: 850;
+  letter-spacing: -0.055em;
+}
+
+.dashboard-intro p:last-child,
+.settings-page-intro {
+  margin: 7px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+}
+
+.page-kicker {
+  margin: 0 0 7px;
+  color: var(--accent);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.settings-page-grid {
+  display: block;
+}
+
+.settings-page-col {
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 20px;
+}
+
+.settings-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.settings-group-title {
+  margin-bottom: 9px;
+  padding-left: 1px;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+}
+
+.settings-row {
+  min-height: 64px;
+  padding: 15px 17px;
+}
+
+.settings-row:first-child {
+  align-items: flex-end;
+}
+
+.settings-label-group {
+  min-width: 0;
+  gap: 3px;
+}
+
+.settings-main-label {
+  letter-spacing: -0.01em;
+}
+
+.settings-page-col .settings-group:last-child {
+  margin-top: 4px;
+}
+
+.settings-name {
+  flex: 1;
+}
+
+.settings-name input,
+#settings-name {
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-size: 0.84rem;
+}
+
+.settings-agency-field {
+  width: min(230px, 52%);
+}
+
+.dashboard-content {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.45fr) minmax(250px, 0.9fr);
+  gap: 18px;
+}
+
+.dashboard-route-tracker {
+  grid-column: 1 / -1;
+}
+
 .dashboard-grid > [class*="col-"] > .card,
 .dashboard-grid > [class*="col-"] > .profile-card {
   margin-bottom: 18px;
@@ -131,6 +234,27 @@
   border-color: var(--border);
   box-shadow: var(--shadow);
   backdrop-filter: none;
+}
+
+.nav-item {
+  background: transparent;
+}
+
+.nav-item.active {
+  position: relative;
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.nav-item.active::after {
+  content: '';
+  position: absolute;
+  right: 11px;
+  bottom: 2px;
+  left: 11px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
 }
 
 .filter-pills .pill,
@@ -282,5 +406,18 @@
 
   .settings-page-col {
     gap: 12px;
+    grid-template-columns: 1fr;
+  }
+
+  .settings-page-col .settings-group:last-child {
+    margin-top: 0;
+  }
+
+  .dashboard-content {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-route-tracker {
+    grid-column: auto;
   }
 }

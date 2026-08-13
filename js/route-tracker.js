@@ -40,10 +40,7 @@ export const RouteTracker = {
         this.compact = compact;
         // The full Routes page starts with the main agency; the dashboard's
         // compact card still summarizes every agency represented in trips.
-        this.currentAgency = compact ? 'all' : 'TTC';
-
-        const select = document.getElementById('routeTrackerAgency');
-        if (select) select.value = this.currentAgency;
+        this.currentAgency = compact ? 'all' : (window.currentUserProfile?.defaultAgency || 'TTC');
 
         this._loadAndRender();
     },

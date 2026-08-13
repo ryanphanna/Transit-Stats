@@ -18,6 +18,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Account settings now separate Email and Password controls**: password resets are presented as a real security setting instead of an icon beside the email address.
 - **Default agency is now searchable**: long agency histories stay compact while suggestions remain limited to agencies you have used.
 - **TransitStats now shares one visual system across rider, beta, public, and admin pages**: quieter surfaces, consistent controls, and a designed Heatmap shell replace the old mix of page-specific styles.
+- **Routes now opens on your default agency without an agency picker**: the page stays focused while still summarizing other agencies below.
+- **Dashboard and Settings now have clearer workspaces**: page intros, grouped content, balanced panels, and compact controls make the core screens easier to scan.
 ### Added
 - **Shared sign-in across TransitStats surfaces** — moving between the regular, beta, and admin sites no longer requires another login.
 - **Theme choices and multi-agency route coverage** — choose System, Light, or Dark and see route progress across every agency you have ridden.
