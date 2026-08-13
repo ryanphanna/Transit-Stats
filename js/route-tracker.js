@@ -273,7 +273,7 @@ export const RouteTracker = {
                     </div>
                     <div class="rt-compact-stat rt-compact-stat-highlight">
                         <strong>${coverage.pct}%</strong>
-                        <span>Atlas coverage</span>
+                        <span>Network coverage</span>
                     </div>
                 </div>
                 <div class="rt-compact-progress" role="progressbar" aria-label="${coverage.pct}% of ${UI.escapeHtml(coverage.agency)} routes ridden" aria-valuenow="${coverage.pct}" aria-valuemin="0" aria-valuemax="100">
@@ -296,11 +296,11 @@ export const RouteTracker = {
                 </div>
                 <div class="rt-summary-stat rt-summary-stat-highlight">
                     <strong>${coverage.pct}%</strong>
-                    <span>Atlas coverage</span>
+                    <span>Network coverage</span>
                 </div>
             </div>
 
-            <div class="rt-progress" aria-label="${coverage.pct}% of Atlas routes ridden">
+            <div class="rt-progress" aria-label="${coverage.pct}% of network routes ridden">
                 <div class="rt-progress-label">
                     <span>Coverage</span>
                     <strong>${coverage.riddenCount} of ${coverage.total}</strong>
@@ -329,7 +329,7 @@ export const RouteTracker = {
             container.innerHTML = `
                 <div class="rt-compact-summary">
                     <div class="rt-compact-stat"><strong>${ridden} of ${total}</strong><span>routes ridden across ${coverageItems.length} agencies</span></div>
-                    <div class="rt-compact-stat rt-compact-stat-highlight"><strong>${pct}%</strong><span>Atlas coverage</span></div>
+                    <div class="rt-compact-stat rt-compact-stat-highlight"><strong>${pct}%</strong><span>Network coverage</span></div>
                 </div>
                 <div class="rt-compact-progress" role="progressbar" aria-label="${pct}% of routes ridden across all agencies" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100">
                     <div class="rt-compact-progress-label"><span>Coverage</span><strong>${pct}%</strong></div>
@@ -343,7 +343,7 @@ export const RouteTracker = {
             return `
                 <section class="rt-agency-section">
                     <div class="rt-list-heading"><strong>${UI.escapeHtml(coverage.agency)}</strong><span>${coverage.riddenCount} of ${coverage.total} ridden</span></div>
-                    <div class="rt-progress" aria-label="${coverage.pct}% of Atlas routes ridden">
+                    <div class="rt-progress" aria-label="${coverage.pct}% of network routes ridden">
                         <div class="rt-progress-label"><span>Coverage</span><strong>${coverage.pct}%</strong></div>
                         <div class="mastery-bar-bg"><div class="mastery-bar-fill" style="width: ${coverage.pct}%;"></div></div>
                     </div>

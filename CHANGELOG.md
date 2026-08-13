@@ -34,6 +34,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Routes now opens on the main agency** with a lighter summary instead of an all-agencies selector and nested stat cards.
 
 ### Fixed
+- **Route coverage now uses rider-facing language** instead of exposing the internal Atlas source name.
 - **Clipboard and settings notices are now visible** with valid success and error colours.
 - **Homepage sign-in buttons now keep their bright styling on hover** instead of turning dark.
 - **Phone sign-in now loads in production** — hosting deploys preserve the Firebase configuration needed to enable SMS login, including when the phone field is autofilled.
