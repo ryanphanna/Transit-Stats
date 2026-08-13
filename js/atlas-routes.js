@@ -40,7 +40,7 @@ function routeValues(trips) {
 export async function loadAtlasRoutes(trips) {
     const byAgency = new Map();
     trips.forEach(trip => {
-        const slug = ATLAS_AGENCY_SLUGS[trip.agency || 'TTC'];
+        const slug = ATLAS_AGENCY_SLUGS[trip.agency || 'TTC'] || trip.agency;
         if (!slug) return;
         if (!byAgency.has(slug)) byAgency.set(slug, []);
         byAgency.get(slug).push(trip);
@@ -52,7 +52,11 @@ export async function loadAtlasRoutes(trips) {
         const response = await fetch(`${ATLAS_ROUTES_PROXY}?agency=${encodeURIComponent(slug)}&routes=${encodeURIComponent(routes.join(','))}`);
         if (!response.ok) throw new Error(`Atlas route data unavailable for ${slug}`);
         const data = await response.json();
-        return (data.features || []).map(feature => ({ ...feature, __agencySlug: slug }));
+        return (data.features || []).map(feature => ({
+            ...feature,
+            __agencySlug: slug,
+            __agency: agencyTrips[0]?.agency || 'TTC',
+        }));
     }));
 
     return responses.flat();

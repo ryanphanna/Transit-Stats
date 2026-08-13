@@ -110,7 +110,7 @@ function buildPathData() {
             return;
         }
 
-        const agencySlug = ROUTE_AGENCIES[trip.agency || 'TTC'];
+        const agencySlug = ROUTE_AGENCIES[trip.agency || 'TTC'] || trip.agency;
         const candidates = state.routeFeatures.filter(feature => {
             const route = feature.properties?.routeShortName || feature.properties?.routeId;
             return feature.__agencySlug === agencySlug && routeMatches(route, trip.route);
@@ -188,7 +188,7 @@ function render() {
 
 async function loadAtlasStopData() {
     const agencies = [...new Set(state.trips.map(trip => trip.agency || 'TTC'))]
-        .filter(agency => STOP_AGENCIES[agency]);
+        .filter(agency => STOP_AGENCIES[agency] || agency);
     const missing = agencies.filter(agency =>
         !state.loadedStopAgencies.has(agency) && !state.loadingStopAgencies.has(agency)
     );

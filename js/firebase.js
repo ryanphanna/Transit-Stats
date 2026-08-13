@@ -21,7 +21,12 @@ if (!firebase.apps.length) {
 }
 
 export const auth = firebase.auth();
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+// Finish configuring persistence before any page guard decides that a page
+// reload means the user is signed out.
+export const authPersistenceReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+    .catch(error => {
+        console.warn('Firebase local persistence unavailable:', error.message);
+    });
 export const db = firebase.firestore();
 export const Timestamp = firebase.firestore.Timestamp;
 export default firebase;

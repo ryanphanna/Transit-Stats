@@ -77,7 +77,7 @@ async function init() {
                 MapEngine.updateTrips(trips);
                 setMapLoading(null);
                 const agencies = [...new Set(trips.map(trip => trip.agency || 'TTC'))]
-                    .filter(agency => ATLAS_AGENCY_SLUGS[agency]);
+                    .filter(agency => ATLAS_AGENCY_SLUGS[agency] || agency);
                 loadMissingAtlasStops(agencies).catch(error => {
                     console.warn('Map: Atlas stop loading failed', error);
                     setMapLoading(null);

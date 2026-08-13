@@ -1,16 +1,7 @@
 const { onRequest } = require('firebase-functions/v2/https');
+const { resolveAtlasAgency } = require('./atlas-agency');
 
 const ATLAS_R2_BASE = process.env.ATLAS_R2_BASE || 'https://data.transitatlas.fyi';
-const ALLOWED_SLUGS = new Set([
-  'ttc',
-  'go',
-  'miway',
-  'yrt',
-  'hamilton',
-  'lacmta', 'niagara', 'bart', 'sfmta', 'vta', 'actransit', 'sdmts',
-  'goldengate', 'santarosa', 'bigbluebus', 'oakville', 'nfta', 'smart-ca',
-  'samtrans', 'ladot',
-]);
 const cache = new Map();
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
@@ -23,20 +14,26 @@ exports.atlasStops = onRequest({
     return;
   }
 
-  const slug = String(req.query.agency || '').trim().toLowerCase();
-  if (!ALLOWED_SLUGS.has(slug)) {
-    res.status(400).json({ error: 'Unsupported transit agency' });
-    return;
-  }
-
-  const cached = cache.get(slug);
-  if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
-    res.set('Cache-Control', 'public, max-age=3600');
-    res.status(200).json(cached.data);
+  const requestedAgency = String(req.query.agency || '').trim();
+  if (!requestedAgency) {
+    res.status(400).json({ error: 'Missing transit agency' });
     return;
   }
 
   try {
+    const slug = await resolveAtlasAgency(requestedAgency);
+    if (!slug) {
+      res.status(404).json({ error: 'Agency stop inventory unavailable' });
+      return;
+    }
+
+    const cached = cache.get(slug);
+    if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
+      res.set('Cache-Control', 'public, max-age=3600');
+      res.status(200).json(cached.data);
+      return;
+    }
+
     const response = await fetch(`${ATLAS_R2_BASE}/atlas/${slug}-stops.json`, {
       signal: AbortSignal.timeout(15000),
     });
@@ -50,7 +47,7 @@ exports.atlasStops = onRequest({
     res.set('Cache-Control', 'public, max-age=3600');
     res.status(200).json(data);
   } catch (error) {
-    console.error(`Atlas stop proxy failed for ${slug}:`, error.message);
+    console.error(`Atlas stop proxy failed for ${requestedAgency}:`, error.message);
     res.status(502).json({ error: 'Atlas stop data unavailable' });
   }
 });

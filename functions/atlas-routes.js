@@ -1,16 +1,7 @@
 const { onRequest } = require('firebase-functions/v2/https');
+const { resolveAtlasAgency } = require('./atlas-agency');
 
 const ATLAS_R2_BASE = process.env.ATLAS_R2_BASE || 'https://data.transitatlas.fyi';
-const ALLOWED_SLUGS = new Set([
-  'ttc',
-  'go',
-  'miway',
-  'yrt',
-  'hamilton',
-  'lacmta', 'niagara', 'bart', 'sfmta', 'vta', 'actransit', 'sdmts',
-  'goldengate', 'santarosa', 'bigbluebus', 'oakville', 'nfta', 'smart-ca',
-  'samtrans', 'ladot',
-]);
 const cache = new Map();
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
@@ -37,19 +28,25 @@ exports.atlasRoutes = onRequest({
     return;
   }
 
-  const slug = String(req.query.agency || '').trim().toLowerCase();
+  const requestedAgency = String(req.query.agency || '').trim();
   const routeSet = new Set(String(req.query.routes || '')
     .split(',')
     .map(route => route.trim())
     .filter(Boolean));
   const metadataOnly = String(req.query.all || '').toLowerCase() === 'true';
 
-  if (!ALLOWED_SLUGS.has(slug) || (!metadataOnly && routeSet.size === 0)) {
-    res.status(400).json({ error: 'Unsupported agency or missing routes' });
+  if (!requestedAgency || (!metadataOnly && routeSet.size === 0)) {
+    res.status(400).json({ error: 'Missing agency or routes' });
     return;
   }
 
+  let slug = null;
   try {
+    slug = await resolveAtlasAgency(requestedAgency);
+    if (!slug) {
+      res.status(404).json({ error: 'Agency inventory unavailable' });
+      return;
+    }
     const data = await getAgencyRoutes(slug);
     if (metadataOnly) {
       const routes = new Map();

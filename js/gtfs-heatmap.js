@@ -23,7 +23,7 @@ export function summarizeGtfsRouteUsage(features = [], trips = [], agencyBySlug 
         .map(feature => {
             const properties = feature.properties || {};
             const route = String(properties.routeShortName || properties.routeId || '').trim();
-            const agency = agencyBySlug[feature.__agencySlug] || properties.agency || 'Transit';
+            const agency = feature.__agency || agencyBySlug[feature.__agencySlug] || properties.agency || 'Transit';
             const key = tripKey(agency, route);
             return {
                 feature,

@@ -52,12 +52,42 @@ export default defineConfig(({ mode, command }) => {
                 name: 'html-ext-fallback',
                 configureServer(server) {
                 const atlasCache = new Map();
-                const allowedAgencies = new Set([
-                    'ttc', 'go', 'miway', 'yrt', 'hamilton',
-                    'lacmta', 'niagara', 'bart', 'sfmta', 'vta', 'actransit', 'sdmts',
-                    'goldengate', 'santarosa', 'bigbluebus', 'oakville', 'nfta', 'smart-ca',
-                    'samtrans', 'ladot'
-                ]);
+                let atlasAgencyDirectory;
+
+                const normalizeAgency = (value) => String(value || '')
+                    .normalize('NFKD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .toLowerCase()
+                    .replace(/&/g, ' and ')
+                    .replace(/[^a-z0-9]+/g, ' ')
+                    .trim();
+
+                const resolveAtlasAgency = async (value) => {
+                    const requested = normalizeAgency(value);
+                    if (!requested) return null;
+                    if (!atlasAgencyDirectory) {
+                        const response = await fetch('https://data.transitatlas.fyi/atlas/agencies.json');
+                        if (!response.ok) throw new Error(`Atlas agency directory returned ${response.status}`);
+                        const data = await response.json();
+                        atlasAgencyDirectory = Array.isArray(data.agencies) ? data.agencies : [];
+                    }
+                    const exactSlug = atlasAgencyDirectory.find(agency => normalizeAgency(agency.slug) === requested);
+                    if (exactSlug) return exactSlug.slug;
+                    const exactName = atlasAgencyDirectory.find(agency => normalizeAgency(agency.name) === requested);
+                    if (exactName) return exactName.slug;
+                    const firstToken = requested.split(' ')[0];
+                    const tokenMatches = atlasAgencyDirectory.filter(agency => {
+                        const slug = normalizeAgency(agency.slug);
+                        const name = normalizeAgency(agency.name);
+                        return slug === firstToken || name.split(' ')[0] === firstToken;
+                    });
+                    if (tokenMatches.length === 1) return tokenMatches[0].slug;
+                    const prefixMatches = atlasAgencyDirectory.filter(agency => {
+                        const name = normalizeAgency(agency.name);
+                        return name.startsWith(requested) || requested.startsWith(name);
+                    });
+                    return prefixMatches.length === 1 ? prefixMatches[0].slug : null;
+                };
 
                 server.middlewares.use((req, res, next) => {
                     const url = req.url.split('?')[0];
@@ -76,10 +106,18 @@ export default defineConfig(({ mode, command }) => {
                         return;
                     }
 
-                    const agency = requestUrl.searchParams.get('agency');
-                    if (!allowedAgencies.has(agency)) {
-                        res.statusCode = 400;
-                        res.end(JSON.stringify({ error: 'Unsupported agency' }));
+                    const requestedAgency = requestUrl.searchParams.get('agency');
+                    let agency;
+                    try {
+                        agency = await resolveAtlasAgency(requestedAgency);
+                    } catch (error) {
+                        res.statusCode = 502;
+                        res.end(JSON.stringify({ error: error.message }));
+                        return;
+                    }
+                    if (!agency) {
+                        res.statusCode = 404;
+                        res.end(JSON.stringify({ error: 'Agency inventory unavailable' }));
                         return;
                     }
 

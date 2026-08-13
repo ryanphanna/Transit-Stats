@@ -150,7 +150,7 @@ export const RouteTracker = {
         if (this.routesCache[agency]) return this.routesCache[agency];
 
         let routes = null;
-        const slug = ATLAS_SLUGS[agency];
+        const slug = ATLAS_SLUGS[agency] || agency;
         if (slug) {
             const cacheKey = `${slug}-${this._weekVersion()}`;
             routes = await this._idbGet(cacheKey).catch(() => null);
@@ -433,14 +433,12 @@ export const RouteTracker = {
 
     _appendOtherAgencyCoverage: async function (container) {
         const coverageItems = await this._getOtherAgencyCoverage(this.currentAgency);
-        const availableCoverage = coverageItems.filter(coverage => coverage.total > 0);
         const inventoryGaps = coverageItems.filter(coverage => coverage.total === 0);
         this.inventoryGaps = inventoryGaps.map(coverage => coverage.agency);
         if (this.inventoryGaps.length > 0) {
             console.warn('RouteTracker: route inventory needed for:', this.inventoryGaps);
         }
-        if (availableCoverage.length === 0 && inventoryGaps.length === 0) return;
-
+        const availableCoverage = coverageItems.filter(coverage => coverage.total > 0);
         if (availableCoverage.length > 0) {
             const section = document.createElement('section');
             section.className = 'rt-other-agencies';
@@ -455,7 +453,7 @@ export const RouteTracker = {
                         <div class="rt-agency-progress-row" role="progressbar" aria-label="${UI.escapeHtml(coverage.agency)}: ${coverage.pct}% network coverage" aria-valuenow="${coverage.pct}" aria-valuemin="0" aria-valuemax="100">
                             <div class="rt-agency-progress-meta">
                                 <strong>${UI.escapeHtml(coverage.agency)}</strong>
-                                <span>${coverage.riddenCount} of ${coverage.total} routes</span>
+                                <span>${coverage.riddenCount} of ${coverage.total} routes · ${coverage.tripCount} ${coverage.tripCount === 1 ? 'ride' : 'rides'}</span>
                             </div>
                             <div class="mastery-bar-bg"><div class="mastery-bar-fill" style="width: ${coverage.pct}%;"></div></div>
                         </div>`).join('')}

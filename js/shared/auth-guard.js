@@ -1,7 +1,7 @@
-import { auth } from '../firebase.js';
+import { auth, authPersistenceReady } from '../firebase.js';
 import { Auth } from '../auth.js';
 
-const AUTH_RESTORE_GRACE_MS = 1500;
+const AUTH_RESTORE_GRACE_MS = 5000;
 
 function wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -31,7 +31,7 @@ export function requireAuth(options = {}) {
     let checking = false;
     let resolved = false;
     return new Promise((resolve) => {
-        auth.onAuthStateChanged(async (user) => {
+        const listen = () => auth.onAuthStateChanged(async (user) => {
             if (checking || resolved) return;
             checking = true;
             const loginUrl = '/';
@@ -66,5 +66,15 @@ export function requireAuth(options = {}) {
             resolved = true;
             resolve({ user: sessionUser, isAdmin: verification.isAdmin });
         });
+
+        // Firebase can emit its initial null state before LOCAL persistence
+        // has finished hydrating after a full-page navigation. Wait for that
+        // initialization before treating null as a real signed-out state.
+        Promise.resolve(authPersistenceReady)
+            .then(() => typeof auth.authStateReady === 'function'
+                ? auth.authStateReady()
+                : null)
+            .catch(error => console.warn('Firebase auth hydration failed:', error.message))
+            .finally(listen);
     });
 }

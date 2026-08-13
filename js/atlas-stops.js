@@ -132,8 +132,8 @@ async function fetchAgencyStops(agency, slug) {
 
 export async function loadAtlasStops(agencies) {
     const agencySlugs = [...new Set(agencies)]
-        .filter(agency => ATLAS_AGENCY_SLUGS[agency])
-        .flatMap(agency => (ATLAS_STOP_SOURCE_SLUGS[agency] || [ATLAS_AGENCY_SLUGS[agency]])
+        .filter(agency => ATLAS_AGENCY_SLUGS[agency] || agency)
+        .flatMap(agency => (ATLAS_STOP_SOURCE_SLUGS[agency] || [ATLAS_AGENCY_SLUGS[agency] || agency])
             .map(slug => [agency, slug]));
     if (agencySlugs.length === 0) return [];
 
