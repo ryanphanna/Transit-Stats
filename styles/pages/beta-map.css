@@ -32,6 +32,32 @@
   pointer-events: auto;
 }
 
+.beta-map-heading {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 106px;
+  padding: 8px 12px;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+
+.beta-map-kicker {
+  color: var(--accent);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.beta-map-heading strong {
+  margin-top: 2px;
+  font-size: 0.82rem;
+}
+
 .beta-map-pills {
   display: flex;
   padding: 4px;
