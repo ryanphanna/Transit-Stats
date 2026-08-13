@@ -119,6 +119,9 @@ function setupStatsToggle() {
 async function init() {
     const { user, isAdmin } = await requireAuth();
     initHeader({ isAdmin, currentPage: 'dashboard' });
+    const heatmapLink = document.getElementById('dashboard-heatmap-link');
+    const betaSurface = ['localhost', '127.0.0.1', 'beta.transitstats.fyi'].includes(window.location.hostname);
+    heatmapLink?.classList.toggle('hidden', !betaSurface);
     ModalManager.init();
 
     await Profile.load(user);

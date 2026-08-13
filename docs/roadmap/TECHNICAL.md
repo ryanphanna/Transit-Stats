@@ -37,7 +37,7 @@ quality and coverage improvements.
   with bubble size representing lifetime rides and agency colour providing context.
   Finalize the axes and interaction model before replacing the current route-frequency view.
 - [ ] **Route Heatmaps** — geographic heat layer showing most-frequent corridors,
-  not just stop markers. A beta prototype now lives at `/beta-heatmap`; validate
+  not just stop markers. A beta prototype now lives at `/heatmap`; validate
   corridor readability and rider usefulness before promoting it into the main map.
 - [ ] **Suggested Routes** — proactive dashboard cards surfacing predicted next trip
   once prediction accuracy clears 90%. Feeds from the engine's confidence score.
