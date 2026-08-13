@@ -46,5 +46,7 @@ jobs:
           set -euo pipefail
           for URL in "https://beta.transitstats.fyi/" "https://beta.transitstats.fyi/heatmap"; do
             echo "Checking $URL"
-            curl --fail --silent --show-error --location "$URL" | grep -Fq "name=\"transitstats-build\" content=\"$EXPECTED_BUILD\""
+            page_file="/tmp/$(echo "$URL" | tr '/:' '_').html"
+            curl --fail --silent --show-error --location "$URL" -o "$page_file"
+            grep -Fq "name=\"transitstats-build\" content=\"$EXPECTED_BUILD\"" "$page_file"
           done
