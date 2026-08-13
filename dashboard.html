@@ -14,19 +14,6 @@
     <main id="app-root">
         <section id="view-dashboard" class="view dashboard-view active">
             <div class="container dashboard-grid">
-                <section class="dashboard-route-tracker">
-                    <div class="card route-tracker-card-compact">
-                        <div class="card-header route-tracker-header">
-                            <div>
-                                <h3><i data-lucide="route" class="icon-inline"></i> Routes</h3>
-                                <p class="route-tracker-subtitle">Your route coverage, by agency.</p>
-                            </div>
-                            <a class="route-tracker-link" href="/routes">View all routes <span aria-hidden="true">→</span></a>
-                            <a id="dashboard-heatmap-link" class="route-tracker-link hidden" href="/heatmap">Heatmap <span aria-hidden="true">→</span></a>
-                        </div>
-                        <div id="routeTrackerContent"></div>
-                    </div>
-                </section>
                 <div class="dashboard-content">
                 <!-- Left Column -->
                 <aside class="col-profile">
@@ -86,6 +73,21 @@
 
                 <!-- Right Column: Stats -->
                 <aside class="col-stats">
+                    <div class="dashboard-route-tracker">
+                        <div class="card route-tracker-card-compact">
+                            <div class="card-header route-tracker-header">
+                                <div>
+                                    <h3><i data-lucide="route" class="icon-inline"></i> Routes</h3>
+                                    <p class="route-tracker-subtitle">Your route coverage, by agency.</p>
+                                </div>
+                                <div class="route-tracker-links">
+                                    <a class="route-tracker-link" href="/routes">View all <span aria-hidden="true">→</span></a>
+                                    <a id="dashboard-heatmap-link" class="route-tracker-link hidden" href="/heatmap">Heatmap <span aria-hidden="true">→</span></a>
+                                </div>
+                            </div>
+                            <div id="routeTrackerContent"></div>
+                        </div>
+                    </div>
                     <div class="card stats-card">
                         <div class="card-header">
                             <h3><i data-lucide="bar-chart-3" class="icon-inline"></i> Travel Stats</h3>
@@ -188,18 +190,9 @@
             </div>
             <div class="form-group mb-4">
                 <label>Agency</label>
-                <input type="text" id="edit-agency" list="edit-agency-options" autocomplete="off" placeholder="Search agencies">
-                <datalist id="edit-agency-options">
-                    <option value="TTC"></option>
-                    <option value="GO Transit"></option>
-                    <option value="OC Transpo"></option>
-                    <option value="MiWay"></option>
-                    <option value="YRT"></option>
-                    <option value="Brampton Transit"></option>
-                    <option value="Durham Transit"></option>
-                    <option value="HSR"></option>
-                    <option value="GRT"></option>
-                </datalist>
+                <div class="agency-autocomplete">
+                    <input type="text" id="edit-agency" autocomplete="off" placeholder="Search agencies">
+                </div>
             </div>
             <div class="modal-footer-actions">
                 <button id="btn-save-edit" class="btn btn-primary full-width mb-3">Save Changes</button>

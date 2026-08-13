@@ -31,6 +31,7 @@ export const MapEngine = {
     _stopSourcesReady: false,
     _usesMarkerClusters: false,
     _canvasRenderer: null,
+    _renderGeneration: 0,
 
     init(initialTrips = [], initialCenter = null) {
         console.log("MapEngine.init: Started", { tripsCount: initialTrips.length });
@@ -244,6 +245,16 @@ export const MapEngine = {
 
     renderMarkers() {
         if (!this.map || !this.layers.markers) return;
+        const renderId = ++this._renderGeneration;
+        this._renderMarkersAsync(renderId).catch(error => {
+            if (renderId === this._renderGeneration) {
+                console.error('MapEngine: Marker render failed:', error);
+            }
+        });
+    },
+
+    async _renderMarkersAsync(renderId) {
+        if (renderId !== this._renderGeneration || !this.map || !this.layers.markers) return;
 
         const start = performance.now();
         // Clear existing
@@ -268,7 +279,8 @@ export const MapEngine = {
         // same GTFS stop are collapsed into one point below.
         const limitedTrips = this.trips;
 
-        limitedTrips.forEach(trip => {
+        for (let index = 0; index < limitedTrips.length; index += 1) {
+            const trip = limitedTrips[index];
             // Process Boarding
             const boarding = this._resolveStop(trip, 'boarding');
             resolutionStats.boarding[boarding.source] += 1;
@@ -298,7 +310,14 @@ export const MapEngine = {
                     });
                 }
             }
-        });
+
+            // Let the header and navigation respond while a large trip history
+            // is being resolved into map points.
+            if (index > 0 && index % 40 === 0) {
+                await new Promise(resolve => requestAnimationFrame(resolve));
+                if (renderId !== this._renderGeneration) return;
+            }
+        }
 
         // Batch add markers for performance
         const markersByStop = new Map();
@@ -326,7 +345,9 @@ export const MapEngine = {
             });
         });
 
-        markersByStop.forEach(point => {
+        let markerIndex = 0;
+        for (const point of markersByStop.values()) {
+            if (renderId !== this._renderGeneration) return;
             const popup = [...point.labels].map(label => UI.escapeHtml(label)).join('<br>');
             const marker = L.circleMarker([point.lat, point.lng], {
                 renderer: this._canvasRenderer,
@@ -339,7 +360,12 @@ export const MapEngine = {
             });
             marker.bindPopup(popup);
             this.layers.markers.addLayer(marker);
-        });
+            markerIndex += 1;
+            if (markerIndex % 80 === 0) {
+                await new Promise(resolve => requestAnimationFrame(resolve));
+                if (renderId !== this._renderGeneration) return;
+            }
+        }
 
         this._renderDiagnostics(resolutionStats, limitedTrips.length);
 

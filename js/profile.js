@@ -1,12 +1,13 @@
 import firebase, { db, auth } from './firebase.js';
 import { UI } from './ui-utils.js';
 import { Identity } from './identity.js';
+import { createAgencyAutocomplete } from './agency-autocomplete.js';
 
 const AGENCY_DISPLAY_NAMES = {
     GO: 'GO Transit',
 };
 
-function displayAgencyName(value) {
+export function displayAgencyName(value) {
     const name = String(value || '').trim();
     return AGENCY_DISPLAY_NAMES[name] || name;
 }
@@ -19,6 +20,8 @@ export const Profile = {
     data: null,
     phone: null,
     agencies: [],
+    agencyOptions: [],
+    agencyAutocomplete: null,
     currentTriplet: ['subway', 'subway', 'subway'],
     activeSlot: null,
 
@@ -31,6 +34,7 @@ export const Profile = {
     async init() {
         this.setupListeners();
         this.initEmojiPicker();
+        this.syncAgencyOptions();
     },
 
     setupListeners() {
@@ -39,14 +43,13 @@ export const Profile = {
         const publicProfile = document.getElementById('settings-public-profile');
         const themeSelect = document.getElementById('settings-theme');
 
-        agencySelect?.addEventListener('change', (e) => {
-            const agency = e.target.value.trim();
-            if (!this.agencies.includes(agency) && agency !== displayAgencyName(this.data?.defaultAgency)) {
-                this.syncAgencyOptions();
-                return;
-            }
-            this.updateSetting('defaultAgency', agency);
-        });
+        if (agencySelect) {
+            this.agencyAutocomplete = createAgencyAutocomplete({
+                input: agencySelect,
+                options: this.agencyOptions,
+                onCommit: value => this.updateSetting('defaultAgency', value),
+            });
+        }
 
         betaPredictions?.addEventListener('change', (e) => {
             this.updateSetting('betaFeatures', {
@@ -224,12 +227,18 @@ export const Profile = {
 
         try {
             const tripsSnap = await db.collection('trips').where('userId', '==', user.uid).get();
-            this.agencies = [...new Set(tripsSnap.docs
-                .map(doc => displayAgencyName(doc.data().agency))
-                .filter(Boolean))];
+            const optionsByValue = new Map();
+            tripsSnap.docs.forEach(doc => {
+                const value = String(doc.data().agency || '').trim();
+                if (!value || optionsByValue.has(value)) return;
+                optionsByValue.set(value, { value, label: displayAgencyName(value) });
+            });
+            this.agencyOptions = [...optionsByValue.values()];
+            this.agencies = this.agencyOptions.map(option => option.label);
         } catch (error) {
             console.warn('Could not load agencies from trips:', error);
             this.agencies = [];
+            this.agencyOptions = [];
         }
 
         this.syncAgencyOptions();
@@ -237,22 +246,23 @@ export const Profile = {
 
     syncAgencyOptions() {
         const agencyEl = document.getElementById('settings-agency');
-        const optionsEl = document.getElementById('settings-agency-options');
         if (!agencyEl) return;
 
-        const options = [...new Set([
-            ...this.agencies,
-            displayAgencyName(this.data?.defaultAgency),
-        ].filter(Boolean))].sort((a, b) => a.localeCompare(b));
+        const optionsByValue = new Map(this.agencyOptions.map(option => [option.value, option]));
+        const defaultValue = String(this.data?.defaultAgency || '').trim();
+        if (defaultValue && !optionsByValue.has(defaultValue)) {
+            optionsByValue.set(defaultValue, { value: defaultValue, label: displayAgencyName(defaultValue) });
+        }
+        const options = [...optionsByValue.values()].sort((a, b) => a.label.localeCompare(b.label));
 
-        optionsEl?.replaceChildren(...options.map(agency => {
-            const option = document.createElement('option');
-            option.value = agency;
-            return option;
-        }));
-        agencyEl.disabled = options.length === 0;
-        agencyEl.placeholder = options.length ? 'Search agencies…' : 'No agencies found';
-        if (this.data?.defaultAgency) agencyEl.value = displayAgencyName(this.data.defaultAgency);
+        agencyEl.disabled = false;
+        agencyEl.placeholder = options.length ? 'Search agencies…' : 'Enter an agency';
+        if (this.agencyAutocomplete) {
+            this.agencyAutocomplete.setOptions(options);
+            this.agencyAutocomplete.setValue(defaultValue);
+        } else if (defaultValue) {
+            agencyEl.value = displayAgencyName(defaultValue);
+        }
     },
 
     /**

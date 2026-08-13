@@ -118,7 +118,13 @@ export const Trips = {
             }
         }
         if (form.vehicle) form.vehicle.value = trip.vehicle || '';
-        if (form.agency) form.agency.value = trip.agency || 'TTC';
+        if (form.agency) {
+            if (window.TripAgencyAutocomplete) {
+                window.TripAgencyAutocomplete.setValue(trip.agency || 'TTC');
+            } else {
+                form.agency.value = trip.agency || 'TTC';
+            }
+        }
 
         ModalManager.open('modal-edit-trip');
     },

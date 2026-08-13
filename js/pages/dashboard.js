@@ -11,6 +11,8 @@ import { PredictionEngine } from '../predict.js';
 import { Utils } from '../utils.js';
 import { UI } from '../ui-utils.js';
 import { db } from '../firebase.js';
+import { createAgencyAutocomplete } from '../agency-autocomplete.js';
+import { displayAgencyName } from '../profile.js';
 
 window.Trips = Trips;
 window.Utils = Utils;
@@ -31,6 +33,21 @@ const tripEdit = {
     btnDelete: document.getElementById('btn-delete-trip')
 };
 
+let tripAgencyAutocomplete = null;
+
+function setupTripAgencyAutocomplete() {
+    const defaultAgency = window.currentUserProfile?.defaultAgency || 'TTC';
+    const optionsByValue = new Map((Profile.agencyOptions || []).map(option => [option.value, option]));
+    if (!optionsByValue.has(defaultAgency)) {
+        optionsByValue.set(defaultAgency, { value: defaultAgency, label: displayAgencyName(defaultAgency) });
+    }
+    tripAgencyAutocomplete = createAgencyAutocomplete({
+        input: tripEdit.agency,
+        options: [...optionsByValue.values()],
+    });
+    window.TripAgencyAutocomplete = tripAgencyAutocomplete;
+}
+
 function setupTripEditListeners() {
     tripEdit.direction?.addEventListener('change', () => {
         const isOther = tripEdit.direction.value === '__other__';
@@ -49,7 +66,7 @@ function setupTripEditListeners() {
                 ? tripEdit.directionOther.value.trim()
                 : tripEdit.direction.value.trim(),
             vehicle: tripEdit.vehicle.value.trim(),
-            agency: tripEdit.agency.value
+            agency: tripAgencyAutocomplete?.getValue() || tripEdit.agency.value.trim()
         };
         if (!data.route) return UI.showNotification('Route number or name is required.');
         tripEdit.btnSave.disabled = true;
@@ -125,10 +142,12 @@ async function init() {
     ModalManager.init();
 
     await Profile.load(user);
+    await Profile.loadAgencies(user);
 
     const profileName = document.getElementById('profile-name');
     if (profileName) profileName.textContent = Profile.getDisplayName(user) || 'Traveler';
 
+    setupTripAgencyAutocomplete();
     setupTripEditListeners();
     setupStatsToggle();
 

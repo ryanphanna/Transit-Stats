@@ -28,6 +28,20 @@ const ATLAS_SLUGS = {
     'HSR': 'hamilton',
 };
 
+const AGENCY_ALIASES = {
+    go: 'GO Transit',
+};
+
+function normalizeAgency(value) {
+    const name = String(value || '').trim();
+    if (!name) return 'TTC';
+    return AGENCY_ALIASES[name.toLocaleLowerCase()] || name;
+}
+
+function tripRouteValue(trip) {
+    return trip?.route ?? trip?.routeNumber ?? trip?.routeName ?? '';
+}
+
 const IDB_NAME = 'transitstats-cache';
 const IDB_STORE = 'atlasRoutes';
 
@@ -40,13 +54,13 @@ export const RouteTracker = {
         this.compact = compact;
         // The full Routes page starts with the main agency; the dashboard's
         // compact card still summarizes every agency represented in trips.
-        this.currentAgency = compact ? 'all' : (window.currentUserProfile?.defaultAgency || 'TTC');
+        this.currentAgency = compact ? 'all' : normalizeAgency(window.currentUserProfile?.defaultAgency || 'TTC');
 
         this._loadAndRender();
     },
 
     setAgency: function (agency) {
-        this.currentAgency = agency || (this.compact ? 'all' : 'TTC');
+        this.currentAgency = agency === 'all' ? 'all' : normalizeAgency(agency || (this.compact ? 'all' : 'TTC'));
         this._loadAndRender();
     },
 
@@ -101,9 +115,9 @@ export const RouteTracker = {
 
     _getObservedAgencies: function () {
         const agencies = new Set((TripController.allTrips || [])
-            .map(trip => trip.agency || 'TTC')
+            .map(trip => normalizeAgency(trip.agency || 'TTC'))
             .filter(Boolean));
-        if (agencies.size === 0) agencies.add(window.currentUserProfile?.defaultAgency || 'TTC');
+        if (agencies.size === 0) agencies.add(normalizeAgency(window.currentUserProfile?.defaultAgency || 'TTC'));
         return [...agencies];
     },
 
@@ -112,7 +126,7 @@ export const RouteTracker = {
         (TripController.allTrips || [])
             .filter(trip => !trip.discarded)
             .forEach(trip => {
-                const agency = trip.agency || 'TTC';
+                const agency = normalizeAgency(trip.agency || 'TTC');
                 if (agency !== primaryAgency) tripCounts.set(agency, (tripCounts.get(agency) || 0) + 1);
             });
 
@@ -132,6 +146,7 @@ export const RouteTracker = {
     },
 
     _getRoutes: async function (agency) {
+        agency = normalizeAgency(agency);
         if (this.routesCache[agency]) return this.routesCache[agency];
 
         let routes = null;
@@ -248,8 +263,8 @@ export const RouteTracker = {
 
         return new Set(
             TripController.allTrips
-                .filter(t => (t.agency || 'TTC') === agency && t.route)
-                .map(t => this._matchRouteToAtlas(t.route, atlasRouteKeys))
+                .filter(t => !t.discarded && normalizeAgency(t.agency || 'TTC') === normalizeAgency(agency) && tripRouteValue(t))
+                .map(t => this._matchRouteToAtlas(tripRouteValue(t), atlasRouteKeys))
             .filter(Boolean)
         );
     },
@@ -261,9 +276,9 @@ export const RouteTracker = {
         const counts = new Map();
 
         (TripController.allTrips || [])
-            .filter(trip => !trip.discarded && (trip.agency || 'TTC') === agency && trip.route)
+            .filter(trip => !trip.discarded && normalizeAgency(trip.agency || 'TTC') === normalizeAgency(agency) && tripRouteValue(trip))
             .forEach(trip => {
-                const route = this._matchRouteToAtlas(trip.route, atlasRouteKeys);
+                const route = this._matchRouteToAtlas(tripRouteValue(trip), atlasRouteKeys);
                 if (route) counts.set(route, (counts.get(route) || 0) + 1);
             });
 
@@ -325,6 +340,9 @@ export const RouteTracker = {
 
         const rideCounts = this._getRideCounts(this.currentAgency, routes);
         const topRoutes = [...coverage.ridden]
+            .filter((route, index, allRoutes) => allRoutes.findIndex(candidate =>
+                this._normalizeRoute(candidate.routeShortName) === this._normalizeRoute(route.routeShortName)
+            ) === index)
             .sort((a, b) => {
                 const countDiff = (rideCounts.get(this._normalizeRoute(b.routeShortName)) || 0)
                     - (rideCounts.get(this._normalizeRoute(a.routeShortName)) || 0);

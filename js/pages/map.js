@@ -28,7 +28,9 @@ async function init() {
         MapEngine.setStopSources({ atlasStops, firestoreStops: normalizedStops });
         MapEngine.init([]);
         setTimeout(() => { if (MapEngine.map) MapEngine.map.invalidateSize(); }, 150);
-        setMapLoading('Loading your trips…');
+        // The map itself is ready now. Stop data continues loading in the
+        // background and must never prevent the shared header from being used.
+        setMapLoading(null);
 
         if (window.lucide) lucide.createIcons();
 
@@ -71,6 +73,7 @@ async function init() {
             .onSnapshot(snap => {
                 const trips = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 MapEngine.updateTrips(trips);
+                setMapLoading(null);
                 const agencies = [...new Set(trips.map(trip => trip.agency || 'TTC'))]
                     .filter(agency => ATLAS_AGENCY_SLUGS[agency]);
                 loadMissingAtlasStops(agencies).catch(error => {
