@@ -25,7 +25,7 @@ function _render(isAdmin, currentPage) {
             { id: 'map', label: 'Map', icon: 'map', href: '/map' },
             { id: 'routes', label: 'Routes', icon: 'route', href: '/routes' },
         ];
-    const logoHref = adminHost ? 'https://transitstats.fyi/' : '/dashboard';
+    const logoHref = adminHost ? '/admin' : '/dashboard';
 
     const headerHtml = `
         <header class="header">
