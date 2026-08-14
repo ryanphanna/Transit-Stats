@@ -48,24 +48,13 @@
 }
 
 .settings-page-header {
-  margin-bottom: 28px;
-}
-
-.settings-page-header .page-kicker {
-  margin-bottom: 8px;
+  margin-bottom: 22px;
 }
 
 .settings-page-title {
   font-size: clamp(2rem, 4vw, 3rem);
   font-weight: 900;
   letter-spacing: -0.07em;
-}
-
-.settings-page-intro {
-  max-width: 520px;
-  margin: 9px 0 0;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
 }
 
 .settings-page-col {
