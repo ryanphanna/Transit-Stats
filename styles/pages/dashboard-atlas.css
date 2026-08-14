@@ -133,7 +133,7 @@ body.dark .dashboard-map-wash {
 .dashboard-atlas-hero-inner {
   position: relative;
   z-index: 3;
-  width: min(1240px, calc(100% - 48px));
+  width: calc(100% - 48px);
   height: 100%;
   margin: 0 auto;
   pointer-events: none;

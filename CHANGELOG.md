@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Dashboard overlays now use the viewport margins**: the map card no longer sits in a centered desktop column with excessive side space.
 - **More unresolved trip stops now use route-verified local GTFS records**: added exact TTC, VTA, AC Transit, LADOT, SMART, Big Blue Bus, GO, and Hamilton matches without modifying raw trips.
 - **Historical TTC stop codes now use the feed version that served those rides**: restored exact route-aware matches where newer feeds had reused or changed the stop identifiers.
 - **TTC labels that include a stop code now resolve as aliases**: the combined `7346 Spadina Avenue and Front St., West` label maps to its historical route-510 stop.
