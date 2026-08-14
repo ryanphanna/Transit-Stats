@@ -345,34 +345,48 @@ export const MapEngine = {
             const key = `${p.type}:${p.lat}:${p.lng}`;
             const existing = markersByStop.get(key);
             if (existing) {
+                existing.usage += 1;
                 existing.labels.add(p.label);
                 return;
             }
 
-            const radius = isV2 ? 4 : 4.5;
             const color = document.body.classList.contains('dashboard-surface') ? '#0b9f6e' : '#7c5ce6';
             markersByStop.set(key, {
                 lat: p.lat,
                 lng: p.lng,
                 type: p.type,
                 color,
-                radius,
+                usage: 1,
                 labels: new Set([p.label]),
             });
         });
+
+        const maxUsage = Math.max(...[...markersByStop.values()].map(point => point.usage), 1);
+        const baseRadius = isV2 ? 4 : 4.5;
+        const hexToRgb = hex => hex.match(/[\da-f]{2}/gi).map(value => parseInt(value, 16));
+        const rgbToHex = rgb => `#${rgb.map(value => value.toString(16).padStart(2, '0')).join('')}`;
+        const blend = (from, to, amount) => {
+            const startRgb = hexToRgb(from);
+            const endRgb = hexToRgb(to);
+            return rgbToHex(startRgb.map((value, index) => Math.round(value + ((endRgb[index] - value) * amount))));
+        };
 
         let markerIndex = 0;
         for (const point of markersByStop.values()) {
             if (renderId !== this._renderGeneration) return;
             const popup = [...point.labels].map(label => UI.escapeHtml(label)).join('<br>');
+            const usageRatio = maxUsage === 1
+                ? 0.35
+                : Math.log(point.usage) / Math.log(maxUsage);
+            const markerColor = blend('#9ed9c2', point.color, 0.3 + (usageRatio * 0.7));
             const marker = L.circleMarker([point.lat, point.lng], {
                 renderer: this._canvasRenderer,
-                radius: point.radius,
-                fillColor: point.color,
+                radius: baseRadius + (usageRatio * 3),
+                fillColor: markerColor,
                 color: '#fff',
                 weight: 1,
-                opacity: 0.75,
-                fillOpacity: 0.72,
+                opacity: 0.55 + (usageRatio * 0.4),
+                fillOpacity: 0.42 + (usageRatio * 0.45),
             });
             marker.bindPopup(popup);
             this.layers.markers.addLayer(marker);

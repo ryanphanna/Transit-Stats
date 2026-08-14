@@ -64,7 +64,8 @@ export const TripFeed = {
         group.className = 'journey-group';
         group.innerHTML = `
             <div class="journey-group-header">
-                <span><i data-lucide="route" class="icon-inline"></i> ${trips.length}-trip journey</span>
+                <span>Connected journey</span>
+                <span>${trips.length.toLocaleString('en-US')} legs</span>
             </div>
         `;
 
@@ -89,7 +90,7 @@ export const TripFeed = {
         const route = getTripRouteLabel(trip);
         const status = getTripStatusLabel(trip);
         const duration = parseInt(trip.duration, 10);
-        const hasDuration = !trip.incomplete && Number.isFinite(duration) && trip.duration !== null && trip.duration !== undefined;
+        const hasDuration = !trip.incomplete && Number.isFinite(duration) && duration > 0;
 
         const dirAbbr = { Northbound: 'NB', Southbound: 'SB', Eastbound: 'EB', Westbound: 'WB', Inbound: 'IB', Outbound: 'OB' };
         const direction = trip.direction ? (dirAbbr[trip.direction] || trip.direction) : '';
@@ -168,15 +169,14 @@ export const TripFeed = {
             const lStart = later.startTime?.toDate ? later.startTime.toDate() : new Date(later.startTime);
             const eEnd = earlier.endTime?.toDate ? earlier.endTime.toDate() : new Date(earlier.endTime);
             const gapMin = Math.round((lStart - eEnd) / 60000);
-            gapStr = gapMin < 1 ? '<1 min transfer' : `${gapMin} min transfer`;
+            gapStr = gapMin < 1 ? 'Transfer · <1 min' : `Transfer · ${gapMin} min`;
         } catch (_) {}
 
         el.innerHTML = `
             <div class="journey-line"></div>
             <div class="journey-badge">
-                <i data-lucide="link" class="icon-inline"></i>
                 <span class="text-xxs">${gapStr}</span>
-                <button class="btn-break-journey" title="Decouple Journey"><i data-lucide="scissors"></i></button>
+                <button class="btn-break-journey" title="Unlink journey" aria-label="Unlink journey">Unlink</button>
             </div>
             <div class="journey-line"></div>
         `;
@@ -191,8 +191,7 @@ export const TripFeed = {
             unlinkButton.classList.remove('confirming');
             unlinkButton.title = 'Unlink journey';
             unlinkButton.setAttribute('aria-label', 'Unlink journey');
-            unlinkButton.innerHTML = '<i data-lucide="scissors"></i>';
-            if (window.lucide) lucide.createIcons();
+            unlinkButton.textContent = 'Unlink';
         };
 
         unlinkButton.addEventListener('click', async () => {
@@ -201,7 +200,7 @@ export const TripFeed = {
                 unlinkButton.classList.add('confirming');
                 unlinkButton.title = 'Tap again to unlink journey';
                 unlinkButton.setAttribute('aria-label', 'Tap again to unlink journey');
-                unlinkButton.textContent = 'Tap again to unlink';
+                unlinkButton.textContent = 'Tap again';
                 unlinkTimer = setTimeout(resetUnlinkButton, 3000);
                 return;
             }

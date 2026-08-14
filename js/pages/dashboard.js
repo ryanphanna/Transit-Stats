@@ -14,6 +14,8 @@ import { db } from '../firebase.js';
 import { createAgencyAutocomplete } from '../agency-autocomplete.js';
 import { displayAgencyName } from '../profile.js';
 import { MapEngine } from '../map-engine.js';
+import { TripController } from '../trips/TripController.js';
+import { loadAtlasStops } from '../atlas-stops.js';
 
 window.Trips = Trips;
 window.Utils = Utils;
@@ -121,6 +123,23 @@ function closeAllModals() {
     document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
 }
 
+async function loadDashboardAtlasStops() {
+    const agencies = [...new Set((TripController.allTrips || [])
+        .map(trip => String(trip.agency || '').trim())
+        .filter(Boolean))];
+    if (agencies.length === 0) return;
+
+    try {
+        const atlasStops = await loadAtlasStops(agencies);
+        MapEngine.setStopSources({
+            atlasStops,
+            firestoreStops: PredictionEngine.stopsLibrary || [],
+        });
+    } catch (error) {
+        console.warn('Dashboard: Atlas stop data unavailable', error);
+    }
+}
+
 async function init() {
     const { user, isAdmin } = await requireAuth();
     initHeader({ isAdmin, currentPage: 'dashboard' });
@@ -147,9 +166,10 @@ async function init() {
         document.getElementById('dashboard-map-loading')?.remove();
     }
 
-    Trips.init();
-    Trips._readyPromise.then(() => {
+    const tripsInitPromise = Trips.init();
+    Promise.all([Trips._readyPromise, tripsInitPromise]).then(() => {
         Stats.init();
+        loadDashboardAtlasStops();
         refreshIcons();
     });
 

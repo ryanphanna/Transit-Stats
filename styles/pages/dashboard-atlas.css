@@ -253,8 +253,8 @@
 .atlas-identity-card {
   top: 50%;
   left: 0;
-  width: min(330px, 100%);
-  padding: 28px 25px;
+  width: min(292px, 100%);
+  padding: 23px 21px;
   border-radius: 26px;
   transform: translateY(-43%);
 }
@@ -263,7 +263,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 34px;
+  margin-bottom: 27px;
 }
 
 .atlas-card-topline:has(.atlas-card-type) {
@@ -323,7 +323,7 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
-  margin-top: 42px;
+  margin-top: 32px;
   padding-top: 18px;
   border-top: 1px solid var(--border);
 }
@@ -369,8 +369,8 @@
 }
 
 .atlas-card-period {
-  margin-top: 18px;
-  padding-top: 16px;
+  margin-top: 15px;
+  padding-top: 13px;
   border-top: 1px solid var(--border);
 }
 
@@ -378,7 +378,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 15px;
+  margin-bottom: 11px;
   color: var(--text-secondary);
   font-size: 0.68rem;
   font-weight: 900;
@@ -394,27 +394,50 @@
 
 .atlas-period-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px 8px;
 }
 
 .atlas-period-grid div {
   min-width: 0;
 }
 
-.atlas-period-grid strong {
+.atlas-fact {
+  --fact-color: var(--accent);
+  position: relative;
+  padding: 7px 0 6px;
+}
+
+.atlas-fact strong {
   display: block;
-  color: var(--text-primary);
-  font-size: 1.65rem;
+  color: var(--fact-color);
+  font-size: 1.4rem;
   font-weight: 900;
   letter-spacing: -0.055em;
 }
 
-.atlas-period-grid span {
+.atlas-fact span {
   color: var(--text-muted);
-  font-size: 0.65rem;
+  font-size: 0.59rem;
   font-weight: 800;
+  white-space: nowrap;
 }
+
+.atlas-fact span::before {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 5px 1px 0;
+  border-radius: 50%;
+  background: var(--fact-color);
+  content: '';
+}
+
+.atlas-fact-month { --fact-color: #0b9f6e; }
+.atlas-fact-week { --fact-color: #147f9a; }
+.atlas-fact-days { --fact-color: #c58b22; }
+.atlas-fact-agencies { --fact-color: #7c5ce6; }
+.atlas-fact-countries { --fact-color: #d06455; }
 
 .dashboard-atlas-content {
   padding-top: 72px;
@@ -665,16 +688,16 @@
 
 @media (max-width: 480px) {
   .atlas-identity-card {
-    padding: 22px 21px;
+    padding: 20px 18px;
     border-radius: 22px;
   }
 
   .atlas-card-topline {
-    margin-bottom: 26px;
+    margin-bottom: 22px;
   }
 
   .atlas-hero-count {
-    margin-top: 30px;
+    margin-top: 26px;
   }
 
   .atlas-panel {

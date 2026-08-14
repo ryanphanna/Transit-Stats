@@ -69,7 +69,7 @@ export const TripStatsView = {
         container.innerHTML = items.map(item => `
             <div class="compact-row">
                 <span class="row-label">${Utils.hide(item.name)}</span>
-                <span class="row-value font-mono">${item.count}</span>
+                <span class="row-value font-mono">${item.count.toLocaleString('en-US')}</span>
             </div>
         `).join('');
     },

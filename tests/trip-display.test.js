@@ -9,8 +9,15 @@ describe('trip display fallbacks', () => {
 
     test('uses a clear exit fallback for incomplete trips', () => {
         const trip = { incomplete: true, startStopName: 'Spadina Station' };
-        expect(getTripStopLabel(trip, 'exiting')).toBe('No exit recorded');
+        expect(getTripStopLabel(trip, 'exiting')).toBe('Trip ended early');
         expect(getTripStatusLabel(trip)).toBe('Incomplete');
+    });
+
+    test('does not repeat placeholder stop labels', () => {
+        expect(getTripStopLabel({ startStopName: 'Unknown Boarding Stop' }, 'boarding'))
+            .toBe('No boarding stop recorded');
+        expect(getTripStopLabel({ incomplete: true, endStopName: 'Incomplete Trip' }, 'exiting'))
+            .toBe('Trip ended early');
     });
 
     test('uses the resolved stop name when the trip text is missing', () => {
@@ -47,5 +54,9 @@ describe('trip display fallbacks', () => {
     test('normalizes all-caps route names for riders', () => {
         expect(getTripRouteLabel({ route: 'PURPLE' })).toBe('Purple');
         expect(getTripRouteLabel({ route: '54A' })).toBe('54A');
+    });
+
+    test('replaces an incomplete route placeholder with clear wording', () => {
+        expect(getTripRouteLabel({ incomplete: true, route: 'Incomplete Trip' })).toBe('Trip ended early');
     });
 });

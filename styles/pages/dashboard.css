@@ -258,19 +258,18 @@ input:-webkit-autofill { animation-name: onAutofillStart; }
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.02em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .journey-group-header span:first-child {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
   color: var(--accent);
 }
 
-.journey-group-header .icon-inline {
-  width: 13px;
-  height: 13px;
+.journey-group-header span:last-child {
+  color: var(--text-muted);
+  font-weight: 700;
 }
 
 .journey-group .trip-card {
@@ -281,9 +280,9 @@ input:-webkit-autofill { animation-name: onAutofillStart; }
 .journey-connector { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: -2px 0; }
 .journey-line { width: 2px; height: 10px; background: var(--accent); opacity: 0.3; border-radius: 1px; }
 .journey-badge { display: flex; align-items: center; gap: 6px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; font-size: 0.72rem; color: var(--text-secondary); font-weight: 500; }
-.btn-break-journey { background: none; border: none; padding: 0; cursor: pointer; color: var(--text-secondary); display: flex; align-items: center; opacity: 0.5; transition: opacity 0.15s, color 0.15s; }
+.btn-break-journey { background: none; border: none; padding: 0; cursor: pointer; color: var(--text-secondary); display: flex; align-items: center; opacity: 0.62; transition: opacity 0.15s, color 0.15s; font: inherit; font-size: 0.66rem; font-weight: 800; }
 .btn-break-journey:hover { opacity: 1; color: var(--danger); }
-.btn-break-journey.confirming { opacity: 1; padding: 3px 8px; background: var(--danger); border-radius: 999px; color: white; font-size: 0.68rem; font-weight: 700; white-space: nowrap; }
+.btn-break-journey.confirming { opacity: 1; padding: 3px 8px; background: var(--danger); border-radius: 999px; color: white; white-space: nowrap; }
 
 /* --- Advanced Analytics --- */
 .insight-row {

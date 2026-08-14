@@ -13,6 +13,9 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Maps now show one stop type at a time**: boarding stops are the default, with the preference to use exiting stops moved into Settings.
 - **Map controls are now clearer and movable**: labeled account actions, circular zoom controls, and an unobstructed map surface replace the old icon-heavy overlay.
 - **The map card now shows network breadth**: agencies ridden and countries reached are visible alongside recent movement totals.
+- **Map stops now show personal usage intensity**: frequently ridden stops are darker and larger, while occasional stops stay quieter.
+- **Connected trip cards now read as one journey**: incomplete rides avoid fake durations and duplicate placeholder wording, while linked legs use clearer transfer and unlink controls.
+- **Dashboard controls use less icon clutter**: Settings and Log out are explicit text actions, and the identity card is smaller and more compact.
 - **Dashboard auth now tolerates longer refreshes**: a temporary Firebase session gap no longer redirects to login after only five seconds.
 - **Stops map no longer zooms to the world while loading**: missing zero coordinates are excluded from marker rendering and bounds.
 - **Trip count now includes days ridden**: the dashboard shows how many distinct days you have taken transit.
