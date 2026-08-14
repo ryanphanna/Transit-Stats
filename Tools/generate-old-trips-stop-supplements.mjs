@@ -119,6 +119,7 @@ const manualStops = [
     { agency: 'Sacramento Regional Transit', code: '7021', name: 'Fruitridge Station (EB)', lat: 38.525188, lng: -121.479969, aliases: ['Fruitridge Station'] },
     { agency: 'Spokane Transit', name: 'STA Plaza', lat: 47.6576, lng: -117.4226, aliases: ['STA Plaza'] },
     { agency: 'NFTA Metro', name: 'Ellicott Street & MTC Static', lat: 42.883406, lng: -78.872355, aliases: ['Metropolitan Transportation Center'] },
+    { agency: 'Muni', name: 'Metro Embarcadero Station', lat: 37.792922, lng: -122.3967905, aliases: ['Embarcadero'] },
 ];
 
 for (const manual of manualStops) {

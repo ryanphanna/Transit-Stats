@@ -10,7 +10,7 @@ describe('Old Trips GTFS supplements', () => {
 
     it('contains the exact local-GTFS batch', () => {
         expect(Object.keys(OLD_TRIPS_GTFS_STOP_SUPPLEMENTS).length).toBe(34);
-        expect(stops.length).toBe(476);
+        expect(stops.length).toBe(477);
     });
 
     it('resolves imported raw labels without changing trip records', () => {
@@ -51,6 +51,13 @@ describe('Old Trips GTFS supplements', () => {
 
         expect(match.label).toBe('Ellicott Street & MTC Static');
         expect(match.location).toEqual({ lat: 42.883406, lng: -78.872355 });
+    });
+
+    it('maps Muni Embarcadero shorthand to the metro station', () => {
+        const match = resolveStopLocation({ agency: 'Muni', startStopName: 'Embarcadero' }, 'boarding', index);
+
+        expect(match.label).toBe('Metro Embarcadero Station');
+        expect(match.location).toEqual({ lat: 37.792922, lng: -122.3967905 });
     });
 
     it('keeps obvious shorthand and typo aliases on canonical stops', () => {

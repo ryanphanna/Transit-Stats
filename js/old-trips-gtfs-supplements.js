@@ -3818,6 +3818,15 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "Muni",
+            "name": "Metro Embarcadero Station",
+            "lat": 37.792922,
+            "lng": -122.3967905,
+            "aliases": [
+                "Embarcadero"
+            ]
+        },
+        {
             "code": "15953",
             "name": "Park Presidio Blvd & Geary Blvd",
             "lat": 37.780776,
