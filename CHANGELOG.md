@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Phone sign-in no longer opens a browser autofill popover**: the login field stays clean and keeps its icon aligned when focused.
 - **Settings now opens directly into its sections**: removed the oversized repeated page title so the page gets to the controls faster.
 - **Primary agency is now optional**: new riders can let TransitStats detect the agency from their rides instead of choosing TTC up front.
 
