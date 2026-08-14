@@ -8,6 +8,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Primary agency is now optional**: new riders can let TransitStats detect the agency from their rides instead of choosing TTC up front.
+
 - **The signed-out screen now follows the saved or system theme**: light and dark entry screens use the same surfaces as the signed-in app instead of forcing a dark panel.
 - **Settings is now compact and organized**: Profile, Map preferences, and Public profile fit into a calmer desktop layout without the oversized title or all-caps section labels.
 - **Signed-out dashboard redirects no longer flash an empty profile**: the dashboard stays hidden until authentication succeeds.

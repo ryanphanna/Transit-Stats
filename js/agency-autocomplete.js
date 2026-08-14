@@ -78,8 +78,13 @@ export function createAgencyAutocomplete({ input, options = [], onCommit, onInva
     const commit = (option = null) => {
         const typedValue = input.value.trim();
         if (!typedValue) {
+            const previousValue = lastCommitted;
+            input.value = '';
+            delete input.dataset.agencyValue;
+            lastCommitted = null;
             clearInvalid();
             close();
+            if (previousValue) onCommit?.(null, null);
             return;
         }
         const selected = option || normalizedOptions.find(item =>
@@ -148,7 +153,6 @@ export function createAgencyAutocomplete({ input, options = [], onCommit, onInva
     input.addEventListener('input', () => {
         clearInvalid();
         delete input.dataset.agencyValue;
-        lastCommitted = null;
         render();
     });
     input.addEventListener('blur', () => {
@@ -197,6 +201,15 @@ export function createAgencyAutocomplete({ input, options = [], onCommit, onInva
             input.value = selected?.label || value || '';
             input.dataset.agencyValue = selected?.value || value || '';
             lastCommitted = selected?.value || value || null;
+        },
+        clear({ commit = true } = {}) {
+            const previousValue = lastCommitted;
+            input.value = '';
+            delete input.dataset.agencyValue;
+            lastCommitted = null;
+            clearInvalid();
+            close();
+            if (commit && previousValue) onCommit?.(null, null);
         },
         getValue() {
             return input.dataset.agencyValue || (allowCustom ? input.value.trim() : '');

@@ -42,13 +42,17 @@ export const RouteTracker = {
         this.compact = compact;
         // The full Routes page starts with the main agency; the dashboard's
         // compact card still summarizes every agency represented in trips.
-        this.currentAgency = compact ? 'all' : normalizeAgency(window.currentUserProfile?.defaultAgency || 'TTC');
+        const profile = window.currentUserProfile || {};
+        const configuredAgency = profile.defaultAgencyMode === 'automatic'
+            ? profile.primaryAgency
+            : profile.defaultAgency;
+        this.currentAgency = compact ? 'all' : normalizeAgency(configuredAgency || 'all');
 
         this._loadAndRender();
     },
 
     setAgency: function (agency) {
-        this.currentAgency = agency === 'all' ? 'all' : normalizeAgency(agency || (this.compact ? 'all' : 'TTC'));
+        this.currentAgency = agency === 'all' ? 'all' : normalizeAgency(agency || 'all');
         this._loadAndRender();
     },
 
@@ -105,7 +109,13 @@ export const RouteTracker = {
         const agencies = new Set((TripController.allTrips || [])
             .map(trip => normalizeAgency(trip.agency || 'TTC'))
             .filter(Boolean));
-        if (agencies.size === 0) agencies.add(normalizeAgency(window.currentUserProfile?.defaultAgency || 'TTC'));
+        if (agencies.size === 0) {
+            const profile = window.currentUserProfile || {};
+            const configuredAgency = profile.defaultAgencyMode === 'automatic'
+                ? profile.primaryAgency
+                : profile.defaultAgency;
+            if (configuredAgency) agencies.add(normalizeAgency(configuredAgency));
+        }
         return [...agencies];
     },
 

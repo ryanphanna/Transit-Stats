@@ -81,8 +81,11 @@ export const Profile = {
                 input: agencySelect,
                 options: this.agencyOptions,
                 allowCustom: false,
-                onCommit: value => this.updateSetting('defaultAgency', value),
+                onCommit: value => this.updateAgencyPreference(value),
                 onInvalid: () => UI.showNotification('Choose an agency from the suggestions.'),
+            });
+            document.getElementById('btn-clear-agency')?.addEventListener('click', () => {
+                this.agencyAutocomplete?.clear();
             });
         }
 
@@ -296,12 +299,13 @@ export const Profile = {
         const optionsByValue = new Map(this.agencyOptions.map(option => [option.value, option]));
         const defaultValue = String(this.data?.defaultAgency || '').trim();
         const options = [...optionsByValue.values()].sort((a, b) => a.label.localeCompare(b.label));
+        const automatic = this.data?.defaultAgencyMode === 'automatic';
 
         agencyEl.disabled = false;
-        agencyEl.placeholder = 'Search agencies…';
+        agencyEl.placeholder = automatic ? 'Automatic' : 'Search agencies…';
         if (this.agencyAutocomplete) {
             this.agencyAutocomplete.setOptions(options);
-            this.agencyAutocomplete.setValue(defaultValue);
+            this.agencyAutocomplete.setValue(automatic ? '' : defaultValue);
         } else if (defaultValue) {
             agencyEl.value = displayAgencyName(defaultValue);
         }
@@ -316,7 +320,9 @@ export const Profile = {
             userId: user.uid,
             displayName: user.displayName || 'Traveler',
             username: Identity.toSlug(triplet), // Auto-generate themed slug
-            defaultAgency: 'TTC',
+            defaultAgency: null,
+            defaultAgencyMode: 'automatic',
+            primaryAgency: null,
             isPremium: false,
             isAdmin: false,
             isPublic: false,
@@ -434,18 +440,30 @@ export const Profile = {
      * Save a setting to Firestore and update local state.
      */
     async updateSetting(key, value) {
+        return this.updateSettings({ [key]: value });
+    },
+
+    async updateAgencyPreference(value) {
+        return this.updateSettings({
+            defaultAgency: value || null,
+            defaultAgencyMode: value ? 'manual' : 'automatic',
+            ...(value ? {} : { primaryAgency: null }),
+        });
+    },
+
+    async updateSettings(changes) {
         const user = auth.currentUser;
         if (!user) return;
 
         try {
             await db.collection('profiles').doc(user.uid).set({
-                [key]: value,
+                ...changes,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
             
             // Update local state
             if (!this.data) this.data = {};
-            this.data[key] = value;
+            Object.assign(this.data, changes);
             window.currentUserProfile = this.data;
             
             UI.showNotification('Preference saved.');

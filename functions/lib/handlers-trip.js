@@ -21,6 +21,7 @@ const {
   FieldValue,
   Timestamp,
 } = require('./db');
+const { getConfiguredPrimaryAgency } = require('./primary-agency');
 const { PredictionEngine } = require('./predict.js');
 const { TransferEngine } = require('./transfer.js');
 const { NetworkEngine } = require('./network.js');
@@ -133,6 +134,10 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
     stopDisplay
   );
   if (handled) return;
+  if (!resolvedAgency) {
+    await sendSmsReply(phoneNumber, 'I could not identify the transit agency. Include it on a new line, such as TTC or GO Transit.');
+    return;
+  }
 
   // Ambiguous stop check: if the user gave a name (not a code), see if it matches
   // multiple stops in the resolved agency. If no active trip conflict, start the
@@ -222,7 +227,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
   const startStopName = stopData ? stopData.stopName : parsedStop.stopName;
   const startStopCode = stopData ? stopData.stopCode : parsedStop.stopCode;
   let isAdmin = false;
-  let defaultAgency = 'TTC';
+  let defaultAgency = null;
   try {
     const [history, stopsLibrary, routesAtStop, profile, networkGraph, habits, adminStatus] = await Promise.all([
       getRecentCompletedTrips(user.userId, 100),
@@ -236,7 +241,10 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
     PredictionEngine.stopsLibrary = stopsLibrary;
     PredictionEngine.networkGraph = networkGraph || null;
     isAdmin = adminStatus;
-    defaultAgency = profile?.defaultAgency || 'TTC';
+    defaultAgency = getConfiguredPrimaryAgency(profile)
+      || history.find(trip => trip.agency)?.agency
+      || resolvedAgency
+      || null;
     const now = new Date();
     const habitMatch = HabitEngine.match(habits, startStopName, now, { route, direction });
     habitPrediction = habitMatch ? {
@@ -423,7 +431,10 @@ async function handleConfirmStart(phoneNumber, user, state, traceId = null) {
     ]);
     PredictionEngine.stopsLibrary = stopsLibrary;
     confirmIsAdmin = confirmAdminStatus;
-    confirmDefaultAgency = confirmProfile?.defaultAgency || 'TTC';
+    confirmDefaultAgency = getConfiguredPrimaryAgency(confirmProfile)
+      || history.find(trip => trip.agency)?.agency
+      || newTrip.agency
+      || null;
     const now = new Date();
     const lastTrip = history.length > 0 ? history[0] : null;
     const lastEndStopName = lastTrip?.endStopName || lastTrip?.endStop || null;
@@ -562,7 +573,7 @@ async function handleEndTrip(phoneNumber, user, endStopInput, routeVerification 
     getUserProfile(user.userId),
     isEmailAdmin(user.email),
   ]);
-  const endDefaultAgency = endProfile?.defaultAgency || 'TTC';
+  const endDefaultAgency = getConfiguredPrimaryAgency(endProfile) || activeTrip.agency || null;
 
   // Resolve numbered shortcut (admin only): END 1/2/3 → predicted stop name
   if (/^[123]$/.test((endStopInput || '').trim())) {
@@ -718,11 +729,13 @@ async function recomputeAndUpdatePrimaryAgency(userId, dbClient = null) {
     // Read current profile
     const profileRef = dbToUse.collection('profiles').doc(userId);
     const profileSnap = await profileRef.get();
-    const current = profileSnap.exists ? profileSnap.data().defaultAgency : null;
-
-    if (current !== bestAgency) {
-      await profileRef.set({ defaultAgency: bestAgency, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
-      console.log(`[primary-agency] Updated user ${userId} defaultAgency: ${current || 'none'} → ${bestAgency}`);
+    const profile = profileSnap.exists ? profileSnap.data() : {};
+    if (profile.defaultAgencyMode === 'automatic') {
+      const current = profile.primaryAgency || null;
+      if (current !== bestAgency) {
+        await profileRef.set({ primaryAgency: bestAgency, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        console.log(`[primary-agency] Updated user ${userId} primaryAgency: ${current || 'none'} → ${bestAgency}`);
+      }
     }
   } catch (err) {
     console.error('[primary-agency] Failed to recompute for user', userId, err);

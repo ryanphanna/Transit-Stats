@@ -39,9 +39,12 @@ const tripEdit = {
 let tripAgencyAutocomplete = null;
 
 function setupTripAgencyAutocomplete() {
-    const defaultAgency = window.currentUserProfile?.defaultAgency || 'TTC';
+    const profile = window.currentUserProfile || {};
+    const defaultAgency = profile.defaultAgencyMode === 'automatic'
+        ? profile.primaryAgency
+        : profile.defaultAgency;
     const optionsByValue = new Map((Profile.agencyOptions || []).map(option => [option.value, option]));
-    if (!optionsByValue.has(defaultAgency)) {
+    if (defaultAgency && !optionsByValue.has(defaultAgency)) {
         optionsByValue.set(defaultAgency, { value: defaultAgency, label: displayAgencyName(defaultAgency) });
     }
     tripAgencyAutocomplete = createAgencyAutocomplete({

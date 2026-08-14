@@ -127,7 +127,29 @@ html[data-theme="dark"] body.settings-surface .header {
 }
 
 .settings-agency-field {
-  width: min(240px, 52%);
+  width: auto;
+  flex: 0 0 min(320px, 52%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-row > .settings-label-group {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.settings-agency-input {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.settings-agency-clear {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  min-height: 30px;
+  padding: 5px 9px !important;
+  font-size: 0.7rem !important;
 }
 
 .settings-identity-row {
@@ -160,7 +182,7 @@ html[data-theme="dark"] body.settings-surface .header {
 @media (min-width: 641px) {
   #view-settings.settings-view {
     padding-top: 78px;
-    padding-bottom: 32px;
+    padding-bottom: 16px;
   }
 
   .settings-page-header {

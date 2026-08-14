@@ -25,6 +25,7 @@ const {
   shouldRespondToUnknown,
   clearPendingState,
   setPendingState,
+  getLastTripAgency,
   db,
   FieldValue,
 } = require('./db');
@@ -32,6 +33,7 @@ const { sendSmsReply, getTwilioPhoneNumber } = require('./twilio');
 const { parseWithGemini, constructStopInput } = require('./gemini');
 const { parseMultiLineTripFormat, parseSingleLineTripFormat, parseCasualTripFormat, parseEndTripFormat } = require('./parsing');
 const { isValidRoute, normalizeDirection, getRouteDisplay, getStopDisplay, normalizeAgency } = require('./utils');
+const { getConfiguredPrimaryAgency } = require('./primary-agency');
 const handlers = require('./handlers');
 
 /** Commands that are allowed to fall through pending-state handlers to normal dispatch. */
@@ -529,7 +531,8 @@ async function handleTripFlow(phoneNumber, user, body, receivedAt = Date.now(), 
 
   // Start Trip check (Multi-line or single-line with direction)
   const userProfile = await getUserProfile(user.userId);
-  const defaultAgency = userProfile?.defaultAgency || 'TTC';
+  const configuredAgency = getConfiguredPrimaryAgency(userProfile);
+  const defaultAgency = configuredAgency || (getLastTripAgency ? await getLastTripAgency(user.userId) : null);
   const multiLineTrip = parseMultiLineTripFormat(body, defaultAgency);
   const singleLineTrip = !multiLineTrip ? parseSingleLineTripFormat(body, defaultAgency) : null;
   const casualTrip = !multiLineTrip && !singleLineTrip ? parseCasualTripFormat(body, defaultAgency) : null;
@@ -572,7 +575,8 @@ async function handleAIIntent(phoneNumber, user, body, receivedAt = Date.now(), 
   }
 
   const userProfile = await getUserProfile(user.userId);
-  const defaultAgency = userProfile?.defaultAgency || 'TTC';
+  const configuredAgency = getConfiguredPrimaryAgency(userProfile);
+  const defaultAgency = configuredAgency || (getLastTripAgency ? await getLastTripAgency(user.userId) : null);
 
   switch (geminiResult.intent) {
   case 'START_TRIP': {

@@ -11,6 +11,7 @@ const {
   getStopsLibrary,
   db,
 } = require('./db');
+const { getConfiguredPrimaryAgency } = require('./primary-agency');
 const { PredictionEngineV4 } = require('./predict_v4.js');
 const { PredictionEngineV5 } = require('./predict_v5.js');
 const {
@@ -30,7 +31,7 @@ const { handleTripLog } = require('./handlers-trip');
 async function fillPredictions(user, tripId, stopName, route, direction, agency, traceId = null) {
   try {
     const profile = await getUserProfile(user.userId);
-    const defaultAgency = profile?.defaultAgency || null;
+    const defaultAgency = getConfiguredPrimaryAgency(profile);
     if (!defaultAgency || agency !== defaultAgency) return;
 
     const [history, stopsLibrary] = await Promise.all([
@@ -142,7 +143,7 @@ async function handleMmsTrip(phoneNumber, user, mediaUrl, receivedAt, traceId = 
   // Routes found but no stop — ask for just the stop and pre-save routes
   if (!stopInput) {
     const userProfile2 = await getUserProfile(user.userId);
-    const defaultAgency2 = userProfile2?.defaultAgency || 'TTC';
+    const defaultAgency2 = getConfiguredPrimaryAgency(userProfile2);
     const { normalizeAgency: normalizeAg } = require('./utils');
     const candidates = parsed.routes.map(r => ({
       route: r.route,
@@ -161,7 +162,7 @@ async function handleMmsTrip(phoneNumber, user, mediaUrl, receivedAt, traceId = 
 
 
   const userProfile = await getUserProfile(user.userId);
-  const defaultAgency = userProfile?.defaultAgency || 'TTC';
+  const defaultAgency = getConfiguredPrimaryAgency(userProfile);
 
   const tripOptions = { parsed_by: 'mms', startTime: receivedAt, source: 'mms', timing_reliability: 'approximate' };
 

@@ -24,6 +24,7 @@ const {
   generateVerificationCode,
   normalizeAgency,
 } = require('./utils');
+const { getConfiguredPrimaryAgency } = require('./primary-agency');
 const { KNOWN_AGENCIES } = require('./constants');
 const {
   lookupAgencyTimezone,
@@ -351,21 +352,33 @@ async function handleVerificationCode(phoneNumber, code, traceId = null) {
 /**
  * Handle SETTINGS command — view or change user settings via SMS.
  * SETTINGS → show current settings
- * SETTINGS AGENCY [name] → change default agency
+ * SETTINGS AGENCY [name] → set a primary agency
+ * SETTINGS AGENCY AUTO → detect the agency automatically
  */
 async function handleSettings(phoneNumber, user, rawArgs, traceId = null) {
   const profile = await getUserProfile(user.userId);
-  const currentAgency = profile?.defaultAgency || 'TTC';
+  const currentAgency = profile?.defaultAgencyMode === 'automatic'
+    ? 'Automatic'
+    : (getConfiguredPrimaryAgency(profile) || 'Automatic');
 
   if (!rawArgs) {
     await sendSmsReply(phoneNumber,
-      `Settings:\nDefault agency: ${currentAgency}\n\nTo change: SETTINGS AGENCY [name]\nExample: SETTINGS AGENCY GO Transit`
+      `Settings:\nPrimary agency: ${currentAgency}\n\nTo change: SETTINGS AGENCY [name]\nUse SETTINGS AGENCY AUTO to detect it automatically.\nExample: SETTINGS AGENCY GO Transit`
     );
     return;
   }
 
   const agencyMatch = rawArgs.match(/^AGENCY\s+(\S.*)$/i);
   if (agencyMatch) {
+    if (/^(AUTO|AUTOMATIC)$/i.test(agencyMatch[1].trim())) {
+      await db.collection('profiles').doc(user.userId).update({
+        defaultAgency: null,
+        defaultAgencyMode: 'automatic',
+        primaryAgency: null,
+      });
+      await sendSmsReply(phoneNumber, 'Primary agency set to automatic detection.');
+      return;
+    }
     const normalized = normalizeAgency(agencyMatch[1].trim());
     const isKnown = KNOWN_AGENCIES.includes(normalized);
     if (!isKnown) {
@@ -374,12 +387,15 @@ async function handleSettings(phoneNumber, user, rawArgs, traceId = null) {
       );
       return;
     }
-    await db.collection('profiles').doc(user.userId).update({ defaultAgency: normalized });
-    await sendSmsReply(phoneNumber, `Default agency set to ${normalized}.`);
+    await db.collection('profiles').doc(user.userId).update({
+      defaultAgency: normalized,
+      defaultAgencyMode: 'manual',
+    });
+    await sendSmsReply(phoneNumber, `Primary agency set to ${normalized}.`);
     return;
   }
 
-  await sendSmsReply(phoneNumber, 'Usage: SETTINGS AGENCY [name]\nExample: SETTINGS AGENCY GO Transit');
+  await sendSmsReply(phoneNumber, 'Usage: SETTINGS AGENCY [name|AUTO]\nExample: SETTINGS AGENCY GO Transit');
 }
 
 module.exports = {

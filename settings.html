@@ -61,9 +61,13 @@
                             <div class="settings-group-title"><span>Map preferences</span></div>
                             <div class="settings-card premium-card">
                                 <div class="settings-row">
-                                    <span class="settings-main-label">Default agency</span>
+                                    <div class="settings-label-group">
+                                        <span class="settings-main-label">Primary agency</span>
+                                        <span class="settings-sub-label">Leave blank to detect it from your rides</span>
+                                    </div>
                                     <div class="settings-agency-field">
-                                        <input type="search" id="settings-agency" class="minimal-input settings-agency-input" autocomplete="off" placeholder="Search agencies…" aria-label="Default agency">
+                                        <input type="search" id="settings-agency" class="minimal-input settings-agency-input" autocomplete="off" placeholder="Automatic" aria-label="Primary agency">
+                                        <button type="button" id="btn-clear-agency" class="btn btn-sm btn-ghost settings-agency-clear" title="Use automatic detection" aria-label="Use automatic detection">Auto</button>
                                     </div>
                                 </div>
                                 <div class="settings-row">

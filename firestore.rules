@@ -24,7 +24,7 @@ service cloud.firestore {
         request.resource.data.isAdmin == resource.data.isAdmin &&
         request.resource.data.isPremium == resource.data.isPremium &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'displayName', 'username', 'defaultAgency', 'isPublic',
+          'displayName', 'username', 'defaultAgency', 'defaultAgencyMode', 'primaryAgency', 'isPublic',
           'betaFeatures', 'updatedAt', 'isAdmin', 'isPremium'
         ])
       );
