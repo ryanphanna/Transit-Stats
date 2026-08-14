@@ -298,6 +298,12 @@ body.dark .dashboard-map-wash {
   font-weight: 600;
 }
 
+.atlas-title-product {
+  display: block;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
 .atlas-profile-status {
   margin: 14px 0 0;
   color: var(--accent);
