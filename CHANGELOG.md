@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Settings now opens directly into its sections**: removed the oversized repeated page title so the page gets to the controls faster.
 - **Primary agency is now optional**: new riders can let TransitStats detect the agency from their rides instead of choosing TTC up front.
 
 - **The signed-out screen now follows the saved or system theme**: light and dark entry screens use the same surfaces as the signed-in app instead of forcing a dark panel.
