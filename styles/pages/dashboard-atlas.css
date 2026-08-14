@@ -143,24 +143,33 @@
 }
 
 .atlas-map-controls .filter-pills {
-  padding: 3px;
-  border: 1px solid rgb(255 255 255 / 85%);
-  border-radius: 999px;
-  background: rgb(255 255 255 / 80%);
-  box-shadow: 0 8px 22px rgb(16 42 42 / 8%);
-  backdrop-filter: blur(14px);
+  display: flex;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .atlas-map-controls .filter-pills .pill {
-  padding: 7px 11px;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgb(220 231 227 / 92%);
   border-radius: 999px;
+  background: rgb(255 255 255 / 86%);
   color: var(--text-secondary);
   font-size: 0.68rem;
+  font-weight: 800;
+  box-shadow: 0 8px 22px rgb(16 42 42 / 10%);
+  backdrop-filter: blur(14px);
 }
 
 .atlas-map-controls .filter-pills .pill.active {
-  background: var(--text-primary);
-  color: white;
+  border-color: var(--accent-light);
+  background: rgb(255 255 255 / 96%);
+  color: var(--accent);
+  box-shadow: 0 8px 22px rgb(11 159 110 / 18%);
 }
 
 .atlas-map-controls #btn-locate {

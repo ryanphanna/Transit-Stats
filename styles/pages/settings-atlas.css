@@ -1,0 +1,105 @@
+/* --- Settings companion surface --- */
+.settings-surface {
+  background: var(--bg-app);
+}
+
+.settings-surface .header {
+  background: rgb(255 255 255 / 78%);
+  border-bottom-color: rgb(220 231 227 / 72%);
+  backdrop-filter: blur(18px) saturate(1.1);
+}
+
+.settings-surface .header-container {
+  max-width: 1080px;
+}
+
+.settings-surface .nav-desktop {
+  display: none;
+}
+
+.settings-view {
+  min-height: 100vh;
+  padding-top: 112px;
+  padding-bottom: 72px;
+}
+
+.settings-page-container {
+  max-width: 860px;
+}
+
+.settings-page-header {
+  margin-bottom: 28px;
+}
+
+.settings-page-header .page-kicker {
+  margin-bottom: 8px;
+}
+
+.settings-page-title {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 900;
+  letter-spacing: -0.07em;
+}
+
+.settings-page-intro {
+  max-width: 520px;
+  margin: 9px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.settings-page-col {
+  gap: 22px;
+}
+
+.settings-group-title {
+  margin-bottom: 9px;
+  color: var(--text-muted);
+  letter-spacing: 0.12em;
+}
+
+.settings-card {
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.settings-row {
+  min-height: 62px;
+  padding: 14px 17px;
+}
+
+.settings-main-label {
+  font-size: 0.84rem;
+}
+
+.settings-sub-label {
+  font-size: 0.72rem;
+}
+
+.settings-action {
+  border-radius: 999px;
+}
+
+.settings-agency-field {
+  width: min(240px, 52%);
+}
+
+.settings-identity-row {
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .settings-view {
+    padding-top: 92px;
+  }
+
+  .settings-page-container {
+    padding: 0 16px;
+  }
+
+  .settings-page-col {
+    gap: 18px;
+  }
+}

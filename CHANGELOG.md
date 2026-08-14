@@ -9,6 +9,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 ## [Unreleased]
 
 - **Dashboard is now a full-screen personal map**: the home screen focuses on your mapped stops and recent movement instead of separate dashboard cards and navigation.
+- **Settings now matches the map-first shell**: account and preference controls use the same quieter layout instead of the old page treatment.
 - **Dashboard auth now tolerates longer refreshes**: a temporary Firebase session gap no longer redirects to login after only five seconds.
 - **Stops map no longer zooms to the world while loading**: missing zero coordinates are excluded from marker rendering and bounds.
 - **Trip count now includes days ridden**: the dashboard shows how many distinct days you have taken transit.
