@@ -8,6 +8,16 @@ import {
     fitMapToDensePoints,
 } from './map-presentation.js';
 
+function buildMapPointKey(trip, side, resolution, location, fallbackLabel) {
+    const code = side === 'boarding' ? trip.startStopCode : trip.endStopCode;
+    const identity = resolution?.label || code || fallbackLabel || '';
+    const agency = String(trip.agency || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const label = String(identity).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const lat = Number(location.lat).toFixed(4);
+    const lng = Number(location.lng).toFixed(4);
+    return `${agency}:${label}:${lat}:${lng}`;
+}
+
 export function getMapMarkerLabel(trip = {}, side = 'boarding', resolution = null) {
     return getTripStopLabel(trip, side, resolution);
 }
@@ -313,6 +323,7 @@ export const MapEngine = {
                         lat: bLoc.lat,
                         lng: bLoc.lng,
                         type: 'boarding',
+                        key: buildMapPointKey(trip, 'boarding', boarding, bLoc, getMapMarkerLabel(trip, 'boarding', boarding)),
                         label: getMapMarkerLabel(trip, 'boarding', boarding)
                     });
                 }
@@ -328,6 +339,7 @@ export const MapEngine = {
                         lat: eLoc.lat,
                         lng: eLoc.lng,
                         type: 'exiting',
+                        key: buildMapPointKey(trip, 'exiting', exiting, eLoc, getMapMarkerLabel(trip, 'exiting', exiting)),
                         label: getMapMarkerLabel(trip, 'exiting', exiting)
                     });
                 }

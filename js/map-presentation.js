@@ -62,7 +62,11 @@ export function groupMapPoints(points = [], getLabel = () => null) {
 
         const type = normalizeType(point.type);
         const usage = Math.max(1, Number(point.usage ?? point.count ?? 1));
-        const key = `${type}:${lat}:${lng}`;
+        // Saved coordinates can differ by a few metres for the same stop.
+        // Round the fallback identity so those points still become one
+        // usage-weighted marker instead of hundreds of overlapping markers.
+        const locationKey = point.key || `${lat.toFixed(4)}:${lng.toFixed(4)}`;
+        const key = `${type}:${locationKey}`;
         const label = getLabel(point);
         const existing = grouped.get(key);
         if (existing) {
