@@ -388,7 +388,7 @@
 }
 
 .auth-visual {
-  background: var(--text-primary);
+  background: var(--bg-muted);
 }
 
 .auth-card {

@@ -8,6 +8,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **The signed-out screen now follows the saved or system theme**: light and dark entry screens use the same surfaces as the signed-in app instead of forcing a dark panel.
+- **Settings is now compact and organized**: Profile, Map preferences, and Public profile fit into a calmer desktop layout without the oversized title or all-caps section labels.
 - **Signed-out dashboard redirects no longer flash an empty profile**: the dashboard stays hidden until authentication succeeds.
 - **Signed-out dashboard visits now return to the homepage quickly**: a private window no longer sits behind an empty dashboard while waiting for a session that cannot exist.
 - **The dashboard now shows the map immediately**: the base map appears while trip pins and detailed stop data load in the background.
