@@ -15,10 +15,10 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Public profiles now invite visitors to sign up**: logged-out riders get a clear path to create their own map.
 - **Maps now show one stop type at a time**: boarding stops are the default, with the preference to use exiting stops moved into Settings.
 - **Map controls are now clearer and movable**: labeled account actions, circular zoom controls, and an unobstructed map surface replace the old icon-heavy overlay.
-- **Map loading no longer exposes an intermediate viewport**: the map keeps its loading state until all trip stops and the final bounds are rendered.
+- **Map loading starts with your saved rides**: the first useful map frame no longer waits for the full stop library or Atlas enrichment.
 - **Zoom controls now use a compact horizontal layout**: minus and plus read left-to-right instead of looking like a reversed vertical stack.
 - **The map card now shows network breadth**: agencies ridden and countries reached are visible alongside recent movement totals.
-- **The map card now has a clear next action**: a quiet Share your map link leads to the public-profile settings.
+- **Sharing your map now works from the map card**: copy or share the public link directly, with a clear path to enable the profile first.
 - **Map stops now show personal usage intensity**: frequently ridden stops are darker and larger, while occasional stops stay quieter.
 - **Connected trip cards now read as one journey**: incomplete rides avoid fake durations and duplicate placeholder wording, while linked legs use clearer transfer and unlink controls.
 - **Dashboard controls use less icon clutter**: Settings and Log out are explicit text actions, and the identity card is smaller and more compact.
@@ -67,6 +67,9 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Admin, Users, and Insights now share the same page hierarchy**: each surface has a clear purpose header instead of opening directly into an undifferentiated card.
 - **Public and beta maps now have explicit context panels**: riders can tell whose map they are viewing and what the beta map is showing before interacting with it.
 - **Stops now uses a minimalist dot map**: numbered clusters and diagnostic panels are removed while the shared navigation remains available.
+- **Public maps now include the complete history**: unique shared stops are aggregated server-side instead of stopping at the first 1,000 trips.
+- **Stop names now require a closer map view**: dots stay quiet at the world/city view and open their labels only when the stop is readable.
+- **Map framing is trip-driven**: the opening view follows the strongest trip regions, and the unnecessary Locate me control is gone.
 ### Added
 - **Shared sign-in across TransitStats surfaces** — moving between the regular, beta, and admin sites no longer requires another login.
 - **Theme choices and multi-agency route coverage** — choose System, Light, or Dark and see route progress across every agency you have ridden.

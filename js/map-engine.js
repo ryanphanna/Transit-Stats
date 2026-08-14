@@ -2,6 +2,14 @@ import { UI } from './ui-utils.js';
 import { PredictionEngine } from './predict.js';
 import { buildStopIndex, resolveStopLocation } from './atlas-stop-resolver.js';
 import { getTripStopLabel } from './trip-display.js';
+import {
+    addMapZoomControl,
+    addZoomGatedPopup,
+    getDenseViewport,
+    getUsageMarkerStyle,
+    groupMapPoints,
+    installPopupZoomGuard,
+} from './map-presentation.js';
 
 export function getMapMarkerLabel(trip = {}, side = 'boarding', resolution = null) {
     return getTripStopLabel(trip, side, resolution);
@@ -32,8 +40,6 @@ export const MapEngine = {
     _usesMarkerClusters: false,
     _canvasRenderer: null,
     _renderGeneration: 0,
-    _userLocationMarker: null,
-    _initialLocationRequested: false,
     _deferInitialView: false,
 
     init(initialTrips = [], initialCenter = null, { deferInitialView = false } = {}) {
@@ -71,7 +77,8 @@ export const MapEngine = {
 
             this._canvasRenderer = L.canvas({ padding: 0.5 });
 
-            this._addZoomControl();
+            addMapZoomControl(this.map);
+            installPopupZoomGuard(this.map);
 
             this.setupLayers();
             this.renderMarkers();
@@ -116,34 +123,6 @@ export const MapEngine = {
         this.layers.markers.addTo(this.map);
     },
 
-    _addZoomControl() {
-        const control = L.control({ position: 'bottomright' });
-        control.onAdd = map => {
-            const container = L.DomUtil.create('div', 'atlas-zoom-control');
-            const zoomOut = L.DomUtil.create('button', 'atlas-zoom-button atlas-zoom-button-out', container);
-            const zoomIn = L.DomUtil.create('button', 'atlas-zoom-button atlas-zoom-button-in', container);
-
-            zoomOut.type = 'button';
-            zoomOut.textContent = '−';
-            zoomOut.setAttribute('aria-label', 'Zoom out');
-            zoomIn.type = 'button';
-            zoomIn.textContent = '+';
-            zoomIn.setAttribute('aria-label', 'Zoom in');
-
-            L.DomEvent.disableClickPropagation(container);
-            L.DomEvent.on(zoomOut, 'click', event => {
-                L.DomEvent.stop(event);
-                map.zoomOut();
-            });
-            L.DomEvent.on(zoomIn, 'click', event => {
-                L.DomEvent.stop(event);
-                map.zoomIn();
-            });
-            return container;
-        };
-        control.addTo(this.map);
-    },
-
     setupControls() {
         const pills = document.querySelectorAll('.map-controls .pill');
         pills.forEach(pill => {
@@ -154,22 +133,12 @@ export const MapEngine = {
             });
         });
 
-        const btnLocate = document.getElementById('btn-locate');
-        if (btnLocate) {
-            btnLocate.addEventListener('click', () => this.locateUser());
-        }
     },
 
     setFilter(filter) {
         this.filter = filter === 'exiting' ? 'exiting' : 'boarding';
         localStorage.setItem('transitstats-map-stop-mode', this.filter);
         this.renderMarkers();
-    },
-
-    requestInitialLocation() {
-        if (this._initialLocationRequested) return;
-        this._initialLocationRequested = true;
-        this.locateUser({ notifyErrors: false, zoom: 13 });
     },
 
     updateTrips(newTrips) {
@@ -188,7 +157,7 @@ export const MapEngine = {
         this._stopIndex = buildStopIndex({ atlasStops, normalizedStops: firestoreStops });
         this._stopSourcesReady = true;
         this._skipLookup.clear();
-        if (this.map) this.renderMarkers();
+        return this.map ? this.renderMarkers() : Promise.resolve();
     },
 
     releaseInitialView() {
@@ -373,59 +342,19 @@ export const MapEngine = {
         }
 
         // Batch add markers for performance
-        const markersByStop = new Map();
-        const isV2 = document.body.classList.contains('v2-clean');
-
-        points.forEach(p => {
-            // A stop can have several raw labels. Keep one marker per role and
-            // coordinate, then show distinct labels in one popup.
-            const key = `${p.type}:${p.lat}:${p.lng}`;
-            const existing = markersByStop.get(key);
-            if (existing) {
-                existing.usage += 1;
-                existing.labels.add(p.label);
-                return;
-            }
-
-            const color = document.body.classList.contains('dashboard-surface') ? '#0b9f6e' : '#7c5ce6';
-            markersByStop.set(key, {
-                lat: p.lat,
-                lng: p.lng,
-                type: p.type,
-                color,
-                usage: 1,
-                labels: new Set([p.label]),
-            });
-        });
-
-        const maxUsage = Math.max(...[...markersByStop.values()].map(point => point.usage), 1);
-        const baseRadius = isV2 ? 4 : 4.5;
-        const hexToRgb = hex => hex.match(/[\da-f]{2}/gi).map(value => parseInt(value, 16));
-        const rgbToHex = rgb => `#${rgb.map(value => value.toString(16).padStart(2, '0')).join('')}`;
-        const blend = (from, to, amount) => {
-            const startRgb = hexToRgb(from);
-            const endRgb = hexToRgb(to);
-            return rgbToHex(startRgb.map((value, index) => Math.round(value + ((endRgb[index] - value) * amount))));
-        };
+        const markersByStop = groupMapPoints(points, point => point.label);
+        const maxUsage = Math.max(...markersByStop.map(point => point.usage), 1);
+        const baseRadius = document.body.classList.contains('v2-clean') ? 4 : 4.5;
 
         let markerIndex = 0;
-        for (const point of markersByStop.values()) {
+        for (const point of markersByStop) {
             if (renderId !== this._renderGeneration) return;
             const popup = [...point.labels].map(label => UI.escapeHtml(label)).join('<br>');
-            const usageRatio = maxUsage === 1
-                ? 0.35
-                : Math.log(point.usage) / Math.log(maxUsage);
-            const markerColor = blend('#9ed9c2', point.color, 0.3 + (usageRatio * 0.7));
             const marker = L.circleMarker([point.lat, point.lng], {
                 renderer: this._canvasRenderer,
-                radius: baseRadius + (usageRatio * 3),
-                fillColor: markerColor,
-                color: '#fff',
-                weight: 1,
-                opacity: 0.55 + (usageRatio * 0.4),
-                fillOpacity: 0.42 + (usageRatio * 0.45),
+                ...getUsageMarkerStyle(point, maxUsage, { baseRadius }),
             });
-            marker.bindPopup(popup);
+            addZoomGatedPopup(marker, this.map, popup);
             this.layers.markers.addLayer(marker);
             markerIndex += 1;
             if (markerIndex % 80 === 0) {
@@ -437,7 +366,10 @@ export const MapEngine = {
         this._renderDiagnostics(resolutionStats, limitedTrips.length);
 
         // Fit bounds only on first load or when filters change
-        const validPoints = points
+        // A global history should open on the region with the highest trip
+        // density instead of fitting every continent into one unusable view.
+        const viewportPoints = getDenseViewport(points);
+        const validPoints = viewportPoints
             .map(point => [Number(point.lat), Number(point.lng)])
             .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng)
                 && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
@@ -465,30 +397,4 @@ export const MapEngine = {
         console.log(`MapEngine: Rendered ${points.length} markers in ${Math.round(performance.now() - start)}ms`);
     },
 
-    locateUser({ notifyErrors = true, zoom = 15 } = {}) {
-        if (!navigator.geolocation) {
-            if (notifyErrors) UI.showNotification("Geolocation not supported by this browser.");
-            return;
-        }
-
-        navigator.geolocation.getCurrentPosition(pos => {
-            const { latitude, longitude } = pos.coords;
-            // Trip bounds remain the preferred view when they have already
-            // rendered; location is the fallback for an empty/unresolved map.
-            if (this._isFirstLoad && !this._deferInitialView) this.map.setView([latitude, longitude], zoom);
-
-            if (this._userLocationMarker) this.map.removeLayer(this._userLocationMarker);
-            this._userLocationMarker = L.circleMarker([latitude, longitude], {
-                radius: 10,
-                fillColor: '#ef4444',
-                color: '#fff',
-                weight: 3,
-                opacity: 1,
-                fillOpacity: 0.5
-            }).addTo(this.map).bindPopup("You are here");
-            if (notifyErrors) this._userLocationMarker.openPopup();
-        }, err => {
-            if (notifyErrors) UI.showNotification("Could not get location: " + err.message);
-        }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
-    }
 };

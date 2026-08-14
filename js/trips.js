@@ -29,7 +29,10 @@ export const Trips = {
             });
         }
 
-        await this.loadStopsLibrary();
+        // Stop metadata is enrichment, not a prerequisite for showing the
+        // rider's trips. Let the map render saved coordinates first and load
+        // the larger fallback library in the background.
+        void this.loadStopsLibrary();
     },
 
     async loadStopsLibrary() {

@@ -20,15 +20,11 @@
                 <div class="dashboard-map-loading" id="dashboard-map-loading" role="status">Mapping your rides…</div>
 
                 <div class="dashboard-atlas-hero-inner">
-                    <div class="map-controls atlas-map-controls" aria-label="Map controls">
-                        <button id="btn-locate" class="btn btn-circle" title="Find me" aria-label="Find me"><i data-lucide="locate-fixed"></i></button>
-                    </div>
-
                     <div class="atlas-identity-card">
                         <div class="atlas-card-topline">
                             <span class="atlas-card-type">TransitStats</span>
+                            <span class="atlas-card-tagline">Your transit life, mapped.</span>
                         </div>
-                        <p class="page-kicker">Your transit life, mapped.</p>
                         <h1><span id="profile-name">Traveler</span><span class="atlas-title-tail">'s map</span></h1>
                         <p id="profile-status" class="atlas-profile-status" hidden></p>
                         <div class="atlas-hero-count">
@@ -45,7 +41,7 @@
                                 <div class="atlas-fact atlas-fact-countries"><strong id="stat-countries-ridden">0</strong><span>Countries</span></div>
                             </div>
                         </div>
-                        <a class="atlas-card-cta" href="/settings">Share your map <span aria-hidden="true">→</span></a>
+                        <button id="atlas-share-map" class="atlas-card-cta" type="button">Share your map <span aria-hidden="true">→</span></button>
                     </div>
                 </div>
             </section>

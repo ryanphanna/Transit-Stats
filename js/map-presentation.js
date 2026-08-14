@@ -1,0 +1,158 @@
+// At 14, one stop is readable without opening labels over the city overview.
+export const STOP_POPUP_MIN_ZOOM = 14;
+
+const TYPE_COLORS = {
+    boarding: '#0b9f6e',
+    exiting: '#7c5ce6',
+};
+
+export function addMapZoomControl(map) {
+    const control = L.control({ position: 'bottomright' });
+    control.onAdd = targetMap => {
+        const container = L.DomUtil.create('div', 'atlas-zoom-control');
+        const zoomOut = L.DomUtil.create('button', 'atlas-zoom-button atlas-zoom-button-out', container);
+        const zoomIn = L.DomUtil.create('button', 'atlas-zoom-button atlas-zoom-button-in', container);
+
+        zoomOut.type = 'button';
+        zoomOut.textContent = '−';
+        zoomOut.setAttribute('aria-label', 'Zoom out');
+        zoomIn.type = 'button';
+        zoomIn.textContent = '+';
+        zoomIn.setAttribute('aria-label', 'Zoom in');
+
+        L.DomEvent.disableClickPropagation(container);
+        L.DomEvent.on(zoomOut, 'click', event => {
+            L.DomEvent.stop(event);
+            targetMap.zoomOut();
+        });
+        L.DomEvent.on(zoomIn, 'click', event => {
+            L.DomEvent.stop(event);
+            targetMap.zoomIn();
+        });
+        return container;
+    };
+    control.addTo(map);
+}
+
+function normalizeType(type) {
+    return type === 'end' || type === 'exiting' ? 'exiting' : 'boarding';
+}
+
+function hexToRgb(hex) {
+    return hex.match(/[\da-f]{2}/gi).map(value => parseInt(value, 16));
+}
+
+function rgbToHex(rgb) {
+    return `#${rgb.map(value => value.toString(16).padStart(2, '0')).join('')}`;
+}
+
+function blend(from, to, amount) {
+    const start = hexToRgb(from);
+    const end = hexToRgb(to);
+    return rgbToHex(start.map((value, index) => Math.round(value + ((end[index] - value) * amount))));
+}
+
+export function groupMapPoints(points = [], getLabel = () => null) {
+    const grouped = new Map();
+
+    points.forEach(point => {
+        const lat = Number(point.lat);
+        const lng = Number(point.lng ?? point.lon);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+        const type = normalizeType(point.type);
+        const usage = Math.max(1, Number(point.usage ?? point.count ?? 1));
+        const key = `${type}:${lat}:${lng}`;
+        const label = getLabel(point);
+        const existing = grouped.get(key);
+        if (existing) {
+            existing.usage += usage;
+            if (label) existing.labels.add(label);
+            return;
+        }
+
+        grouped.set(key, {
+            lat,
+            lng,
+            type,
+            usage,
+            labels: new Set(label ? [label] : []),
+        });
+    });
+
+    return [...grouped.values()];
+}
+
+export function getUsageMarkerStyle(point, maxUsage, { baseRadius = 4 } = {}) {
+    const usageRatio = maxUsage === 1
+        ? 0.35
+        : Math.log(point.usage) / Math.log(maxUsage);
+    const baseColor = TYPE_COLORS[normalizeType(point.type)];
+
+    return {
+        radius: baseRadius + (usageRatio * 3),
+        fillColor: blend('#9ed9c2', baseColor, 0.3 + (usageRatio * 0.7)),
+        color: '#fff',
+        weight: 1,
+        opacity: 0.55 + (usageRatio * 0.4),
+        fillOpacity: 0.42 + (usageRatio * 0.45),
+    };
+}
+
+export function addZoomGatedPopup(marker, map, popup) {
+    let popupBound = false;
+    marker.on('click', () => {
+        if (map.getZoom() < STOP_POPUP_MIN_ZOOM) {
+            marker.closePopup();
+            return;
+        }
+        if (!popupBound) {
+            marker.bindPopup(popup);
+            popupBound = true;
+        }
+        marker.openPopup();
+    });
+}
+
+export function installPopupZoomGuard(map) {
+    map.on('zoomend', () => {
+        if (map.getZoom() < STOP_POPUP_MIN_ZOOM) map.closePopup();
+    });
+}
+
+export function getDenseViewport(points = []) {
+    const valid = points
+        .map(point => ({
+            lat: Number(point.lat),
+            lng: Number(point.lng ?? point.lon),
+            weight: Math.max(1, Number(point.usage ?? point.count ?? 1)),
+        }))
+        .filter(point => Number.isFinite(point.lat) && Number.isFinite(point.lng)
+            && point.lat >= -90 && point.lat <= 90 && point.lng >= -180 && point.lng <= 180);
+    const coordinates = valid.map(point => [point.lat, point.lng]);
+    if (coordinates.length < 2) return coordinates;
+
+    const latitudes = coordinates.map(([lat]) => lat);
+    const longitudes = coordinates.map(([, lng]) => lng);
+    const latSpan = Math.max(...latitudes) - Math.min(...latitudes);
+    const lngSpan = Math.max(...longitudes) - Math.min(...longitudes);
+    if (latSpan <= 24 && lngSpan <= 32) return coordinates;
+
+    const regions = new Map();
+    valid.forEach(point => {
+        const key = `${Math.floor(point.lat / 8)}:${Math.floor(point.lng / 8)}`;
+        if (!regions.has(key)) regions.set(key, { weight: 0, points: [] });
+        const region = regions.get(key);
+        region.weight += point.weight;
+        region.points.push([point.lat, point.lng]);
+    });
+
+    const sortedRegions = [...regions.values()].sort((a, b) => b.weight - a.weight);
+    const strongestWeight = sortedRegions[0]?.weight || 0;
+    // Keep meaningful regions together. This prevents a tied NYC/Tokyo history
+    // or a 75%-as-busy Boston history from arbitrarily opening on one city.
+    return sortedRegions
+        .filter(region => region.weight >= strongestWeight * 0.6)
+        .slice(0, 3)
+        .flatMap(region => region.points);
+}

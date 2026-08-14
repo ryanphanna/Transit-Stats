@@ -204,15 +204,6 @@
   box-shadow: 0 8px 22px rgb(11 159 110 / 18%);
 }
 
-.atlas-map-controls #btn-locate {
-  width: 34px;
-  height: 34px;
-  border: 1px solid rgb(255 255 255 / 85%);
-  background: rgb(255 255 255 / 80%);
-  box-shadow: 0 8px 22px rgb(16 42 42 / 8%);
-  pointer-events: auto;
-}
-
 .atlas-zoom-control {
   display: flex;
   gap: 6px;
@@ -262,11 +253,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   margin-bottom: 27px;
-}
-
-.atlas-card-topline:has(.atlas-card-type) {
-  justify-content: flex-end;
 }
 
 .atlas-avatar {
@@ -289,12 +277,17 @@
   font-size: 0.65rem;
   font-weight: 900;
   letter-spacing: 0.13em;
-  text-transform: uppercase;
 }
 
-.atlas-identity-card .page-kicker {
-  margin-bottom: 8px;
+.atlas-card-tagline {
+  flex: 1 1 150px;
+  min-width: 0;
   color: var(--accent);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-align: right;
+  line-height: 1.2;
 }
 
 .atlas-identity-card h1 {
@@ -445,9 +438,15 @@
   margin-top: 16px;
   padding-top: 13px;
   border-top: 1px solid var(--border);
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  background: transparent;
   color: var(--text-primary);
+  cursor: pointer;
   font-size: 0.72rem;
   font-weight: 900;
+  font-family: inherit;
   text-decoration: none;
 }
 

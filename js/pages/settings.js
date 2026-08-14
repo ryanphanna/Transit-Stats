@@ -13,6 +13,10 @@ async function init() {
     await Profile.loadAgencies(user);
     await Profile.init();
 
+    if (window.location.hash === '#public-profile-settings') {
+        document.getElementById('public-profile-settings')?.scrollIntoView({ block: 'start' });
+    }
+
     document.getElementById('btn-reset-password')?.addEventListener('click', async () => {
         const button = document.getElementById('btn-reset-password');
         if (!user.email || button?.disabled) return;

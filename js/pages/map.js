@@ -29,7 +29,6 @@ async function init() {
         let atlasStops = [];
         MapEngine.setStopSources({ atlasStops, firestoreStops: normalizedStops });
         MapEngine.init([], null, { deferInitialView: true });
-        MapEngine.requestInitialLocation();
         setTimeout(() => { if (MapEngine.map) MapEngine.map.invalidateSize(); }, 150);
 
         if (window.lucide) lucide.createIcons();

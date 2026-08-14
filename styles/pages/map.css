@@ -94,22 +94,6 @@
   color: white;
 }
 
-#btn-locate {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  background: rgb(255 255 255 / 72%);
-  color: var(--text-primary);
-  box-shadow: 0 2px 10px rgb(16 42 42 / 8%);
-  border: 1px solid rgb(255 255 255 / 80%);
-  pointer-events: auto;
-}
-
-#btn-locate:hover {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
 .map-diagnostics {
   display: none;
   position: absolute;

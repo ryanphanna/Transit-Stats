@@ -2,10 +2,10 @@
  * Public profile stats endpoint.
  *
  * The `trips` collection is never publicly readable (see firestore.rules) because
- * each document carries userId, route, stop names, and exact timestamps that a
- * public profile page has no business exposing. This endpoint reads trips with
- * the Admin SDK and returns only the aggregate fields the public profile page
- * actually renders: trip/hour totals and anonymous lat/lng points for the heatmap.
+ * each document carries userId, route, and exact timestamps that a public
+ * profile page has no business exposing. This endpoint reads trips with the
+ * Admin SDK and returns only aggregate stats plus public transit stop names,
+ * coordinates, and usage counts for the map.
  */
 
 const { onRequest } = require('firebase-functions/v2/https');
@@ -43,18 +43,43 @@ async function handlePublicProfile(req, res) {
     const tripsSnap = await db.collection('trips')
       .where('userId', '==', userId)
       .where('isPublic', '==', true)
-      .limit(1000)
       .get();
 
     let totalMinutes = 0;
-    const points = [];
+    const pointsByStop = new Map();
+    const addPoint = (location, type, fallbackName) => {
+      if (location?.lat == null || location?.lng == null) return;
+      const lat = Number(location.lat);
+      const lng = Number(location.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      const key = `${type}:${lat}:${lng}`;
+      const existing = pointsByStop.get(key);
+      if (existing) {
+        existing.usage += 1;
+        if (fallbackName) existing.names.add(fallbackName);
+        return;
+      }
+      pointsByStop.set(key, {
+        lat,
+        lng,
+        type,
+        usage: 1,
+        names: new Set(fallbackName ? [fallbackName] : []),
+      });
+    };
     tripsSnap.forEach((doc) => {
       const trip = doc.data();
       totalMinutes += trip.duration || 0;
-      const start = trip.boardingLocation || trip.boardLocation;
-      const end = trip.exitLocation;
-      if (start?.lat != null && start?.lng != null) points.push({ lat: start.lat, lng: start.lng, type: 'start' });
-      if (end?.lat != null && end?.lng != null) points.push({ lat: end.lat, lng: end.lng, type: 'end' });
+      addPoint(
+        trip.boardingLocation || trip.boardLocation,
+        'start',
+        trip.startStopName || trip.startStop || trip.boardingLocation?.name,
+      );
+      addPoint(
+        trip.exitLocation,
+        'end',
+        trip.endStopName || trip.endStop || trip.exitLocation?.name,
+      );
     });
 
     res.status(200).json({
@@ -64,7 +89,10 @@ async function handlePublicProfile(req, res) {
       defaultAgency: profile.defaultAgency || null,
       totalTrips: tripsSnap.size,
       totalHours: Math.round((totalMinutes / 60) * 10) / 10,
-      points,
+      points: [...pointsByStop.values()].map(point => ({
+        ...point,
+        names: [...point.names],
+      })),
     });
   } catch (err) {
     logger.error('Public profile lookup failed', { error: err.message, username });

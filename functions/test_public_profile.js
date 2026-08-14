@@ -17,11 +17,14 @@ function loadPublicProfile(overrides = {}) {
         doc: (id) => ({
           get: async () => (overrides.docs?.[name]?.[id] ?? { exists: false }),
         }),
-        where: () => ({
-          where: () => ({
-            limit: () => ({ get: async () => (overrides.tripsSnap ?? { size: 0, forEach: () => {} }) }),
-          }),
-        }),
+        where: () => {
+          const query = {
+            where: () => query,
+            limit: () => query,
+            get: async () => (overrides.tripsSnap ?? { size: 0, forEach: () => {} }),
+          };
+          return query;
+        },
       }),
     },
     getUserProfile: async () => overrides.profile ?? null,
@@ -91,7 +94,7 @@ test('publicProfile returns 403 when profile is not public', async () => {
 
 test('publicProfile returns 200 with aggregated stats for a public profile', async () => {
   const tripDocs = [
-    { data: () => ({ duration: 10, boardingLocation: { lat: 1, lng: 2 }, exitLocation: { lat: 3, lng: 4 } }) },
+    { data: () => ({ duration: 10, startStopName: 'Start', endStopName: 'End', boardingLocation: { lat: 1, lng: 2 }, exitLocation: { lat: 3, lng: 4 } }) },
   ];
   const handler = loadPublicProfile({
     docs: { usernames: { alice: { exists: true, data: () => ({ uid: 'u1' }) } } },
@@ -104,6 +107,7 @@ test('publicProfile returns 200 with aggregated stats for a public profile', asy
   assert.equal(res.body.totalTrips, 1);
   assert.equal(res.body.totalHours, Math.round((10 / 60) * 10) / 10);
   assert.equal(res.body.points.length, 2);
+  assert.deepEqual(res.body.points[0].names, ['Start']);
   assert.equal(res.body.displayName, 'Alice');
 });
 

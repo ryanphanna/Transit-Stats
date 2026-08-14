@@ -118,32 +118,64 @@ function setupTripEditListeners() {
     });
 }
 
+function setupShareMap() {
+    const shareButton = document.getElementById('atlas-share-map');
+    if (!shareButton) return;
+
+    shareButton.addEventListener('click', async () => {
+        const username = Profile.data?.username;
+        if (!username || !Profile.data?.isPublic) {
+            UI.showNotification(username ? 'Turn on your public profile first.' : 'Set up your public identity first.');
+            window.location.href = '/settings#public-profile-settings';
+            return;
+        }
+
+        const url = `${window.location.origin}/public?user=${encodeURIComponent(username)}`;
+        try {
+            if (navigator.share) {
+                await navigator.share({
+                    title: `${Profile.getDisplayName() || 'My'} TransitStats map`,
+                    url,
+                });
+                return;
+            }
+            await navigator.clipboard.writeText(url);
+            UI.showNotification('Map link copied to clipboard.', 'success');
+        } catch (error) {
+            if (error?.name !== 'AbortError') UI.showNotification('Could not share your map.');
+        }
+    });
+}
+
 function closeAllModals() {
     document.getElementById('modal-backdrop')?.classList.add('hidden');
     document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
 }
 
 async function loadDashboardAtlasStops() {
+    // Release the first view with coordinates already stored on the trips.
+    // Atlas enrichment can then improve unresolved points without blocking the
+    // first useful map frame.
+    const initialRender = MapEngine.releaseInitialView();
+    await initialRender;
+    document.querySelector('.dashboard-atlas-hero')?.classList.remove('is-loading');
+    document.getElementById('dashboard-map-loading')?.remove();
+
     const agencies = [...new Set((TripController.allTrips || [])
         .map(trip => String(trip.agency || '').trim())
         .filter(Boolean))];
     if (agencies.length === 0) {
-        MapEngine.releaseInitialView();
         return;
     }
 
     try {
         const atlasStops = await loadAtlasStops(agencies);
-        MapEngine.setStopSources({
+        await MapEngine.setStopSources({
             atlasStops,
             firestoreStops: PredictionEngine.stopsLibrary || [],
         });
     } catch (error) {
         console.warn('Dashboard: Atlas stop data unavailable', error);
-    } finally {
-        await MapEngine.releaseInitialView();
-        document.querySelector('.dashboard-atlas-hero')?.classList.remove('is-loading');
-        document.getElementById('dashboard-map-loading')?.remove();
     }
 }
 
@@ -154,6 +186,7 @@ async function init() {
 
     await Profile.load(user);
     await Profile.loadAgencies(user);
+    setupShareMap();
 
     const profileName = document.getElementById('profile-name');
     if (profileName) profileName.textContent = Profile.getDisplayName(user) || 'Traveler';
@@ -169,7 +202,6 @@ async function init() {
 
     if (window.L) {
         MapEngine.init([], null, { deferInitialView: true });
-        MapEngine.requestInitialLocation();
     }
 
     const tripsInitPromise = Trips.init();
