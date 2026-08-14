@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Dashboard stat labels are now text-only**: removed the decorative dots beside weekly, monthly, days-ridden, agency, and country counts.
 - **Map stops now aggregate reliably**: small saved-coordinate differences no longer create thousands of separate markers that make pan and zoom sluggish.
 - **Dashboard overlays now use the viewport margins**: the map card no longer sits in a centered desktop column with excessive side space.
 - **More unresolved trip stops now use route-verified local GTFS records**: added exact TTC, VTA, AC Transit, LADOT, SMART, Big Blue Bus, GO, and Hamilton matches without modifying raw trips.

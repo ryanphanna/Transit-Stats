@@ -416,25 +416,11 @@ body.dark .dashboard-map-wash {
 }
 
 .atlas-fact span {
-  position: relative;
   display: block;
-  padding-left: 11px;
   color: var(--text-muted);
   font-size: 0.59rem;
   font-weight: 800;
   line-height: 1.02;
-}
-
-.atlas-fact span::before {
-  position: absolute;
-  top: 0.35em;
-  left: 0;
-  display: block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--fact-color);
-  content: '';
 }
 
 .atlas-fact-month { --fact-color: #0b9f6e; }
