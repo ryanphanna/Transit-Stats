@@ -1,8 +1,6 @@
 import {
-    addZoomGatedPopup,
-    getDenseViewport,
-    getUsageMarkerStyle,
-    groupMapPoints,
+    addMapPointMarkers,
+    fitMapToDensePoints,
 } from './map-presentation.js';
 import { createMapSurface, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from './map-surface.js';
 
@@ -95,26 +93,18 @@ function initPublicMap(points) {
     if (points && points.length > 0) {
         // Match the signed-in map's default: show boarding stops first.
         const visiblePoints = points.filter(point => point.type === 'start' || point.type === 'boarding');
-        const markersByStop = groupMapPoints(visiblePoints, point => {
-            const names = Array.isArray(point.names) ? point.names : [point.name];
-            return names.filter(Boolean).map(escapeHtml).join('<br>');
-        });
-        const maxUsage = Math.max(...markersByStop.map(point => point.usage), 1);
-        markersByStop.forEach(point => {
-            const marker = L.circleMarker([point.lat, point.lng], {
-                renderer,
-                ...getUsageMarkerStyle(point, maxUsage, { baseRadius: 4.5 }),
-            });
-            const popup = [...point.labels].join('<br>');
-            if (popup) addZoomGatedPopup(marker, map, popup);
-            markers.addLayer(marker);
+        addMapPointMarkers({
+            map,
+            markers,
+            renderer,
+            points: visiblePoints,
+            getLabel: point => {
+                const names = Array.isArray(point.names) ? point.names : [point.name];
+                return names.filter(Boolean).map(escapeHtml).join('<br>');
+            },
+            formatPopup: value => value,
         });
 
-        const bounds = getDenseViewport(visiblePoints);
-        if (bounds.length === 1) {
-            map.setView(bounds[0], 13, { animate: false });
-        } else if (bounds.length > 1) {
-            map.fitBounds(bounds, { padding: [60, 60], maxZoom: 13 });
-        }
+        fitMapToDensePoints(map, visiblePoints, { maxZoom: 13 });
     }
 }

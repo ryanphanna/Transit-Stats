@@ -99,6 +99,33 @@ export function getUsageMarkerStyle(point, maxUsage, { baseRadius = 4 } = {}) {
     };
 }
 
+export function addMapPointMarkers({
+    map,
+    markers,
+    renderer,
+    points = [],
+    getLabel = point => point.label,
+    baseRadius = 4.5,
+    formatPopup = value => value,
+} = {}) {
+    if (!markers) return [];
+    const grouped = groupMapPoints(points, getLabel);
+    const maxUsage = Math.max(...grouped.map(point => point.usage), 1);
+    markers.clearLayers();
+
+    grouped.forEach(point => {
+        const marker = L.circleMarker([point.lat, point.lng], {
+            renderer,
+            ...getUsageMarkerStyle(point, maxUsage, { baseRadius }),
+        });
+        const popup = [...point.labels].map(formatPopup).filter(Boolean).join('<br>');
+        if (popup && map) addZoomGatedPopup(marker, map, popup);
+        markers.addLayer(marker);
+    });
+
+    return grouped;
+}
+
 export function addZoomGatedPopup(marker, map, popup) {
     let popupBound = false;
     marker.on('click', () => {
@@ -155,4 +182,29 @@ export function getDenseViewport(points = []) {
         .filter(region => region.weight >= strongestWeight * 0.6)
         .slice(0, 3)
         .flatMap(region => region.points);
+}
+
+export function fitMapToDensePoints(map, points = [], { maxZoom = 13 } = {}) {
+    if (!map) return false;
+    const viewportPoints = getDenseViewport(points);
+    const validPoints = viewportPoints
+        .map(point => Array.isArray(point) ? point : [Number(point.lat), Number(point.lng ?? point.lon)])
+        .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng)
+            && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+            && lat !== 0 && lng !== 0);
+    if (validPoints.length === 0) return false;
+
+    const bounds = L.latLngBounds(validPoints);
+    const southWest = bounds.getSouthWest();
+    const northEast = bounds.getNorthEast();
+    const latitudeSpan = Math.abs(northEast.lat - southWest.lat);
+    const longitudeSpan = Math.abs(northEast.lng - southWest.lng);
+
+    if (latitudeSpan < 0.001 && longitudeSpan < 0.001) {
+        map.setView(validPoints[0], maxZoom, { animate: false });
+    } else {
+        map.fitBounds(bounds, { padding: [60, 60], animate: false, maxZoom });
+    }
+    map.invalidateSize({ animate: false });
+    return true;
 }

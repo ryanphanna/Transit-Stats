@@ -4,11 +4,8 @@ import { buildStopIndex, resolveStopLocation } from './atlas-stop-resolver.js';
 import { getTripStopLabel } from './trip-display.js';
 import { createMapSurface, DEFAULT_MAP_CENTER } from './map-surface.js';
 import {
-    addMapZoomControl,
-    addZoomGatedPopup,
-    getDenseViewport,
-    getUsageMarkerStyle,
-    groupMapPoints,
+    addMapPointMarkers,
+    fitMapToDensePoints,
 } from './map-presentation.js';
 
 export function getMapMarkerLabel(trip = {}, side = 'boarding', resolution = null) {
@@ -148,18 +145,13 @@ export const MapEngine = {
             });
         });
 
-        const grouped = groupMapPoints(points, point => point.label);
-        const maxUsage = Math.max(...grouped.map(point => point.usage), 1);
-        this.layers.markers.clearLayers();
-        grouped.forEach(point => {
-            if (renderId !== this._renderGeneration) return;
-            const marker = L.circleMarker([point.lat, point.lng], {
-                renderer: this._canvasRenderer,
-                ...getUsageMarkerStyle(point, maxUsage, { baseRadius: 4.5 }),
-            });
-            const popup = [...point.labels].map(label => UI.escapeHtml(label)).filter(Boolean).join('<br>');
-            if (popup) addZoomGatedPopup(marker, this.map, popup);
-            this.layers.markers.addLayer(marker);
+        addMapPointMarkers({
+            map: this.map,
+            markers: this.layers.markers,
+            renderer: this._canvasRenderer,
+            points,
+            baseRadius: 4.5,
+            formatPopup: label => UI.escapeHtml(label),
         });
     },
 
@@ -349,58 +341,26 @@ export const MapEngine = {
             }
         }
 
-        // Batch add markers for performance
-        const markersByStop = groupMapPoints(points, point => point.label);
-        const maxUsage = Math.max(...markersByStop.map(point => point.usage), 1);
         const baseRadius = document.body.classList.contains('v2-clean') ? 4 : 4.5;
 
         if (renderId !== this._renderGeneration) return;
-        this.layers.markers.clearLayers();
-
-        let markerIndex = 0;
-        for (const point of markersByStop) {
-            if (renderId !== this._renderGeneration) return;
-            const popup = [...point.labels].map(label => UI.escapeHtml(label)).join('<br>');
-            const marker = L.circleMarker([point.lat, point.lng], {
-                renderer: this._canvasRenderer,
-                ...getUsageMarkerStyle(point, maxUsage, { baseRadius }),
-            });
-            addZoomGatedPopup(marker, this.map, popup);
-            this.layers.markers.addLayer(marker);
-            markerIndex += 1;
-            if (markerIndex % 80 === 0) {
-                await new Promise(resolve => requestAnimationFrame(resolve));
-                if (renderId !== this._renderGeneration) return;
-            }
-        }
+        addMapPointMarkers({
+            map: this.map,
+            markers: this.layers.markers,
+            renderer: this._canvasRenderer,
+            points,
+            baseRadius,
+            formatPopup: label => UI.escapeHtml(label),
+        });
 
         this._renderDiagnostics(resolutionStats, limitedTrips.length);
 
         // Fit bounds only on first load or when filters change
         // A global history should open on the region with the highest trip
         // density instead of fitting every continent into one unusable view.
-        const viewportPoints = getDenseViewport(points);
-        const validPoints = viewportPoints
-            .map(point => [Number(point.lat), Number(point.lng)])
-            .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng)
-                && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
-                && lat !== 0 && lng !== 0);
-
-        if (validPoints.length > 0 && this._isFirstLoad && !this._deferInitialView) {
+        if (this._isFirstLoad && !this._deferInitialView) {
             try {
-                const bounds = L.latLngBounds(validPoints);
-                const southWest = bounds.getSouthWest();
-                const northEast = bounds.getNorthEast();
-                const latitudeSpan = Math.abs(northEast.lat - southWest.lat);
-                const longitudeSpan = Math.abs(northEast.lng - southWest.lng);
-
-                if (latitudeSpan < 0.001 && longitudeSpan < 0.001) {
-                    this.map.setView(validPoints[0], 13, { animate: false });
-                } else {
-                    this.map.fitBounds(bounds, { padding: [60, 60], animate: false, maxZoom: 13 });
-                }
-                this.map.invalidateSize({ animate: false });
-                this._isFirstLoad = false;
+                if (fitMapToDensePoints(this.map, points, { maxZoom: 13 })) this._isFirstLoad = false;
             } catch (err) {
                 console.warn("MapEngine: Fit bounds failed", err);
             }
