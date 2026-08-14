@@ -32,6 +32,8 @@ export const MapEngine = {
     _usesMarkerClusters: false,
     _canvasRenderer: null,
     _renderGeneration: 0,
+    _userLocationMarker: null,
+    _initialLocationRequested: false,
 
     init(initialTrips = [], initialCenter = null) {
         console.log("MapEngine.init: Started", { tripsCount: initialTrips.length });
@@ -125,6 +127,12 @@ export const MapEngine = {
         if (btnLocate) {
             btnLocate.addEventListener('click', () => this.locateUser());
         }
+    },
+
+    requestInitialLocation() {
+        if (this._initialLocationRequested) return;
+        this._initialLocationRequested = true;
+        this.locateUser({ notifyErrors: false, zoom: 13 });
     },
 
     updateTrips(newTrips) {
@@ -397,26 +405,30 @@ export const MapEngine = {
         console.log(`MapEngine: Rendered ${points.length} markers in ${Math.round(performance.now() - start)}ms`);
     },
 
-    locateUser() {
+    locateUser({ notifyErrors = true, zoom = 15 } = {}) {
         if (!navigator.geolocation) {
-            UI.showNotification("Geolocation not supported by this browser.");
+            if (notifyErrors) UI.showNotification("Geolocation not supported by this browser.");
             return;
         }
 
         navigator.geolocation.getCurrentPosition(pos => {
             const { latitude, longitude } = pos.coords;
-            this.map.setView([latitude, longitude], 15);
+            // Trip bounds remain the preferred view when they have already
+            // rendered; location is the fallback for an empty/unresolved map.
+            if (this._isFirstLoad) this.map.setView([latitude, longitude], zoom);
 
-            L.circleMarker([latitude, longitude], {
+            if (this._userLocationMarker) this.map.removeLayer(this._userLocationMarker);
+            this._userLocationMarker = L.circleMarker([latitude, longitude], {
                 radius: 10,
                 fillColor: '#ef4444',
                 color: '#fff',
                 weight: 3,
                 opacity: 1,
                 fillOpacity: 0.5
-            }).addTo(this.map).bindPopup("You are here").openPopup();
+            }).addTo(this.map).bindPopup("You are here");
+            if (notifyErrors) this._userLocationMarker.openPopup();
         }, err => {
-            UI.showNotification("Could not get location: " + err.message);
-        });
+            if (notifyErrors) UI.showNotification("Could not get location: " + err.message);
+        }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
     }
 };

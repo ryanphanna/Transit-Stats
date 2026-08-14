@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Stops now start near you**: the map requests browser location on load, then fits to your trip history when stops are available.
 - **Riding streak styling now matches the dashboard**: replaced the heavy dark panel with a lighter accent card.
 - **Journey unlinking now requires confirmation**: the scissors control must be tapped twice within three seconds, while route badges use a lighter compact style.
 - **NFTA transportation-center stops now map to Buffalo MTC**: imported legacy rides use the local GTFS stop instead of remaining unmapped.

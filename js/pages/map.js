@@ -29,6 +29,7 @@ async function init() {
         let atlasStops = [];
         MapEngine.setStopSources({ atlasStops, firestoreStops: normalizedStops });
         MapEngine.init([]);
+        MapEngine.requestInitialLocation();
         setTimeout(() => { if (MapEngine.map) MapEngine.map.invalidateSize(); }, 150);
         // The map itself is ready now. Stop data continues loading in the
         // background and must never prevent the shared header from being used.
