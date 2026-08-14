@@ -10,7 +10,7 @@ describe('Old Trips GTFS supplements', () => {
 
     it('contains the exact local-GTFS batch', () => {
         expect(Object.keys(OLD_TRIPS_GTFS_STOP_SUPPLEMENTS).length).toBe(34);
-        expect(stops.length).toBe(479);
+        expect(stops.length).toBe(513);
     });
 
     it('resolves imported raw labels without changing trip records', () => {

@@ -1997,12 +1997,34 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "HSR",
+            "code": "2022",
+            "name": "FRANK A. COOKE TERMINAL PLATFORM 1",
+            "lat": 43.238904,
+            "lng": -79.829514,
+            "aliases": [
+                "FRANK A COOKE",
+                "Frank A. Cooke Terminal"
+            ]
+        },
+        {
             "code": "1089",
             "name": "KING opposite FRANK A. COOKE TERMINAL",
             "lat": 43.25708,
             "lng": -79.870117,
             "aliases": [
                 "1089"
+            ]
+        },
+        {
+            "agency": "HSR",
+            "code": "1434",
+            "name": "LIME RIDGE TERMINAL PLATFORM 2",
+            "lat": 43.217207,
+            "lng": -79.859778,
+            "aliases": [
+                "LIME RIDGE",
+                "Lime Ridge Terminal"
             ]
         },
         {
@@ -2227,6 +2249,46 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
         },
         {
             "agency": "GO Transit",
+            "code": "KP",
+            "name": "Kipling GO",
+            "lat": 43.635287,
+            "lng": -79.535374,
+            "aliases": [
+                "Kipling"
+            ]
+        },
+        {
+            "agency": "GO Transit",
+            "code": "KI",
+            "name": "Kitchener GO",
+            "lat": 43.451639,
+            "lng": -80.49154,
+            "aliases": [
+                "Kitchener"
+            ]
+        },
+        {
+            "agency": "GO Transit",
+            "code": "MP",
+            "name": "Maple GO",
+            "lat": 43.854395,
+            "lng": -79.508102,
+            "aliases": [
+                "Maple"
+            ]
+        },
+        {
+            "agency": "GO Transit",
+            "code": "102646",
+            "name": "Niagara College",
+            "lat": 43.140787,
+            "lng": -79.231727,
+            "aliases": [
+                "Niagara College Glendale Campus"
+            ]
+        },
+        {
+            "agency": "GO Transit",
             "code": "NI",
             "name": "Niagara Falls GO",
             "lat": 43.108882,
@@ -2280,6 +2342,36 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "name": "City Centre Transit Terminal",
             "lat": 43.594747,
             "lng": -79.646356
+        },
+        {
+            "agency": "MiWay",
+            "code": "place_cksngo",
+            "name": "Clarkson GO Station",
+            "lat": 43.518307,
+            "lng": -79.633574,
+            "aliases": [
+                "Clarkson"
+            ]
+        },
+        {
+            "agency": "MiWay",
+            "code": "place_subway",
+            "name": "Islington Subway Station",
+            "lat": 43.64525,
+            "lng": -79.5241,
+            "aliases": [
+                "Islington"
+            ]
+        },
+        {
+            "agency": "MiWay",
+            "code": "place_scomnb",
+            "name": "South Common Centre NB",
+            "lat": 43.522623,
+            "lng": -79.662587,
+            "aliases": [
+                "South Common Centre"
+            ]
         }
     ],
     "NFTA Metro": [
@@ -2335,6 +2427,46 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -78.83005,
             "aliases": [
                 "LaSalle"
+            ]
+        },
+        {
+            "agency": "NFTA Metro",
+            "code": "33572",
+            "name": "Michigan Avenue & Buffalo Creek Casino",
+            "lat": 42.886733,
+            "lng": -78.870929,
+            "aliases": [
+                "Michigan Av Buffalo Creek Casino"
+            ]
+        },
+        {
+            "agency": "NFTA Metro",
+            "code": "37660",
+            "name": "Niagara Falls Boulevard & Brighton Road",
+            "lat": 42.974221,
+            "lng": -78.823113,
+            "aliases": [
+                "Niagara Falls Blvd Brighton Rd"
+            ]
+        },
+        {
+            "agency": "NFTA Metro",
+            "code": "35870",
+            "name": "Niagara Street & Hertel Avenue",
+            "lat": 42.946887,
+            "lng": -78.894612,
+            "aliases": [
+                "Niagara Street Hertel Avenue South"
+            ]
+        },
+        {
+            "agency": "NFTA Metro",
+            "code": "50822",
+            "name": "South Rainbow Boulevard & 1st Street",
+            "lat": 43.083813,
+            "lng": -79.067065,
+            "aliases": [
+                "South Rainbow Blvd 1st Street South"
             ]
         },
         {
@@ -2483,12 +2615,32 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
     ],
     "CDTA": [
         {
+            "agency": "CDTA",
+            "code": "00855",
+            "name": "111th Street Station - 2nd Ave & 111th St",
+            "lat": 42.764645,
+            "lng": -73.774539,
+            "aliases": [
+                "111th St Station"
+            ]
+        },
+        {
             "code": "04447",
             "name": "6th Ave & Glen Ave",
             "lat": 42.751999,
             "lng": -73.681289,
             "aliases": [
                 "04447"
+            ]
+        },
+        {
+            "agency": "CDTA",
+            "code": "03248",
+            "name": "Broadway/SUNY Plaza Station - B'way & SUNY Plaza",
+            "lat": 42.683477,
+            "lng": -73.735771,
+            "aliases": [
+                "Broadway/SUNY Plaza"
             ]
         },
         {
@@ -2539,12 +2691,52 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
         },
         {
             "agency": "CDTA",
+            "code": "03744",
+            "name": "Downtown/Train Station - State St & Broadway",
+            "lat": 42.648533,
+            "lng": -73.750451,
+            "aliases": [
+                "Downtown/Train Station"
+            ]
+        },
+        {
+            "agency": "CDTA",
+            "code": "12969",
+            "name": "Hedley District Station - King St & River St",
+            "lat": 42.739526,
+            "lng": -73.691626,
+            "aliases": [
+                "Hedley District"
+            ]
+        },
+        {
+            "agency": "CDTA",
+            "code": "00459",
+            "name": "Holland Ave & Notre Dame Dr",
+            "lat": 42.660112,
+            "lng": -73.780714,
+            "aliases": [
+                "Holland Av/Notre Dame Dr"
+            ]
+        },
+        {
+            "agency": "CDTA",
             "code": "02663",
             "name": "Lark/Library Station - Washington Ave & Lark St",
             "lat": 42.656833,
             "lng": -73.763564,
             "aliases": [
                 "Lark/Library"
+            ]
+        },
+        {
+            "agency": "CDTA",
+            "code": "03417",
+            "name": "Madison Ave & Empire State Plaza",
+            "lat": 42.648721,
+            "lng": -73.760902,
+            "aliases": [
+                "Madison Av/Empire State Plaza"
             ]
         },
         {
@@ -2564,6 +2756,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -73.6824,
             "aliases": [
                 "North Central"
+            ]
+        },
+        {
+            "agency": "CDTA",
+            "code": "07130",
+            "name": "Riverfront Station - 4th St & Fulton St",
+            "lat": 42.737819,
+            "lng": -73.689992,
+            "aliases": [
+                "Riverfront"
             ]
         },
         {
@@ -2596,12 +2798,42 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "CDTA",
+            "code": "12143",
+            "name": "Walmart-Wilton",
+            "lat": 43.087072,
+            "lng": -73.773011,
+            "aliases": [
+                "Walmart"
+            ]
+        },
+        {
             "code": "03301",
             "name": "Washington Ave & S. Swan St",
             "lat": 42.654235,
             "lng": -73.758843,
             "aliases": [
                 "03301"
+            ]
+        },
+        {
+            "agency": "CDTA",
+            "code": "03419",
+            "name": "West Mall Station - 855 Central Ave",
+            "lat": 42.668954,
+            "lng": -73.775784,
+            "aliases": [
+                "West Mall"
+            ]
+        },
+        {
+            "agency": "CDTA",
+            "code": "00374",
+            "name": "Western Ave & Chapman Dr",
+            "lat": 42.670646,
+            "lng": -73.819373,
+            "aliases": [
+                "Western Av/Chapman Dr"
             ]
         },
         {
@@ -2990,6 +3222,36 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "name": "Deux-Montagnes / Gagnier",
             "lat": 45.551199,
             "lng": -73.914062
+        },
+        {
+            "agency": "Exo",
+            "code": "74212",
+            "name": "Terminus Centre-Ville Porte 16",
+            "lat": 45.497794,
+            "lng": -73.565732,
+            "aliases": [
+                "Terminus Centre-Ville"
+            ]
+        },
+        {
+            "agency": "Exo",
+            "code": "76047",
+            "name": "Terminus Georges-Gagné - Quai 5",
+            "lat": 45.466495,
+            "lng": -73.471847,
+            "aliases": [
+                "Terminus Georges-Gagné"
+            ]
+        },
+        {
+            "agency": "Exo",
+            "code": "75655",
+            "name": "Terminus Panama - Quai 15",
+            "lat": 45.472126,
+            "lng": -73.46779,
+            "aliases": [
+                "Terminus Panama"
+            ]
         }
     ],
     "RTL": [
@@ -3261,7 +3523,10 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "code": "10756",
             "name": "NW 11th & Couch",
             "lat": 45.523784,
-            "lng": -122.682223
+            "lng": -122.682223,
+            "aliases": [
+                "NW 11th / Couch"
+            ]
         },
         {
             "code": "13772",
@@ -3283,7 +3548,10 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "code": "5975",
             "name": "Portland VA Medical Center",
             "lat": 45.497058,
-            "lng": -122.683271
+            "lng": -122.683271,
+            "aliases": [
+                "Portland VA Medical Center"
+            ]
         },
         {
             "code": "1390",
@@ -3298,25 +3566,37 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "code": "9633",
             "name": "SW 11th & Taylor",
             "lat": 45.519059,
-            "lng": -122.683873
+            "lng": -122.683873,
+            "aliases": [
+                "SW 11th / Taylor"
+            ]
         },
         {
             "code": "10491",
             "name": "SW 5th & Hall",
             "lat": 45.510277,
-            "lng": -122.682286
+            "lng": -122.682286,
+            "aliases": [
+                "SW 5th / Hall"
+            ]
         },
         {
             "code": "7625",
             "name": "SW 5th & Morrison",
             "lat": 45.518932,
-            "lng": -122.677571
+            "lng": -122.677571,
+            "aliases": [
+                "SW 5th / Morrison"
+            ]
         },
         {
             "code": "11151",
             "name": "SW Rose Garden Way & Sherwood",
             "lat": 45.51849,
-            "lng": -122.706187
+            "lng": -122.706187,
+            "aliases": [
+                "SW Rose Garden Way / Sherwood"
+            ]
         }
     ],
     "C-Tran": [
@@ -3331,6 +3611,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "name": "Fisher's Landing Transit Center",
             "lat": 45.594491,
             "lng": -122.505409
+        },
+        {
+            "agency": "C-Tran",
+            "code": "3485",
+            "name": "SE 164th Ave & 6th St",
+            "lat": 45.61742,
+            "lng": -122.504494,
+            "aliases": [
+                "SE 164th Av / 6th St"
+            ]
         },
         {
             "code": "6137",
@@ -3401,6 +3691,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "King County Metro",
+            "code": "9138",
+            "name": "NE Campus Pkwy & 12th Ave NE - Bay 4",
+            "lat": 47.656839,
+            "lng": -122.316388,
+            "aliases": [
+                "NE Campus Pkwy / 12th Ave NE"
+            ]
+        },
+        {
             "code": "E27",
             "name": "Redmond Technology",
             "lat": 47.644842,
@@ -3457,6 +3757,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "Sound Transit",
+            "code": "320",
+            "name": "2nd Ave & Seneca St",
+            "lat": 47.606905,
+            "lng": -122.33441,
+            "aliases": [
+                "2nd Av / Seneca St"
+            ]
+        },
+        {
             "code": "E15",
             "name": "Bellevue Downtown",
             "lat": 47.615223,
@@ -3491,6 +3801,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "name": "Northgate Station",
             "lat": 47.702191,
             "lng": -122.328018
+        },
+        {
+            "agency": "Sound Transit",
+            "code": "1901",
+            "name": "Pacific Ave & S 19th St",
+            "lat": 47.239991,
+            "lng": -122.445685,
+            "aliases": [
+                "Pacific Av / S 19th St"
+            ]
         },
         {
             "code": "148i5",
@@ -3694,6 +4014,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -122.275884,
             "aliases": [
                 "59393"
+            ]
+        },
+        {
+            "agency": "AC Transit",
+            "code": "52584",
+            "name": "City Center NB",
+            "lat": 37.805901,
+            "lng": -122.270578,
+            "aliases": [
+                "City Center"
             ]
         },
         {
@@ -3922,6 +4252,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
         },
         {
             "agency": "RATP",
+            "code": "IDFM:425537",
+            "name": "Bibliothèque",
+            "lat": 48.829833,
+            "lng": 2.376893,
+            "aliases": [
+                "BIBLIOTHEQUE CHEVALERET"
+            ]
+        },
+        {
+            "agency": "RATP",
             "code": "IDFM:monomodalStopPlace:58759",
             "name": "Charles de Gaulle - Etoile",
             "lat": 48.874172759565376,
@@ -3998,6 +4338,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "name": "La Belle Epine",
             "lat": 48.75645134048631,
             "lng": 2.3742960219506055
+        },
+        {
+            "agency": "RATP",
+            "code": "IDFM:monomodalStopPlace:46007",
+            "name": "La Croix de Berny",
+            "lat": 48.763666,
+            "lng": 2.307858,
+            "aliases": [
+                "La Croix de Berny eb"
+            ]
         },
         {
             "code": "IDFM:24268",
@@ -4184,6 +4534,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -121.479969,
             "aliases": [
                 "Fruitridge Station"
+            ]
+        },
+        {
+            "agency": "Sacramento Regional Transit",
+            "code": "7092",
+            "name": "Sacramento Valley Station (WB)",
+            "lat": 38.584599,
+            "lng": -121.500373,
+            "aliases": [
+                "Sacramento Valley Station"
             ]
         }
     ]
