@@ -46,6 +46,7 @@ async function waitForRestoredUser(initialUser) {
 
 function setAuthRestoring(isRestoring) {
     document.body?.toggleAttribute('data-auth-restoring', isRestoring);
+    if (!isRestoring) document.body?.classList.remove('dashboard-auth-pending');
 }
 
 // Apply theme immediately to prevent flash of unstyled content
@@ -73,7 +74,6 @@ export function requireAuth(options = {}) {
             if (!user) setAuthRestoring(true);
             const sessionUser = await waitForRestoredUser(user);
             if (!sessionUser) {
-                setAuthRestoring(false);
                 console.warn('[auth-guard] Redirecting without a restored session.', {
                     path: window.location.pathname,
                     initialUser: Boolean(user),
@@ -82,7 +82,6 @@ export function requireAuth(options = {}) {
                 window.location.href = loginUrl;
                 return;
             }
-            setAuthRestoring(false);
             const verification = await verifyWithRetry(sessionUser);
             if (!verification.allowed) {
                 if (verification.retryable) {
@@ -98,6 +97,7 @@ export function requireAuth(options = {}) {
                 window.location.href = loginUrl;
                 return;
             }
+            setAuthRestoring(false);
             if (options.adminOnly && !verification.isAdmin) {
                 window.location.href = '/dashboard';
                 return;

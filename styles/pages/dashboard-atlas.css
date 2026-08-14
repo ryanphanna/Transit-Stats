@@ -4,6 +4,10 @@
   overflow: hidden;
 }
 
+.dashboard-surface.dashboard-auth-pending .dashboard-atlas-hero {
+  visibility: hidden;
+}
+
 .dashboard-surface .header {
   position: absolute;
   background: transparent;
