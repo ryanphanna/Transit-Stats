@@ -3,6 +3,7 @@ import firebase from '../firebase.js';
 import { Utils } from '../utils.js';
 import { UI } from '../ui-utils.js';
 import { TripController } from '../trips/TripController.js';
+import { isStopLinked, stopBelongsToAgency } from '../stop-library-match.js';
 
 /**
  * AdminTriage - Inbox of individual trips with unrecognized stops.
@@ -19,7 +20,7 @@ export const AdminTriage = {
             const checkStop = (rawName, rawCode, role) => {
                 if (!rawName && !rawCode) return;
                 const norm = Utils.normalizeIntersectionStop(rawName || rawCode);
-                if (this._isLinked(norm, rawCode, stopsLibrary)) return;
+                if (this._isLinked(norm, rawCode, trip.agency, stopsLibrary)) return;
 
                 items.push({
                     tripId: trip.id,
@@ -28,6 +29,7 @@ export const AdminTriage = {
                     rawCode: rawCode || null,
                     route: trip.route,
                     direction: trip.direction || null,
+                    agency: trip.agency || null,
                     date: trip.startTime,
                 });
             };
@@ -146,17 +148,17 @@ export const AdminTriage = {
         }
     },
 
-    _isLinked(name, code, library) {
-        return library.some(s =>
-            (code && s.code === code) ||
-            s.name.toLowerCase() === name.toLowerCase() ||
-            (s.aliases && s.aliases.some(a => a.toLowerCase() === name.toLowerCase()))
-        );
+    _isLinked(name, code, agency, library) {
+        return library.some(stop => isStopLinked({
+            agency,
+            stopName: name,
+            stopCode: code,
+        }, stop));
     },
 
-    _suggestStop(rawName, code, library) {
+    _suggestStop(rawName, code, agency, library) {
         if (code) {
-            const byCode = library.find(s => s.code === code);
+            const byCode = library.find(s => isStopLinked({ agency, stopCode: code }, s));
             if (byCode) return { stop: byCode, score: 100 };
         }
         const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -164,6 +166,7 @@ export const AdminTriage = {
         if (!target) return null;
         let best = null, bestScore = 0;
         for (const stop of library) {
+            if (!stopBelongsToAgency(stop, agency)) continue;
             for (const cand of [stop.name, ...(stop.aliases || [])]) {
                 const cNorm = norm(cand);
                 const score = target === cNorm ? 100 : (cNorm.includes(target) || target.includes(cNorm) ? 75 : 0);
