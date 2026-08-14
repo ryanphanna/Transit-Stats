@@ -419,7 +419,7 @@ body.dark .dashboard-map-wash {
   color: var(--text-muted);
   font-size: 0.59rem;
   font-weight: 800;
-  white-space: nowrap;
+  line-height: 1.2;
 }
 
 .atlas-fact span::before {
