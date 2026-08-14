@@ -18,9 +18,11 @@ export const Stats = {
 
         let thisWeek = 0;
         let thisMonth = 0;
+        const riddenDays = new Set();
         (trips || []).forEach(trip => {
             const date = this.getTripDate(trip);
             if (!date) return;
+            riddenDays.add(`${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`);
             if (date >= weekStart) thisWeek++;
             if (date >= monthStart) thisMonth++;
         });
@@ -28,7 +30,8 @@ export const Stats = {
         return {
             lifetime: trips?.length || 0,
             thisMonth,
-            thisWeek
+            thisWeek,
+            daysRidden: riddenDays.size
         };
     },
 

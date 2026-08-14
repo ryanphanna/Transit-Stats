@@ -15,7 +15,8 @@ describe('Stats.computeTripPeriodCounts', () => {
         expect(Stats.computeTripPeriodCounts(trips, now)).toEqual({
             lifetime: 5,
             thisMonth: 4,
-            thisWeek: 2
+            thisWeek: 2,
+            daysRidden: 5
         });
     });
 
@@ -29,7 +30,18 @@ describe('Stats.computeTripPeriodCounts', () => {
         expect(Stats.computeTripPeriodCounts(trips, now)).toEqual({
             lifetime: 2,
             thisMonth: 1,
-            thisWeek: 1
+            thisWeek: 1,
+            daysRidden: 1
         });
+    });
+
+    it('counts multiple trips on the same day once', () => {
+        const trips = [
+            { startTime: new Date(2026, 7, 13, 8) },
+            { startTime: new Date(2026, 7, 13, 17) },
+            { startTime: new Date(2026, 7, 14, 8) }
+        ];
+
+        expect(Stats.computeTripPeriodCounts(trips, new Date(2026, 7, 14, 12)).daysRidden).toBe(2);
     });
 });

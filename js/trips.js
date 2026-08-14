@@ -132,8 +132,15 @@ export const Trips = {
     updateProfileStatus(active, trips = []) {
         const el = document.getElementById('profile-status');
         if (!el) return;
+
+        if (!active) {
+            el.hidden = true;
+            el.textContent = '';
+            return;
+        }
         
         // Use textContent for user data, innerHTML only for the fixed indicator span
+        el.hidden = false;
         el.innerHTML = '<span class="status-indicator"></span><span class="status-text"></span>';
         const indicator = el.querySelector('.status-indicator');
         const text = el.querySelector('.status-text');
@@ -141,11 +148,6 @@ export const Trips = {
         if (active) {
             indicator.classList.add('active');
             text.textContent = `Riding ${getTripRouteLabel(active)}`;
-        } else {
-            indicator.classList.remove('active');
-            text.textContent = trips[0]?.incomplete
-                ? 'Last ride marked incomplete'
-                : trips.length > 0 ? 'Ready for your next ride' : 'Ready for your first ride';
         }
     },
 

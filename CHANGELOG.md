@@ -8,6 +8,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Trip count now includes days ridden**: the dashboard shows how many distinct days you have taken transit.
+- **Dashboard profile cards are quieter when idle**: removed the filler “Ready for your next ride” status when no trip is active.
 - **Default agency now requires a listed agency**: arbitrary text can no longer be saved as a profile preference.
 - **Stops now start near you**: the map requests browser location on load, then fits to your trip history when stops are available.
 - **Riding streak styling now matches the dashboard**: replaced the heavy dark panel with a lighter accent card.

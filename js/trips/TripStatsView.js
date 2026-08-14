@@ -10,6 +10,7 @@ export const TripStatsView = {
         this._updateBox('stat-trips-lifetime', periodCounts.lifetime);
         this._updateBox('stat-trips-month', periodCounts.thisMonth);
         this._updateBox('stat-trips-week', periodCounts.thisWeek);
+        this._updateBox('stat-days-ridden', periodCounts.daysRidden);
 
         const metrics = Stats.computeMetrics(trips, range);
 
