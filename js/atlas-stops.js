@@ -1,4 +1,5 @@
 import { LOCAL_GTFS_STOP_SUPPLEMENTS } from './local-gtfs-stop-supplements.js';
+import { OLD_TRIPS_GTFS_STOP_SUPPLEMENTS } from './old-trips-gtfs-supplements.js';
 
 const ATLAS_STOPS_PROXY = import.meta.env.VITE_ATLAS_STOPS_URL
     || (import.meta.env.DEV ? '/atlas-dev/stops' : 'https://us-central1-transitstats-21ba4.cloudfunctions.net/atlasStops');
@@ -116,12 +117,13 @@ export async function loadAtlasStops(agencies) {
     const publishedStops = results
         .filter(result => result.status === 'fulfilled')
         .flatMap(result => result.value);
-    const supplements = agencySlugs.flatMap(([agency]) =>
-        (LOCAL_GTFS_STOP_SUPPLEMENTS[agency] || []).map(stop => ({
+    const supplements = agencySlugs.flatMap(([agency]) => [
+        ...(LOCAL_GTFS_STOP_SUPPLEMENTS[agency] || []),
+        ...(OLD_TRIPS_GTFS_STOP_SUPPLEMENTS[agency] || []),
+    ].map(stop => ({
             ...stop,
             agency,
             source: 'atlas',
-        }))
-    );
+        })));
     return [...publishedStops, ...supplements];
 }
