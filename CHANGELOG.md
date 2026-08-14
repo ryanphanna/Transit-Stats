@@ -10,6 +10,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 - **Dashboard and route editing are less obstructive**: agency fields now provide real ridden-agency suggestions while allowing custom values, Routes fits in the dashboard sidebar, Stops navigation stays usable during map loading, and route counts aggregate normalized rides correctly.
 - **Route coverage now includes every live Atlas agency**: inventories are resolved from the rider's actual agency name instead of a short hard-coded list, so agencies such as STM and NFTA can appear in coverage and map matching.
+- **Agency coverage now matches GTFS variants and sorts by completion**: direction-labelled routes such as BART's Red-N/Red-S count for a Red ride, and other agencies are ordered by finished percentage.
 - **Top routes now reflect all agencies and show route names**: the list no longer follows the default-agency coverage view, and GTFS route names are shown with the route number as context.
 - **Stops navigation appears before map startup finishes**: leaving the map no longer depends on authentication, Firestore, or GTFS loading completing first.
 - **Map route labels now read naturally**: all-caps names such as `PURPLE` display as `Purple` while route numbers remain unchanged.

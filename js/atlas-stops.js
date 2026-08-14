@@ -8,33 +8,6 @@ const STOP_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const stopCacheMemory = new Map();
 const stopCacheRequests = new Map();
 
-export const ATLAS_AGENCY_SLUGS = {
-    'TTC': 'ttc',
-    'GO Transit': 'go',
-    GO: 'go',
-    'MiWay': 'miway',
-    'YRT': 'yrt',
-    HSR: 'hamilton',
-    'LA Metro': 'lacmta',
-    'Niagara Region Transit': 'niagara',
-    BART: 'bart',
-    Muni: 'sfmta',
-    VTA: 'vta',
-    'AC Transit': 'actransit',
-    MTS: 'sdmts',
-    'Golden Gate Transit': 'goldengate',
-    'Santa Rosa CityBus': 'santarosa',
-    'Big Blue Bus': 'bigbluebus',
-    'Oakville Transit': 'oakville',
-    'NFTA Metro': 'nfta',
-    SMART: 'smart-ca',
-    SamTrans: 'samtrans',
-    LADOT: 'ladot',
-    Amtrak: 'sdmts',
-    'Flagship Cruises & Events': 'sdmts',
-    'GTAA Terminal Link': 'ttc'
-};
-
 // Some user agencies share physical stops with an Atlas agency. Keep the
 // trip's agency on the returned stop while loading every verified GTFS source
 // needed to resolve that trip endpoint.
@@ -132,8 +105,8 @@ async function fetchAgencyStops(agency, slug) {
 
 export async function loadAtlasStops(agencies) {
     const agencySlugs = [...new Set(agencies)]
-        .filter(agency => ATLAS_AGENCY_SLUGS[agency] || agency)
-        .flatMap(agency => (ATLAS_STOP_SOURCE_SLUGS[agency] || [ATLAS_AGENCY_SLUGS[agency] || agency])
+        .filter(Boolean)
+        .flatMap(agency => (ATLAS_STOP_SOURCE_SLUGS[agency] || [agency])
             .map(slug => [agency, slug]));
     if (agencySlugs.length === 0) return [];
 

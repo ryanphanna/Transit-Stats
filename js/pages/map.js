@@ -2,7 +2,7 @@ import { requireAuth } from '../shared/auth-guard.js';
 import { initHeader } from '../shared/header.js';
 import { db } from '../firebase.js';
 import { MapEngine } from '../map-engine.js';
-import { ATLAS_AGENCY_SLUGS, loadAtlasStops } from '../atlas-stops.js';
+import { loadAtlasStops } from '../atlas-stops.js';
 
 console.log("map.js: Module script loaded");
 
@@ -76,8 +76,7 @@ async function init() {
                 const trips = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 MapEngine.updateTrips(trips);
                 setMapLoading(null);
-                const agencies = [...new Set(trips.map(trip => trip.agency || 'TTC'))]
-                    .filter(agency => ATLAS_AGENCY_SLUGS[agency] || agency);
+                const agencies = [...new Set(trips.map(trip => trip.agency || 'TTC'))];
                 loadMissingAtlasStops(agencies).catch(error => {
                     console.warn('Map: Atlas stop loading failed', error);
                     setMapLoading(null);

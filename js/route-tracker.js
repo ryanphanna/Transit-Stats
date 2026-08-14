@@ -16,18 +16,6 @@ import { TripController } from './trips/TripController.js';
 const ATLAS_ROUTES_PROXY = import.meta.env.VITE_ATLAS_ROUTES_URL
     || (import.meta.env.DEV ? '/atlas-dev/routes' : 'https://us-central1-transitstats-21ba4.cloudfunctions.net/atlasRoutes');
 
-// Transit Stats agency name -> Atlas slug (must match Atlas index.json).
-const ATLAS_SLUGS = {
-    'TTC': 'ttc',
-    'OC Transpo': 'octranspo',
-    'GO Transit': 'go',
-    'MiWay': 'miway',
-    'YRT': 'yrt',
-    'Brampton Transit': 'brampton',
-    'Durham Transit': 'drt',
-    'HSR': 'hamilton',
-};
-
 const AGENCY_ALIASES = {
     go: 'GO Transit',
 };
@@ -142,7 +130,7 @@ export const RouteTracker = {
                 ...this._coverage(agency, routes, riddenSet),
                 tripCount: tripCounts.get(agency) || 0,
             };
-        })));
+        }))).sort((a, b) => b.pct - a.pct || b.tripCount - a.tripCount || a.agency.localeCompare(b.agency));
     },
 
     _getRoutes: async function (agency) {
@@ -150,7 +138,7 @@ export const RouteTracker = {
         if (this.routesCache[agency]) return this.routesCache[agency];
 
         let routes = null;
-        const slug = ATLAS_SLUGS[agency] || agency;
+        const slug = agency;
         if (slug) {
             const cacheKey = `${slug}-${this._weekVersion()}`;
             routes = await this._idbGet(cacheKey).catch(() => null);
@@ -264,8 +252,7 @@ export const RouteTracker = {
         return new Set(
             TripController.allTrips
                 .filter(t => !t.discarded && normalizeAgency(t.agency || 'TTC') === normalizeAgency(agency) && tripRouteValue(t))
-                .map(t => this._matchRouteToAtlas(tripRouteValue(t), atlasRouteKeys))
-            .filter(Boolean)
+                .flatMap(t => this._matchRoutesToAtlas(tripRouteValue(t), atlasRouteKeys))
         );
     },
 
@@ -320,7 +307,9 @@ export const RouteTracker = {
             const inventory = inventoryByAgency.get(route.agency) || [];
             const matchingRoute = inventory.find(candidate => {
                 const candidateKey = this._normalizeRoute(candidate.routeShortName);
-                return candidateKey === route.route || candidateKey.match(/^(\d+)/)?.[1] === route.route;
+                return candidateKey === route.route
+                    || candidateKey.match(/^(\d+)/)?.[1] === route.route
+                    || candidateKey.startsWith(`${route.route}-`);
             });
             return {
                 ...route,
@@ -330,15 +319,25 @@ export const RouteTracker = {
     },
 
     _matchRouteToAtlas: function (value, atlasRouteKeys) {
+        return this._matchRoutesToAtlas(value, atlasRouteKeys)[0] || null;
+    },
+
+    _matchRoutesToAtlas: function (value, atlasRouteKeys) {
         const normalized = this._normalizeRoute(value);
-        if (!normalized) return null;
-        if (atlasRouteKeys.has(normalized)) return normalized;
+        if (!normalized) return [];
+        if (atlasRouteKeys.has(normalized)) return [normalized];
 
         // Branches, shuttles, and short-turn labels generally begin with the
         // base numeric route: 510a, 510b shuttle, 506 bus b, etc. Only accept
         // the fallback when Atlas actually contains that numeric base route.
         const numericBase = normalized.match(/^(\d+)/)?.[1];
-        return numericBase && atlasRouteKeys.has(numericBase) ? numericBase : null;
+        if (numericBase && atlasRouteKeys.has(numericBase)) return [numericBase];
+
+        // Some GTFS feeds encode direction as part of the route name (for
+        // example BART's Red-N and Red-S), while trip logs store the line
+        // name only. A ride on the line therefore marks all matching GTFS
+        // direction variants as ridden.
+        return [...atlasRouteKeys].filter(route => route.startsWith(`${normalized}-`));
     },
 
     _normalizeRoute: function (value) {

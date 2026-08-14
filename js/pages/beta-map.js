@@ -1,8 +1,8 @@
 import { requireAuth } from '../shared/auth-guard.js';
 import { initHeader } from '../shared/header.js';
 import { db } from '../firebase.js';
-import { ATLAS_AGENCY_SLUGS as STOP_AGENCIES, loadAtlasStops } from '../atlas-stops.js';
-import { ATLAS_AGENCY_SLUGS as ROUTE_AGENCIES, loadAtlasRoutes } from '../atlas-routes.js';
+import { loadAtlasStops } from '../atlas-stops.js';
+import { loadAtlasRoutes } from '../atlas-routes.js';
 import { buildStopIndex, resolveStopLocation } from '../atlas-stop-resolver.js';
 import { clipFeatureToTrip, routeMatches } from '../route-segment.js';
 import { getTripStopLabel } from '../trip-display.js';
@@ -110,7 +110,7 @@ function buildPathData() {
             return;
         }
 
-        const agencySlug = ROUTE_AGENCIES[trip.agency || 'TTC'] || trip.agency;
+        const agencySlug = trip.agency || 'TTC';
         const candidates = state.routeFeatures.filter(feature => {
             const route = feature.properties?.routeShortName || feature.properties?.routeId;
             return feature.__agencySlug === agencySlug && routeMatches(route, trip.route);
@@ -187,8 +187,7 @@ function render() {
 }
 
 async function loadAtlasStopData() {
-    const agencies = [...new Set(state.trips.map(trip => trip.agency || 'TTC'))]
-        .filter(agency => STOP_AGENCIES[agency] || agency);
+    const agencies = [...new Set(state.trips.map(trip => trip.agency || 'TTC'))];
     const missing = agencies.filter(agency =>
         !state.loadedStopAgencies.has(agency) && !state.loadingStopAgencies.has(agency)
     );

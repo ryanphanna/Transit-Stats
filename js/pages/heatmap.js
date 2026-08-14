@@ -1,12 +1,8 @@
 import { requireAuth } from '../shared/auth-guard.js';
 import { initHeader } from '../shared/header.js';
 import { db } from '../firebase.js';
-import { ATLAS_AGENCY_SLUGS, loadAtlasRoutes } from '../atlas-routes.js';
+import { loadAtlasRoutes } from '../atlas-routes.js';
 import { heatmapRouteStyle, summarizeGtfsRouteUsage } from '../gtfs-heatmap.js';
-
-const AGENCY_BY_SLUG = Object.fromEntries(
-    Object.entries(ATLAS_AGENCY_SLUGS).map(([agency, slug]) => [slug, agency])
-);
 
 const state = {
     map: null,
@@ -54,7 +50,7 @@ function render() {
     if (!state.map || !state.layer) return;
     state.layer.clearLayers();
 
-    const summary = summarizeGtfsRouteUsage(state.routeFeatures, state.trips, AGENCY_BY_SLUG);
+    const summary = summarizeGtfsRouteUsage(state.routeFeatures, state.trips);
     renderStats(summary);
     const visibleRoutes = summary.routes.filter(route => state.scope === 'all' || route.rides > 0);
 

@@ -1,5 +1,12 @@
 const ATLAS_R2_BASE = process.env.ATLAS_R2_BASE || 'https://data.transitatlas.fyi';
 
+// A few rider-facing labels are abbreviations that do not appear in Atlas's
+// public agency name. Everything else is resolved from the live directory.
+const RIDER_LABEL_ALIASES = {
+  hsr: 'hamilton',
+  smart: 'smart-ca',
+};
+
 let directoryCache = null;
 const DIRECTORY_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -33,6 +40,9 @@ function chooseMatch(agencies, requested) {
   const value = normalize(requested);
   if (!value) return null;
 
+  const alias = RIDER_LABEL_ALIASES[value];
+  if (alias && agencies.some(agency => agency.slug === alias)) return alias;
+
   const exactSlug = agencies.find(agency => normalize(agency.slug) === value);
   if (exactSlug) return exactSlug.slug;
 
@@ -51,7 +61,17 @@ function chooseMatch(agencies, requested) {
     const name = normalize(agency.name);
     return name.startsWith(value) || value.startsWith(name);
   });
-  return prefixMatches.length === 1 ? prefixMatches[0].slug : null;
+  if (prefixMatches.length === 1) return prefixMatches[0].slug;
+
+  const containsMatches = agencies.filter(agency => {
+    const name = normalize(agency.name);
+    const nameTokens = name.split(' ');
+    const valueTokens = value.split(' ');
+    return valueTokens.length === 1
+      ? nameTokens.includes(value) || normalize(agency.slug).split(' ').includes(value)
+      : name.includes(value) || value.includes(name);
+  });
+  return containsMatches.length === 1 ? containsMatches[0].slug : null;
 }
 
 async function resolveAtlasAgency(value) {

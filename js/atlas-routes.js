@@ -1,30 +1,6 @@
 const ATLAS_ROUTES_PROXY = import.meta.env.VITE_ATLAS_ROUTES_URL
     || (import.meta.env.DEV ? '/atlas-dev/routes' : 'https://us-central1-transitstats-21ba4.cloudfunctions.net/atlasRoutes');
 
-export const ATLAS_AGENCY_SLUGS = {
-    TTC: 'ttc',
-    'GO Transit': 'go',
-    GO: 'go',
-    MiWay: 'miway',
-    YRT: 'yrt',
-    HSR: 'hamilton',
-    'LA Metro': 'lacmta',
-    'Niagara Region Transit': 'niagara',
-    BART: 'bart',
-    Muni: 'sfmta',
-    VTA: 'vta',
-    'AC Transit': 'actransit',
-    MTS: 'sdmts',
-    'Golden Gate Transit': 'goldengate',
-    'Santa Rosa CityBus': 'santarosa',
-    'Big Blue Bus': 'bigbluebus',
-    'Oakville Transit': 'oakville',
-    'NFTA Metro': 'nfta',
-    SMART: 'smart-ca',
-    SamTrans: 'samtrans',
-    LADOT: 'ladot'
-};
-
 function routeValues(trips) {
     const routes = new Set();
     trips.forEach(trip => {
@@ -40,7 +16,7 @@ function routeValues(trips) {
 export async function loadAtlasRoutes(trips) {
     const byAgency = new Map();
     trips.forEach(trip => {
-        const slug = ATLAS_AGENCY_SLUGS[trip.agency || 'TTC'] || trip.agency;
+        const slug = trip.agency || 'TTC';
         if (!slug) return;
         if (!byAgency.has(slug)) byAgency.set(slug, []);
         byAgency.get(slug).push(trip);
