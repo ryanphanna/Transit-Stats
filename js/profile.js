@@ -4,7 +4,36 @@ import { Identity } from './identity.js';
 import { createAgencyAutocomplete } from './agency-autocomplete.js';
 
 const AGENCY_DISPLAY_NAMES = {
+    TTC: 'Toronto Transit Commission',
     GO: 'GO Transit',
+    'GO Transit': 'GO Transit',
+    MiWay: 'Mississauga Transit',
+    YRT: 'York Region Transit',
+    'Brampton Transit': 'Brampton Transit',
+    'Durham Transit': 'Durham Region Transit',
+    HSR: 'Hamilton Street Railway',
+    GRT: 'Grand River Transit',
+    'OC Transpo': 'OC Transpo',
+    STM: 'Société de transport de Montréal',
+    TransLink: 'TransLink',
+    'NYC MTA': 'New York City Transit',
+    'LA Metro': 'Los Angeles Metro',
+    LADOT: 'Los Angeles Department of Transportation',
+    'Big Blue Bus': 'Santa Monica Big Blue Bus',
+    BART: 'Bay Area Rapid Transit',
+    Muni: 'San Francisco Municipal Transportation Agency',
+    Caltrain: 'Caltrain',
+    VTA: 'Santa Clara Valley Transportation Authority',
+    'AC Transit': 'Alameda-Contra Costa Transit District',
+    SamTrans: 'San Mateo County Transit District',
+    MTS: 'San Diego Metropolitan Transit System',
+    Amtrak: 'Amtrak',
+    'Golden Gate Transit': 'Golden Gate Transit',
+    SMART: 'Sonoma-Marin Area Rail Transit',
+    'Santa Rosa CityBus': 'Santa Rosa CityBus',
+    'Oakville Transit': 'Oakville Transit',
+    'GTAA Terminal Link': 'GTAA Terminal Link',
+    'Flagship Cruises & Events': 'Flagship Cruises & Events',
 };
 
 export function displayAgencyName(value) {

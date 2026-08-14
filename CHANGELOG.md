@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Agency search now recognizes full agency names**: search by names such as Toronto Transit Commission or Bay Area Rapid Transit while keeping the short stored code unchanged.
 - **Trip starts now require a boarding stop**: malformed records can no longer be created without an origin, and long trip-list counts use readable thousands separators.
 - **Trip cards now handle incomplete and connected rides clearly**: incomplete trips omit fake `0 min` durations and duplicate wording, while linked journey legs are grouped with a visible transfer path.
 - **Dashboard trip totals are now visible at a glance**: lifetime, current-month, and current-week counts replace the hidden period toggle, while detailed metrics are clearly labelled as the last 30 days.

@@ -203,6 +203,10 @@
   margin-top: 4px;
 }
 
+.settings-public-profile-group {
+  width: min(100%, 760px);
+}
+
 .settings-name {
   flex: 1;
 }
