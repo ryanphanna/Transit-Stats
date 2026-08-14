@@ -114,7 +114,7 @@
   box-shadow: var(--shadow-sm);
 }
 
-input, select {
+.settings-view input, .settings-view select {
   width: 100%;
   padding: 12px 16px;
   background: var(--bg-muted);
@@ -126,7 +126,7 @@ input, select {
   transition: all 0.2s;
 }
 
-input:focus, select:focus { 
+.settings-view input:focus, .settings-view select:focus {
   border-color: var(--accent-light); 
   background: var(--bg-card);
   box-shadow: 0 0 0 4px var(--accent-soft);
@@ -374,12 +374,12 @@ html[data-theme="dark"] .info-row:not(:last-child) {
   transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-input:checked + .slider {
+.settings-view input:checked + .slider {
   background-color: var(--accent);
   border-color: var(--accent);
 }
 
-input:checked + .slider:before {
+.settings-view input:checked + .slider:before {
   transform: translateX(20px);
   background-color: white;
 }

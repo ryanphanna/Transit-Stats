@@ -8,7 +8,10 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
-- **Phone sign-in no longer opens a browser autofill popover**: the login field stays clean and keeps its icon aligned when focused.
+- **Phone sign-in now confirms delivery and keeps verification consistent**: “Code sent” briefly confirms the request, Continue uses the primary action style, resend stays in the code bar, and new requests are limited to once per minute.
+- **Phone validation now gives immediate field feedback**: an incomplete number gets a brief shake instead of a red error message below the form.
+- **Verification codes now use the same type style as phone sign-in**: the placeholder no longer switches to a strange-looking monospace zero.
+- **Verification field focus now stays on one surface**: the code input no longer gets a second green highlight inside its wrapper.
 - **Settings now opens directly into its sections**: removed the oversized repeated page title so the page gets to the controls faster.
 - **Primary agency is now optional**: new riders can let TransitStats detect the agency from their rides instead of choosing TTC up front.
 

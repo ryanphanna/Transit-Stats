@@ -68,18 +68,36 @@ async function handleRequestOtp(req, res, traceId) {
       return;
     }
 
+    const verificationRef = db.collection('phoneLoginVerification').doc(phoneNumber);
     const code = randomInt(100000, 1000000).toString();
     const expiresAt = Timestamp.fromDate(new Date(Date.now() + 10 * 60 * 1000));
-    
-    await db.collection('phoneLoginVerification').doc(phoneNumber).set({
-      code,
-      expiresAt,
-      attempts: 0,
+    let secondsRemaining = 0;
+
+    await db.runTransaction(async (transaction) => {
+      const existingVerification = await transaction.get(verificationRef);
+      const lastSentAt = existingVerification.exists ? existingVerification.data().sentAt : null;
+      if (lastSentAt?.toDate) {
+        secondsRemaining = Math.ceil((lastSentAt.toDate().getTime() + 60 * 1000 - Date.now()) / 1000);
+        if (secondsRemaining > 0) return;
+      }
+
+      transaction.set(verificationRef, {
+        code,
+        expiresAt,
+        attempts: 0,
+        sentAt: Timestamp.now(),
+      });
     });
+
+    if (secondsRemaining > 0) {
+      res.status(429).json({ error: `Please wait ${secondsRemaining} seconds before requesting another code.` });
+      return;
+    }
 
     const message = `Your TransitStats login verification code is: ${code}`;
     const smsSent = await sendSmsReply(phoneNumber, message);
     if (!smsSent) {
+      await verificationRef.delete();
       logger.error('OTP Request failed: Twilio send failed', { phoneNumber, traceId }, traceId);
       res.status(500).json({ error: 'Failed to send SMS verification code. Please try again.' });
       return;

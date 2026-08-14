@@ -402,8 +402,7 @@
   background: var(--bg-muted);
 }
 
-.auth-input-wrap:focus-within,
-.auth-code-input:focus {
+.auth-input-wrap:focus-within {
   border-color: var(--accent);
   box-shadow: 0 0 0 4px var(--accent-soft);
 }
