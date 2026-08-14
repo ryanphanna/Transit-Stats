@@ -14,6 +14,29 @@
     <main id="app-root">
         <section id="view-dashboard" class="view dashboard-view active">
             <div class="container dashboard-grid">
+                <div class="card dashboard-trip-summary" aria-label="Trip totals">
+                    <div class="dashboard-trip-summary-heading">
+                        <div>
+                            <p class="page-kicker">Your transit life</p>
+                            <h2>Trip count</h2>
+                        </div>
+                        <i data-lucide="ticket" aria-hidden="true"></i>
+                    </div>
+                    <div class="dashboard-trip-summary-grid">
+                        <div class="dashboard-trip-summary-item">
+                            <strong id="stat-trips-lifetime">0</strong>
+                            <span>Lifetime</span>
+                        </div>
+                        <div class="dashboard-trip-summary-item">
+                            <strong id="stat-trips-month">0</strong>
+                            <span>This month</span>
+                        </div>
+                        <div class="dashboard-trip-summary-item">
+                            <strong id="stat-trips-week">0</strong>
+                            <span>This week</span>
+                        </div>
+                    </div>
+                </div>
                 <div class="dashboard-content">
                 <!-- Left Column -->
                 <aside class="col-profile">
@@ -90,11 +113,7 @@
                     </div>
                     <div class="card stats-card">
                         <div class="card-header">
-                            <h3><i data-lucide="bar-chart-3" class="icon-inline"></i> Travel Stats</h3>
-                            <div class="toggle-group">
-                                <button id="toggle-stats-30-insights" class="toggle-btn active">30d</button>
-                                <button id="toggle-stats-all-insights" class="toggle-btn">All</button>
-                            </div>
+                            <h3><i data-lucide="bar-chart-3" class="icon-inline"></i> Last 30 Days</h3>
                         </div>
                         <div class="stats-grid">
                             <div class="stat-box">

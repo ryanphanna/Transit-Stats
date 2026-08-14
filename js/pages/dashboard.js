@@ -120,19 +120,6 @@ function closeAllModals() {
     document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
 }
 
-function setupStatsToggle() {
-    document.getElementById('toggle-stats-30-insights')?.addEventListener('click', () => {
-        document.getElementById('toggle-stats-30-insights').classList.add('active');
-        document.getElementById('toggle-stats-all-insights').classList.remove('active');
-        Stats.showPeriod('30d');
-    });
-    document.getElementById('toggle-stats-all-insights')?.addEventListener('click', () => {
-        document.getElementById('toggle-stats-all-insights').classList.add('active');
-        document.getElementById('toggle-stats-30-insights').classList.remove('active');
-        Stats.showPeriod('all');
-    });
-}
-
 async function init() {
     const { user, isAdmin } = await requireAuth();
     initHeader({ isAdmin, currentPage: 'dashboard' });
@@ -149,7 +136,6 @@ async function init() {
 
     setupTripAgencyAutocomplete();
     setupTripEditListeners();
-    setupStatsToggle();
 
     // Edit trip modal backdrop close
     document.getElementById('modal-backdrop')?.addEventListener('click', closeAllModals);

@@ -237,9 +237,46 @@ input:-webkit-autofill { animation-name: onAutofillStart; }
 
 
 /* --- Journey Connector --- */
-.journey-connector { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: -4px 0; }
+.journey-group {
+  padding: 10px;
+  background: color-mix(in srgb, var(--accent) 5%, var(--bg-card));
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border));
+  border-radius: 12px;
+}
+
+.journey-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 4px 9px;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.journey-group-header span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent);
+}
+
+.journey-group-header .icon-inline {
+  width: 13px;
+  height: 13px;
+}
+
+.journey-group .trip-card {
+  background: var(--bg-card);
+  border-color: var(--border);
+}
+
+.journey-connector { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: -2px 0; }
 .journey-line { width: 2px; height: 10px; background: var(--accent); opacity: 0.3; border-radius: 1px; }
-.journey-badge { display: flex; align-items: center; gap: 6px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 20px; padding: 3px 10px; font-size: 0.72rem; color: var(--text-secondary); font-weight: 500; }
+.journey-badge { display: flex; align-items: center; gap: 6px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; font-size: 0.72rem; color: var(--text-secondary); font-weight: 500; }
 .btn-break-journey { background: none; border: none; padding: 0; cursor: pointer; color: var(--text-secondary); display: flex; align-items: center; opacity: 0.5; transition: opacity 0.15s, color 0.15s; }
 .btn-break-journey:hover { opacity: 1; color: var(--danger); }
 
@@ -383,4 +420,3 @@ input:-webkit-autofill { animation-name: onAutofillStart; }
 
 /* Layout adjustments */
 .sparkline-container { display: none; } /* Hide old sparkline */
-

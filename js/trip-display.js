@@ -13,9 +13,7 @@ export function getTripStopLabel(trip = {}, side = 'boarding', resolution = null
     }
     if (resolution?.label) return resolution.label;
     if (resolution?.source === 'saved') return 'Saved stop location';
-    return trip.incomplete && side === 'exiting'
-        ? 'Incomplete trip'
-        : side === 'boarding' ? 'Unknown boarding stop' : 'Unknown exit stop';
+    return side === 'boarding' ? 'No boarding stop recorded' : 'No exit recorded';
 }
 
 export function getTripRouteLabel(trip = {}) {

@@ -115,6 +115,10 @@ async function handleTripLog(phoneNumber, user, stopInput, route, direction, age
   route = normalizeRoute(route);
   const activeTrip = await getActiveTrip(user.userId);
   const parsedStop = parseStopInput(stopInput);
+  if (!parsedStop.stopCode && !parsedStop.stopName) {
+    await sendSmsReply(phoneNumber, 'I could not identify the boarding stop. Send the route and stop again.');
+    return;
+  }
   const stopDisplay = getStopDisplay(parsedStop.stopCode, parsedStop.stopName);
 
   const { resolvedAgency, handled } = await resolveTripAgency(
@@ -732,4 +736,3 @@ module.exports = {
   handleEndTrip,
   recomputeAndUpdatePrimaryAgency,
 };
-

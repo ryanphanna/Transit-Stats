@@ -3,13 +3,13 @@ import { getTripRouteLabel, getTripStatusLabel, getTripStopLabel } from '../js/t
 
 describe('trip display fallbacks', () => {
     test('never renders undefined stop values', () => {
-        expect(getTripStopLabel({ startStopName: undefined }, 'boarding')).toBe('Unknown boarding stop');
-        expect(getTripStopLabel({ endStopName: undefined }, 'exiting')).toBe('Unknown exit stop');
+        expect(getTripStopLabel({ startStopName: undefined }, 'boarding')).toBe('No boarding stop recorded');
+        expect(getTripStopLabel({ endStopName: undefined }, 'exiting')).toBe('No exit recorded');
     });
 
-    test('uses incomplete status instead of pending exit copy', () => {
+    test('uses a clear exit fallback for incomplete trips', () => {
         const trip = { incomplete: true, startStopName: 'Spadina Station' };
-        expect(getTripStopLabel(trip, 'exiting')).toBe('Incomplete trip');
+        expect(getTripStopLabel(trip, 'exiting')).toBe('No exit recorded');
         expect(getTripStatusLabel(trip)).toBe('Incomplete');
     });
 

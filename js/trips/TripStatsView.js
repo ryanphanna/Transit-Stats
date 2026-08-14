@@ -6,6 +6,11 @@ import { Utils } from '../utils.js';
  */
 export const TripStatsView = {
     render(trips, range = 30) {
+        const periodCounts = Stats.computeTripPeriodCounts(trips);
+        this._updateBox('stat-trips-lifetime', periodCounts.lifetime);
+        this._updateBox('stat-trips-month', periodCounts.thisMonth);
+        this._updateBox('stat-trips-week', periodCounts.thisWeek);
+
         const metrics = Stats.computeMetrics(trips, range);
 
         // Update primary metric boxes (try both base and -insights suffixed IDs)
@@ -44,7 +49,7 @@ export const TripStatsView = {
 
     _updateBox(id, val) {
         const el = document.getElementById(id);
-        if (el) el.textContent = val;
+        if (el) el.textContent = typeof val === 'number' ? val.toLocaleString('en-US') : val;
     },
 
     _renderCompactList(containerId, items) {

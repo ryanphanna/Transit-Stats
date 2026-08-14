@@ -8,6 +8,9 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Trip starts now require a boarding stop**: malformed records can no longer be created without an origin, and long trip-list counts use readable thousands separators.
+- **Trip cards now handle incomplete and connected rides clearly**: incomplete trips omit fake `0 min` durations and duplicate wording, while linked journey legs are grouped with a visible transfer path.
+- **Dashboard trip totals are now visible at a glance**: lifetime, current-month, and current-week counts replace the hidden period toggle, while detailed metrics are clearly labelled as the last 30 days.
 - **Dashboard and route editing are less obstructive**: agency fields now provide real ridden-agency suggestions while allowing custom values, Routes fits in the dashboard sidebar, Stops navigation stays usable during map loading, and route counts aggregate normalized rides correctly.
 - **Route coverage now groups GTFS direction and branch variants**: rider-facing lines such as BART's Red count once instead of being split into directional records.
 - **Route coverage now includes every live Atlas agency**: inventories are resolved from the rider's actual agency name instead of a short hard-coded list, so agencies such as STM and NFTA can appear in coverage and map matching.

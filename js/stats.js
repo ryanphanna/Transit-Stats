@@ -3,6 +3,35 @@
  * Pure logic for processing trip data into dashboard metrics.
  */
 export const Stats = {
+    getTripDate(trip) {
+        const date = trip?.startTime?.toDate
+            ? trip.startTime.toDate()
+            : new Date(trip?.startTime);
+        return isNaN(date.getTime()) ? null : date;
+    },
+
+    computeTripPeriodCounts(trips, now = new Date()) {
+        const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const daysSinceMonday = (weekStart.getDay() + 6) % 7;
+        weekStart.setDate(weekStart.getDate() - daysSinceMonday);
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        let thisWeek = 0;
+        let thisMonth = 0;
+        (trips || []).forEach(trip => {
+            const date = this.getTripDate(trip);
+            if (!date) return;
+            if (date >= weekStart) thisWeek++;
+            if (date >= monthStart) thisMonth++;
+        });
+
+        return {
+            lifetime: trips?.length || 0,
+            thisMonth,
+            thisWeek
+        };
+    },
+
     /**
      * Compute all dashboard metrics from a list of trips.
      */
@@ -60,8 +89,8 @@ export const Stats = {
     filterRecent(trips, days) {
         const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
         return trips.filter(t => {
-            const time = t.startTime?.toDate ? t.startTime.toDate().getTime() : new Date(t.startTime).getTime();
-            return time >= cutoff;
+            const date = this.getTripDate(t);
+            return date ? date.getTime() >= cutoff : false;
         });
     },
 

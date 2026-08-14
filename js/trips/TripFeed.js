@@ -21,18 +21,33 @@ export const TripFeed = {
         container.innerHTML = '';
         const visible = trips.slice(0, this._visibleCount);
 
-        visible.forEach((trip, i) => {
-            container.appendChild(this._createCard(trip, onEdit));
-            const next = visible[i + 1];
-            if (trip.journeyId && next?.journeyId === trip.journeyId) {
-                container.appendChild(this._createConnector(trip, next));
+        for (let i = 0; i < visible.length;) {
+            const trip = visible[i];
+            const group = trip.journeyId ? [trip] : [];
+
+            while (
+                group.length > 0 &&
+                i + group.length < visible.length &&
+                visible[i + group.length].journeyId === trip.journeyId
+            ) {
+                group.push(visible[i + group.length]);
             }
-        });
+
+            if (group.length > 1) {
+                container.appendChild(this._createJourneyGroup(group, onEdit));
+                i += group.length;
+                continue;
+            }
+
+            container.appendChild(this._createCard(trip, onEdit));
+            i++;
+        }
 
         if (this._visibleCount < trips.length) {
             const btn = document.createElement('button');
             btn.className = 'btn btn-outline full-width mt-3';
-            btn.textContent = `Show more (${trips.length - this._visibleCount} remaining)`;
+            const remaining = (trips.length - this._visibleCount).toLocaleString('en-US');
+            btn.textContent = `Show more (${remaining} remaining)`;
             btn.addEventListener('click', () => {
                 this._visibleCount += this._PAGE_SIZE;
                 this.render(container, trips, onEdit);
@@ -41,6 +56,24 @@ export const TripFeed = {
         }
 
         if (window.lucide) lucide.createIcons();
+    },
+
+    _createJourneyGroup(trips, onEdit) {
+        const group = document.createElement('div');
+        group.className = 'journey-group';
+        group.innerHTML = `
+            <div class="journey-group-header">
+                <span><i data-lucide="route" class="icon-inline"></i> ${trips.length}-trip journey</span>
+            </div>
+        `;
+
+        trips.forEach((trip, index) => {
+            group.appendChild(this._createCard(trip, onEdit));
+            const next = trips[index + 1];
+            if (next) group.appendChild(this._createConnector(trip, next));
+        });
+
+        return group;
     },
 
     _createCard(trip, onEdit) {
@@ -54,6 +87,8 @@ export const TripFeed = {
         const endStop = Utils.normalizeIntersectionStop(getTripStopLabel(trip, 'exiting'));
         const route = getTripRouteLabel(trip);
         const status = getTripStatusLabel(trip);
+        const duration = parseInt(trip.duration, 10);
+        const hasDuration = !trip.incomplete && Number.isFinite(duration) && trip.duration !== null && trip.duration !== undefined;
 
         const dirAbbr = { Northbound: 'NB', Southbound: 'SB', Eastbound: 'EB', Westbound: 'WB', Inbound: 'IB', Outbound: 'OB' };
         const direction = trip.direction ? (dirAbbr[trip.direction] || trip.direction) : '';
@@ -86,7 +121,7 @@ export const TripFeed = {
                     ${status ? `<div class="trip-status text-xxs">${Utils.hide(status)}</div>` : ''}
                     ${direction ? `<div class="trip-direction font-bold text-xxs">${Utils.hide(direction)}</div>` : ''}
                     ${trip.vehicle ? `<div class="trip-vehicle text-xxs opacity-70">${Utils.hide(trip.vehicle)}</div>` : ''}
-                    <div class="trip-duration text-secondary text-xs">${parseInt(trip.duration) || 0} min</div>
+                    ${hasDuration ? `<div class="trip-duration text-secondary text-xs">${duration} min</div>` : ''}
                     ${trip.rocketTripId ? `<div class="trip-rocket-badge text-accent" title="Rocket Instrument Sampling"><i data-lucide="microscope" class="icon-inline"></i></div>` : ''}
                 </div>
             </div>
