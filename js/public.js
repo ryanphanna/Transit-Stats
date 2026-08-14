@@ -88,21 +88,11 @@ function initPublicMap(points) {
     }).addTo(map);
 
     if (points && points.length > 0) {
-        // Public profiles receive only anonymous coordinates. Render those
-        // with the same clustered stop-dot treatment as the signed-in map,
-        // without adding labels, routes, or trip details to the public page.
-        const markers = typeof L.markerClusterGroup === 'function'
-            ? L.markerClusterGroup({
-                chunkedLoading: true,
-                chunkInterval: 50,
-                chunkDelay: 10,
-                maxClusterRadius: 45,
-                removeOutsideVisibleBounds: true,
-                showCoverageOnHover: false,
-            }).addTo(map)
-            : L.layerGroup().addTo(map);
-
-        const seen = new Set();
+        // Public profiles receive only anonymous coordinates. Keep the map
+        // quiet and show repeat visits with the same weighted dots as the
+        // signed-in map, without exposing labels or trip details.
+        const markers = L.layerGroup().addTo(map);
+        const markersByStop = new Map();
         points.forEach(point => {
             const lat = Number(point.lat);
             const lng = Number(point.lng);
@@ -110,17 +100,25 @@ function initPublicMap(points) {
 
             const type = point.type === 'start' ? 'boarding' : 'exiting';
             const key = `${type}:${lat}:${lng}`;
-            if (seen.has(key)) return;
-            seen.add(key);
+            const existing = markersByStop.get(key);
+            if (existing) {
+                existing.usage += 1;
+                return;
+            }
+            markersByStop.set(key, { lat, lng, type, usage: 1 });
+        });
 
-            markers.addLayer(L.marker([lat, lng], {
-                keyboard: false,
-                icon: L.divIcon({
-                    className: `map-stop-dot map-stop-dot--${type}`,
-                    html: '',
-                    iconSize: [10, 10],
-                    iconAnchor: [5, 5],
-                }),
+        const maxUsage = Math.max(...[...markersByStop.values()].map(point => point.usage), 1);
+        markersByStop.forEach(point => {
+            const ratio = maxUsage === 1 ? 0.35 : Math.log(point.usage) / Math.log(maxUsage);
+            const color = point.type === 'boarding' ? '#0b9f6e' : '#7c5ce6';
+            markers.addLayer(L.circleMarker([point.lat, point.lng], {
+                radius: 4 + (ratio * 3),
+                fillColor: color,
+                color: '#fff',
+                weight: 1,
+                opacity: 0.55 + (ratio * 0.4),
+                fillOpacity: 0.42 + (ratio * 0.45),
             }));
         });
 

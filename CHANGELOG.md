@@ -11,6 +11,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Dashboard is now a full-screen personal map**: the home screen focuses on your mapped stops and recent movement instead of separate dashboard cards and navigation.
 - **Settings now matches the map-first shell**: account and preference controls use the same quieter layout instead of the old page treatment.
 - **Settings is now more compact**: the page gets to the account, agency, map, and theme controls without a duplicate intro block.
+- **Public profiles now use quiet usage-weighted dots**: repeated shared stops stand out without numbered clusters covering the map.
 - **Maps now show one stop type at a time**: boarding stops are the default, with the preference to use exiting stops moved into Settings.
 - **Map controls are now clearer and movable**: labeled account actions, circular zoom controls, and an unobstructed map surface replace the old icon-heavy overlay.
 - **Map loading no longer exposes an intermediate viewport**: the map keeps its loading state until all trip stops and the final bounds are rendered.
