@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Dashboard auth now tolerates longer refreshes**: a temporary Firebase session gap no longer redirects to login after only five seconds.
 - **Stops map no longer zooms to the world while loading**: missing zero coordinates are excluded from marker rendering and bounds.
 - **Trip count now includes days ridden**: the dashboard shows how many distinct days you have taken transit.
 - **Dashboard profile cards are quieter when idle**: removed the filler “Ready for your next ride” status when no trip is active.

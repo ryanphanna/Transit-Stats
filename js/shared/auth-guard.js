@@ -1,7 +1,7 @@
 import { auth, authPersistenceReady } from '../firebase.js';
 import { Auth } from '../auth.js';
 
-const AUTH_RESTORE_GRACE_MS = 5000;
+const AUTH_RESTORE_GRACE_MS = 15000;
 
 function wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -42,6 +42,11 @@ export function requireAuth(options = {}) {
             if (!user) await wait(AUTH_RESTORE_GRACE_MS);
             const sessionUser = auth.currentUser || user || await Auth.restoreSharedSession();
             if (!sessionUser) {
+                console.warn('[auth-guard] Redirecting without a restored session.', {
+                    path: window.location.pathname,
+                    initialUser: Boolean(user),
+                    currentUser: Boolean(auth.currentUser),
+                });
                 window.location.href = loginUrl;
                 return;
             }
@@ -52,6 +57,10 @@ export function requireAuth(options = {}) {
                     checking = false;
                     return;
                 }
+                console.warn('[auth-guard] Whitelist rejected the session.', {
+                    path: window.location.pathname,
+                    reason: verification.error,
+                });
                 await Auth.signOut();
                 window.location.href = loginUrl;
                 return;

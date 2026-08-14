@@ -195,6 +195,7 @@ export const Auth = {
     },
 
     async signOut() {
+        console.warn('[auth] Signing out current session.', { path: window.location.pathname });
         await this.clearSharedSession();
         return auth.signOut();
     },
