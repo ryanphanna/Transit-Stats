@@ -158,6 +158,15 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "TTC",
+            "name": "Bay Station",
+            "lat": 43.669999,
+            "lng": -79.3909,
+            "aliases": [
+                "Bay"
+            ]
+        },
+        {
             "code": "8000003",
             "name": "Bayview station",
             "lat": 43.766721,
@@ -461,6 +470,15 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "TTC",
+            "name": "Dundas Station",
+            "lat": 43.6554,
+            "lng": -79.38,
+            "aliases": [
+                "Dundas"
+            ]
+        },
+        {
             "code": "14662",
             "name": "Dundas West Station",
             "lat": 43.656862,
@@ -716,6 +734,15 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -79.265979,
             "aliases": [
                 "2759"
+            ]
+        },
+        {
+            "agency": "TTC",
+            "name": "Kennedy Station",
+            "lat": 43.7322,
+            "lng": -79.2638,
+            "aliases": [
+                "Kennedy"
             ]
         },
         {
@@ -1539,6 +1566,15 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "TTC",
+            "name": "Sherbourne Station",
+            "lat": 43.67214,
+            "lng": -79.37617,
+            "aliases": [
+                "Sherbourne"
+            ]
+        },
+        {
             "code": "7346",
             "name": "Spadina Ave at Front St West North Side",
             "lat": 43.643182,
@@ -2103,6 +2139,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
     ],
     "GO Transit": [
         {
+            "agency": "GO Transit",
+            "code": "BE",
+            "name": "Bramalea GO",
+            "lat": 43.7022591,
+            "lng": -79.6887512,
+            "aliases": [
+                "Bramalea"
+            ]
+        },
+        {
             "code": "102150",
             "name": "Cambridge Smart Centre",
             "lat": 43.4117165,
@@ -2118,6 +2164,26 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -79.8875809,
             "aliases": [
                 "100178"
+            ]
+        },
+        {
+            "agency": "GO Transit",
+            "code": "NI",
+            "name": "Niagara Falls GO",
+            "lat": 43.108882,
+            "lng": -79.063319,
+            "aliases": [
+                "Niagara Falls"
+            ]
+        },
+        {
+            "agency": "GO Transit",
+            "code": "UN",
+            "name": "Union Station GO",
+            "lat": 43.645195,
+            "lng": -79.3806,
+            "aliases": [
+                "Union"
             ]
         },
         {
@@ -2288,6 +2354,15 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -79.46159,
             "aliases": [
                 "Sheppard West"
+            ]
+        },
+        {
+            "agency": "YRT",
+            "name": "Vaughan Metropolitan Centre",
+            "lat": 43.7967,
+            "lng": -79.5279,
+            "aliases": [
+                "Vaughan Metropolitan Centre"
             ]
         },
         {
@@ -2891,6 +2966,26 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "GCRTA",
+            "code": "place_tcc",
+            "name": "Tower City-Public Sq Stn",
+            "lat": 41.497524,
+            "lng": -81.693986,
+            "aliases": [
+                "Tower City"
+            ]
+        },
+        {
+            "agency": "GCRTA",
+            "code": "10932",
+            "name": "VAN AKEN & WARRENSVILLE STN",
+            "lat": 41.465969,
+            "lng": -81.537991,
+            "aliases": [
+                "Van Aken / Warrensville"
+            ]
+        },
+        {
             "code": "08238",
             "name": "W 25TH ST & DETROIT AV",
             "lat": 41.491248,
@@ -2997,6 +3092,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "TriMet",
+            "code": "8346",
+            "name": "NE 82nd Ave MAX Station",
+            "lat": 45.533237,
+            "lng": -122.577811,
+            "aliases": [
+                "NE 82nd Av"
+            ]
+        },
+        {
             "code": "2446",
             "name": "NE Halsey & 69th",
             "lat": 45.533526,
@@ -3016,6 +3121,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "name": "OMSI/SE Water",
             "lat": 45.506493,
             "lng": -122.662291
+        },
+        {
+            "agency": "TriMet",
+            "code": "7777",
+            "name": "Pioneer Courthouse/SW 6th Ave MAX Stn",
+            "lat": 45.518964,
+            "lng": -122.678558,
+            "aliases": [
+                "Pioneer Courthouse / SW 6th Av"
+            ]
         },
         {
             "code": "5975",
@@ -3287,6 +3402,26 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "name": "Everett Station",
             "lat": 47.974278,
             "lng": -122.197362
+        },
+        {
+            "agency": "Community Transit",
+            "code": "3225",
+            "name": "Hwy 99 EB Station",
+            "lat": 47.821055,
+            "lng": -122.315824,
+            "aliases": [
+                "Hwy 99"
+            ]
+        },
+        {
+            "agency": "Community Transit",
+            "code": "3236",
+            "name": "Mill Creek Blvd WB Station",
+            "lat": 47.849542,
+            "lng": -122.221095,
+            "aliases": [
+                "Mill Creek Blvd"
+            ]
         }
     ],
     "STL": [
@@ -3630,10 +3765,23 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": 2.379463070185257
         },
         {
+            "agency": "RATP",
+            "code": "IDFM:monomodalStopPlace:58759",
+            "name": "Charles de Gaulle - Etoile",
+            "lat": 48.874172759565376,
+            "lng": 2.295231447641207,
+            "aliases": [
+                "Charles de Gauelle Etoile"
+            ]
+        },
+        {
             "code": "IDFM:492289",
             "name": "Châtelet",
             "lat": 48.85763833122418,
-            "lng": 2.3484113851972435
+            "lng": 2.3484113851972435,
+            "aliases": [
+                "Chatelet des Halles"
+            ]
         },
         {
             "code": "IDFM:491715",
@@ -3782,6 +3930,26 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": 2.3244386552397684
         },
         {
+            "agency": "SNCF Transilien",
+            "code": "IDFM:monomodalStopPlace:43231",
+            "name": "Le Bourget",
+            "lat": 48.930744340383264,
+            "lng": 2.425825637815098,
+            "aliases": [
+                "LE BOURGET EB"
+            ]
+        },
+        {
+            "agency": "SNCF Transilien",
+            "code": "IDFM:monomodalStopPlace:46298",
+            "name": "Les Saules",
+            "lat": 48.74520105223681,
+            "lng": 2.4174549898851208,
+            "aliases": [
+                "LES SAULES NB"
+            ]
+        },
+        {
             "code": "IDFM:monomodalStopPlace:415093",
             "name": "Neuilly Porte Maillot",
             "lat": 48.878347804048644,
@@ -3805,6 +3973,40 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "name": "Sant Adrià Centre",
             "lat": 41.432803,
             "lng": 2.215877
+        }
+    ],
+    "Portland Aerial Tram": [
+        {
+            "agency": "Portland Aerial Tram",
+            "code": "12844",
+            "name": "Marquam Hill Upper Tram Terminal",
+            "lat": 45.499497,
+            "lng": -122.683919,
+            "aliases": [
+                "Upper Terminal"
+            ]
+        },
+        {
+            "agency": "Portland Aerial Tram",
+            "code": "12845",
+            "name": "South Waterfront Lower Tram Terminal",
+            "lat": 45.499271,
+            "lng": -122.67101,
+            "aliases": [
+                "Lower Terminal"
+            ]
+        }
+    ],
+    "Portland Parks & Recreation": [
+        {
+            "agency": "Portland Parks & Recreation",
+            "code": "815440",
+            "name": "TriMet Washington Park MAX Station",
+            "lat": 45.510506,
+            "lng": -122.716546,
+            "aliases": [
+                "Washington Park"
+            ]
         }
     ]
 };
