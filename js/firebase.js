@@ -28,5 +28,12 @@ export const authPersistenceReady = auth.setPersistence(firebase.auth.Auth.Persi
         console.warn('Firebase local persistence unavailable:', error.message);
     });
 export const db = firebase.firestore();
+// Let repeat visits render the last authorized snapshot immediately while
+// Firestore refreshes it from the server. This is best-effort because some
+// browsers or multi-tab configurations do not support persistent storage.
+export const firestorePersistenceReady = db.enablePersistence({ synchronizeTabs: true })
+    .catch(error => {
+        console.warn('Firebase offline cache unavailable:', error.code || error.message);
+    });
 export const Timestamp = firebase.firestore.Timestamp;
 export default firebase;

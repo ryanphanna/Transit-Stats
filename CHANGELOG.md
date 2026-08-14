@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Dashboard startup now shows cached and saved map data sooner**: repeat visits can reuse Firestore’s local snapshot while the map reveals its first useful frame before detailed stop matching finishes.
 - **Dashboard stat labels are now text-only**: removed the decorative dots beside weekly, monthly, days-ridden, agency, and country counts.
 - **Map stops now aggregate reliably**: small saved-coordinate differences no longer create thousands of separate markers that make pan and zoom sluggish.
 - **Dashboard overlays now use the viewport margins**: the map card no longer sits in a centered desktop column with excessive side space.

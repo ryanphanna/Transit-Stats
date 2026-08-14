@@ -157,9 +157,9 @@ async function loadDashboardAtlasStops() {
     // Atlas enrichment can then improve unresolved points without blocking the
     // first useful map frame.
     const initialRender = MapEngine.releaseInitialView();
-    await initialRender;
     document.querySelector('.dashboard-atlas-hero')?.classList.remove('is-loading');
     document.getElementById('dashboard-map-loading')?.remove();
+    await initialRender;
 
     const agencies = [...new Set((TripController.allTrips || [])
         .map(trip => String(trip.agency || '').trim())
