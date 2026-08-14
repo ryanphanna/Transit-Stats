@@ -22,7 +22,20 @@
 }
 
 .dashboard-surface .header .logo {
-  display: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 4px 12px 4px 5px;
+  border: 1px solid rgb(255 255 255 / 88%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 82%);
+  box-shadow: 0 8px 22px rgb(16 42 42 / 8%);
+  backdrop-filter: blur(14px);
+}
+
+.dashboard-surface .header .logo-text {
+  display: inline;
+  font-size: 0.92rem;
 }
 
 .dashboard-surface .header-actions {
@@ -259,7 +272,7 @@ body.dark .dashboard-map-wash {
 .atlas-card-topline {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 10px;
   margin-bottom: 27px;
 }
@@ -277,13 +290,6 @@ body.dark .dashboard-map-wash {
 .atlas-avatar svg {
   width: 20px;
   height: 20px;
-}
-
-.atlas-card-type {
-  color: var(--text-muted);
-  font-size: 0.65rem;
-  font-weight: 900;
-  letter-spacing: 0.13em;
 }
 
 .atlas-card-tagline {

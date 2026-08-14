@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **The TransitStats brand now stays in the shared header**: Dashboard and Settings use the same top-left wordmark instead of repeating the site name inside the dashboard card.
 - **Settings panels now share the dashboard’s spacing and controls**: the account, preference, and public-profile sections feel like one connected interface on desktop and mobile.
 - **Dashboard startup now shows cached and saved map data sooner**: repeat visits can reuse Firestore’s local snapshot while the map reveals its first useful frame before detailed stop matching finishes.
 - **Dashboard stat labels are now text-only**: removed the decorative dots beside weekly, monthly, days-ridden, agency, and country counts.

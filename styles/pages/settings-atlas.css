@@ -18,6 +18,11 @@
   display: none;
 }
 
+.settings-surface .header .logo-text {
+  display: inline;
+  font-size: 0.92rem;
+}
+
 .settings-surface .header-action-link {
   display: inline-flex;
   align-items: center;
