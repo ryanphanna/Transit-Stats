@@ -347,15 +347,40 @@ export const RouteTracker = {
             .replace(/^(route|line)\s+/i, '');
     },
 
+    _baseRouteKey: function (value) {
+        const normalized = this._normalizeRoute(value);
+        const numericBase = normalized.match(/^(\d+)/)?.[1];
+        if (numericBase) return numericBase;
+        return normalized.replace(/-(?:n|s|e|w)$/i, '');
+    },
+
+    _baseRouteLabel: function (value) {
+        const raw = String(value || '').trim();
+        const numericBase = raw.match(/^(\d+)/)?.[1];
+        if (numericBase) return numericBase;
+        return raw.replace(/-(?:N|S|E|W)$/i, '');
+    },
+
     _coverage: function (agency, routes, riddenSet) {
-        const normalize = r => this._normalizeRoute(r.routeShortName);
-        const ridden = routes.filter(r => riddenSet.has(normalize(r)));
-        const total = routes.length;
+        const groupedRoutes = new Map();
+        routes.forEach(route => {
+            const key = this._baseRouteKey(route.routeShortName);
+            if (!key || groupedRoutes.has(key)) return;
+            groupedRoutes.set(key, {
+                ...route,
+                routeShortName: this._baseRouteLabel(route.routeShortName),
+            });
+        });
+        const normalizedRidden = new Set([...riddenSet].map(route => this._baseRouteKey(route)));
+        const grouped = [...groupedRoutes.entries()];
+        const ridden = grouped.filter(([key]) => normalizedRidden.has(key)).map(([, route]) => route);
+        const displayRoutes = grouped.map(([, route]) => route);
+        const total = displayRoutes.length;
         const riddenCount = ridden.length;
         const missingCount = Math.max(total - riddenCount, 0);
         const pct = total > 0 ? Math.round((riddenCount / total) * 100) : 0;
 
-        return { agency, routes, ridden, total, riddenCount, missingCount, pct };
+        return { agency, routes: displayRoutes, ridden, total, riddenCount, missingCount, pct };
     },
 
     _render: async function (container, routes, riddenSet) {
@@ -463,9 +488,10 @@ export const RouteTracker = {
     },
 
     _renderAll: function (container, coverageItems) {
+        const summaries = coverageItems.map(item => this._coverage(item.agency, item.routes, item.riddenSet));
         if (this.compact) {
-            const total = coverageItems.reduce((sum, item) => sum + item.routes.length, 0);
-            const ridden = coverageItems.reduce((sum, item) => sum + item.riddenSet.size, 0);
+            const total = summaries.reduce((sum, item) => sum + item.total, 0);
+            const ridden = summaries.reduce((sum, item) => sum + item.riddenCount, 0);
             const pct = total > 0 ? Math.round((ridden / total) * 100) : 0;
             container.innerHTML = `
                 <div class="rt-compact-summary">
@@ -479,8 +505,7 @@ export const RouteTracker = {
             return;
         }
 
-        const cards = coverageItems.map(item => {
-            const coverage = this._coverage(item.agency, item.routes, item.riddenSet);
+        const cards = summaries.map(coverage => {
             return `
                 <section class="rt-agency-section">
                     <div class="rt-list-heading"><strong>${UI.escapeHtml(coverage.agency)}</strong><span>${coverage.riddenCount} of ${coverage.total} ridden</span></div>
