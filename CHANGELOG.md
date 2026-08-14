@@ -17,6 +17,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Map loading no longer exposes an intermediate viewport**: the map keeps its loading state until all trip stops and the final bounds are rendered.
 - **Zoom controls now use a compact horizontal layout**: minus and plus read left-to-right instead of looking like a reversed vertical stack.
 - **The map card now shows network breadth**: agencies ridden and countries reached are visible alongside recent movement totals.
+- **The map card now has a clear next action**: a quiet Share your map link leads to the public-profile settings.
 - **Map stops now show personal usage intensity**: frequently ridden stops are darker and larger, while occasional stops stay quieter.
 - **Connected trip cards now read as one journey**: incomplete rides avoid fake durations and duplicate placeholder wording, while linked legs use clearer transfer and unlink controls.
 - **Dashboard controls use less icon clutter**: Settings and Log out are explicit text actions, and the identity card is smaller and more compact.

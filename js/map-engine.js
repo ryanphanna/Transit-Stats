@@ -71,8 +71,7 @@ export const MapEngine = {
 
             this._canvasRenderer = L.canvas({ padding: 0.5 });
 
-            // Add Zoom Control to Bottom Right
-            L.control.zoom({ position: 'bottomright' }).addTo(this.map);
+            this._addZoomControl();
 
             this.setupLayers();
             this.renderMarkers();
@@ -115,6 +114,34 @@ export const MapEngine = {
         this._usesMarkerClusters = false;
         this.layers.markers = L.layerGroup();
         this.layers.markers.addTo(this.map);
+    },
+
+    _addZoomControl() {
+        const control = L.control({ position: 'bottomright' });
+        control.onAdd = map => {
+            const container = L.DomUtil.create('div', 'atlas-zoom-control');
+            const zoomOut = L.DomUtil.create('button', 'atlas-zoom-button atlas-zoom-button-out', container);
+            const zoomIn = L.DomUtil.create('button', 'atlas-zoom-button atlas-zoom-button-in', container);
+
+            zoomOut.type = 'button';
+            zoomOut.textContent = '−';
+            zoomOut.setAttribute('aria-label', 'Zoom out');
+            zoomIn.type = 'button';
+            zoomIn.textContent = '+';
+            zoomIn.setAttribute('aria-label', 'Zoom in');
+
+            L.DomEvent.disableClickPropagation(container);
+            L.DomEvent.on(zoomOut, 'click', event => {
+                L.DomEvent.stop(event);
+                map.zoomOut();
+            });
+            L.DomEvent.on(zoomIn, 'click', event => {
+                L.DomEvent.stop(event);
+                map.zoomIn();
+            });
+            return container;
+        };
+        control.addTo(this.map);
     },
 
     setupControls() {

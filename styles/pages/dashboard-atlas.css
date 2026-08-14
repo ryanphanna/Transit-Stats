@@ -213,20 +213,18 @@
   pointer-events: auto;
 }
 
-.dashboard-surface .leaflet-control-zoom {
+.atlas-zoom-control {
   display: flex;
-  flex-direction: row;
   gap: 6px;
   margin-right: 18px;
   margin-bottom: 18px;
-  border: 0;
-  box-shadow: none;
 }
 
-.dashboard-surface .leaflet-control-zoom a {
+.atlas-zoom-button {
   display: grid;
   width: 36px;
   height: 36px;
+  padding: 0;
   place-items: center;
   border: 1px solid rgb(220 231 227 / 92%);
   border-radius: 50%;
@@ -238,13 +236,9 @@
   backdrop-filter: blur(14px);
 }
 
-.dashboard-surface .leaflet-control-zoom a:hover {
+.atlas-zoom-button:hover {
   border-color: var(--accent-light);
   color: var(--accent);
-}
-
-.dashboard-surface .leaflet-control-zoom-out {
-  order: -1;
 }
 
 .atlas-identity-card {
@@ -443,6 +437,29 @@
 .atlas-fact-days { --fact-color: #c58b22; }
 .atlas-fact-agencies { --fact-color: #7c5ce6; }
 .atlas-fact-countries { --fact-color: #d06455; }
+
+.atlas-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 16px;
+  padding-top: 13px;
+  border-top: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.atlas-card-cta span {
+  color: var(--accent);
+  font-size: 1rem;
+  transition: transform 160ms ease;
+}
+
+.atlas-card-cta:hover span {
+  transform: translateX(3px);
+}
 
 .dashboard-atlas-content {
   padding-top: 72px;
