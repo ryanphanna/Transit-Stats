@@ -1788,14 +1788,14 @@ export const LOCAL_GTFS_STOP_SUPPLEMENTS = {
             name: 'Lafayette Station',
             lat: 42.886409,
             lng: -78.874051,
-            aliases: ['Evans Bank @ Lafayette Square Metro Rail'],
+            aliases: ['Evans Bank @ Lafayette Square', 'Evans Bank @ Lafayette Square Metro Rail'],
         },
         {
             code: '43509',
             name: 'Lafayette Station',
             lat: 42.886239,
             lng: -78.874272,
-            aliases: ['Evans Bank @ Lafayette Square Metro Rail'],
+            aliases: ['Evans Bank @ Lafayette Square', 'Evans Bank @ Lafayette Square Metro Rail'],
         },
     ],
     'GO Transit': [
