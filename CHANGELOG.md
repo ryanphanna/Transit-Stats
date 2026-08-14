@@ -16,6 +16,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Maps now show one stop type at a time**: boarding stops are the default, with the preference to use exiting stops moved into Settings.
 - **Map controls are now clearer and movable**: labeled account actions, circular zoom controls, and an unobstructed map surface replace the old icon-heavy overlay.
 - **Map loading starts with your saved rides**: the first useful map frame no longer waits for the full stop library or Atlas enrichment.
+- **Dashboard map initialization no longer fails in dark mode**: the shared surface now always resolves its tile theme before creating Leaflet.
 - **Zoom controls now use a compact horizontal layout**: minus and plus read left-to-right instead of looking like a reversed vertical stack.
 - **The map card now shows network breadth**: agencies ridden and countries reached are visible alongside recent movement totals.
 - **Sharing your map now works from the map card**: copy or share the public link directly, with a clear path to enable the profile first.

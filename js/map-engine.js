@@ -68,6 +68,8 @@ export const MapEngine = {
         const center = initialCenter || [43.6532, -79.3832];
 
         try {
+            const isDark = document.body.classList.contains('dark')
+                || document.documentElement.dataset.theme === 'dark';
             const tileTheme = document.body.classList.contains('dashboard-surface')
                 ? (isDark ? 'dark_all' : 'light_all')
                 : (isDark ? 'dark_nolabels' : 'light_nolabels');
