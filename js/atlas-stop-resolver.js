@@ -30,7 +30,10 @@ function matchTokens(value) {
 export function validLocation(location) {
     const lat = Number(location?.lat);
     const lng = Number(location?.lng ?? location?.lon);
+    // Missing GTFS coordinates are sometimes serialized as 0,0. Treat them
+    // as unresolved so they cannot pull a city map out to the whole world.
     return Number.isFinite(lat) && Number.isFinite(lng)
+        && lat !== 0 && lng !== 0
         ? { lat, lng }
         : null;
 }

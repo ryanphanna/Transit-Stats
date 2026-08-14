@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
     buildStopIndex,
     resolveStopLocation,
+    validLocation,
 } from '../js/atlas-stop-resolver.js';
 
 describe('Atlas stop resolver', () => {
@@ -12,6 +13,11 @@ describe('Atlas stop resolver', () => {
         lat: 43.66,
         lng: -79.38,
     };
+
+    it('rejects missing zero coordinates', () => {
+        expect(validLocation({ lat: 0, lng: 0 })).toBeNull();
+        expect(validLocation({ lat: 43.66, lng: -79.38 })).toEqual({ lat: 43.66, lng: -79.38 });
+    });
 
     it('does not use stored coordinates when GTFS has no match', () => {
         const result = resolveStopLocation({

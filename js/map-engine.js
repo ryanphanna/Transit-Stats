@@ -294,7 +294,7 @@ export const MapEngine = {
             resolutionStats.boarding[boarding.source] += 1;
             if (showBoarding) {
                 const bLoc = boarding.location;
-                if (bLoc && !isNaN(bLoc.lat)) {
+                if (bLoc && bLoc.lat !== 0 && bLoc.lng !== 0 && !isNaN(bLoc.lat)) {
                     points.push({
                         lat: bLoc.lat,
                         lng: bLoc.lng,
@@ -309,7 +309,7 @@ export const MapEngine = {
             resolutionStats.exiting[exiting.source] += 1;
             if (showExiting) {
                 const eLoc = exiting.location;
-                if (eLoc && !isNaN(eLoc.lat)) {
+                if (eLoc && eLoc.lat !== 0 && eLoc.lng !== 0 && !isNaN(eLoc.lat)) {
                     points.push({
                         lat: eLoc.lat,
                         lng: eLoc.lng,
@@ -381,7 +381,8 @@ export const MapEngine = {
         const validPoints = points
             .map(point => [Number(point.lat), Number(point.lng)])
             .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng)
-                && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180);
+                && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+                && lat !== 0 && lng !== 0);
 
         if (validPoints.length > 0 && this._isFirstLoad) {
             try {
