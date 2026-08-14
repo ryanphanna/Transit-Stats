@@ -89,7 +89,10 @@ export const MapEngine = {
         let tileUrl = 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
         let attribution = '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 
-        if (isV2) {
+        if (document.body.classList.contains('dashboard-surface')) {
+            tileUrl = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+            attribution = '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+        } else if (isV2) {
             // Minimalist Grayscale (CartoDB Positron)
             tileUrl = 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
             attribution = '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
@@ -342,7 +345,7 @@ export const MapEngine = {
             }
 
             const radius = isV2 ? 4 : 4.5;
-            const color = '#7c5ce6';
+            const color = document.body.classList.contains('dashboard-surface') ? '#0b9f6e' : '#7c5ce6';
             markersByStop.set(key, {
                 lat: p.lat,
                 lng: p.lng,

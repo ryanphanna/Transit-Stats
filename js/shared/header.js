@@ -22,7 +22,7 @@ function _render(isAdmin, currentPage) {
             { id: 'insights', label: 'Insights', icon: 'line-chart', href: '/insights' },
             ...(isAdmin ? [{ id: 'rocket', label: 'Rocket', icon: 'rocket', href: '/rocket' }] : []),
         ]
-        : [
+        : currentPage === 'dashboard' ? [] : [
             { id: 'map', label: 'Stops', icon: 'map-pin', href: '/map' },
             { id: 'routes', label: 'Routes', icon: 'route', href: '/routes' },
             ...(betaSurface ? [{ id: 'heatmap', label: 'Heatmap', icon: 'layers-2', href: '/heatmap' }] : []),

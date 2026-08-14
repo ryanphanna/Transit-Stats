@@ -16,6 +16,7 @@
 @import url('./pages/settings.css');
 @import url('./components/route-tracker.css');
 @import url('./pages/site-refresh.css');
+@import url('./pages/dashboard-atlas.css');
 
 /* Triple Emoji Identity */
 .emoji-picker-container {

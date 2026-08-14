@@ -13,6 +13,7 @@ import { UI } from '../ui-utils.js';
 import { db } from '../firebase.js';
 import { createAgencyAutocomplete } from '../agency-autocomplete.js';
 import { displayAgencyName } from '../profile.js';
+import { MapEngine } from '../map-engine.js';
 
 window.Trips = Trips;
 window.Utils = Utils;
@@ -123,9 +124,6 @@ function closeAllModals() {
 async function init() {
     const { user, isAdmin } = await requireAuth();
     initHeader({ isAdmin, currentPage: 'dashboard' });
-    const heatmapLink = document.getElementById('dashboard-heatmap-link');
-    const betaSurface = ['localhost', '127.0.0.1', 'beta.transitstats.fyi'].includes(window.location.hostname);
-    heatmapLink?.classList.toggle('hidden', !betaSurface);
     ModalManager.init();
 
     await Profile.load(user);
@@ -143,10 +141,15 @@ async function init() {
         btn.addEventListener('click', closeAllModals);
     });
 
+    if (window.L) {
+        MapEngine.init([]);
+        MapEngine.requestInitialLocation();
+        document.getElementById('dashboard-map-loading')?.remove();
+    }
+
     Trips.init();
     Trips._readyPromise.then(() => {
         Stats.init();
-        RouteTracker.init({ compact: true });
         refreshIcons();
     });
 

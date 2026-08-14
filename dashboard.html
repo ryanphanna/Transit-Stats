@@ -7,170 +7,56 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha256-tXCrvaljxgtN5LT/Syb5Mm9T+yzPFGH98JVcoJT7JTk=" crossorigin="anonymous">
     <link rel="stylesheet" href="styles/main.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body>
+<body class="dashboard-surface">
     <main id="app-root">
         <section id="view-dashboard" class="view dashboard-view active">
-            <div class="container dashboard-grid">
-                <div class="card dashboard-trip-summary" aria-label="Trip totals">
-                    <div class="dashboard-trip-summary-heading">
-                        <div>
-                            <p class="page-kicker">Your transit life</p>
-                            <h2>Trip count</h2>
+            <section class="dashboard-atlas-hero" aria-label="Your transit atlas">
+                <div id="main-map" class="dashboard-map"></div>
+                <div class="dashboard-map-wash" aria-hidden="true"></div>
+                <div class="dashboard-map-loading" id="dashboard-map-loading" role="status">Mapping your rides…</div>
+
+                <div class="dashboard-atlas-hero-inner">
+                    <div class="map-controls atlas-map-controls" aria-label="Map filters">
+                        <div class="filter-pills">
+                            <button class="pill" data-filter="boarding">Boarding</button>
+                            <button class="pill" data-filter="exiting">Exiting</button>
+                            <button class="pill active" data-filter="both">Both</button>
                         </div>
-                        <i data-lucide="ticket" aria-hidden="true"></i>
+                        <button id="btn-locate" class="btn btn-circle" title="Find me" aria-label="Find me"><i data-lucide="locate-fixed"></i></button>
                     </div>
-                    <div class="dashboard-trip-summary-grid">
-                        <div class="dashboard-trip-summary-item">
+
+                    <div class="atlas-identity-card">
+                        <div class="atlas-card-topline">
+                            <div id="profile-avatar" class="atlas-avatar"><i data-lucide="user"></i></div>
+                            <span class="atlas-card-type">TransitStats</span>
+                        </div>
+                        <p class="page-kicker">Your transit life, mapped.</p>
+                        <h1><span id="profile-name">Traveler</span><span class="atlas-title-tail">'s map</span></h1>
+                        <p id="profile-status" class="atlas-profile-status" hidden></p>
+                        <div class="atlas-hero-count">
                             <strong id="stat-trips-lifetime">0</strong>
-                            <span>Lifetime</span>
+                            <span>rides mapped</span>
                         </div>
-                        <div class="dashboard-trip-summary-item">
-                            <strong id="stat-trips-month">0</strong>
-                            <span>This month</span>
-                        </div>
-                        <div class="dashboard-trip-summary-item">
-                            <strong id="stat-trips-week">0</strong>
-                            <span>This week</span>
-                        </div>
-                        <div class="dashboard-trip-summary-item">
-                            <strong id="stat-days-ridden">0</strong>
-                            <span>Days ridden</span>
+                        <div class="atlas-card-period" aria-label="Recent trip totals">
+                            <div class="atlas-period-heading"><span>Recent movement</span><i data-lucide="activity"></i></div>
+                            <div class="atlas-period-grid">
+                                <div><strong id="stat-trips-month">0</strong><span>This month</span></div>
+                                <div><strong id="stat-trips-week">0</strong><span>This week</span></div>
+                                <div><strong id="stat-days-ridden">0</strong><span>Days ridden</span></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="dashboard-content">
-                <!-- Left Column -->
-                <aside class="col-profile">
-                    <div class="card profile-card">
-                        <div class="profile-header">
-                            <div id="profile-avatar" class="avatar"><i data-lucide="user"></i></div>
-                            <div class="profile-info">
-                                <h2 id="profile-name">Traveler</h2>
-                                <p id="profile-status" hidden></p>
-                            </div>
-                        </div>
-                        <div class="streak-box">
-                            <div class="streak-title"><i data-lucide="flame" class="icon-inline"></i> Riding Streak</div>
-                            <div class="streak-data">
-                                <div class="streak-item">
-                                    <strong id="stat-current-streak" class="text-accent">0</strong>
-                                    <span>Current</span>
-                                </div>
-                                <div class="divider-v"></div>
-                                <div class="streak-item">
-                                    <strong id="stat-best-streak">0</strong>
-                                    <span>Best</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            </section>
 
-                    <div class="card">
-                        <div class="card-header">
-                            <h3><i data-lucide="trending-up" class="icon-inline"></i> Activity</h3>
-                        </div>
-                        <div id="activity-grid-container" class="activity-grid"></div>
-                        <div id="activity-grid-legend" class="grid-legend">
-                            <span>Less</span>
-                            <div class="legend-square heat-0"></div>
-                            <div class="legend-square heat-1"></div>
-                            <div class="legend-square heat-2"></div>
-                            <div class="legend-square heat-3"></div>
-                            <div class="legend-square heat-4"></div>
-                            <span>More</span>
-                        </div>
-                    </div>
-
-                </aside>
-
-                <!-- Center Column -->
-                <div class="col-feed">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3><i data-lucide="history" class="icon-inline"></i> Recent Trips</h3>
-                        </div>
-                        <div id="recent-trips-list" class="feed-list">
-                            <div class="loading-state">Loading trips...</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right Column: Stats -->
-                <aside class="col-stats">
-                    <div class="dashboard-route-tracker">
-                        <div class="card route-tracker-card-compact">
-                            <div class="card-header route-tracker-header">
-                                <div>
-                                    <h3><i data-lucide="route" class="icon-inline"></i> Routes</h3>
-                                    <p class="route-tracker-subtitle">Your route coverage, by agency.</p>
-                                </div>
-                                <div class="route-tracker-links">
-                                    <a class="route-tracker-link" href="/routes">View all <span aria-hidden="true">→</span></a>
-                                    <a id="dashboard-heatmap-link" class="route-tracker-link hidden" href="/heatmap">Heatmap <span aria-hidden="true">→</span></a>
-                                </div>
-                            </div>
-                            <div id="routeTrackerContent"></div>
-                        </div>
-                    </div>
-                    <div class="card stats-card">
-                        <div class="card-header">
-                            <h3><i data-lucide="bar-chart-3" class="icon-inline"></i> Last 30 Days</h3>
-                        </div>
-                        <div class="stats-grid">
-                            <div class="stat-box">
-                                <strong id="stat-trips-insights">0</strong>
-                                <span>Trips</span>
-                            </div>
-                            <div class="stat-box">
-                                <strong id="stat-routes-insights">0</strong>
-                                <span>Routes</span>
-                            </div>
-                            <div class="stat-box">
-                                <strong id="stat-hours-insights">0</strong>
-                                <span>Hours</span>
-                            </div>
-                            <div class="stat-box">
-                                <strong id="stat-stops-insights">0</strong>
-                                <span>Stops</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card peak-times-card">
-                        <div class="card-header">
-                            <h3><i data-lucide="clock" class="icon-inline"></i> Peak Riding Times</h3>
-                        </div>
-                        <div id="time-of-day-chart-insights" class="chart-compact">
-                            <div class="loading-state">Calculating peaks...</div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h3><i data-lucide="route" class="icon-inline"></i> Popular Routes</h3>
-                        </div>
-                        <div id="top-routes-list-insights" class="list-compact">
-                            <div class="loading-state">Loading...</div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h3><i data-lucide="map-pin" class="icon-inline"></i> Frequent Stops</h3>
-                        </div>
-                        <div id="top-stops-list-insights" class="list-compact">
-                            <div class="loading-state">Loading...</div>
-                        </div>
-                    </div>
-                </aside>
-                </div>
-            </div>
         </section>
     </main>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <!-- Edit Trip Modal -->
     <div id="modal-edit-trip" class="modal hidden">
         <div class="modal-header">
