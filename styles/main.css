@@ -147,6 +147,27 @@
     text-transform: none;
 }
 
+.public-card-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 14px;
+    color: var(--text-primary);
+    font-size: 0.76rem;
+    font-weight: 900;
+    text-decoration: none;
+}
+
+.public-card-cta span {
+    color: var(--accent);
+    font-size: 1rem;
+    transition: transform 160ms ease;
+}
+
+.public-card-cta:hover span {
+    transform: translateX(3px);
+}
+
 .public-stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
