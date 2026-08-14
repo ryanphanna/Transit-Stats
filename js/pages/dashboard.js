@@ -189,7 +189,10 @@ async function init() {
     setupShareMap();
 
     const profileName = document.getElementById('profile-name');
-    if (profileName) profileName.textContent = Profile.getDisplayName(user) || 'Traveler';
+    const displayName = Profile.getDisplayName(user)?.trim() || 'Traveler';
+    if (profileName) profileName.textContent = displayName;
+    const titleTail = document.querySelector('.atlas-title-tail');
+    if (titleTail) titleTail.textContent = /s$/i.test(displayName) ? '’' : '’s';
 
     setupTripAgencyAutocomplete();
     setupTripEditListeners();

@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Personalized dashboard titles now handle names ending in “s”**: names use the correct possessive ending before “TransitStats.”
 - **Dashboard identity titles now split across two lines**: the rider name stays on the first line while “TransitStats” gets a clear second line.
 - **Dashboard titles now identify the rider and product together**: the card reads “Name’s TransitStats” instead of “Name’s map.”
 - **The dashboard identity card now focuses on rider information**: removed its remaining branded tagline so the shared header is the only site branding on the page.
