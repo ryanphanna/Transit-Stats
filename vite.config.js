@@ -44,7 +44,11 @@ export default defineConfig(({ mode, command }) => {
             },
         },
         server: {
-            port: 5176,
+            // Keep Firebase's localhost session on one origin. Vite otherwise
+            // silently increments the port when another dev server is running,
+            // which makes a valid session appear logged out.
+            port: 5177,
+            strictPort: true,
             open: false,
         },
         plugins: [
