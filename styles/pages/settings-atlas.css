@@ -1,11 +1,12 @@
 /* --- Settings companion surface --- */
 .settings-surface {
-  background: var(--bg-app);
+  background: linear-gradient(180deg, #f8fbfa 0%, var(--bg-app) 42%);
 }
 
 .settings-surface .header {
   background: rgb(255 255 255 / 78%);
   border-bottom-color: rgb(220 231 227 / 72%);
+  box-shadow: 0 8px 24px rgb(16 42 42 / 5%);
   backdrop-filter: blur(18px) saturate(1.1);
 }
 
@@ -37,9 +38,20 @@
   height: 16px;
 }
 
+body.dark.settings-surface,
+html[data-theme="dark"] body.settings-surface {
+  background: var(--bg-app);
+}
+
+body.dark.settings-surface .header,
+html[data-theme="dark"] body.settings-surface .header {
+  background: rgb(23 43 42 / 84%);
+  border-bottom-color: rgb(255 255 255 / 10%);
+}
+
 .settings-view {
   min-height: 100vh;
-  padding-top: 112px;
+  padding-top: clamp(96px, 12vh, 124px);
   padding-bottom: 72px;
 }
 
@@ -48,46 +60,55 @@
 }
 
 .settings-page-header {
-  margin-bottom: 22px;
+  margin-bottom: 28px;
 }
 
 .settings-page-title {
-  font-size: clamp(2rem, 4vw, 3rem);
+  font-size: clamp(2.1rem, 4.5vw, 3.25rem);
   font-weight: 900;
   letter-spacing: -0.07em;
 }
 
 .settings-page-col {
-  gap: 22px;
+  gap: 24px;
 }
 
 .settings-group-title {
-  margin-bottom: 9px;
+  margin-bottom: 10px;
   color: var(--text-muted);
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
 }
 
 .settings-card {
   overflow: hidden;
-  border-radius: 18px;
+  border-radius: 22px;
   background: var(--bg-card);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow);
 }
 
 .settings-row {
-  min-height: 62px;
-  padding: 14px 17px;
+  min-height: 68px;
+  padding: 16px 20px;
+  gap: 18px;
+  transition: background 160ms ease;
+}
+
+.settings-row:hover {
+  background: var(--bg-card-hover);
 }
 
 .settings-main-label {
-  font-size: 0.84rem;
+  font-size: 0.86rem;
+  letter-spacing: -0.01em;
 }
 
 .settings-sub-label {
-  font-size: 0.72rem;
+  font-size: 0.73rem;
 }
 
 .settings-action {
+  min-height: 34px;
+  padding: 7px 12px !important;
   border-radius: 999px;
 }
 
@@ -97,6 +118,29 @@
 
 .settings-identity-row {
   align-items: center;
+}
+
+#settings-public-profile {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  accent-color: var(--accent);
+}
+
+.emoji-picker-container {
+  gap: 12px;
+}
+
+.emoji-slot {
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.emoji-picker-container .btn-primary {
+  min-height: 36px;
+  padding: 8px 13px;
+  border-radius: 999px;
+  font-size: 0.72rem;
 }
 
 @media (max-width: 640px) {
@@ -109,6 +153,30 @@
   }
 
   .settings-page-col {
-    gap: 18px;
+    gap: 20px;
+  }
+
+  .settings-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    padding: 15px 16px;
+  }
+
+  .settings-row > .settings-label-group {
+    flex: 1 1 180px;
+  }
+
+  .settings-row > .minimal-select,
+  .settings-row > .settings-agency-field {
+    flex: 0 1 min(220px, 100%);
+  }
+
+  .settings-agency-field {
+    width: 100%;
+    max-width: none;
+  }
+
+  .settings-identity-row {
+    gap: 10px;
   }
 }
