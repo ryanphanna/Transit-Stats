@@ -10,7 +10,7 @@ describe('Old Trips GTFS supplements', () => {
 
     it('contains the exact local-GTFS batch', () => {
         expect(Object.keys(OLD_TRIPS_GTFS_STOP_SUPPLEMENTS).length).toBe(34);
-        expect(stops.length).toBe(475);
+        expect(stops.length).toBe(476);
     });
 
     it('resolves imported raw labels without changing trip records', () => {
@@ -41,6 +41,16 @@ describe('Old Trips GTFS supplements', () => {
         expect(go.label).toBe('Burlington GO');
         expect(cdta.label).toBe('North Central Station - River St & Glen Ave');
         expect(yrt.label).toBe('Finch GO Bus Terminal');
+    });
+
+    it('maps NFTA transportation-center shorthand to the Buffalo MTC stop', () => {
+        const match = resolveStopLocation({
+            agency: 'NFTA Metro',
+            startStopName: 'Metropolitan Transportation Center',
+        }, 'boarding', index);
+
+        expect(match.label).toBe('Ellicott Street & MTC Static');
+        expect(match.location).toEqual({ lat: 42.883406, lng: -78.872355 });
     });
 
     it('keeps obvious shorthand and typo aliases on canonical stops', () => {

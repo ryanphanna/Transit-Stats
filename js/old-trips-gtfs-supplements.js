@@ -2293,6 +2293,15 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "NFTA Metro",
+            "name": "Ellicott Street & MTC Static",
+            "lat": 42.883406,
+            "lng": -78.872355,
+            "aliases": [
+                "Metropolitan Transportation Center"
+            ]
+        },
+        {
             "code": "23590",
             "name": "Hertel Avenue & Main Street",
             "lat": 42.946158,
