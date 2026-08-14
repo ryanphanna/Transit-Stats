@@ -279,7 +279,9 @@
 }
 
 .streak-box {
-  background: var(--text-primary);
+  background: linear-gradient(135deg, var(--accent-glass), rgba(66, 201, 151, 0.14));
+  color: var(--text-primary);
+  border: 1px solid var(--accent-soft);
   box-shadow: none;
 }
 

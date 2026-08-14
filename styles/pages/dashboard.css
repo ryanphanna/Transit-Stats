@@ -214,8 +214,8 @@ input:-webkit-autofill { animation-name: onAutofillStart; }
   content: '';
   position: absolute;
   top: -50%; left: -50%; width: 200%; height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);
-  animation: rot 10s linear infinite;
+  background: radial-gradient(circle, rgba(66, 201, 151, 0.12) 0%, transparent 60%);
+  animation: none;
   pointer-events: none;
 }
 @keyframes rot {
@@ -223,19 +223,20 @@ input:-webkit-autofill { animation-name: onAutofillStart; }
   100% { transform: rotate(360deg); }
 }
 
-.streak-title { 
+.streak-title {
   font-size: 0.75rem; 
   font-weight: 800; 
   margin-bottom: 20px; 
-  opacity: 0.9; 
+  color: var(--text-secondary);
+  opacity: 1;
   text-align: center;
 }
 .streak-data { display: flex; justify-content: space-around; align-items: center; position: relative; z-index: 1; }
 .streak-item { text-align: center; flex: 1; }
 .streak-item strong { display: block; font-size: 2.5rem; font-weight: 900; line-height: 1; margin-bottom: 4px; }
-.streak-item span { font-size: 0.65rem; opacity: 0.8; font-weight: 700; }
+.streak-item span { font-size: 0.65rem; color: var(--text-muted); opacity: 1; font-weight: 700; }
 
-.divider-v { width: 1px; height: 30px; background: rgba(255,255,255,0.3); }
+.divider-v { width: 1px; height: 30px; background: var(--border); }
 
 
 
