@@ -127,7 +127,10 @@ async function loadDashboardAtlasStops() {
     const agencies = [...new Set((TripController.allTrips || [])
         .map(trip => String(trip.agency || '').trim())
         .filter(Boolean))];
-    if (agencies.length === 0) return;
+    if (agencies.length === 0) {
+        MapEngine.releaseInitialView();
+        return;
+    }
 
     try {
         const atlasStops = await loadAtlasStops(agencies);
@@ -137,6 +140,10 @@ async function loadDashboardAtlasStops() {
         });
     } catch (error) {
         console.warn('Dashboard: Atlas stop data unavailable', error);
+    } finally {
+        await MapEngine.releaseInitialView();
+        document.querySelector('.dashboard-atlas-hero')?.classList.remove('is-loading');
+        document.getElementById('dashboard-map-loading')?.remove();
     }
 }
 
@@ -161,9 +168,8 @@ async function init() {
     });
 
     if (window.L) {
-        MapEngine.init([]);
+        MapEngine.init([], null, { deferInitialView: true });
         MapEngine.requestInitialLocation();
-        document.getElementById('dashboard-map-loading')?.remove();
     }
 
     const tripsInitPromise = Trips.init();

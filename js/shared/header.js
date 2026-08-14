@@ -40,7 +40,6 @@ function _render(isAdmin, currentPage) {
                 <nav class="nav-desktop">
                     ${navItems.map(item => `
                         <a href="${item.href}" class="nav-item ${currentPage === item.id ? 'active' : ''}">
-                            <i data-lucide="${item.icon}"></i>
                             <span>${item.label}</span>
                         </a>
                     `).join('')}

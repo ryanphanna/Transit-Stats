@@ -28,19 +28,16 @@ async function init() {
         let normalizedStops = [];
         let atlasStops = [];
         MapEngine.setStopSources({ atlasStops, firestoreStops: normalizedStops });
-        MapEngine.init([]);
+        MapEngine.init([], null, { deferInitialView: true });
         MapEngine.requestInitialLocation();
         setTimeout(() => { if (MapEngine.map) MapEngine.map.invalidateSize(); }, 150);
-        // The map itself is ready now. Stop data continues loading in the
-        // background and must never prevent the shared header from being used.
-        setMapLoading(null);
 
         if (window.lucide) lucide.createIcons();
 
         // Do not hold map initialization hostage to the normalized-stop read.
         db.collection('stops').get().then(stopsSnapshot => {
-            normalizedStops = stopsSnapshot.docs.map(doc => doc.data());
-            MapEngine.setStopSources({ atlasStops, firestoreStops: normalizedStops });
+                normalizedStops = stopsSnapshot.docs.map(doc => doc.data());
+                MapEngine.setStopSources({ atlasStops, firestoreStops: normalizedStops });
         }).catch(error => {
             console.warn('Map: normalized stop aliases unavailable', error);
         });
@@ -76,12 +73,11 @@ async function init() {
             .onSnapshot(snap => {
                 const trips = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 MapEngine.updateTrips(trips);
-                setMapLoading(null);
                 const agencies = [...new Set(trips.map(trip => trip.agency || 'TTC'))];
                 loadMissingAtlasStops(agencies).catch(error => {
                     console.warn('Map: Atlas stop loading failed', error);
-                    setMapLoading(null);
-                });
+                }).then(() => MapEngine.releaseInitialView())
+                    .then(() => setMapLoading(null));
             }, err => {
                 console.error('Map trips stream error:', err);
                 setMapLoading('Could not load your trips.');

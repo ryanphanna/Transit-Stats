@@ -200,23 +200,18 @@ input:-webkit-autofill { animation-name: onAutofillStart; }
 .stat-box span { font-size: 0.65rem; font-weight: 800; color: var(--text-muted); }
 
 .streak-box {
-  background: var(--accent-gradient);
-  color: white;
+  background: var(--accent-soft);
+  color: var(--text-primary);
   padding: 24px;
   border-radius: var(--radius-lg);
   margin-top: 16px;
   position: relative;
-  box-shadow: 0 10px 20px rgba(5, 150, 105, 0.2);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
-  border: none;
+  border: 1px solid var(--accent-light);
 }
 .streak-box::before {
-  content: '';
-  position: absolute;
-  top: -50%; left: -50%; width: 200%; height: 200%;
-  background: radial-gradient(circle, rgba(66, 201, 151, 0.12) 0%, transparent 60%);
-  animation: none;
-  pointer-events: none;
+  display: none;
 }
 @keyframes rot {
   0% { transform: rotate(0deg); }
@@ -227,14 +222,14 @@ input:-webkit-autofill { animation-name: onAutofillStart; }
   font-size: 0.75rem; 
   font-weight: 800; 
   margin-bottom: 20px; 
-  color: var(--text-secondary);
+  color: var(--text-primary);
   opacity: 1;
   text-align: center;
 }
 .streak-data { display: flex; justify-content: space-around; align-items: center; position: relative; z-index: 1; }
 .streak-item { text-align: center; flex: 1; }
 .streak-item strong { display: block; font-size: 2.5rem; font-weight: 900; line-height: 1; margin-bottom: 4px; }
-.streak-item span { font-size: 0.65rem; color: var(--text-muted); opacity: 1; font-weight: 700; }
+.streak-item span { font-size: 0.65rem; color: var(--text-secondary); opacity: 1; font-weight: 700; }
 
 .divider-v { width: 1px; height: 30px; background: var(--border); }
 

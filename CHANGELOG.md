@@ -12,6 +12,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Settings now matches the map-first shell**: account and preference controls use the same quieter layout instead of the old page treatment.
 - **Maps now show one stop type at a time**: boarding stops are the default, with the preference to use exiting stops moved into Settings.
 - **Map controls are now clearer and movable**: labeled account actions, circular zoom controls, and an unobstructed map surface replace the old icon-heavy overlay.
+- **Map loading no longer exposes an intermediate viewport**: the map keeps its loading state until all trip stops and the final bounds are rendered.
+- **Zoom controls now use a compact horizontal layout**: minus and plus read left-to-right instead of looking like a reversed vertical stack.
 - **The map card now shows network breadth**: agencies ridden and countries reached are visible alongside recent movement totals.
 - **Map stops now show personal usage intensity**: frequently ridden stops are darker and larger, while occasional stops stay quieter.
 - **Connected trip cards now read as one journey**: incomplete rides avoid fake durations and duplicate placeholder wording, while linked legs use clearer transfer and unlink controls.

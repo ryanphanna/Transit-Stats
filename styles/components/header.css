@@ -95,7 +95,7 @@ html[data-theme="dark"] .header {
 
 .nav-desktop {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
     margin-left: 16px;
 }
@@ -103,9 +103,10 @@ html[data-theme="dark"] .header {
 .nav-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 7px 11px;
-    border-radius: 8px;
+    gap: 0;
+    padding: 8px 13px;
+    border: 1px solid transparent;
+    border-radius: 999px;
     text-decoration: none;
     color: var(--text-secondary);
     font-weight: 700;
@@ -116,12 +117,14 @@ html[data-theme="dark"] .header {
 
 .nav-item:hover {
     color: var(--text-primary);
+    border-color: var(--border);
     background: var(--bg-muted);
 }
 
 .nav-item.active {
-    color: var(--accent);
-    background: var(--accent-glass);
+    border-color: var(--accent);
+    color: white;
+    background: var(--accent);
 }
 
 .nav-item i, .nav-item svg {

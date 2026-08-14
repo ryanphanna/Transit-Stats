@@ -34,10 +34,12 @@ export const MapEngine = {
     _renderGeneration: 0,
     _userLocationMarker: null,
     _initialLocationRequested: false,
+    _deferInitialView: false,
 
-    init(initialTrips = [], initialCenter = null) {
+    init(initialTrips = [], initialCenter = null, { deferInitialView = false } = {}) {
         console.log("MapEngine.init: Started", { tripsCount: initialTrips.length });
         this.trips = initialTrips;
+        this._deferInitialView = deferInitialView;
         if (this.map) {
             console.log("MapEngine.init: Map already exists");
             return;
@@ -162,6 +164,12 @@ export const MapEngine = {
         if (this.map) this.renderMarkers();
     },
 
+    releaseInitialView() {
+        this._deferInitialView = false;
+        this._isFirstLoad = true;
+        return this.map ? this.renderMarkers() : Promise.resolve();
+    },
+
     /**
      * Build an O(1) lookup Map for stop locations from the stopsLibrary.
      * Dramatically improves performance over linear searching.
@@ -260,13 +268,15 @@ export const MapEngine = {
     },
 
     renderMarkers() {
-        if (!this.map || !this.layers.markers) return;
+        if (!this.map || !this.layers.markers) return Promise.resolve();
         const renderId = ++this._renderGeneration;
-        this._renderMarkersAsync(renderId).catch(error => {
+        const renderPromise = this._renderMarkersAsync(renderId);
+        renderPromise.catch(error => {
             if (renderId === this._renderGeneration) {
                 console.error('MapEngine: Marker render failed:', error);
             }
         });
+        return renderPromise;
     },
 
     async _renderMarkersAsync(renderId) {
@@ -406,7 +416,7 @@ export const MapEngine = {
                 && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
                 && lat !== 0 && lng !== 0);
 
-        if (validPoints.length > 0 && this._isFirstLoad) {
+        if (validPoints.length > 0 && this._isFirstLoad && !this._deferInitialView) {
             try {
                 const bounds = L.latLngBounds(validPoints);
                 const southWest = bounds.getSouthWest();
@@ -438,7 +448,7 @@ export const MapEngine = {
             const { latitude, longitude } = pos.coords;
             // Trip bounds remain the preferred view when they have already
             // rendered; location is the fallback for an empty/unresolved map.
-            if (this._isFirstLoad) this.map.setView([latitude, longitude], zoom);
+            if (this._isFirstLoad && !this._deferInitialView) this.map.setView([latitude, longitude], zoom);
 
             if (this._userLocationMarker) this.map.removeLayer(this._userLocationMarker);
             this._userLocationMarker = L.circleMarker([latitude, longitude], {

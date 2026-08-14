@@ -86,6 +86,11 @@
   isolation: isolate;
 }
 
+.dashboard-atlas-hero.is-loading .dashboard-map {
+  opacity: 0.28;
+  transition: opacity 180ms ease;
+}
+
 .dashboard-map {
   position: absolute;
   inset: 0;
@@ -210,7 +215,7 @@
 
 .dashboard-surface .leaflet-control-zoom {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 6px;
   margin-right: 18px;
   margin-bottom: 18px;
@@ -238,8 +243,8 @@
   color: var(--accent);
 }
 
-.dashboard-surface .leaflet-control-zoom-in {
-  border-bottom: 1px solid rgb(220 231 227 / 92%);
+.dashboard-surface .leaflet-control-zoom-out {
+  order: -1;
 }
 
 .atlas-identity-card {
@@ -524,19 +529,19 @@
 }
 
 .atlas-streak-panel {
-  background: var(--text-primary);
-  border-color: var(--text-primary);
-  color: white;
+  border-color: var(--accent-light);
+  background: linear-gradient(135deg, var(--accent-soft), var(--bg-card));
+  color: var(--text-primary);
 }
 
 .atlas-streak-panel .atlas-panel-kicker,
-.atlas-streak-panel h3,
-.atlas-streak-panel .atlas-panel-heading > svg {
-  color: white;
+.atlas-streak-panel h3 {
+  color: var(--text-primary);
 }
 
 .atlas-streak-panel .atlas-panel-kicker {
-  opacity: 0.58;
+  color: var(--accent);
+  opacity: 1;
 }
 
 .atlas-streak-values {
@@ -548,7 +553,7 @@
 
 .atlas-streak-values div + div {
   padding-left: 18px;
-  border-left: 1px solid rgb(255 255 255 / 18%);
+  border-left: 1px solid var(--border);
 }
 
 .atlas-streak-values strong {
@@ -559,7 +564,7 @@
 }
 
 .atlas-streak-values span {
-  color: rgb(255 255 255 / 62%);
+  color: var(--text-muted);
   font-size: 0.68rem;
   font-weight: 800;
 }
