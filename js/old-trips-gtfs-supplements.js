@@ -1806,6 +1806,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "TTC",
+            "name": "Vaughan Metropolitan Centre Station - Subway Platform",
+            "code": "15662",
+            "lat": 43.794021,
+            "lng": -79.527906,
+            "aliases": [
+                "Vaughan Metropolitan Centre"
+            ]
+        },
+        {
             "code": "4696",
             "name": "Victoria Park Ave at Swanwick Ave",
             "lat": 43.685254,
@@ -1966,6 +1976,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "aliases": [
                 "3891"
             ]
+        },
+        {
+            "agency": "TTC",
+            "name": "Yorkdale Station - Northbound Platform",
+            "code": "13837",
+            "lat": 43.725248,
+            "lng": -79.447692,
+            "aliases": [
+                "Yorkdale"
+            ]
         }
     ],
     "HSR": [
@@ -2005,6 +2025,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "aliases": [
                 "FRANK A COOKE",
                 "Frank A. Cooke Terminal"
+            ]
+        },
+        {
+            "agency": "HSR",
+            "code": "1077",
+            "name": "HAMILTON GO CENTRE PLATFORM 17",
+            "lat": 43.252665,
+            "lng": -79.869522,
+            "aliases": [
+                "Hamilton GO"
             ]
         },
         {
@@ -2189,6 +2219,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
         }
     ],
     "GO Transit": [
+        {
+            "agency": "GO Transit",
+            "code": "AL",
+            "name": "Aldershot GO",
+            "lat": 43.313385,
+            "lng": -79.855659,
+            "aliases": [
+                "Aldershot"
+            ]
+        },
         {
             "agency": "GO Transit",
             "code": "BL",
@@ -2485,6 +2525,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -78.820153,
             "aliases": [
                 "University"
+            ]
+        },
+        {
+            "agency": "NFTA Metro",
+            "code": "55880",
+            "name": "Walden Avenue & Galleria Mall",
+            "lat": 42.908898,
+            "lng": -78.761561,
+            "aliases": [
+                "Walden Galleria"
             ]
         }
     ],
@@ -4544,6 +4594,78 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -121.500373,
             "aliases": [
                 "Sacramento Valley Station"
+            ]
+        }
+    ],
+    "RTC Washoe": [
+        {
+            "agency": "RTC Washoe",
+            "code": "3003",
+            "name": "9th Street Station",
+            "lat": 39.535469,
+            "lng": -119.816139,
+            "aliases": [
+                "9th Street Station"
+            ]
+        },
+        {
+            "agency": "RTC Washoe",
+            "code": "775",
+            "name": "Glendale Avenue and S 21st Street",
+            "lat": 39.527794,
+            "lng": -119.771721,
+            "aliases": [
+                "775"
+            ]
+        },
+        {
+            "agency": "RTC Washoe",
+            "code": "403",
+            "name": "N Virginia Street and W 17th Street",
+            "lat": 39.548199,
+            "lng": -119.821342,
+            "aliases": [
+                "N Virginia / W 17th"
+            ]
+        },
+        {
+            "agency": "RTC Washoe",
+            "code": "1948",
+            "name": "Orchard Plaza Station",
+            "lat": 39.503384,
+            "lng": -119.802269,
+            "aliases": [
+                "Orchard Plaza Station"
+            ]
+        },
+        {
+            "agency": "RTC Washoe",
+            "code": "9999",
+            "name": "RTC 4TH STREET STATION",
+            "lat": 39.529959,
+            "lng": -119.810806,
+            "aliases": [
+                "4th Street Station"
+            ]
+        },
+        {
+            "agency": "RTC Washoe",
+            "code": "1929",
+            "name": "RTC CENTENNIAL PLAZA Bay L (Rt 54)",
+            "lat": 39.534412,
+            "lng": -119.761948,
+            "aliases": [
+                "Centennial Plaza"
+            ]
+        },
+        {
+            "agency": "RTC Washoe",
+            "code": "9997",
+            "name": "RTC Transfer Center / Meadowood Mall",
+            "lat": 39.471835,
+            "lng": -119.782974,
+            "aliases": [
+                "Meadowwood Mall"
             ]
         }
     ]

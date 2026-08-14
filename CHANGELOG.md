@@ -18,6 +18,9 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Muni Embarcadero shorthand now maps to the metro station**: route-contextual legacy rides no longer remain unresolved.
 - **TTC station shorthand now maps to canonical stations**: `North York Centre` and `Osgoode` use their GTFS station locations.
 - **Additional legacy stop aliases now use local GTFS matches**: C-Tran, CDTA, NFTA, GO Transit, and King County labels resolve to verified coordinates.
+- **Hamilton legacy agency mappings now match the actual operators**: route 15 at Aldershot and route 47 at Hamilton GO use GO Transit, while route 2 at Hamilton GO uses HSR.
+- **More legacy station labels now use exact GTFS stops**: TTC Vaughan Metropolitan Centre and Yorkdale, plus NFTA Walden Galleria, resolve to canonical locations.
+- **Reno legacy station labels now use local GTFS stops**: RTC Washoe hubs, Meadowood Mall, Virginia/17th, and stop `775` resolve without guessing.
 - **Agency search now recognizes full agency names**: search by names such as Toronto Transit Commission or Bay Area Rapid Transit while keeping the short stored code unchanged.
 - **Trip starts now require a boarding stop**: malformed records can no longer be created without an origin, and long trip-list counts use readable thousands separators.
 - **Trip cards now handle incomplete and connected rides clearly**: incomplete trips omit fake `0 min` durations and duplicate wording, while linked journey legs are grouped with a visible transfer path.

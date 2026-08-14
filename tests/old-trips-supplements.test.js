@@ -9,8 +9,8 @@ describe('Old Trips GTFS supplements', () => {
     const index = buildStopIndex({ atlasStops: stops });
 
     it('contains the exact local-GTFS batch', () => {
-        expect(Object.keys(OLD_TRIPS_GTFS_STOP_SUPPLEMENTS).length).toBe(34);
-        expect(stops.length).toBe(513);
+        expect(Object.keys(OLD_TRIPS_GTFS_STOP_SUPPLEMENTS).length).toBe(35);
+        expect(stops.length).toBe(525);
     });
 
     it('resolves imported raw labels without changing trip records', () => {
@@ -35,10 +35,26 @@ describe('Old Trips GTFS supplements', () => {
 
     it('maps repeated GO and CDTA shorthand to their verified stations', () => {
         const go = resolveStopLocation({ agency: 'GO Transit', startStopName: 'Burlington' }, 'boarding', index);
+        const aldershot = resolveStopLocation({ agency: 'GO Transit', startStopName: 'Aldershot' }, 'boarding', index);
+        const hsr = resolveStopLocation({ agency: 'HSR', startStopName: 'Hamilton GO' }, 'boarding', index);
         const cdta = resolveStopLocation({ agency: 'CDTA', startStopName: 'North Central' }, 'boarding', index);
         const yrt = resolveStopLocation({ agency: 'YRT', startStopName: 'Finch' }, 'boarding', index);
 
         expect(go.label).toBe('Burlington GO');
+        expect(aldershot.label).toBe('Aldershot GO');
+        expect(hsr.label).toBe('HAMILTON GO CENTRE PLATFORM 17');
+        expect(resolveStopLocation({ agency: 'TTC', startStopName: 'Vaughan Metropolitan Centre' }, 'boarding', index).label)
+            .toBe('Vaughan Metropolitan Centre Station - Subway Platform');
+        expect(resolveStopLocation({ agency: 'TTC', startStopName: 'Yorkdale' }, 'boarding', index).label)
+            .toBe('Yorkdale Station - Northbound Platform');
+        expect(resolveStopLocation({ agency: 'NFTA Metro', startStopName: 'Walden Galleria' }, 'boarding', index).label)
+            .toBe('Walden Avenue & Galleria Mall');
+        expect(resolveStopLocation({ agency: 'RTC Washoe', startStopName: '4th Street Station' }, 'boarding', index).label)
+            .toBe('RTC 4TH STREET STATION');
+        expect(resolveStopLocation({ agency: 'RTC Washoe', startStopName: 'Meadowwood Mall' }, 'boarding', index).label)
+            .toBe('RTC Transfer Center / Meadowood Mall');
+        expect(resolveStopLocation({ agency: 'RTC Washoe', startStopName: '775' }, 'boarding', index).label)
+            .toBe('Glendale Avenue and S 21st Street');
         expect(cdta.label).toBe('North Central Station - River St & Glen Ave');
         expect(yrt.label).toBe('Finch GO Bus Terminal');
     });
