@@ -22,4 +22,9 @@ describe('stop library matching', () => {
     it('does not match an unrelated agency by name', () => {
         expect(isStopLinked({ agency: 'GO Transit', stopName: 'College Station' }, stop)).toBe(false);
     });
+
+    it('treats GO and GO Transit as the same stored agency label', () => {
+        const goStop = { agency: 'GO Transit', name: 'West Harbour GO' };
+        expect(isStopLinked({ agency: 'GO', stopName: 'West Harbour GO' }, goStop)).toBe(true);
+    });
 });

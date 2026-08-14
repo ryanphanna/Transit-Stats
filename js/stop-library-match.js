@@ -21,10 +21,18 @@ export function stopAgencies(stop) {
         .map(agency => String(agency).trim().toLowerCase());
 }
 
+const AGENCY_EQUIVALENTS = new Map([
+    ['go', 'go transit'],
+    ['go transit', 'go'],
+]);
+
 export function stopBelongsToAgency(stop, agency) {
     const candidateAgencies = stopAgencies(stop);
     if (!agency || candidateAgencies.length === 0) return true;
-    return candidateAgencies.includes(String(agency).trim().toLowerCase());
+    const target = String(agency).trim().toLowerCase();
+    return candidateAgencies.some(candidate =>
+        candidate === target || AGENCY_EQUIVALENTS.get(candidate) === target,
+    );
 }
 
 export function isStopLinked({ agency, stopName, stopCode }, stop) {

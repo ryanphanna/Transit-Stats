@@ -71,6 +71,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **TransitStats now shares one visual system across rider, beta, public, and admin pages**: quieter surfaces, consistent controls, and a designed Heatmap shell replace the old mix of page-specific styles.
 - **Routes now opens on your default agency without an agency picker**: the page stays focused while still summarizing other agencies below.
 - **Admin stop triage now audits current trips with agency-aware matching**: the inbox and read-only audit agree on which boarding and exit labels are still unresolved.
+- **Current-trip stop coverage now includes more route-verified local GTFS records**: repeated Toronto, Hamilton, Los Angeles, MiWay, VTA, and NFTA labels resolve without changing raw trips.
 - **Dashboard and Settings now have clearer workspaces**: page intros, grouped content, balanced panels, and compact controls make the core screens easier to scan.
 - **Dashboard route coverage now sits near the page introduction**: it is no longer stranded below the main dashboard columns.
 - **Dashboard removes redundant introductory copy**: the useful content starts immediately instead of repeating the page context.
