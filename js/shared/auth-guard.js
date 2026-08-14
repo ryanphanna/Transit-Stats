@@ -1,7 +1,7 @@
 import { auth, authPersistenceReady } from '../firebase.js';
 import { Auth } from '../auth.js';
 
-const AUTH_RESTORE_GRACE_MS = 30000;
+const AUTH_RESTORE_GRACE_MS = 3000;
 const AUTH_SHARED_SESSION_DELAY_MS = 750;
 const AUTH_RESTORE_POLL_MS = 250;
 

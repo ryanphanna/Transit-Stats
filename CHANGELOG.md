@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Signed-out dashboard visits now return to the homepage quickly**: a private window no longer sits behind an empty dashboard while waiting for a session that cannot exist.
 - **The dashboard now shows the map immediately**: the base map appears while trip pins and detailed stop data load in the background.
 - **Personalized dashboard titles now handle names ending in “s”**: names use the correct possessive ending before “TransitStats.”
 - **Dashboard identity titles now split across two lines**: the rider name stays on the first line while “TransitStats” gets a clear second line.
