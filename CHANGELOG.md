@@ -11,6 +11,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **More unresolved trip stops now use route-verified local GTFS records**: added exact TTC, VTA, AC Transit, LADOT, SMART, Big Blue Bus, GO, and Hamilton matches without modifying raw trips.
 - **Historical TTC stop codes now use the feed version that served those rides**: restored exact route-aware matches where newer feeds had reused or changed the stop identifiers.
 - **TTC labels that include a stop code now resolve as aliases**: the combined `7346 Spadina Avenue and Front St., West` label maps to its historical route-510 stop.
+- **NFTA Lafayette Square rail stops now use the local rail feed**: both platform coordinates resolve without changing the original trip label.
 - **Dashboard is now a full-screen personal map**: the home screen focuses on your mapped stops and recent movement instead of separate dashboard cards and navigation.
 - **Settings now matches the map-first shell**: account and preference controls use the same quieter layout instead of the old page treatment.
 - **Settings is now more compact**: the page gets to the account, agency, map, and theme controls without a duplicate intro block.
