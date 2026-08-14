@@ -795,6 +795,37 @@ export const LOCAL_GTFS_STOP_SUPPLEMENTS = {
             lng: -79.384478,
         },
         {
+            code: '47',
+            name: 'Avenue Rd at Bloor St West North Side',
+            lat: 43.669222,
+            lng: -79.394239,
+        },
+        {
+            code: '164',
+            name: 'Bathurst St at Lawrence Ave West South Side',
+            lat: 43.718829,
+            lng: -79.429826,
+        },
+        {
+            code: '2098',
+            name: 'Dufferin St at Sylvan Ave North Side',
+            lat: 43.655107,
+            lng: -79.433431,
+        },
+        {
+            code: '7346',
+            name: 'Spadina Ave at Front St West North Side',
+            lat: 43.643182,
+            lng: -79.394027,
+            aliases: ['Spadina Avenue and Front St., West', '7346 Spadina Avenue and Front St., West'],
+        },
+        {
+            code: '6822',
+            name: 'Queen St East at Wineva Ave',
+            lat: 43.671104,
+            lng: -79.295327,
+        },
+        {
             code: 'BU',
             name: 'Burlington GO',
             lat: 43.341265,
