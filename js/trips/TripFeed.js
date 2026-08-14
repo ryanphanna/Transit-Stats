@@ -1,4 +1,5 @@
 import { Utils } from '../utils.js';
+import { UI } from '../ui-utils.js';
 import { TripController } from './TripController.js';
 import { getTripRouteLabel, getTripStatusLabel, getTripStopLabel } from '../trip-display.js';
 
@@ -180,8 +181,41 @@ export const TripFeed = {
             <div class="journey-line"></div>
         `;
 
-        el.querySelector('.btn-break-journey').addEventListener('click', () => {
-            TripController.breakJourneyLink(later.id, earlier.id);
+        const unlinkButton = el.querySelector('.btn-break-journey');
+        let unlinkArmed = false;
+        let unlinkTimer = null;
+
+        const resetUnlinkButton = () => {
+            unlinkArmed = false;
+            unlinkButton.disabled = false;
+            unlinkButton.classList.remove('confirming');
+            unlinkButton.title = 'Unlink journey';
+            unlinkButton.setAttribute('aria-label', 'Unlink journey');
+            unlinkButton.innerHTML = '<i data-lucide="scissors"></i>';
+            if (window.lucide) lucide.createIcons();
+        };
+
+        unlinkButton.addEventListener('click', async () => {
+            if (!unlinkArmed) {
+                unlinkArmed = true;
+                unlinkButton.classList.add('confirming');
+                unlinkButton.title = 'Tap again to unlink journey';
+                unlinkButton.setAttribute('aria-label', 'Tap again to unlink journey');
+                unlinkButton.textContent = 'Tap again to unlink';
+                unlinkTimer = setTimeout(resetUnlinkButton, 3000);
+                return;
+            }
+
+            clearTimeout(unlinkTimer);
+            unlinkArmed = false;
+            unlinkButton.disabled = true;
+            unlinkButton.textContent = 'Unlinking…';
+            try {
+                await TripController.breakJourneyLink(later.id, earlier.id);
+            } catch (error) {
+                resetUnlinkButton();
+                UI.showNotification('Could not unlink these trips. Please try again.');
+            }
         });
 
         return el;

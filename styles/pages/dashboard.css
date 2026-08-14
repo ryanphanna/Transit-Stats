@@ -144,13 +144,16 @@ input:-webkit-autofill { animation-name: onAutofillStart; }
 
 .trip-info { display: flex; flex-direction: column; gap: 8px; flex: 1; }
 .trip-route-pill {
-  display: inline-block;
-  padding: 2px 8px;
-  background: var(--accent);
-  color: white;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  background: var(--accent-glass);
+  border: 1px solid var(--accent-light);
+  color: var(--accent);
   font-weight: 800;
-  font-size: 0.75rem;
-  border-radius: 4px;
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  border-radius: 999px;
   width: fit-content;
 }
 
@@ -279,6 +282,7 @@ input:-webkit-autofill { animation-name: onAutofillStart; }
 .journey-badge { display: flex; align-items: center; gap: 6px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; font-size: 0.72rem; color: var(--text-secondary); font-weight: 500; }
 .btn-break-journey { background: none; border: none; padding: 0; cursor: pointer; color: var(--text-secondary); display: flex; align-items: center; opacity: 0.5; transition: opacity 0.15s, color 0.15s; }
 .btn-break-journey:hover { opacity: 1; color: var(--danger); }
+.btn-break-journey.confirming { opacity: 1; padding: 3px 8px; background: var(--danger); border-radius: 999px; color: white; font-size: 0.68rem; font-weight: 700; white-space: nowrap; }
 
 /* --- Advanced Analytics --- */
 .insight-row {

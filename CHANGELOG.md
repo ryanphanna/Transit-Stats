@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Journey unlinking now requires confirmation**: the scissors control must be tapped twice within three seconds, while route badges use a lighter compact style.
 - **NFTA transportation-center stops now map to Buffalo MTC**: imported legacy rides use the local GTFS stop instead of remaining unmapped.
 - **Agency search now recognizes full agency names**: search by names such as Toronto Transit Commission or Bay Area Rapid Transit while keeping the short stored code unchanged.
 - **Trip starts now require a boarding stop**: malformed records can no longer be created without an origin, and long trip-list counts use readable thousands separators.
