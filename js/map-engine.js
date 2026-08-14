@@ -14,7 +14,7 @@ export function getMapMarkerLabel(trip = {}, side = 'boarding', resolution = nul
 export const MapEngine = {
     map: null,
     trips: [],
-    filter: 'both', // 'boarding', 'exiting', 'both'
+    filter: localStorage.getItem('transitstats-map-stop-mode') === 'exiting' ? 'exiting' : 'boarding',
     layers: {
         base: null,
         transit: null,
@@ -121,8 +121,7 @@ export const MapEngine = {
             pill.addEventListener('click', () => {
                 pills.forEach(p => p.classList.remove('active'));
                 pill.classList.add('active');
-                this.filter = pill.dataset.filter;
-                this.renderMarkers();
+                this.setFilter(pill.dataset.filter);
             });
         });
 
@@ -130,6 +129,12 @@ export const MapEngine = {
         if (btnLocate) {
             btnLocate.addEventListener('click', () => this.locateUser());
         }
+    },
+
+    setFilter(filter) {
+        this.filter = filter === 'exiting' ? 'exiting' : 'boarding';
+        localStorage.setItem('transitstats-map-stop-mode', this.filter);
+        this.renderMarkers();
     },
 
     requestInitialLocation() {

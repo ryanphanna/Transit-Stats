@@ -76,6 +76,7 @@ export function buildStopIndex({ atlasStops = [], normalizedStops = [] } = {}) {
     const index = new Map();
 
     addStops(index, atlasStops, 'atlas');
+    addStops(index, normalizedStops, 'firestore');
     addNormalizedAliases(index, normalizedStops);
     return index;
 }

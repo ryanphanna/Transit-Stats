@@ -124,9 +124,36 @@ function initPublicMap(points) {
             }));
         });
 
-        const bounds = points
-            .map(p => [Number(p.lat), Number(p.lng)])
-            .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
-        if (bounds.length > 0) map.fitBounds(bounds, { padding: [100, 100] });
+        const bounds = getPublicViewport(points);
+        if (bounds.length === 1) {
+            map.setView(bounds[0], 13, { animate: false });
+        } else if (bounds.length > 1) {
+            map.fitBounds(bounds, { padding: [100, 100], maxZoom: 13 });
+        }
     }
+}
+
+function getPublicViewport(points) {
+    const valid = (points || [])
+        .map(point => [Number(point.lat), Number(point.lng)])
+        .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng)
+            && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180);
+    if (valid.length < 2) return valid;
+
+    const latitudes = valid.map(([lat]) => lat);
+    const longitudes = valid.map(([, lng]) => lng);
+    const latSpan = Math.max(...latitudes) - Math.min(...latitudes);
+    const lngSpan = Math.max(...longitudes) - Math.min(...longitudes);
+    if (latSpan <= 24 && lngSpan <= 32) return valid;
+
+    // A public profile can contain occasional trips in another country. Use
+    // the densest 8-degree region so the first view stays useful instead of
+    // zooming out to the entire world.
+    const regions = new Map();
+    valid.forEach(point => {
+        const key = `${Math.floor(point[0] / 8)}:${Math.floor(point[1] / 8)}`;
+        if (!regions.has(key)) regions.set(key, []);
+        regions.get(key).push(point);
+    });
+    return [...regions.values()].sort((a, b) => b.length - a.length)[0];
 }

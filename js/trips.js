@@ -44,6 +44,7 @@ export const Trips = {
                 if (Date.now() - timestamp < CACHE_TTL) {
                     console.log(`Loaded ${data.length} stops from cache`);
                     PredictionEngine.stopsLibrary = data;
+                    MapEngine.setStopSources({ firestoreStops: data });
                     this.sync(TripController.allTrips, TripController.activeTrip);
                     MapEngine.renderMarkers();
                     return;
@@ -56,6 +57,7 @@ export const Trips = {
             const data = snap.docs.map(doc => doc.data());
             
             PredictionEngine.stopsLibrary = data;
+            MapEngine.setStopSources({ firestoreStops: data });
             this.sync(TripController.allTrips, TripController.activeTrip);
             MapEngine.renderMarkers();
 

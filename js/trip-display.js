@@ -4,7 +4,7 @@ const STOP_FIELDS = {
 };
 
 export function getTripStopLabel(trip = {}, side = 'boarding', resolution = null) {
-    if (resolution?.label && resolution.source === 'atlas') return resolution.label;
+    if (resolution?.label) return resolution.label;
 
     const fields = STOP_FIELDS[side] || STOP_FIELDS.boarding;
     for (const field of fields) {

@@ -17,6 +17,26 @@
   display: none;
 }
 
+.settings-surface .header-action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.settings-surface .header-action-link svg {
+  width: 16px;
+  height: 16px;
+}
+
 .settings-view {
   min-height: 100vh;
   padding-top: 112px;

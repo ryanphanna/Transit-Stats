@@ -10,6 +10,9 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 - **Dashboard is now a full-screen personal map**: the home screen focuses on your mapped stops and recent movement instead of separate dashboard cards and navigation.
 - **Settings now matches the map-first shell**: account and preference controls use the same quieter layout instead of the old page treatment.
+- **Maps now show one stop type at a time**: boarding stops are the default, with the preference to use exiting stops moved into Settings.
+- **Map controls are now clearer and movable**: labeled account actions, circular zoom controls, and an unobstructed map surface replace the old icon-heavy overlay.
+- **The map card now shows network breadth**: agencies ridden and countries reached are visible alongside recent movement totals.
 - **Dashboard auth now tolerates longer refreshes**: a temporary Firebase session gap no longer redirects to login after only five seconds.
 - **Stops map no longer zooms to the world while loading**: missing zero coordinates are excluded from marker rendering and bounds.
 - **Trip count now includes days ridden**: the dashboard shows how many distinct days you have taken transit.

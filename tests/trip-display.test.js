@@ -26,6 +26,14 @@ describe('trip display fallbacks', () => {
         )).toBe('College Station');
     });
 
+    test('uses a canonical label from a normalized stop source', () => {
+        expect(getTripStopLabel(
+            { startStopName: 'York Mills' },
+            'boarding',
+            { source: 'firestore', label: 'York Mills Station' },
+        )).toBe('York Mills Station');
+    });
+
     test('accepts legacy and newer stop fields', () => {
         expect(getTripStopLabel({ boardingStopName: 'College Station' }, 'boarding')).toBe('College Station');
         expect(getTripStopLabel({ exitingStop: 'Dundas Station' }, 'exiting')).toBe('Dundas Station');

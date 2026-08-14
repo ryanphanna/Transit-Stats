@@ -47,11 +47,13 @@ function _render(isAdmin, currentPage) {
                 </nav>
 
                 <div class="header-actions">
-                    <a href="/settings" class="icon-btn ${currentPage === 'settings' ? 'active' : ''}" title="Settings">
+                    <a href="/settings" class="header-action-link ${currentPage === 'settings' ? 'active' : ''}" title="Settings">
                         <i data-lucide="settings"></i>
+                        <span>Settings</span>
                     </a>
-                    <button id="btn-header-logout" class="icon-btn header-logout" title="Sign out" aria-label="Sign out">
+                    <button id="btn-header-logout" class="header-action-link header-logout" title="Log out" aria-label="Log out">
                         <i data-lucide="log-out"></i>
+                        <span>Log out</span>
                     </button>
                 </div>
             </div>

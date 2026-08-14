@@ -74,6 +74,7 @@ export const Profile = {
         const betaPredictions = document.getElementById('settings-beta-predictions');
         const publicProfile = document.getElementById('settings-public-profile');
         const themeSelect = document.getElementById('settings-theme');
+        const mapStopModeSelect = document.getElementById('settings-map-stop-mode');
 
         if (agencySelect) {
             this.agencyAutocomplete = createAgencyAutocomplete({
@@ -122,6 +123,12 @@ export const Profile = {
         themeSelect?.addEventListener('change', (e) => {
             window.TransitTheme?.apply(e.target.value);
             this.updateSetting('theme', e.target.value);
+        });
+
+        mapStopModeSelect?.addEventListener('change', (e) => {
+            const mode = e.target.value === 'exiting' ? 'exiting' : 'boarding';
+            localStorage.setItem('transitstats-map-stop-mode', mode);
+            this.updateSetting('mapStopMode', mode);
         });
 
         document.getElementById('btn-save-identity')?.addEventListener('click', () => {
@@ -338,6 +345,7 @@ export const Profile = {
         const publicProfileEl = document.getElementById('settings-public-profile');
         const publicLinkEl = document.getElementById('settings-public-link');
         const themeEl = document.getElementById('settings-theme');
+        const mapStopModeEl = document.getElementById('settings-map-stop-mode');
 
         if (emailEl) emailEl.textContent = email || auth.currentUser?.email || '—';
         if (phoneEl) phoneEl.textContent = this.phone || 'Not linked';
@@ -365,6 +373,14 @@ export const Profile = {
             const theme = this.data?.theme || window.TransitTheme?.getPreference() || 'system';
             themeEl.value = theme;
             window.TransitTheme?.apply(theme);
+        }
+
+        if (mapStopModeEl) {
+            const mode = this.data?.mapStopMode === 'exiting'
+                ? 'exiting'
+                : (localStorage.getItem('transitstats-map-stop-mode') === 'exiting' ? 'exiting' : 'boarding');
+            mapStopModeEl.value = mode;
+            localStorage.setItem('transitstats-map-stop-mode', mode);
         }
 
         // --- Identity UI ---

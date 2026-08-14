@@ -11,6 +11,10 @@ export const TripStatsView = {
         this._updateBox('stat-trips-month', periodCounts.thisMonth);
         this._updateBox('stat-trips-week', periodCounts.thisWeek);
         this._updateBox('stat-days-ridden', periodCounts.daysRidden);
+        this._updateBox('stat-agencies-ridden', new Set(
+            (trips || []).map(trip => String(trip.agency || '').trim()).filter(Boolean)
+        ).size);
+        this._updateBox('stat-countries-ridden', Stats.getCountriesRidden(trips));
 
         const metrics = Stats.computeMetrics(trips, range);
 

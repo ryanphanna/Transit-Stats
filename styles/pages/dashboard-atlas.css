@@ -39,6 +39,28 @@
   backdrop-filter: blur(14px);
 }
 
+.dashboard-surface .header .header-action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgb(255 255 255 / 88%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 82%);
+  color: var(--text-primary);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 8px 22px rgb(16 42 42 / 8%);
+  backdrop-filter: blur(14px);
+}
+
+.dashboard-surface .header .header-action-link svg {
+  width: 16px;
+  height: 16px;
+}
+
 .dashboard-surface .header ~ .view {
   padding-top: 0;
 }
@@ -102,6 +124,11 @@
   width: min(1240px, calc(100% - 48px));
   height: 100%;
   margin: 0 auto;
+  pointer-events: none;
+}
+
+.dashboard-atlas-hero-inner > * {
+  pointer-events: auto;
 }
 
 .atlas-map-label {
@@ -181,6 +208,40 @@
   pointer-events: auto;
 }
 
+.dashboard-surface .leaflet-control-zoom {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-right: 18px;
+  margin-bottom: 18px;
+  border: 0;
+  box-shadow: none;
+}
+
+.dashboard-surface .leaflet-control-zoom a {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid rgb(220 231 227 / 92%);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 88%);
+  color: var(--text-primary);
+  box-shadow: 0 8px 22px rgb(16 42 42 / 10%);
+  font-size: 1.1rem;
+  line-height: 1;
+  backdrop-filter: blur(14px);
+}
+
+.dashboard-surface .leaflet-control-zoom a:hover {
+  border-color: var(--accent-light);
+  color: var(--accent);
+}
+
+.dashboard-surface .leaflet-control-zoom-in {
+  border-bottom: 1px solid rgb(220 231 227 / 92%);
+}
+
 .atlas-identity-card {
   position: absolute;
   border: 1px solid rgb(255 255 255 / 86%);
@@ -192,8 +253,8 @@
 .atlas-identity-card {
   top: 50%;
   left: 0;
-  width: min(370px, 100%);
-  padding: 26px;
+  width: min(330px, 100%);
+  padding: 28px 25px;
   border-radius: 26px;
   transform: translateY(-43%);
 }
@@ -203,6 +264,10 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 34px;
+}
+
+.atlas-card-topline:has(.atlas-card-type) {
+  justify-content: flex-end;
 }
 
 .atlas-avatar {
@@ -329,7 +394,7 @@
 
 .atlas-period-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
 }
 
@@ -600,7 +665,7 @@
 
 @media (max-width: 480px) {
   .atlas-identity-card {
-    padding: 21px;
+    padding: 22px 21px;
     border-radius: 22px;
   }
 
