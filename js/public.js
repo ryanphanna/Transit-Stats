@@ -4,7 +4,7 @@ import {
     getUsageMarkerStyle,
     groupMapPoints,
 } from './map-presentation.js';
-import { createMapSurface } from './map-surface.js';
+import { createMapSurface, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from './map-surface.js';
 
 // Public Profile Logic
 document.addEventListener('DOMContentLoaded', async () => {
@@ -81,7 +81,8 @@ function initPublicMap(points) {
     const tileTheme = isDark ? 'dark_all' : 'light_all';
     const surface = createMapSurface({
         containerId: 'publicMap',
-        center: [43.70, -79.42],
+        center: DEFAULT_MAP_CENTER,
+        zoom: DEFAULT_MAP_ZOOM,
         tileTheme,
     });
     const { map, markers } = surface;
@@ -105,7 +106,7 @@ function initPublicMap(points) {
         if (bounds.length === 1) {
             map.setView(bounds[0], 13, { animate: false });
         } else if (bounds.length > 1) {
-            map.fitBounds(bounds, { padding: [60, 60], maxZoom: 15 });
+            map.fitBounds(bounds, { padding: [60, 60], maxZoom: 13 });
         }
     }
 }

@@ -2,7 +2,7 @@ import { UI } from './ui-utils.js';
 import { PredictionEngine } from './predict.js';
 import { buildStopIndex, resolveStopLocation } from './atlas-stop-resolver.js';
 import { getTripStopLabel } from './trip-display.js';
-import { createMapSurface } from './map-surface.js';
+import { createMapSurface, DEFAULT_MAP_CENTER } from './map-surface.js';
 import {
     addMapZoomControl,
     addZoomGatedPopup,
@@ -65,7 +65,7 @@ export const MapEngine = {
 
         console.log("MapEngine: Initializing Leaflet map instance...");
 
-        const center = initialCenter || [43.6532, -79.3832];
+        const center = initialCenter || DEFAULT_MAP_CENTER;
 
         try {
             const isDark = document.body.classList.contains('dark')
@@ -76,6 +76,7 @@ export const MapEngine = {
             const surface = createMapSurface({
                 containerId: 'main-map',
                 center,
+                zoom: deferInitialView ? 10 : 13,
                 tileTheme,
             });
             this.map = surface.map;
@@ -114,11 +115,51 @@ export const MapEngine = {
     updateTrips(newTrips) {
         this.trips = newTrips;
         if (!this.map) return;
+
+        if (this._deferInitialView && this._isFirstLoad) {
+            this._renderQuickSavedMarkers(newTrips);
+        }
         
         if (this._renderTimer) cancelAnimationFrame(this._renderTimer);
         this._renderTimer = requestAnimationFrame(() => {
             this.renderMarkers();
             this._renderTimer = null;
+        });
+    },
+
+    _renderQuickSavedMarkers(trips = []) {
+        if (!this.map || !this.layers.markers) return;
+        const renderId = ++this._renderGeneration;
+        const points = [];
+        const showExiting = this.filter === 'exiting';
+
+        trips.forEach(trip => {
+            const location = showExiting
+                ? trip.exitLocation
+                : (trip.boardingLocation || trip.boardLocation);
+            const lat = Number(location?.lat);
+            const lng = Number(location?.lng ?? location?.lon);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat === 0 || lng === 0) return;
+            points.push({
+                lat,
+                lng,
+                type: showExiting ? 'exiting' : 'boarding',
+                label: location?.name || '',
+            });
+        });
+
+        const grouped = groupMapPoints(points, point => point.label);
+        const maxUsage = Math.max(...grouped.map(point => point.usage), 1);
+        this.layers.markers.clearLayers();
+        grouped.forEach(point => {
+            if (renderId !== this._renderGeneration) return;
+            const marker = L.circleMarker([point.lat, point.lng], {
+                renderer: this._canvasRenderer,
+                ...getUsageMarkerStyle(point, maxUsage, { baseRadius: 4.5 }),
+            });
+            const popup = [...point.labels].map(label => UI.escapeHtml(label)).filter(Boolean).join('<br>');
+            if (popup) addZoomGatedPopup(marker, this.map, popup);
+            this.layers.markers.addLayer(marker);
         });
     },
 
@@ -249,9 +290,6 @@ export const MapEngine = {
         if (renderId !== this._renderGeneration || !this.map || !this.layers.markers) return;
 
         const start = performance.now();
-        // Clear existing
-        this.layers.markers.clearLayers();
-
         // Always check if we need to rebuild the index (e.g. library finished loading)
         const currentLibSize = PredictionEngine.stopsLibrary?.length || 0;
         if (currentLibSize > 0 && (!this._hasIndexedStops || this._lastLibSize !== currentLibSize)) {
@@ -316,6 +354,9 @@ export const MapEngine = {
         const maxUsage = Math.max(...markersByStop.map(point => point.usage), 1);
         const baseRadius = document.body.classList.contains('v2-clean') ? 4 : 4.5;
 
+        if (renderId !== this._renderGeneration) return;
+        this.layers.markers.clearLayers();
+
         let markerIndex = 0;
         for (const point of markersByStop) {
             if (renderId !== this._renderGeneration) return;
@@ -356,7 +397,7 @@ export const MapEngine = {
                 if (latitudeSpan < 0.001 && longitudeSpan < 0.001) {
                     this.map.setView(validPoints[0], 13, { animate: false });
                 } else {
-                    this.map.fitBounds(bounds, { padding: [60, 60], animate: false, maxZoom: 15 });
+                    this.map.fitBounds(bounds, { padding: [60, 60], animate: false, maxZoom: 13 });
                 }
                 this.map.invalidateSize({ animate: false });
                 this._isFirstLoad = false;

@@ -1,6 +1,9 @@
 import { addMapZoomControl, installPopupZoomGuard } from './map-presentation.js';
 
-export function createMapSurface({ containerId, center, zoom = 13, tileTheme = 'light_all' }) {
+export const DEFAULT_MAP_CENTER = [43.6532, -79.3832];
+export const DEFAULT_MAP_ZOOM = 10;
+
+export function createMapSurface({ containerId, center = DEFAULT_MAP_CENTER, zoom = DEFAULT_MAP_ZOOM, tileTheme = 'light_all' }) {
     const map = L.map(containerId, {
         zoomControl: false,
         attributionControl: false,
