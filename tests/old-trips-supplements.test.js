@@ -10,7 +10,7 @@ describe('Old Trips GTFS supplements', () => {
 
     it('contains the exact local-GTFS batch', () => {
         expect(Object.keys(OLD_TRIPS_GTFS_STOP_SUPPLEMENTS).length).toBe(34);
-        expect(stops.length).toBe(477);
+        expect(stops.length).toBe(479);
     });
 
     it('resolves imported raw labels without changing trip records', () => {
@@ -58,6 +58,16 @@ describe('Old Trips GTFS supplements', () => {
 
         expect(match.label).toBe('Metro Embarcadero Station');
         expect(match.location).toEqual({ lat: 37.792922, lng: -122.3967905 });
+    });
+
+    it('maps TTC station shorthand to canonical station locations', () => {
+        const northYork = resolveStopLocation({ agency: 'TTC', startStopName: 'North York Centre' }, 'boarding', index);
+        const osgoode = resolveStopLocation({ agency: 'TTC', startStopName: 'Osgoode' }, 'boarding', index);
+
+        expect(northYork.label).toBe('North York Centre Station');
+        expect(northYork.location).toEqual({ lat: 43.767947, lng: -79.412542 });
+        expect(osgoode.label).toBe('Osgoode Station');
+        expect(osgoode.location).toEqual({ lat: 43.651099, lng: -79.386688 });
     });
 
     it('keeps obvious shorthand and typo aliases on canonical stops', () => {

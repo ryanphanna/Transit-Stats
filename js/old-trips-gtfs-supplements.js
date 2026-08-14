@@ -1098,6 +1098,15 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "TTC",
+            "name": "North York Centre Station",
+            "lat": 43.767947,
+            "lng": -79.412542,
+            "aliases": [
+                "North York Centre"
+            ]
+        },
+        {
             "code": "11222",
             "name": "Northover St at Sheppard Ave West South Side",
             "lat": 43.74084,
@@ -1140,6 +1149,15 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -79.463123,
             "aliases": [
                 "4508"
+            ]
+        },
+        {
+            "agency": "TTC",
+            "name": "Osgoode Station",
+            "lat": 43.651099,
+            "lng": -79.386688,
+            "aliases": [
+                "Osgoode"
             ]
         },
         {

@@ -120,6 +120,8 @@ const manualStops = [
     { agency: 'Spokane Transit', name: 'STA Plaza', lat: 47.6576, lng: -117.4226, aliases: ['STA Plaza'] },
     { agency: 'NFTA Metro', name: 'Ellicott Street & MTC Static', lat: 42.883406, lng: -78.872355, aliases: ['Metropolitan Transportation Center'] },
     { agency: 'Muni', name: 'Metro Embarcadero Station', lat: 37.792922, lng: -122.3967905, aliases: ['Embarcadero'] },
+    { agency: 'TTC', name: 'North York Centre Station', lat: 43.767947, lng: -79.412542, aliases: ['North York Centre'] },
+    { agency: 'TTC', name: 'Osgoode Station', lat: 43.651099, lng: -79.386688, aliases: ['Osgoode'] },
 ];
 
 for (const manual of manualStops) {
