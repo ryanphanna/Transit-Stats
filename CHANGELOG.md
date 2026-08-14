@@ -14,6 +14,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Public profiles now use quiet usage-weighted dots**: repeated shared stops stand out without numbered clusters covering the map.
 - **Public and signed-in maps now use the same history and dashboard facts**: a public profile no longer shows a reduced trip count or a different card layout.
 - **Dashboard totals now say “total rides”**: the count includes every recorded trip, not only trips with mapped coordinates.
+- **Recent movement labels now name the unit**: monthly and weekly figures clearly say they are ride counts.
 - **Public profiles now invite visitors to sign up**: logged-out riders get a clear path to create their own map.
 - **Maps now show one stop type at a time**: boarding stops are the default, with the preference to use exiting stops moved into Settings.
 - **Map controls are now clearer and movable**: labeled account actions, circular zoom controls, and an unobstructed map surface replace the old icon-heavy overlay.
