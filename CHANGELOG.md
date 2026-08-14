@@ -19,6 +19,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Recent ride labels can wrap cleanly**: the card keeps explicit units without forcing a wider layout.
 - **Wrapped ride labels are tighter**: two-line fact labels no longer leave a large vertical gap.
 - **Wrapped ride labels now align**: second lines sit directly under the label text instead of returning to the bullet.
+- **Local development now stays on one port**: Vite can no longer silently move the app to a different origin and make Firebase appear signed out.
 - **Public profiles now invite visitors to sign up**: logged-out riders get a clear path to create their own map.
 - **Maps now show one stop type at a time**: boarding stops are the default, with the preference to use exiting stops moved into Settings.
 - **Map controls are now clearer and movable**: labeled account actions, circular zoom controls, and an unobstructed map surface replace the old icon-heavy overlay.
@@ -72,6 +73,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Routes now opens on your default agency without an agency picker**: the page stays focused while still summarizing other agencies below.
 - **Admin stop triage now audits current trips with agency-aware matching**: the inbox and read-only audit agree on which boarding and exit labels are still unresolved.
 - **Current-trip stop coverage now includes more route-verified local GTFS records**: repeated Toronto, Hamilton, Los Angeles, MiWay, VTA, and NFTA labels resolve without changing raw trips.
+- **Current-trip stop coverage now spans more local GTFS feeds**: additional Los Angeles, San Francisco, San Diego, Golden Gate, and Toronto labels resolve using the route-specific stop records.
 - **Dashboard and Settings now have clearer workspaces**: page intros, grouped content, balanced panels, and compact controls make the core screens easier to scan.
 - **Dashboard route coverage now sits near the page introduction**: it is no longer stranded below the main dashboard columns.
 - **Dashboard removes redundant introductory copy**: the useful content starts immediately instead of repeating the page context.
