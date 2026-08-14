@@ -27,6 +27,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Reno legacy station labels now use local GTFS stops**: RTC Washoe hubs, Meadowood Mall, Virginia/17th, and stop `775` resolve without guessing.
 - **More Hamilton and Niagara legacy stops now use exact GTFS labels**: HSR intersections, Confederation GO, Eastgate, and Morrison-Dorchester resolve to canonical locations.
 - **More imported stops now resolve across the local GTFS archive**: Toronto, Hamilton, Montreal, Niagara, Portland, Seattle, San Francisco, Paris, and Barcelona labels now map to canonical coordinates.
+- **Additional imported stop aliases now use route-verified local GTFS coordinates**: more Hamilton, Niagara Falls, Cleveland, Toronto, Montreal, Portland, Seattle, and Barcelona labels resolve without changing raw trips.
 - **Agency search now recognizes full agency names**: search by names such as Toronto Transit Commission or Bay Area Rapid Transit while keeping the short stored code unchanged.
 - **Trip starts now require a boarding stop**: malformed records can no longer be created without an origin, and long trip-list counts use readable thousands separators.
 - **Trip cards now handle incomplete and connected rides clearly**: incomplete trips omit fake `0 min` durations and duplicate wording, while linked journey legs are grouped with a visible transfer path.

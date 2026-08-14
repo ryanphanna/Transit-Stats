@@ -203,6 +203,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "TTC",
+            "code": "13863",
+            "name": "Bloor Station - Northbound Platform",
+            "lat": 43.671044,
+            "lng": -79.385918,
+            "aliases": [
+                "Bloor"
+            ]
+        },
+        {
             "code": "15694",
             "name": "Bluffers Park Rd at Brimley Rd",
             "lat": 43.708394,
@@ -271,7 +281,18 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lat": 43.673452,
             "lng": -79.369136,
             "aliases": [
-                "Castle Frank"
+                "Castle Frank",
+                "castle"
+            ]
+        },
+        {
+            "agency": "TTC",
+            "code": "13748",
+            "name": "Chester Station - Eastbound Platform",
+            "lat": 43.678241,
+            "lng": -79.352502,
+            "aliases": [
+                "Chester"
             ]
         },
         {
@@ -317,6 +338,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -79.429769,
             "aliases": [
                 "816"
+            ]
+        },
+        {
+            "agency": "TTC",
+            "code": "13808",
+            "name": "College Station - Northbound Platform",
+            "lat": 43.661449,
+            "lng": -79.383088,
+            "aliases": [
+                "College"
             ]
         },
         {
@@ -443,6 +474,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "TTC",
+            "code": "13765",
+            "name": "Dufferin Station - Eastbound Platform",
+            "lat": 43.660849,
+            "lng": -79.43389,
+            "aliases": [
+                "Dufferin"
+            ]
+        },
+        {
             "code": "2119",
             "name": "Dundas St East at Jarvis St",
             "lat": 43.657162,
@@ -488,6 +529,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "TTC",
+            "code": "12415",
+            "name": "Eastern Ave at Coxwell Ave",
+            "lat": 43.665602,
+            "lng": -79.316143,
+            "aliases": [
+                "Eastern Av / Coxwell Av"
+            ]
+        },
+        {
             "code": "15702",
             "name": "Eglinton Ave East at Dunfield Ave",
             "lat": 43.707208,
@@ -502,7 +553,8 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lat": 43.704582,
             "lng": -79.39846,
             "aliases": [
-                "Eglinton"
+                "Eglinton",
+                "eg"
             ]
         },
         {
@@ -828,6 +880,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "TTC",
+            "code": "13813",
+            "name": "King Station - Northbound Platform",
+            "lat": 43.649649,
+            "lng": -79.378088,
+            "aliases": [
+                "King"
+            ]
+        },
+        {
             "code": "2770",
             "name": "Kingston Rd at Brookside Dr",
             "lat": 43.677113,
@@ -861,6 +923,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -79.44826,
             "aliases": [
                 "5213"
+            ]
+        },
+        {
+            "agency": "TTC",
+            "code": "13767",
+            "name": "Lansdowne Station - Westbound Platform",
+            "lat": 43.659314,
+            "lng": -79.442471,
+            "aliases": [
+                "Lansdowne"
             ]
         },
         {
@@ -1166,7 +1238,8 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lat": 43.662271,
             "lng": -79.426546,
             "aliases": [
-                "Ossington"
+                "Ossington",
+                "oss"
             ]
         },
         {
@@ -1194,6 +1267,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -79.343202,
             "aliases": [
                 "7347"
+            ]
+        },
+        {
+            "agency": "TTC",
+            "code": "13745",
+            "name": "Pape Station - Westbound Platform",
+            "lat": 43.679649,
+            "lng": -79.345787,
+            "aliases": [
+                "Pape"
             ]
         },
         {
@@ -1284,6 +1367,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -79.611041,
             "aliases": [
                 "14092"
+            ]
+        },
+        {
+            "agency": "TTC",
+            "code": "14278",
+            "name": "Pearson Airport Terminal 3 (Arrivals Level Columns C8-C12)",
+            "lat": 43.686811,
+            "lng": -79.620932,
+            "aliases": [
+                "Pearson Terminal 3 Arrivals"
             ]
         },
         {
@@ -1402,6 +1495,17 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -79.393497,
             "aliases": [
                 "2043"
+            ]
+        },
+        {
+            "agency": "TTC",
+            "code": "13824",
+            "name": "Queen's Park Station - Northbound Platform",
+            "lat": 43.660549,
+            "lng": -79.390689,
+            "aliases": [
+                "Queen's Park",
+                "Queen’s Park"
             ]
         },
         {
@@ -1631,6 +1735,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "TTC",
+            "code": "12085",
+            "name": "Spadina Ave at Queens Quay West North Side",
+            "lat": 43.638141,
+            "lng": -79.39201,
+            "aliases": [
+                "Spadina / Queens Quay W North"
+            ]
+        },
+        {
             "code": "7356",
             "name": "Spadina Ave at Sullivan St North Side",
             "lat": 43.651288,
@@ -1723,6 +1837,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "TTC",
+            "code": "13821",
+            "name": "St Patrick Station - Northbound Platform",
+            "lat": 43.655249,
+            "lng": -79.388388,
+            "aliases": [
+                "St Patrick"
+            ]
+        },
+        {
             "code": "7366",
             "name": "St Phillips Rd at Riverview Heights",
             "lat": 43.703313,
@@ -1757,6 +1881,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -79.620088,
             "aliases": [
                 "2197"
+            ]
+        },
+        {
+            "agency": "TTC",
+            "code": "13801",
+            "name": "Summerhill Station - Northbound Platform",
+            "lat": 43.683349,
+            "lng": -79.391189,
+            "aliases": [
+                "Summerhill"
             ]
         },
         {
@@ -1929,7 +2063,11 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lat": 43.670441,
             "lng": -79.386954,
             "aliases": [
-                "3214"
+                "3214",
+                "BLOOR-YONGE",
+                "Bloor-Yonge",
+                "b-y",
+                "bloor"
             ]
         },
         {
@@ -2088,12 +2226,32 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "HSR",
+            "code": "1039",
+            "name": "KING at KESWICK",
+            "lat": 43.233257,
+            "lng": -79.814253,
+            "aliases": [
+                "King / Keswick"
+            ]
+        },
+        {
             "code": "1089",
             "name": "KING opposite FRANK A. COOKE TERMINAL",
             "lat": 43.25708,
             "lng": -79.870117,
             "aliases": [
                 "1089"
+            ]
+        },
+        {
+            "agency": "HSR",
+            "code": "101006",
+            "name": "King St. W. @ Summers Ln. (Hamilton Place)",
+            "lat": 43.2576485,
+            "lng": -79.8717346,
+            "aliases": [
+                "101006"
             ]
         },
         {
@@ -2173,6 +2331,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -79.796396,
             "aliases": [
                 "2308"
+            ]
+        },
+        {
+            "agency": "HSR",
+            "code": "9231",
+            "name": "MOUNTAIN TRANSIT CENTRE PLATFORM 3",
+            "lat": 43.184684,
+            "lng": -79.901928,
+            "aliases": [
+                "Mountain Transit Terminal"
             ]
         },
         {
@@ -2290,6 +2458,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -80.529112,
             "aliases": [
                 "Conestoga"
+            ]
+        },
+        {
+            "agency": "Grand River Transit",
+            "code": "1446",
+            "name": "Fairview / Bishop",
+            "lat": 43.391761,
+            "lng": -80.341924,
+            "aliases": [
+                "Fairview"
             ]
         },
         {
@@ -2467,9 +2645,29 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "aliases": [
                 "West Harbour"
             ]
+        },
+        {
+            "agency": "GO Transit",
+            "code": "02153",
+            "name": "Wilfrid Laurier University",
+            "lat": 43.4752655,
+            "lng": -80.5272827,
+            "aliases": [
+                "Wilfred Laurier University"
+            ]
         }
     ],
     "MiWay": [
+        {
+            "agency": "MiWay",
+            "code": "place_blokip",
+            "name": "Bloor/Kipling",
+            "lat": 43.64182,
+            "lng": -79.535388,
+            "aliases": [
+                "Kipling"
+            ]
+        },
         {
             "code": "0113",
             "name": "Bromsgrove Rd At Cramer St",
@@ -2523,7 +2721,8 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lat": 43.088516,
             "lng": -79.059399,
             "aliases": [
-                "150"
+                "150",
+                "3rd Street / Niagara St S"
             ]
         },
         {
@@ -2532,7 +2731,8 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lat": 43.085908,
             "lng": -79.059189,
             "aliases": [
-                "160"
+                "160",
+                "3rd St / Old Falls Street S"
             ]
         },
         {
@@ -2593,12 +2793,33 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
         },
         {
             "agency": "NFTA Metro",
+            "code": "35615",
+            "name": "Niagara Street & Blackrock Transit Hub",
+            "lat": 42.945641,
+            "lng": -78.907132,
+            "aliases": [
+                "Black Rock Riverside Transit Hub"
+            ]
+        },
+        {
+            "agency": "NFTA Metro",
             "code": "35870",
             "name": "Niagara Street & Hertel Avenue",
             "lat": 42.946887,
             "lng": -78.894612,
             "aliases": [
                 "Niagara Street Hertel Avenue South"
+            ]
+        },
+        {
+            "agency": "NFTA Metro",
+            "code": "36680",
+            "name": "North Division Street & Main Street",
+            "lat": 42.883248,
+            "lng": -78.874593,
+            "aliases": [
+                "N Division / Main St W",
+                "North Division Ellicott Street W"
             ]
         },
         {
@@ -2652,6 +2873,26 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "Niagara Region Transit",
+            "code": "102646",
+            "name": "Niagara College - Glendale Campus",
+            "lat": 43.140787,
+            "lng": -79.231727,
+            "aliases": [
+                "Niagara College Glendale Campus"
+            ]
+        },
+        {
+            "agency": "Niagara Region Transit",
+            "code": "6208",
+            "name": "VICTORIA AV + CENTRE ST",
+            "lat": 43.092335,
+            "lng": -79.07583,
+            "aliases": [
+                "Ellen Av / Centre St"
+            ]
+        },
+        {
             "code": "6277",
             "name": "VICTORIA AV + RYERSON CR",
             "lat": 43.098915,
@@ -2676,6 +2917,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "name": "CENTRE / DUFFERIN",
             "lat": 43.805848,
             "lng": -79.473646
+        },
+        {
+            "agency": "YRT",
+            "code": "26",
+            "name": "Cornell Bus Terminal",
+            "lat": 43.880877,
+            "lng": -79.231556,
+            "aliases": [
+                "Cornell Terminal"
+            ]
         },
         {
             "agency": "YRT",
@@ -2912,12 +3163,32 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
         },
         {
             "agency": "CDTA",
+            "code": "03407",
+            "name": "Madison Station - S. Pearl St & Madison Ave",
+            "lat": 42.645641,
+            "lng": -73.754822,
+            "aliases": [
+                "Madison"
+            ]
+        },
+        {
+            "agency": "CDTA",
             "code": "00791",
             "name": "North Central Station - River St & Glen Ave",
             "lat": 42.75208,
             "lng": -73.6824,
             "aliases": [
                 "North Central"
+            ]
+        },
+        {
+            "agency": "CDTA",
+            "code": "ritaid",
+            "name": "Rite Aid",
+            "lat": 42.65046,
+            "lng": -73.752242,
+            "aliases": [
+                "126th St/Rite Aid"
             ]
         },
         {
@@ -2976,6 +3247,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -73.758843,
             "aliases": [
                 "03301"
+            ]
+        },
+        {
+            "agency": "CDTA",
+            "code": "12964",
+            "name": "Watervliet 19th St Station - 2nd Ave & 19th St",
+            "lat": 42.729788,
+            "lng": -73.701482,
+            "aliases": [
+                "Waterline 19th St"
             ]
         },
         {
@@ -3064,6 +3345,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "STM",
+            "code": "53816",
+            "name": "Notre-Dame / Place Saint-Henri",
+            "lat": 45.47768,
+            "lng": -73.584619,
+            "aliases": [
+                "Note-Dame/Place Saint-Henri"
+            ]
+        },
+        {
             "code": "56683",
             "name": "Place du Commerce / Centre Le Village",
             "lat": 45.467785,
@@ -3147,6 +3438,7 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lat": 45.514852,
             "lng": -73.560106,
             "aliases": [
+                "Barri uqam",
                 "Berri-UQAM"
             ]
         },
@@ -3156,7 +3448,8 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lat": 45.498053,
             "lng": -73.567129,
             "aliases": [
-                "Bonaventure"
+                "Bonaventure",
+                "bonevuture"
             ]
         },
         {
@@ -3371,6 +3664,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
     ],
     "Exo": [
         {
+            "agency": "Exo",
+            "code": "81001",
+            "name": "Arthur-Sauvé / devant le terminus Saint-Eustache",
+            "lat": 45.561705,
+            "lng": -73.893171,
+            "aliases": [
+                "Terminus Saint-Eustache"
+            ]
+        },
+        {
             "code": "83226",
             "name": "Arthur-Sauvé / Grignon",
             "lat": 45.570812,
@@ -3431,6 +3734,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
         }
     ],
     "GCRTA": [
+        {
+            "agency": "GCRTA",
+            "code": "00546",
+            "name": "2064 STEARNS RD",
+            "lat": 41.502392,
+            "lng": -81.609213,
+            "aliases": [
+                "Stokes / Stearns"
+            ]
+        },
         {
             "code": "02788",
             "name": "CEDAR RD & WARRENSVILLE CTR RD",
@@ -3519,6 +3832,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "GCRTA",
+            "code": "07693",
+            "name": "SUPERIOR AV & E 6TH ST",
+            "lat": 41.501256,
+            "lng": -81.690363,
+            "aliases": [
+                "Superior Av / 6th St"
+            ]
+        },
+        {
             "code": "07633",
             "name": "SUPERIOR AV & E 9TH ST",
             "lat": 41.502152,
@@ -3563,6 +3886,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -81.536396,
             "aliases": [
                 "08571"
+            ]
+        },
+        {
+            "agency": "GCRTA",
+            "code": "place_98s",
+            "name": "West Blvd-Cudell Station",
+            "lat": 41.480275,
+            "lng": -81.753276,
+            "aliases": [
+                "West Blvd-Cudwell"
             ]
         },
         {
@@ -3654,6 +3987,46 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
     ],
     "TriMet": [
         {
+            "agency": "TriMet",
+            "code": "9818",
+            "name": "Beaverton TC MAX Station",
+            "lat": 45.49133,
+            "lng": -122.801723,
+            "aliases": [
+                "Beaverton"
+            ]
+        },
+        {
+            "agency": "TriMet",
+            "code": "13132",
+            "name": "Clackamas Town Center TC MAX Station",
+            "lat": 45.435721,
+            "lng": -122.567769,
+            "aliases": [
+                "Clackmas Town Center"
+            ]
+        },
+        {
+            "agency": "TriMet",
+            "code": "8344",
+            "name": "Hollywood/NE 42nd Ave MAX Station",
+            "lat": 45.532772,
+            "lng": -122.620708,
+            "aliases": [
+                "Hollywood / NE 42nd Av"
+            ]
+        },
+        {
+            "agency": "TriMet",
+            "code": "8343",
+            "name": "Lloyd Center/NE 11th Ave MAX Station",
+            "lat": 45.530067,
+            "lng": -122.653638,
+            "aliases": [
+                "Lloyd Center / NE 11th Av"
+            ]
+        },
+        {
             "code": "8035",
             "name": "NE 82nd & Thompson",
             "lat": 45.53882,
@@ -3698,6 +4071,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
         },
         {
             "agency": "TriMet",
+            "code": "station-144",
+            "name": "Parkrose/Sumner TC MAX Station",
+            "lat": 45.559015,
+            "lng": -122.56562,
+            "aliases": [
+                "Parkrose / Summer"
+            ]
+        },
+        {
+            "agency": "TriMet",
             "code": "7777",
             "name": "Pioneer Courthouse/SW 6th Ave MAX Stn",
             "lat": 45.518964,
@@ -3722,6 +4105,36 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -122.525128,
             "aliases": [
                 "1390"
+            ]
+        },
+        {
+            "agency": "TriMet",
+            "code": "1496",
+            "name": "SE Division & 8th",
+            "lat": 45.506113,
+            "lng": -122.658157,
+            "aliases": [
+                "SE Division"
+            ]
+        },
+        {
+            "agency": "TriMet",
+            "code": "13720",
+            "name": "SE Park Ave MAX Station",
+            "lat": 45.430734,
+            "lng": -122.635065,
+            "aliases": [
+                "SE Park Av"
+            ]
+        },
+        {
+            "agency": "TriMet",
+            "code": "9600",
+            "name": "SW 11th & Alder",
+            "lat": 45.521094,
+            "lng": -122.682819,
+            "aliases": [
+                "SW 11th / Adler"
             ]
         },
         {
@@ -3759,9 +4172,49 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "aliases": [
                 "SW Rose Garden Way / Sherwood"
             ]
+        },
+        {
+            "agency": "TriMet",
+            "code": "5028",
+            "name": "SW Sam Jackson Pk & OHSU",
+            "lat": 45.499332,
+            "lng": -122.685535,
+            "aliases": [
+                "SW Sam Jackson Park / OHSU"
+            ]
+        },
+        {
+            "agency": "TriMet",
+            "code": "5846",
+            "name": "Tigard Transit Center",
+            "lat": 45.429962,
+            "lng": -122.769151,
+            "aliases": [
+                "Tigard"
+            ]
+        },
+        {
+            "agency": "TriMet",
+            "code": "7763",
+            "name": "Union Station/NW 6th & Hoyt MAX Stn",
+            "lat": 45.527222,
+            "lng": -122.676517,
+            "aliases": [
+                "Until Station / NW 6th / Hoyt"
+            ]
         }
     ],
     "C-Tran": [
+        {
+            "agency": "C-Tran",
+            "code": "6136",
+            "name": "7th Street at Turtle Place",
+            "lat": 45.626637,
+            "lng": -122.672005,
+            "aliases": [
+                "7th Street / Turtle Place"
+            ]
+        },
         {
             "code": "111",
             "name": "Delta Park/Vanport",
@@ -3820,6 +4273,26 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "King County Metro",
+            "code": "77780",
+            "name": "5th Ave NE & NE 155th St",
+            "lat": 47.741787,
+            "lng": -122.323616,
+            "aliases": [
+                "5th Av NE / NE 155th St"
+            ]
+        },
+        {
+            "agency": "King County Metro",
+            "code": "59310",
+            "name": "Andover Park W & Baker Blvd - Bay 2",
+            "lat": 47.457752,
+            "lng": -122.254478,
+            "aliases": [
+                "Andover Park W / Baker Blvd"
+            ]
+        },
+        {
             "code": "41970",
             "name": "Broadway & Pike-Pine",
             "lat": 47.6151657,
@@ -3832,6 +4305,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -122.295189,
             "aliases": [
                 "12390"
+            ]
+        },
+        {
+            "agency": "King County Metro",
+            "code": "C09",
+            "name": "International District Chinatown",
+            "lat": 47.598355,
+            "lng": -122.327992,
+            "aliases": [
+                "International District / Chinatown"
             ]
         },
         {
@@ -3944,6 +4427,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "Sound Transit",
+            "code": "C09",
+            "name": "International District Chinatown",
+            "lat": 47.598355,
+            "lng": -122.327992,
+            "aliases": [
+                "International District / Chinatown"
+            ]
+        },
+        {
             "code": "2035",
             "name": "Lynnwood City Center Station",
             "lat": 47.816082,
@@ -3972,6 +4465,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -122.445685,
             "aliases": [
                 "Pacific Av / S 19th St"
+            ]
+        },
+        {
+            "agency": "Sound Transit",
+            "code": "45301",
+            "name": "Renton Transit Center",
+            "lat": 47.4809074,
+            "lng": -122.20813,
+            "aliases": [
+                "Renton Transit Center"
             ]
         },
         {
@@ -4081,6 +4584,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -112.091941,
             "aliases": [
                 "133003"
+            ]
+        },
+        {
+            "agency": "Utah Transit Authority",
+            "code": "TX136084",
+            "name": "900 South Station",
+            "lat": 40.750058,
+            "lng": -111.896818,
+            "aliases": [
+                "900 S"
             ]
         },
         {
@@ -4235,6 +4748,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "aliases": [
                 "51697"
             ]
+        },
+        {
+            "agency": "AC Transit",
+            "code": "51732",
+            "name": "West Oakland BART",
+            "lat": 37.804564,
+            "lng": -122.295234,
+            "aliases": [
+                "West Oakland"
+            ]
         }
     ],
     "BART": [
@@ -4249,6 +4772,26 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "name": "Balboa Park",
             "lat": 37.721758,
             "lng": -122.44751
+        },
+        {
+            "agency": "BART",
+            "code": "place_MLBR",
+            "name": "Millbrae",
+            "lat": 37.5999,
+            "lng": -122.38675,
+            "aliases": [
+                "Milbrae"
+            ]
+        },
+        {
+            "agency": "BART",
+            "code": "901301",
+            "name": "Powell Street",
+            "lat": 37.784645,
+            "lng": -122.407387,
+            "aliases": [
+                "Powell"
+            ]
         },
         {
             "code": "902401",
@@ -4337,12 +4880,32 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "Muni",
+            "code": "15731",
+            "name": "Metro Montgomery Station/Downtown",
+            "lat": 37.789219,
+            "lng": -122.401351,
+            "aliases": [
+                "Montgomery"
+            ]
+        },
+        {
             "code": "15953",
             "name": "Park Presidio Blvd & Geary Blvd",
             "lat": 37.780776,
             "lng": -122.472217,
             "aliases": [
                 "15953"
+            ]
+        },
+        {
+            "agency": "Muni",
+            "code": "17356",
+            "name": "UCSF Medical Center (Mariposa)",
+            "lat": 37.764391,
+            "lng": -122.388853,
+            "aliases": [
+                "UCSF Medical Center"
             ]
         },
         {
@@ -4407,6 +4970,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
     ],
     "RATP": [
         {
+            "agency": "RATP",
+            "code": "IDFM:423008",
+            "name": "Belle Epine Sud",
+            "lat": 48.75507429749962,
+            "lng": 2.36899383752397,
+            "aliases": [
+                "La Belle Épine"
+            ]
+        },
+        {
             "code": "IDFM:22178",
             "name": "Bercy",
             "lat": 48.840176028121896,
@@ -4438,14 +5011,20 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lat": 48.85763833122418,
             "lng": 2.3484113851972435,
             "aliases": [
-                "Chatelet des Halles"
+                "CHATELET",
+                "Chatelet des Halles",
+                "chatelet"
             ]
         },
         {
             "code": "IDFM:491715",
             "name": "Chevilly-Larue",
             "lat": 48.75906281542096,
-            "lng": 2.366360901588132
+            "lng": 2.366360901588132,
+            "aliases": [
+                "CHEVILLY-LERUE",
+                "Cheville-Larue"
+            ]
         },
         {
             "code": "IDFM:493348",
@@ -4481,7 +5060,10 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "code": "IDFM:monomodalStopPlace:470519",
             "name": "Gare de l'Est",
             "lat": 48.87857171221123,
-            "lng": 2.360305141171757
+            "lng": 2.360305141171757,
+            "aliases": [
+                "GARE DE L’EST"
+            ]
         },
         {
             "code": "IDFM:monomodalStopPlace:470195",
@@ -4527,7 +5109,10 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "code": "IDFM:29673",
             "name": "Les Côteaux",
             "lat": 49.07538326654657,
-            "lng": 2.1623263113661766
+            "lng": 2.1623263113661766,
+            "aliases": [
+                "Les Coteaux"
+            ]
         },
         {
             "code": "IDFM:37381",
@@ -4548,10 +5133,24 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": 2.362857958087621
         },
         {
+            "agency": "RATP",
+            "code": "IDFM:492987",
+            "name": "Palais Royal - Musée du Louvre",
+            "lat": 48.862102557345764,
+            "lng": 2.337573615859602,
+            "aliases": [
+                "Palais Royale - Musee du Louvre"
+            ]
+        },
+        {
             "code": "IDFM:22168",
             "name": "Place d'Italie",
             "lat": 48.830914982874944,
-            "lng": 2.356101612721528
+            "lng": 2.356101612721528,
+            "aliases": [
+                "PLACE D’ITALIE",
+                "PLACE S’ITALIE"
+            ]
         },
         {
             "code": "IDFM:492300",
@@ -4564,6 +5163,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "name": "Porte de Choisy",
             "lat": 48.81971514342374,
             "lng": 2.3640167452454044
+        },
+        {
+            "agency": "RATP",
+            "code": "IDFM:28518",
+            "name": "Porte des Lilas - Métro",
+            "lat": 48.877020944405615,
+            "lng": 2.4057888074179923,
+            "aliases": [
+                "PORTE DES LINAS"
+            ]
         },
         {
             "code": "IDFM:18721",
@@ -4581,15 +5190,69 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "code": "IDFM:28568",
             "name": "Sèvres - Babylone",
             "lat": 48.8516516819961,
-            "lng": 2.3278261391472945
+            "lng": 2.3278261391472945,
+            "aliases": [
+                "Sevres - Babylone"
+            ]
+        },
+        {
+            "agency": "RATP",
+            "code": "IDFM:28522",
+            "name": "Trinité",
+            "lat": 48.87704768127846,
+            "lng": 2.33075707239642,
+            "aliases": [
+                "trinite - d’estienne d’orleans"
+            ]
+        },
+        {
+            "agency": "RATP",
+            "code": "IDFM:37799",
+            "name": "Villejuif - Louis Aragon",
+            "lat": 48.78739974788206,
+            "lng": 2.3673642847378,
+            "aliases": [
+                "Villejuif - Luis Aragon",
+                "VILLEJUIF - Luis Aragon"
+            ]
         }
     ],
     "SNCF Transilien": [
+        {
+            "agency": "SNCF Transilien",
+            "code": "IDFM:462398",
+            "name": "Aéroport CDG 1 (Terminal 3) - RER",
+            "lat": 49.00979397116337,
+            "lng": 2.5614121946317394,
+            "aliases": [
+                "cdg"
+            ]
+        },
+        {
+            "agency": "SNCF Transilien",
+            "code": "IDFM:monomodalStopPlace:43071",
+            "name": "Aulnay-sous-Bois",
+            "lat": 48.932150935734064,
+            "lng": 2.495597257815759,
+            "aliases": [
+                "Aunlay sous Bois"
+            ]
+        },
         {
             "code": "IDFM:monomodalStopPlace:43096",
             "name": "Bondy",
             "lat": 48.893965864676495,
             "lng": 2.4795800358385867
+        },
+        {
+            "agency": "SNCF Transilien",
+            "code": "IDFM:monomodalStopPlace:43077",
+            "name": "Épinay-sur-Seine",
+            "lat": 48.95382604164122,
+            "lng": 2.302388375122374,
+            "aliases": [
+                "Epinay-Sur-Siene"
+            ]
         },
         {
             "code": "IDFM:monomodalStopPlace:58566",
@@ -4641,6 +5304,18 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "name": "Sant Adrià Centre",
             "lat": 41.432803,
             "lng": 2.215877
+        }
+    ],
+    "Metrolinx": [
+        {
+            "agency": "Metrolinx",
+            "code": "BL",
+            "name": "Bloor GO",
+            "lat": 43.656928,
+            "lng": -79.450192,
+            "aliases": [
+                "Bloor"
+            ]
         }
     ],
     "Portland Aerial Tram": [
@@ -4696,6 +5371,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -121.479969,
             "aliases": [
                 "Fruitridge Station"
+            ]
+        },
+        {
+            "agency": "Sacramento Regional Transit",
+            "code": "7085",
+            "name": "Historic Folsom Station (EB)",
+            "lat": 38.67635,
+            "lng": -121.180717,
+            "aliases": [
+                "Historic Folsom"
             ]
         },
         {
@@ -4778,6 +5463,298 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -119.782974,
             "aliases": [
                 "Meadowwood Mall"
+            ]
+        }
+    ],
+    "CDPQ Infra": [
+        {
+            "agency": "CDPQ Infra",
+            "code": "ST_GCT_1",
+            "name": "Station Gare Centrale",
+            "lat": 45.500048,
+            "lng": -73.566978,
+            "aliases": [
+                "Gare Centrale"
+            ]
+        },
+        {
+            "agency": "CDPQ Infra",
+            "code": "ST_PAN_1",
+            "name": "Station Panama",
+            "lat": 45.464961,
+            "lng": -73.470599,
+            "aliases": [
+                "Terminus Panama"
+            ]
+        }
+    ],
+    "Caltrain": [
+        {
+            "agency": "Caltrain",
+            "code": "palo_alto",
+            "name": "Palo Alto Station",
+            "lat": 37.44322,
+            "lng": -122.16429,
+            "aliases": [
+                "Pablo Alto"
+            ]
+        }
+    ],
+    "TMB": [
+        {
+            "agency": "TMB",
+            "code": "000753",
+            "name": "Aiguablava - La Fosca",
+            "lat": 41.448396,
+            "lng": 2.181763,
+            "aliases": [
+                "AIGUABLAVA / LA FOSCA / TRINITAT NOVA"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "000123",
+            "name": "Arc de Triomf",
+            "lat": 41.391274,
+            "lng": 2.178718,
+            "aliases": [
+                "ARC DE TRIomf"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "003038",
+            "name": "Av del Baix Llobregat - Sant Antoni Maria Claret",
+            "lat": 41.367782,
+            "lng": 2.08033,
+            "aliases": [
+                "SANT ANTONY"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "001376",
+            "name": "Carles III - Maria Cristina",
+            "lat": 41.387436,
+            "lng": 2.126945,
+            "aliases": [
+                "MARIA CRISTINA"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "000381",
+            "name": "Clot - Biscaia",
+            "lat": 41.413988,
+            "lng": 2.190631,
+            "aliases": [
+                "CLOT"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "000493",
+            "name": "Diagonal - Gran Via Carles III",
+            "lat": 41.387589,
+            "lng": 2.125577,
+            "aliases": [
+                "DIAGONAL / GRAN VIA CARLES III"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "000928",
+            "name": "Diagonal - Muntaner",
+            "lat": 41.394302,
+            "lng": 2.150403,
+            "aliases": [
+                "DIAGONAL / MUNTANER"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "001520",
+            "name": "Diagonal - Pg de Gràcia",
+            "lat": 41.396809,
+            "lng": 2.160304,
+            "aliases": [
+                "Passeig de Gràcia"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "000635",
+            "name": "Dos de Maig - Sant Antoni Maria Claret",
+            "lat": 41.41157,
+            "lng": 2.175979,
+            "aliases": [
+                "SANT PAU / DOS DE MAIG"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "001033",
+            "name": "Guipúscoa - Verneda",
+            "lat": 41.425066,
+            "lng": 2.208422,
+            "aliases": [
+                "VERNEDA"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "001290",
+            "name": "La Rambla - Liceu",
+            "lat": 41.38161062,
+            "lng": 2.17307649,
+            "aliases": [
+                "LICEU"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "101151",
+            "name": "Metro Artigues-St. Adrià",
+            "lat": 41.43383833,
+            "lng": 2.21654212,
+            "aliases": [
+                "ARTIGUES / ZSANT ADRIÀ",
+                "ARTIGUES / SANT ADRIA"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "100131",
+            "name": "Metro Badalona Pompeu Fabra",
+            "lat": 41.44920088,
+            "lng": 2.24359946,
+            "aliases": [
+                "BADALONA"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "001092",
+            "name": "Metro La Pau",
+            "lat": 41.422866,
+            "lng": 2.205485,
+            "aliases": [
+                "LA PAU"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "001004",
+            "name": "Metro Paral·lel",
+            "lat": 41.375031,
+            "lng": 2.170619,
+            "aliases": [
+                "PARAL•LEL"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "100770",
+            "name": "Metro Sant Roc",
+            "lat": 41.43418457,
+            "lng": 2.2276193,
+            "aliases": [
+                "SANT ROC"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "000315",
+            "name": "Pg de Sant Joan - Diputació",
+            "lat": 41.395419,
+            "lng": 2.174671,
+            "aliases": [
+                "PG DE SANT JOAN / DIPUTACIO"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "002279",
+            "name": "Pg Reina Elisenda - Av JV Foix",
+            "lat": 41.398388,
+            "lng": 2.11854,
+            "aliases": [
+                "AV J V FOIX PG REINA ELISENEDA"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "001227",
+            "name": "Pg Sant Joan - Diputació",
+            "lat": 41.399839,
+            "lng": 2.170428,
+            "aliases": [
+                "PG DE SANT JOAN / DIPUTACIO"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "001492",
+            "name": "Pg Sant Joan - Pl Mossèn Jacint Verdaguer",
+            "lat": 41.398624,
+            "lng": 2.170429,
+            "aliases": [
+                "VERDAGUER"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "001210",
+            "name": "Pl Catalunya - Pg de Gràcia",
+            "lat": 41.387757,
+            "lng": 2.169316,
+            "aliases": [
+                "CATALUNYA"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "000329",
+            "name": "Sant Adrià Centre",
+            "lat": 41.432803,
+            "lng": 2.215877,
+            "aliases": [
+                "SANT ADRIÀ CENTRE"
+            ]
+        },
+        {
+            "agency": "TMB",
+            "code": "003352",
+            "name": "Sant Roc",
+            "lat": 41.436616,
+            "lng": 2.22282,
+            "aliases": [
+                "SANt ROC"
+            ]
+        }
+    ],
+    "FGC": [
+        {
+            "agency": "FGC",
+            "code": "000921",
+            "name": "Pl de Sarrià",
+            "lat": 41.399879,
+            "lng": 2.121379,
+            "aliases": [
+                "SARRIA",
+                "SArra to Les Tres Torres"
+            ]
+        }
+    ],
+    "TRAM Barcelona": [
+        {
+            "agency": "TRAM Barcelona",
+            "code": "001376",
+            "name": "Carles III - Maria Cristina",
+            "lat": 41.387436,
+            "lng": 2.126945,
+            "aliases": [
+                "MARIA CRISTINA"
             ]
         }
     ]

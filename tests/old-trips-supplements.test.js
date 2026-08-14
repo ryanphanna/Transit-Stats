@@ -9,8 +9,8 @@ describe('Old Trips GTFS supplements', () => {
     const index = buildStopIndex({ atlasStops: stops });
 
     it('contains the exact local-GTFS batch', () => {
-        expect(Object.keys(OLD_TRIPS_GTFS_STOP_SUPPLEMENTS).length).toBe(35);
-        expect(stops.length).toBe(536);
+        expect(Object.keys(OLD_TRIPS_GTFS_STOP_SUPPLEMENTS).length).toBe(41);
+        expect(stops.length).toBe(629);
     });
 
     it('resolves imported raw labels without changing trip records', () => {
