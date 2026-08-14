@@ -538,7 +538,8 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lat": 43.780942,
             "lng": -79.414829,
             "aliases": [
-                "Finch"
+                "Finch",
+                "Finch Weet"
             ]
         },
         {
@@ -1368,6 +1369,15 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "TTC",
+            "name": "Queen Station",
+            "lat": 43.651654,
+            "lng": -79.379372,
+            "aliases": [
+                "Queen"
+            ]
+        },
+        {
             "code": "1457",
             "name": "Queen's Park Cres West at Hart House",
             "lat": 43.663704,
@@ -1571,7 +1581,8 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lat": 43.67214,
             "lng": -79.37617,
             "aliases": [
-                "Sherbourne"
+                "Sherbourne",
+                "sherb"
             ]
         },
         {
@@ -2140,6 +2151,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
     "GO Transit": [
         {
             "agency": "GO Transit",
+            "code": "BL",
+            "name": "Bloor GO",
+            "lat": 43.656928,
+            "lng": -79.450192,
+            "aliases": [
+                "Bloor"
+            ]
+        },
+        {
+            "agency": "GO Transit",
             "code": "BE",
             "name": "Bramalea GO",
             "lat": 43.7022591,
@@ -2149,12 +2170,32 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "GO Transit",
+            "code": "BU",
+            "name": "Burlington GO",
+            "lat": 43.341265,
+            "lng": -79.809141,
+            "aliases": [
+                "Burlington"
+            ]
+        },
+        {
             "code": "102150",
             "name": "Cambridge Smart Centre",
             "lat": 43.4117165,
             "lng": -80.3236008,
             "aliases": [
                 "102150"
+            ]
+        },
+        {
+            "agency": "GO Transit",
+            "code": "HA",
+            "name": "Hamilton GO Centre",
+            "lat": 43.253284,
+            "lng": -79.869192,
+            "aliases": [
+                "Hamilton GO"
             ]
         },
         {
@@ -2193,6 +2234,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -80.540546,
             "aliases": [
                 "University of Waterloo"
+            ]
+        },
+        {
+            "agency": "GO Transit",
+            "code": "WR",
+            "name": "West Harbour GO",
+            "lat": 43.266775,
+            "lng": -79.866222,
+            "aliases": [
+                "West Harbour"
             ]
         }
     ],
@@ -2304,6 +2355,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "name": "CENTRE / DUFFERIN",
             "lat": 43.805848,
             "lng": -79.473646
+        },
+        {
+            "agency": "YRT",
+            "name": "Finch GO Bus Terminal",
+            "lat": 43.78235,
+            "lng": -79.4154,
+            "aliases": [
+                "Finch",
+                "Finch Station"
+            ]
         },
         {
             "code": "2964",
@@ -2422,6 +2483,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "CDTA",
+            "code": "11177",
+            "name": "Congress & 5th Ave",
+            "lat": 42.79766,
+            "lng": -73.95265,
+            "aliases": [
+                "Congress"
+            ]
+        },
+        {
             "code": "12827",
             "name": "Crossgates Commons Station",
             "lat": 42.696201,
@@ -2440,12 +2511,52 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "CDTA",
+            "code": "02663",
+            "name": "Lark/Library Station - Washington Ave & Lark St",
+            "lat": 42.656833,
+            "lng": -73.763564,
+            "aliases": [
+                "Lark/Library"
+            ]
+        },
+        {
             "code": "12320",
             "name": "Madison Ave & S. Pearl St",
             "lat": 42.645871,
             "lng": -73.755252,
             "aliases": [
                 "12320"
+            ]
+        },
+        {
+            "agency": "CDTA",
+            "code": "00791",
+            "name": "North Central Station - River St & Glen Ave",
+            "lat": 42.75208,
+            "lng": -73.6824,
+            "aliases": [
+                "North Central"
+            ]
+        },
+        {
+            "agency": "CDTA",
+            "code": "02342",
+            "name": "State St & Elm St",
+            "lat": 42.79737,
+            "lng": -73.92299,
+            "aliases": [
+                "State"
+            ]
+        },
+        {
+            "agency": "CDTA",
+            "code": "02665",
+            "name": "State/Downtown Station - State St & Lodge St",
+            "lat": 42.650374,
+            "lng": -73.753571,
+            "aliases": [
+                "State/Downtown"
             ]
         },
         {
@@ -3070,6 +3181,15 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "name": "Spruce @ 2nd",
             "lat": 47.654331,
             "lng": -117.446109
+        },
+        {
+            "agency": "Spokane Transit",
+            "name": "STA Plaza",
+            "lat": 47.6576,
+            "lng": -117.4226,
+            "aliases": [
+                "STA Plaza"
+            ]
         },
         {
             "code": "2204",
@@ -4006,6 +4126,28 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -122.716546,
             "aliases": [
                 "Washington Park"
+            ]
+        }
+    ],
+    "Sacramento Regional Transit": [
+        {
+            "agency": "Sacramento Regional Transit",
+            "code": "7017",
+            "name": "16th Street Station (EB)",
+            "lat": 38.569773,
+            "lng": -121.489018,
+            "aliases": [
+                "16th Street Station"
+            ]
+        },
+        {
+            "agency": "Sacramento Regional Transit",
+            "code": "7021",
+            "name": "Fruitridge Station (EB)",
+            "lat": 38.525188,
+            "lng": -121.479969,
+            "aliases": [
+                "Fruitridge Station"
             ]
         }
     ]

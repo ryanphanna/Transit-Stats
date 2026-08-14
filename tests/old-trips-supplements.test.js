@@ -9,8 +9,8 @@ describe('Old Trips GTFS supplements', () => {
     const index = buildStopIndex({ atlasStops: stops });
 
     it('contains the exact local-GTFS batch', () => {
-        expect(Object.keys(OLD_TRIPS_GTFS_STOP_SUPPLEMENTS).length).toBe(33);
-        expect(stops.length).toBe(461);
+        expect(Object.keys(OLD_TRIPS_GTFS_STOP_SUPPLEMENTS).length).toBe(34);
+        expect(stops.length).toBe(475);
     });
 
     it('resolves imported raw labels without changing trip records', () => {
@@ -31,5 +31,23 @@ describe('Old Trips GTFS supplements', () => {
 
         expect(match.label).toBe('Sherbourne Station');
         expect(match.location).toEqual({ lat: 43.67214, lng: -79.37617 });
+    });
+
+    it('maps repeated GO and CDTA shorthand to their verified stations', () => {
+        const go = resolveStopLocation({ agency: 'GO Transit', startStopName: 'Burlington' }, 'boarding', index);
+        const cdta = resolveStopLocation({ agency: 'CDTA', startStopName: 'North Central' }, 'boarding', index);
+        const yrt = resolveStopLocation({ agency: 'YRT', startStopName: 'Finch' }, 'boarding', index);
+
+        expect(go.label).toBe('Burlington GO');
+        expect(cdta.label).toBe('North Central Station - River St & Glen Ave');
+        expect(yrt.label).toBe('Finch GO Bus Terminal');
+    });
+
+    it('keeps obvious shorthand and typo aliases on canonical stops', () => {
+        const queen = resolveStopLocation({ agency: 'TTC', startStopName: 'Queen' }, 'boarding', index);
+        const spokane = resolveStopLocation({ agency: 'Spokane Transit', startStopName: 'STA Plaza' }, 'boarding', index);
+
+        expect(queen.label).toBe('Queen Station');
+        expect(spokane.label).toBe('STA Plaza');
     });
 });
