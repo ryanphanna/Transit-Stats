@@ -28,11 +28,12 @@ function matches(option, query) {
 }
 
 /**
- * Small, free-form agency combobox used by settings and the edit-trip modal.
+ * Agency combobox used by settings and the edit-trip modal. Settings can
+ * disable free-form values so profile preferences stay tied to real agencies.
  * The selected raw value is kept in input.dataset.agencyValue so display names
  * such as "GO Transit" can still match trip data stored as "GO".
  */
-export function createAgencyAutocomplete({ input, options = [], onCommit } = {}) {
+export function createAgencyAutocomplete({ input, options = [], onCommit, onInvalid, allowCustom = true } = {}) {
     if (!input) return null;
 
     const wrapper = input.closest('.agency-autocomplete') || input.parentElement;
@@ -54,6 +55,20 @@ export function createAgencyAutocomplete({ input, options = [], onCommit } = {})
     let activeIndex = -1;
     let lastCommitted = null;
 
+    const clearInvalid = () => {
+        input.setCustomValidity('');
+        input.removeAttribute('aria-invalid');
+        wrapper?.classList.remove('agency-autocomplete-invalid');
+    };
+
+    const rejectInvalid = () => {
+        input.setCustomValidity('Choose an agency from the suggestions.');
+        input.setAttribute('aria-invalid', 'true');
+        wrapper?.classList.add('agency-autocomplete-invalid');
+        close();
+        onInvalid?.();
+    };
+
     const close = () => {
         menu.classList.add('hidden');
         input.setAttribute('aria-expanded', 'false');
@@ -62,13 +77,22 @@ export function createAgencyAutocomplete({ input, options = [], onCommit } = {})
 
     const commit = (option = null) => {
         const typedValue = input.value.trim();
-        if (!typedValue) return;
+        if (!typedValue) {
+            clearInvalid();
+            close();
+            return;
+        }
         const selected = option || normalizedOptions.find(item =>
             item.label.toLocaleLowerCase() === typedValue.toLocaleLowerCase()
             || item.value.toLocaleLowerCase() === typedValue.toLocaleLowerCase()
         );
+        if (!selected && !allowCustom) {
+            rejectInvalid();
+            return;
+        }
         const value = selected?.value || typedValue;
         const label = selected?.label || typedValue;
+        clearInvalid();
         input.value = label;
         input.dataset.agencyValue = value;
         close();
@@ -109,7 +133,9 @@ export function createAgencyAutocomplete({ input, options = [], onCommit } = {})
         if (filtered.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'agency-autocomplete-empty';
-            empty.textContent = input.value.trim() ? 'Press Enter to use this agency' : 'No agencies found';
+            empty.textContent = input.value.trim()
+                ? (allowCustom ? 'Press Enter to use this agency' : 'Choose an agency from the list')
+                : 'No agencies found';
             menu.appendChild(empty);
         }
 
@@ -120,6 +146,7 @@ export function createAgencyAutocomplete({ input, options = [], onCommit } = {})
 
     input.addEventListener('focus', render);
     input.addEventListener('input', () => {
+        clearInvalid();
         delete input.dataset.agencyValue;
         lastCommitted = null;
         render();
@@ -160,12 +187,19 @@ export function createAgencyAutocomplete({ input, options = [], onCommit } = {})
         },
         setValue(value) {
             const selected = normalizedOptions.find(option => option.value === value || option.label === value);
+            if (!selected && !allowCustom) {
+                input.value = '';
+                delete input.dataset.agencyValue;
+                lastCommitted = null;
+                clearInvalid();
+                return;
+            }
             input.value = selected?.label || value || '';
             input.dataset.agencyValue = selected?.value || value || '';
             lastCommitted = selected?.value || value || null;
         },
         getValue() {
-            return input.dataset.agencyValue || input.value.trim();
+            return input.dataset.agencyValue || (allowCustom ? input.value.trim() : '');
         },
     };
 }

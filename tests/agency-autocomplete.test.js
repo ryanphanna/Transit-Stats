@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createAgencyAutocomplete } from '../js/agency-autocomplete.js';
 
 describe('agency autocomplete', () => {
@@ -20,5 +20,27 @@ describe('agency autocomplete', () => {
         autocomplete.setValue('TTC');
         expect(input.value).toBe('Toronto Transit Commission');
         expect(autocomplete.getValue()).toBe('TTC');
+    });
+
+    it('rejects arbitrary values when custom agencies are disabled', () => {
+        const input = document.createElement('input');
+        const onCommit = vi.fn();
+        const onInvalid = vi.fn();
+        document.body.appendChild(input);
+        const autocomplete = createAgencyAutocomplete({
+            input,
+            options: [{ value: 'TTC', label: 'Toronto Transit Commission' }],
+            allowCustom: false,
+            onCommit,
+            onInvalid,
+        });
+
+        input.value = 'bu';
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+
+        expect(onCommit).not.toHaveBeenCalled();
+        expect(onInvalid).toHaveBeenCalledOnce();
+        expect(autocomplete.getValue()).toBe('');
+        expect(input.getAttribute('aria-invalid')).toBe('true');
     });
 });

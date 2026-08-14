@@ -88,6 +88,10 @@
   width: 100%;
 }
 
+.agency-autocomplete-invalid input {
+  border-color: var(--danger) !important;
+}
+
 .agency-autocomplete-menu {
   position: absolute;
   top: calc(100% + 6px);
@@ -142,5 +146,4 @@
 }
 .btn-danger-outline:hover { background: var(--danger); color: white; }
 .btn-danger { background: var(--danger); border-color: var(--danger); color: white; }
-
 

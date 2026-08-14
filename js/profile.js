@@ -36,6 +36,9 @@ const AGENCY_DISPLAY_NAMES = {
     'Flagship Cruises & Events': 'Flagship Cruises & Events',
 };
 
+const BUILT_IN_AGENCY_OPTIONS = Object.entries(AGENCY_DISPLAY_NAMES)
+    .map(([value, label]) => ({ value, label }));
+
 export function displayAgencyName(value) {
     const name = String(value || '').trim();
     return AGENCY_DISPLAY_NAMES[name] || name;
@@ -76,7 +79,9 @@ export const Profile = {
             this.agencyAutocomplete = createAgencyAutocomplete({
                 input: agencySelect,
                 options: this.agencyOptions,
+                allowCustom: false,
                 onCommit: value => this.updateSetting('defaultAgency', value),
+                onInvalid: () => UI.showNotification('Choose an agency from the suggestions.'),
             });
         }
 
@@ -256,7 +261,7 @@ export const Profile = {
 
         try {
             const tripsSnap = await db.collection('trips').where('userId', '==', user.uid).get();
-            const optionsByValue = new Map();
+            const optionsByValue = new Map(BUILT_IN_AGENCY_OPTIONS.map(option => [option.value, option]));
             tripsSnap.docs.forEach(doc => {
                 const value = String(doc.data().agency || '').trim();
                 if (!value || optionsByValue.has(value)) return;
@@ -279,13 +284,10 @@ export const Profile = {
 
         const optionsByValue = new Map(this.agencyOptions.map(option => [option.value, option]));
         const defaultValue = String(this.data?.defaultAgency || '').trim();
-        if (defaultValue && !optionsByValue.has(defaultValue)) {
-            optionsByValue.set(defaultValue, { value: defaultValue, label: displayAgencyName(defaultValue) });
-        }
         const options = [...optionsByValue.values()].sort((a, b) => a.label.localeCompare(b.label));
 
         agencyEl.disabled = false;
-        agencyEl.placeholder = options.length ? 'Search agencies…' : 'Enter an agency';
+        agencyEl.placeholder = 'Search agencies…';
         if (this.agencyAutocomplete) {
             this.agencyAutocomplete.setOptions(options);
             this.agencyAutocomplete.setValue(defaultValue);
