@@ -68,6 +68,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Public and beta maps now have explicit context panels**: riders can tell whose map they are viewing and what the beta map is showing before interacting with it.
 - **Stops now uses a minimalist dot map**: numbered clusters and diagnostic panels are removed while the shared navigation remains available.
 - **Public maps now include the complete history**: unique shared stops are aggregated server-side instead of stopping at the first 1,000 trips.
+- **Public and private maps now share one Atlas surface**: logged-out profiles use the same card, map treatment, framing, and default stop view.
+- **Map surfaces now share one initializer**: logged-in and logged-out maps cannot drift in controls, tiles, or marker setup.
 - **Stop names now require a closer map view**: dots stay quiet at the world/city view and open their labels only when the stop is readable.
 - **Map framing is trip-driven**: the opening view follows the strongest trip regions, and the unnecessary Locate me control is gone.
 ### Added

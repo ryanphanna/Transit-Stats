@@ -14,39 +14,30 @@
 </head>
 <body>
     <main id="app-root">
-        <section class="view active public-view">
-            <div id="publicMap" class="full-map"></div>
+        <section class="view active public-view dashboard-atlas-hero">
+            <div id="publicMap" class="full-map dashboard-map"></div>
+            <div class="dashboard-map-wash" aria-hidden="true"></div>
 
-            <div class="public-overlay">
-                <div class="public-card profile-card">
-                    <p class="public-kicker">Public profile</p>
-                    <div class="profile-header">
-                        <div id="userEmoji" class="brand-icon" style="margin:0; font-size: 2rem;"></div>
-                        <div class="profile-info">
-                            <h2 id="userName" style="margin:0; font-size: 1.25rem;">Public Profile</h2>
-                            <p id="userAgency" class="text-secondary" style="margin:0; font-size: 0.8rem;"></p>
+            <div class="dashboard-atlas-hero-inner">
+                <div class="atlas-identity-card">
+                    <div class="atlas-card-topline">
+                        <span class="atlas-card-type">TransitStats</span>
+                        <span class="atlas-card-tagline">Your transit life, mapped.</span>
+                    </div>
+                    <h1><span id="userName">Traveler</span><span class="atlas-title-tail">'s map</span></h1>
+                    <div class="atlas-hero-count">
+                        <strong id="totalTrips">0</strong>
+                        <span>rides mapped</span>
+                    </div>
+                    <div class="atlas-card-period" aria-label="Shared trip totals">
+                        <div class="atlas-period-heading"><span>Shared movement</span></div>
+                        <div class="atlas-period-grid">
+                            <div class="atlas-fact atlas-fact-month"><strong id="totalHours">0</strong><span>Hours ridden</span></div>
+                            <div class="atlas-fact atlas-fact-agencies"><strong id="public-stops">0</strong><span>Stops mapped</span></div>
                         </div>
                     </div>
-                    <div class="public-stats-grid">
-                        <div class="public-stat">
-                            <strong id="totalTrips">0</strong>
-                            <span>Trips</span>
-                        </div>
-                        <div class="public-stat">
-                            <strong id="totalHours">0</strong>
-                            <span>Hours</span>
-                        </div>
-                    </div>
-                    <p class="public-map-note">Stops from shared trips</p>
-                    <a class="public-card-cta" href="/">Sign up <span aria-hidden="true">→</span></a>
+                    <a class="atlas-card-cta" href="/">Sign up <span aria-hidden="true">→</span></a>
                 </div>
-            </div>
-
-            <div class="public-branding">
-                <a href="/" class="branding-link">
-                    <span class="logo-icon"><i data-lucide="zap"></i></span>
-                    <span class="logo-text">TransitStats</span>
-                </a>
             </div>
         </section>
     </main>

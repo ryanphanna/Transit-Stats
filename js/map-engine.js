@@ -2,13 +2,13 @@ import { UI } from './ui-utils.js';
 import { PredictionEngine } from './predict.js';
 import { buildStopIndex, resolveStopLocation } from './atlas-stop-resolver.js';
 import { getTripStopLabel } from './trip-display.js';
+import { createMapSurface } from './map-surface.js';
 import {
     addMapZoomControl,
     addZoomGatedPopup,
     getDenseViewport,
     getUsageMarkerStyle,
     groupMapPoints,
-    installPopupZoomGuard,
 } from './map-presentation.js';
 
 export function getMapMarkerLabel(trip = {}, side = 'boarding', resolution = null) {
@@ -68,59 +68,27 @@ export const MapEngine = {
         const center = initialCenter || [43.6532, -79.3832];
 
         try {
-            this.map = L.map('main-map', {
-                zoomControl: false,
-                attributionControl: false,
-                preferCanvas: true
-            }).setView(center, 13);
+            const tileTheme = document.body.classList.contains('dashboard-surface')
+                ? (isDark ? 'dark_all' : 'light_all')
+                : (isDark ? 'dark_nolabels' : 'light_nolabels');
+            const surface = createMapSurface({
+                containerId: 'main-map',
+                center,
+                tileTheme,
+            });
+            this.map = surface.map;
+            this.layers.base = surface.base;
+            this.layers.markers = surface.markers;
+            this._canvasRenderer = surface.renderer;
+            this.layers.transit = null;
+            this._usesMarkerClusters = false;
             console.log("MapEngine: Leaflet map instance created");
-
-            this._canvasRenderer = L.canvas({ padding: 0.5 });
-
-            addMapZoomControl(this.map);
-            installPopupZoomGuard(this.map);
-
-            this.setupLayers();
             this.renderMarkers();
             this.setupControls();
             console.log("MapEngine: Setup complete");
         } catch (err) {
             console.error("MapEngine: Failed to initialize Leaflet:", err);
         }
-    },
-
-    setupLayers() {
-        // Base Layer
-        const isV2 = document.body.classList.contains('v2-clean');
-        const isDark = document.body.classList.contains('dark');
-        
-        let tileUrl = 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
-        let attribution = '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
-
-        if (document.body.classList.contains('dashboard-surface')) {
-            tileUrl = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-            attribution = '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
-        } else if (isV2) {
-            // Minimalist Grayscale (CartoDB Positron)
-            tileUrl = 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
-            attribution = '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
-        } else if (isDark) {
-            tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
-            attribution = '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
-        }
-
-        this.layers.base = L.tileLayer(tileUrl, {
-            maxZoom: 19,
-            attribution,
-        }).addTo(this.map);
-
-        this.layers.transit = null;
-
-        // Keep the map visually quiet: individual dots are rendered with
-        // Leaflet's canvas renderer instead of numbered marker clusters.
-        this._usesMarkerClusters = false;
-        this.layers.markers = L.layerGroup();
-        this.layers.markers.addTo(this.map);
     },
 
     setupControls() {

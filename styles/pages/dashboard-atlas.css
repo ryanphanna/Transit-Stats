@@ -108,6 +108,13 @@
     linear-gradient(0deg, rgb(244 247 246 / 32%) 0%, transparent 28%);
 }
 
+html[data-theme="dark"] .dashboard-map-wash,
+body.dark .dashboard-map-wash {
+  background:
+    linear-gradient(90deg, rgb(16 32 31 / 88%) 0%, rgb(16 32 31 / 64%) 24%, rgb(16 32 31 / 18%) 52%, transparent 76%),
+    linear-gradient(0deg, rgb(16 32 31 / 30%) 0%, transparent 28%);
+}
+
 .dashboard-map-loading {
   position: absolute;
   top: 50%;
@@ -234,8 +241,8 @@
 
 .atlas-identity-card {
   position: absolute;
-  border: 1px solid rgb(255 255 255 / 86%);
-  background: rgb(255 255 255 / 94%);
+  border: 1px solid var(--border-outer);
+  background: var(--bg-card);
   box-shadow: 0 18px 42px rgb(16 42 42 / 13%);
   backdrop-filter: blur(18px);
 }

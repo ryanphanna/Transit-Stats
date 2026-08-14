@@ -1,11 +1,10 @@
-import { Identity } from './identity.js';
 import {
-    addMapZoomControl,
     addZoomGatedPopup,
     getDenseViewport,
     getUsageMarkerStyle,
     groupMapPoints,
 } from './map-presentation.js';
+import { createMapSurface } from './map-surface.js';
 
 // Public Profile Logic
 document.addEventListener('DOMContentLoaded', async () => {
@@ -40,23 +39,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Render Profile Header
         document.getElementById('userName').textContent = data.displayName || 'Traveler';
 
-        const emojiEl = document.getElementById('userEmoji');
-        if (data.username) {
-            emojiEl.textContent = Identity.toEmojis(data.username);
-        } else if (data.emoji) {
-            emojiEl.textContent = data.emoji;
-        } else {
-            emojiEl.innerHTML = '<i data-lucide="user"></i>';
-            if (window.lucide) window.lucide.createIcons();
-        }
-
-        if (data.defaultAgency) {
-            document.getElementById('userAgency').textContent = data.defaultAgency;
-        }
-
         // Render Stats
         document.getElementById('totalTrips').textContent = data.totalTrips;
         document.getElementById('totalHours').textContent = data.totalHours;
+        document.getElementById('public-stops').textContent = data.points?.length || 0;
 
         // Render Map
         initPublicMap(data.points);
@@ -90,26 +76,20 @@ function escapeHtml(value) {
 }
 
 function initPublicMap(points) {
-    const map = L.map('publicMap', {
-        zoomControl: false,
-        attributionControl: false,
-        preferCanvas: true,
-    }).setView([43.70, -79.42], 12);
-    addMapZoomControl(map);
-
     const isDark = document.documentElement.dataset.theme === 'dark'
         || document.body.classList.contains('dark');
     const tileTheme = isDark ? 'dark_all' : 'light_all';
-    L.tileLayer(`https://{s}.basemaps.cartocdn.com/${tileTheme}/{z}/{x}/{y}{r}.png`, {
-        maxZoom: 19,
-        attribution: '© CARTO © OpenStreetMap',
-    }).addTo(map);
+    const surface = createMapSurface({
+        containerId: 'publicMap',
+        center: [43.70, -79.42],
+        tileTheme,
+    });
+    const { map, markers } = surface;
 
     if (points && points.length > 0) {
-        // Public profiles receive only anonymous coordinates. Keep the map
-        // Show repeat visits with the same weighted dots as the signed-in map.
-        const markers = L.layerGroup().addTo(map);
-        const markersByStop = groupMapPoints(points, point => {
+        // Match the signed-in map's default: show boarding stops first.
+        const visiblePoints = points.filter(point => point.type === 'start' || point.type === 'boarding');
+        const markersByStop = groupMapPoints(visiblePoints, point => {
             const names = Array.isArray(point.names) ? point.names : [point.name];
             return names.filter(Boolean).map(escapeHtml).join('<br>');
         });
@@ -121,11 +101,11 @@ function initPublicMap(points) {
             markers.addLayer(marker);
         });
 
-        const bounds = getDenseViewport(points);
+        const bounds = getDenseViewport(visiblePoints);
         if (bounds.length === 1) {
             map.setView(bounds[0], 13, { animate: false });
         } else if (bounds.length > 1) {
-            map.fitBounds(bounds, { padding: [100, 100], maxZoom: 13 });
+            map.fitBounds(bounds, { padding: [60, 60], maxZoom: 15 });
         }
     }
 }
