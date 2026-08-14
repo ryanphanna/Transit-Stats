@@ -18,6 +18,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Recent movement now leads with the current week**: the card reads from immediate activity to longer-term breadth.
 - **Recent ride labels can wrap cleanly**: the card keeps explicit units without forcing a wider layout.
 - **Wrapped ride labels are tighter**: two-line fact labels no longer leave a large vertical gap.
+- **Wrapped ride labels now align**: second lines sit directly under the label text instead of returning to the bullet.
 - **Public profiles now invite visitors to sign up**: logged-out riders get a clear path to create their own map.
 - **Maps now show one stop type at a time**: boarding stops are the default, with the preference to use exiting stops moved into Settings.
 - **Map controls are now clearer and movable**: labeled account actions, circular zoom controls, and an unobstructed map surface replace the old icon-heavy overlay.
