@@ -10,7 +10,7 @@ describe('Old Trips GTFS supplements', () => {
 
     it('contains the exact local-GTFS batch', () => {
         expect(Object.keys(OLD_TRIPS_GTFS_STOP_SUPPLEMENTS).length).toBe(35);
-        expect(stops.length).toBe(525);
+        expect(stops.length).toBe(536);
     });
 
     it('resolves imported raw labels without changing trip records', () => {
@@ -55,6 +55,10 @@ describe('Old Trips GTFS supplements', () => {
             .toBe('RTC Transfer Center / Meadowood Mall');
         expect(resolveStopLocation({ agency: 'RTC Washoe', startStopName: '775' }, 'boarding', index).label)
             .toBe('Glendale Avenue and S 21st Street');
+        expect(resolveStopLocation({ agency: 'HSR', startStopName: 'Main / Emerson' }, 'boarding', index).label)
+            .toBe('MAIN at EMERSON');
+        expect(resolveStopLocation({ agency: 'Niagara Region Transit', startStopName: 'Morrison-dorchester Hub' }, 'boarding', index).label)
+            .toBe('Morrison-Dorchester Hub');
         expect(cdta.label).toBe('North Central Station - River St & Glen Ave');
         expect(yrt.label).toBe('Finch GO Bus Terminal');
     });

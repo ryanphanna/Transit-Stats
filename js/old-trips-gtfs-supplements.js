@@ -2008,6 +2008,26 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "HSR",
+            "code": "1252",
+            "name": "BARTON at STRATHEARNE",
+            "lat": 43.246871,
+            "lng": -79.797046,
+            "aliases": [
+                "Barton / Strathearne"
+            ]
+        },
+        {
+            "agency": "HSR",
+            "code": "4433",
+            "name": "CONFEDERATION GO PLATFORM 4",
+            "lat": 43.24248,
+            "lng": -79.75987,
+            "aliases": [
+                "Confederation GO"
+            ]
+        },
+        {
             "code": "2",
             "name": "Eastgate Terminal",
             "lat": 43.2287392,
@@ -2038,6 +2058,36 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "HSR",
+            "code": "2314",
+            "name": "INVERNESS at WAVELL",
+            "lat": 43.243111,
+            "lng": -79.874638,
+            "aliases": [
+                "Inverness / Wavell"
+            ]
+        },
+        {
+            "agency": "HSR",
+            "code": "1092",
+            "name": "JOHN at JACKSON",
+            "lat": 43.253676,
+            "lng": -79.867418,
+            "aliases": [
+                "John / Jackson"
+            ]
+        },
+        {
+            "agency": "HSR",
+            "code": "2782",
+            "name": "KENILWORTH at MAIN",
+            "lat": 43.240733,
+            "lng": -79.809715,
+            "aliases": [
+                "Kenilworth / Main"
+            ]
+        },
+        {
             "code": "1089",
             "name": "KING opposite FRANK A. COOKE TERMINAL",
             "lat": 43.25708,
@@ -2058,6 +2108,36 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "HSR",
+            "code": "2649",
+            "name": "MAIN at EMERSON",
+            "lat": 43.257648,
+            "lng": -79.919485,
+            "aliases": [
+                "Main / Emerson"
+            ]
+        },
+        {
+            "agency": "HSR",
+            "code": "1088",
+            "name": "MAIN at HUGHSON",
+            "lat": 43.255118,
+            "lng": -79.868915,
+            "aliases": [
+                "Main / Hughson"
+            ]
+        },
+        {
+            "agency": "HSR",
+            "code": "2702",
+            "name": "MAIN at JOHN",
+            "lat": 43.254724,
+            "lng": -79.867108,
+            "aliases": [
+                "Main / John"
+            ]
+        },
+        {
             "code": "2648",
             "name": "MAIN at LELAND",
             "lat": 43.257561,
@@ -2072,7 +2152,8 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lat": 43.255755,
             "lng": -79.871791,
             "aliases": [
-                "1087"
+                "1087",
+                "MAIN/McNAB"
             ]
         },
         {
@@ -2081,7 +2162,8 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lat": 43.244286,
             "lng": -79.827232,
             "aliases": [
-                "2710"
+                "2710",
+                "MAIN / EAST BEND"
             ]
         },
         {
@@ -2130,6 +2212,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             ]
         },
         {
+            "agency": "HSR",
+            "code": "2722",
+            "name": "QUEENSTON opposite EASTGATE SQUARE",
+            "lat": 43.228646,
+            "lng": -79.767501,
+            "aliases": [
+                "EASTGATE SQUARE"
+            ]
+        },
+        {
             "code": "2911",
             "name": "ST. JOSEPH'S at JAMES",
             "lat": 43.248188,
@@ -2145,6 +2237,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
             "lng": -79.936198,
             "aliases": [
                 "2714"
+            ]
+        },
+        {
+            "agency": "HSR",
+            "code": "9210",
+            "name": "UPPER JAMES at MONARCH",
+            "lat": 43.235929,
+            "lng": -79.878613,
+            "aliases": [
+                "Upper James / Monarch"
             ]
         }
     ],
@@ -2539,6 +2641,16 @@ export const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = {
         }
     ],
     "Niagara Region Transit": [
+        {
+            "agency": "Niagara Region Transit",
+            "code": "3634",
+            "name": "Morrison-Dorchester Hub",
+            "lat": 43.103486,
+            "lng": -79.115698,
+            "aliases": [
+                "Morrison-dorchester Hub"
+            ]
+        },
         {
             "code": "6277",
             "name": "VICTORIA AV + RYERSON CR",
