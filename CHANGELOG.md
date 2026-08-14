@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **More unresolved trip stops now use route-verified local GTFS records**: added exact TTC, VTA, AC Transit, LADOT, SMART, Big Blue Bus, GO, and Hamilton matches without modifying raw trips.
 - **Dashboard is now a full-screen personal map**: the home screen focuses on your mapped stops and recent movement instead of separate dashboard cards and navigation.
 - **Settings now matches the map-first shell**: account and preference controls use the same quieter layout instead of the old page treatment.
 - **Settings is now more compact**: the page gets to the account, agency, map, and theme controls without a duplicate intro block.
