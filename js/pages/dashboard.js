@@ -153,12 +153,8 @@ function closeAllModals() {
 }
 
 async function loadDashboardAtlasStops() {
-    // Release the first view with coordinates already stored on the trips.
-    // Atlas enrichment can then improve unresolved points without blocking the
-    // first useful map frame.
+    // Let the map show immediately, then improve its markers with Atlas data.
     const initialRender = MapEngine.releaseInitialView();
-    document.querySelector('.dashboard-atlas-hero')?.classList.remove('is-loading');
-    document.getElementById('dashboard-map-loading')?.remove();
     await initialRender;
 
     const agencies = [...new Set((TripController.allTrips || [])
@@ -184,6 +180,10 @@ async function init() {
     initHeader({ isAdmin, currentPage: 'dashboard' });
     ModalManager.init();
 
+    if (window.L) {
+        MapEngine.init([], null, { deferInitialView: true });
+    }
+
     await Profile.load(user);
     await Profile.loadAgencies(user);
     setupShareMap();
@@ -202,10 +202,6 @@ async function init() {
     document.querySelectorAll('[data-close-modal]').forEach(btn => {
         btn.addEventListener('click', closeAllModals);
     });
-
-    if (window.L) {
-        MapEngine.init([], null, { deferInitialView: true });
-    }
 
     const tripsInitPromise = Trips.init();
     Promise.all([Trips._readyPromise, tripsInitPromise]).then(() => {

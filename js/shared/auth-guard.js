@@ -46,8 +46,6 @@ async function waitForRestoredUser(initialUser) {
 
 function setAuthRestoring(isRestoring) {
     document.body?.toggleAttribute('data-auth-restoring', isRestoring);
-    const loading = document.getElementById('dashboard-map-loading');
-    if (loading) loading.textContent = isRestoring ? 'Restoring your session…' : 'Mapping your rides…';
 }
 
 // Apply theme immediately to prevent flash of unstyled content
