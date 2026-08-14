@@ -37,15 +37,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         const data = await res.json();
 
         // Render Profile Header
-        document.getElementById('userName').textContent = data.displayName || 'Traveler';
+        document.getElementById('profile-name').textContent = data.displayName || 'Traveler';
 
-        // Render Stats
-        document.getElementById('totalTrips').textContent = data.totalTrips;
-        document.getElementById('totalHours').textContent = data.totalHours;
-        document.getElementById('public-stops').textContent = data.points?.length || 0;
+        // Render the same dashboard facts as the signed-in card.
+        document.getElementById('stat-trips-lifetime').textContent = data.totalTrips ?? 0;
+        document.getElementById('stat-trips-month').textContent = data.thisMonth ?? 0;
+        document.getElementById('stat-trips-week').textContent = data.thisWeek ?? 0;
+        document.getElementById('stat-days-ridden').textContent = data.daysRidden ?? 0;
+        document.getElementById('stat-agencies-ridden').textContent = data.agencies ?? 0;
+        document.getElementById('stat-countries-ridden').textContent = data.countries ?? 0;
 
         // Render Map
         initPublicMap(data.points);
+        document.querySelector('.public-view')?.classList.remove('is-loading');
+        document.getElementById('public-map-loading')?.remove();
 
     } catch (error) {
         console.error('Error loading profile:', error);
@@ -85,7 +90,7 @@ function initPublicMap(points) {
         zoom: DEFAULT_MAP_ZOOM,
         tileTheme,
     });
-    const { map, markers } = surface;
+    const { map, markers, renderer } = surface;
 
     if (points && points.length > 0) {
         // Match the signed-in map's default: show boarding stops first.
@@ -96,7 +101,10 @@ function initPublicMap(points) {
         });
         const maxUsage = Math.max(...markersByStop.map(point => point.usage), 1);
         markersByStop.forEach(point => {
-            const marker = L.circleMarker([point.lat, point.lng], getUsageMarkerStyle(point, maxUsage));
+            const marker = L.circleMarker([point.lat, point.lng], {
+                renderer,
+                ...getUsageMarkerStyle(point, maxUsage, { baseRadius: 4.5 }),
+            });
             const popup = [...point.labels].join('<br>');
             if (popup) addZoomGatedPopup(marker, map, popup);
             markers.addLayer(marker);

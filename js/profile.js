@@ -107,12 +107,16 @@ export const Profile = {
                 UI.showNotification(`Syncing ${isPublic ? 'public' : 'private'} state to all trips...`);
                 const user = auth.currentUser;
                 const tripsSnap = await db.collection('trips').where('userId', '==', user.uid).get();
-                
-                const batch = db.batch();
-                tripsSnap.docs.forEach(doc => {
-                    batch.update(doc.ref, { isPublic: isPublic });
-                });
-                await batch.commit();
+
+                // Firestore batches are limited to 500 writes. Large histories
+                // must be synced in chunks or the public switch silently fails.
+                for (let start = 0; start < tripsSnap.docs.length; start += 500) {
+                    const batch = db.batch();
+                    tripsSnap.docs.slice(start, start + 500).forEach(doc => {
+                        batch.update(doc.ref, { isPublic: isPublic });
+                    });
+                    await batch.commit();
+                }
                 UI.showNotification('All trips updated.');
             } catch (err) {
                 console.error('Trip sync failed:', err);

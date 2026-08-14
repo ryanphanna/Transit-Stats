@@ -12,11 +12,12 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
-<body>
+<body class="dashboard-surface">
     <main id="app-root">
-        <section class="view active public-view dashboard-atlas-hero">
+        <section class="view active public-view dashboard-atlas-hero is-loading" aria-label="Public transit atlas">
             <div id="publicMap" class="full-map dashboard-map"></div>
             <div class="dashboard-map-wash" aria-hidden="true"></div>
+            <div class="dashboard-map-loading" id="public-map-loading" role="status">Mapping their rides…</div>
 
             <div class="dashboard-atlas-hero-inner">
                 <div class="atlas-identity-card">
@@ -24,16 +25,19 @@
                         <span class="atlas-card-type">TransitStats</span>
                         <span class="atlas-card-tagline">Your transit life, mapped.</span>
                     </div>
-                    <h1><span id="userName">Traveler</span><span class="atlas-title-tail">'s map</span></h1>
+                    <h1><span id="profile-name">Traveler</span><span class="atlas-title-tail">'s map</span></h1>
                     <div class="atlas-hero-count">
-                        <strong id="totalTrips">0</strong>
+                        <strong id="stat-trips-lifetime">0</strong>
                         <span>rides mapped</span>
                     </div>
-                    <div class="atlas-card-period" aria-label="Shared trip totals">
-                        <div class="atlas-period-heading"><span>Shared movement</span></div>
+                    <div class="atlas-card-period" aria-label="Recent trip totals">
+                        <div class="atlas-period-heading"><span>Recent movement</span></div>
                         <div class="atlas-period-grid">
-                            <div class="atlas-fact atlas-fact-month"><strong id="totalHours">0</strong><span>Hours ridden</span></div>
-                            <div class="atlas-fact atlas-fact-agencies"><strong id="public-stops">0</strong><span>Stops mapped</span></div>
+                            <div class="atlas-fact atlas-fact-month"><strong id="stat-trips-month">0</strong><span>This month</span></div>
+                            <div class="atlas-fact atlas-fact-week"><strong id="stat-trips-week">0</strong><span>This week</span></div>
+                            <div class="atlas-fact atlas-fact-days"><strong id="stat-days-ridden">0</strong><span>Days ridden</span></div>
+                            <div class="atlas-fact atlas-fact-agencies"><strong id="stat-agencies-ridden">0</strong><span>Agencies</span></div>
+                            <div class="atlas-fact atlas-fact-countries"><strong id="stat-countries-ridden">0</strong><span>Countries</span></div>
                         </div>
                     </div>
                     <a class="atlas-card-cta" href="/">Sign up <span aria-hidden="true">→</span></a>

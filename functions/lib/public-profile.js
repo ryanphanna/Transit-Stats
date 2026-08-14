@@ -12,6 +12,13 @@ const { onRequest } = require('firebase-functions/v2/https');
 const { db, getUserProfile } = require('./db');
 const logger = require('./logger');
 
+const AGENCY_COUNTRIES = new Map([
+  ...['TTC', 'GO', 'GO Transit', 'MiWay', 'YRT', 'Brampton Transit', 'Durham Transit', 'HSR', 'GRT', 'Grand River Transit', 'OC Transpo', 'STM', 'TransLink', 'Oakville Transit', 'GTAA Terminal Link', 'Flagship Cruises & Events', 'Exo', 'CDPQ Infra', 'Niagara Region Transit'].map(agency => [agency.toLowerCase(), 'Canada']),
+  ...['NYC MTA', 'New York City Transit', 'LA Metro', 'LADOT', 'Los Angeles Department of Transportation', 'Big Blue Bus', 'BART', 'Muni', 'Caltrain', 'VTA', 'AC Transit', 'SamTrans', 'MTS', 'Amtrak', 'Golden Gate Transit', 'SMART', 'Santa Rosa CityBus', 'CDTA', 'NFTA Metro', 'TriMet', 'C-Tran', 'Sound Transit', 'King County Metro', 'Utah Transit Authority', 'Sacramento Regional Transit', 'GCRTA'].map(agency => [agency.toLowerCase(), 'United States']),
+  ...['RATP', 'SNCF Transilien'].map(agency => [agency.toLowerCase(), 'France']),
+  ...['TMB'].map(agency => [agency.toLowerCase(), 'Spain']),
+]);
+
 async function handlePublicProfile(req, res) {
   res.set('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') {
@@ -40,13 +47,24 @@ async function handlePublicProfile(req, res) {
       return;
     }
 
+    // The public profile switch is the permission boundary. Once the profile
+    // is public, expose the same history as the signed-in map through the
+    // aggregate-only response below. Individual trip documents remain private.
     const tripsSnap = await db.collection('trips')
       .where('userId', '==', userId)
-      .where('isPublic', '==', true)
       .get();
 
     let totalMinutes = 0;
+    let thisMonth = 0;
+    let thisWeek = 0;
+    const riddenDays = new Set();
+    const agencies = new Set();
+    const countries = new Set();
     const pointsByStop = new Map();
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
     const addPoint = (location, type, fallbackName) => {
       if (location?.lat == null || location?.lng == null) return;
       const lat = Number(location.lat);
@@ -70,6 +88,18 @@ async function handlePublicProfile(req, res) {
     tripsSnap.forEach((doc) => {
       const trip = doc.data();
       totalMinutes += trip.duration || 0;
+      const tripDate = trip.startTime?.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
+      if (!Number.isNaN(tripDate.getTime())) {
+        riddenDays.add(`${tripDate.getFullYear()}-${tripDate.getMonth()}-${tripDate.getDate()}`);
+        if (tripDate >= monthStart) thisMonth += 1;
+        if (tripDate >= weekStart) thisWeek += 1;
+      }
+      const agency = String(trip.agency || '').trim();
+      if (agency) {
+        agencies.add(agency.toLowerCase());
+        const country = AGENCY_COUNTRIES.get(agency.toLowerCase());
+        if (country) countries.add(country);
+      }
       addPoint(
         trip.boardingLocation || trip.boardLocation,
         'start',
@@ -89,6 +119,11 @@ async function handlePublicProfile(req, res) {
       defaultAgency: profile.defaultAgency || null,
       totalTrips: tripsSnap.size,
       totalHours: Math.round((totalMinutes / 60) * 10) / 10,
+      thisMonth,
+      thisWeek,
+      daysRidden: riddenDays.size,
+      agencies: agencies.size,
+      countries: countries.size,
       points: [...pointsByStop.values()].map(point => ({
         ...point,
         names: [...point.names],
