@@ -8,6 +8,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- Allow flagged PRESTO pilot profiles to show uniquely matched imported fare activity on their public map.
+
 - Show imported PRESTO fare activity on the map when its stop is uniquely known, while leaving ambiguous and unresolved locations for later matching.
 
 - Keep imported PRESTO activity available while stop matching is deferred, so unclear locations do not block the import.

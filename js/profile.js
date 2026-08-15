@@ -56,6 +56,7 @@ function getEmojiUsername(profile = {}) {
 }
 
 function isPublicProfileBetaOwner(profile = {}) {
+    if (profile.publicProfileBeta === true) return true;
     const candidates = [profile.username, profile.emojiUsername, ...(profile.usernameAliases || [])];
     return candidates.some(username => normalizeUsername(username) === PUBLIC_PROFILE_BETA_USERNAME);
 }

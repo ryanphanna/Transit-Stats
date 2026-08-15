@@ -14,8 +14,64 @@ const logger = require('./logger');
 const PUBLIC_PROFILE_BETA_USERNAME = 'subway-subway-subway';
 
 function isPublicProfileBetaOwner(profile = {}) {
+  if (profile.publicProfileBeta === true) return true;
   const candidates = [profile.username, profile.emojiUsername, ...(profile.usernameAliases || [])];
   return candidates.some(username => String(username || '').replace(/_/g, '-') === PUBLIC_PROFILE_BETA_USERNAME);
+}
+
+function normalizeStopLabel(value) {
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '')
+    .trim();
+}
+
+function stopBelongsToAgency(stop, agency) {
+  const candidates = [...new Set(stop?.agencies || (stop?.agency ? [stop.agency] : []))]
+    .map(value => String(value).trim().toLowerCase());
+  const target = String(agency || '').trim().toLowerCase();
+  if (!target || candidates.length === 0) return true;
+  return candidates.some(candidate => candidate === target
+    || (candidate === 'go' && target === 'go transit')
+    || (candidate === 'go transit' && target === 'go'));
+}
+
+function validStopLocation(stop) {
+  const lat = Number(stop?.lat);
+  const lng = Number(stop?.lng ?? stop?.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat === 0 || lng === 0) return null;
+  return { lat, lng };
+}
+
+function uniquePrestoStopCandidates(record, stops) {
+  const target = normalizeStopLabel(record.locationLabel || record.location);
+  if (!target) return [];
+  const candidates = new Map();
+
+  for (const stop of stops) {
+    if (!stopBelongsToAgency(stop, record.agency)) continue;
+    const labels = [stop.code, stop.name, ...(stop.aliases || [])]
+      .filter(Boolean)
+      .map(normalizeStopLabel);
+    if (!labels.includes(target)) continue;
+
+    const location = validStopLocation(stop);
+    const agency = String(stop.agency || (stop.agencies || [])[0] || '').toLowerCase();
+    const code = normalizeStopLabel(stop.code);
+    const key = code
+      ? `${agency}:code:${code}`
+      : `${agency}:label:${normalizeStopLabel(stop.name)}:${location?.lat?.toFixed(5) || ''}:${location?.lng?.toFixed(5) || ''}`;
+    const candidate = {
+      name: stop.name || stop.stopName || stop.code || null,
+      location,
+    };
+    const existing = candidates.get(key);
+    if (!existing || (!existing.location && location)) candidates.set(key, candidate);
+  }
+
+  return [...candidates.values()];
 }
 
 const AGENCY_COUNTRIES = new Map([
@@ -68,9 +124,15 @@ async function handlePublicProfile(req, res) {
     // The public profile switch is the permission boundary. Once the profile
     // is public, expose the same history as the signed-in map through the
     // aggregate-only response below. Individual trip documents remain private.
-    const tripsSnap = await db.collection('trips')
-      .where('userId', '==', userId)
-      .get();
+    const [tripsSnap, prestoSnap, stopsSnap] = await Promise.all([
+      db.collection('trips').where('userId', '==', userId).get(),
+      db.collection('prestoTransactions').where('userId', '==', userId).get(),
+      db.collection('stops').get(),
+    ]);
+    const prestoRecords = prestoSnap.docs
+      .map(doc => doc.data())
+      .filter(record => record.type === 'fare_payment');
+    const stops = stopsSnap.docs.map(doc => doc.data());
 
     let totalMinutes = 0;
     let thisMonth = 0;
@@ -130,6 +192,31 @@ async function handlePublicProfile(req, res) {
       );
     });
 
+    prestoRecords.forEach((record) => {
+      const tripDate = Number.isFinite(Number(record.occurredAtSortKey))
+        ? new Date(Number(record.occurredAtSortKey))
+        : new Date(record.occurredAtLocal);
+      if (!Number.isNaN(tripDate.getTime())) {
+        riddenDays.add(`${tripDate.getFullYear()}-${tripDate.getMonth()}-${tripDate.getDate()}`);
+        if (tripDate >= monthStart) thisMonth += 1;
+        if (tripDate >= weekStart) thisWeek += 1;
+      }
+
+      const agency = String(record.agency || '').trim();
+      if (agency) {
+        agencies.add(agency.toLowerCase());
+        const country = AGENCY_COUNTRIES.get(agency.toLowerCase());
+        if (country) countries.add(country);
+      }
+
+      // Only uniquely resolved PRESTO locations are exposed. Ambiguous
+      // directional candidates remain stored but do not get guessed publicly.
+      const candidates = uniquePrestoStopCandidates(record, stops);
+      if (candidates.length === 1) {
+        addPoint(candidates[0].location, 'start', candidates[0].name);
+      }
+    });
+
     res.status(200).json({
       displayName: profile.displayName || profile.name || null,
       username: profile.username || null,
@@ -137,7 +224,7 @@ async function handlePublicProfile(req, res) {
       emoji: profile.emoji || null,
       defaultAgency: profile.defaultAgency || null,
       mapStopMode: profile.mapStopMode === 'exiting' ? 'exiting' : 'boarding',
-      totalTrips: tripsSnap.size,
+      totalTrips: tripsSnap.size + prestoRecords.length,
       totalHours: Math.round((totalMinutes / 60) * 10) / 10,
       thisMonth,
       thisWeek,

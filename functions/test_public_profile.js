@@ -21,10 +21,15 @@ function loadPublicProfile(overrides = {}) {
           const query = {
             where: () => query,
             limit: () => query,
-            get: async () => (overrides.tripsSnap ?? { size: 0, forEach: () => {} }),
+            get: async () => {
+              if (overrides[`${name}Snap`]) return overrides[`${name}Snap`];
+              if (name === 'trips') return overrides.tripsSnap ?? { size: 0, forEach: () => {}, docs: [] };
+              return { size: 0, docs: [] };
+            },
           };
           return query;
         },
+        get: async () => (overrides.stopsSnap ?? { size: 0, docs: [] }),
       }),
     },
     getUserProfile: async () => overrides.profile ?? null,
@@ -130,6 +135,45 @@ test('publicProfile returns 200 with aggregated stats for a public profile', asy
   assert.equal(res.body.displayName, 'Alice');
   assert.equal(res.body.canonicalUsername, 'r');
   assert.equal(res.body.mapStopMode, 'exiting');
+});
+
+test('publicProfile includes uniquely matched PRESTO activity for beta pilots', async () => {
+  const handler = loadPublicProfile({
+    docs: { usernames: { 'train-taco-panda': { exists: true, data: () => ({ uid: 'u1' }) } } },
+    profile: {
+      isPublic: true,
+      publicProfileBeta: true,
+      displayName: 'Test',
+      username: 'train-taco-panda',
+    },
+    tripsSnap: { size: 0, forEach: () => {} },
+    prestoTransactionsSnap: {
+      size: 1,
+      docs: [{ data: () => ({
+        type: 'fare_payment',
+        agency: 'GO',
+        locationLabel: 'Union Station Bus Terminal',
+        occurredAtSortKey: Date.UTC(2026, 0, 2),
+      }) }],
+    },
+    stopsSnap: {
+      size: 1,
+      docs: [{ data: () => ({
+        agency: 'GO Transit',
+        name: 'Union Station Bus Terminal',
+        code: '102300',
+        lat: 43.644,
+        lng: -79.377,
+      }) }],
+    },
+  });
+  const res = mockRes();
+  await handler({ method: 'GET', query: { user: 'train-taco-panda' } }, res);
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.displayName, 'Test');
+  assert.equal(res.body.totalTrips, 1);
+  assert.equal(res.body.points.length, 1);
+  assert.deepEqual(res.body.points[0].names, ['Union Station Bus Terminal']);
 });
 
 test('publicProfile returns 500 and does not leak internal error detail on unexpected failure', async () => {
