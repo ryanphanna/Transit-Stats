@@ -1,4 +1,4 @@
-import firebase, { db } from '../firebase.js';
+import { db, deleteField } from '../firebase.js';
 
 /**
  * TripController - Manages the trip data stream and atomic updates.
@@ -54,14 +54,14 @@ export const TripController = {
 
     async confirmTrip(id) {
         return db.collection('trips').doc(id).update({
-            needs_review: firebase.firestore.FieldValue.delete(),
+            needs_review: deleteField(),
             manually_verified: true,
             updatedAt: new Date()
         });
     },
 
     async breakJourneyLink(tripAId, tripBId) {
-        const del = firebase.firestore.FieldValue.delete();
+        const del = deleteField();
         const batch = db.batch();
         batch.update(db.collection('trips').doc(tripAId), { journeyId: del });
         batch.update(db.collection('trips').doc(tripBId), { journeyId: del });

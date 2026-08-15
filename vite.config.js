@@ -138,9 +138,6 @@ export default defineConfig(({ mode, command }) => {
                 }
             }
         ],
-        optimizeDeps: {
-            exclude: ['firebase', '@firebase/app', '@firebase/auth', '@firebase/firestore', '@firebase/component', '@firebase/app-compat', '@firebase/auth-compat', '@firebase/firestore-compat']
-        },
         test: {
             globals: true,
             environment: 'jsdom',

@@ -8,6 +8,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- Replace Firebase compatibility APIs with modular Auth and Firestore calls without changing stored data.
+
 ### Added
 - **Shared sign-in across TransitStats surfaces** — moving between the regular, beta, and admin sites no longer requires another login.
 - **Theme choices and multi-agency route coverage** — choose System, Light, or Dark and see route progress across every agency you have ridden.
