@@ -10,6 +10,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Changed
 
+- **PRESTO pilot uploads now preview multiple reports and import activity in user-scoped batches.**
 - **PRESTO trials can sign in with email only**, so trying the pilot doesn't require a second phone number.
 - **PRESTO fare exports can now be previewed in an isolated report**, keeping imported fare transactions separate from canonical trip history until matched.
 - **Social preview images now focus on the full-width map**, leaving trip totals and other stats in the post text where they are easier to read.

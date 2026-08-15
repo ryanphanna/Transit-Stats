@@ -151,8 +151,9 @@ export function requireAuth(options = {}) {
             await Auth.syncSharedSession(sessionUser);
             window.currentUser = sessionUser;
             window.isAdmin = verification.isAdmin;
+            window.userPilot = verification.pilot || null;
             resolved = true;
-            resolve({ user: sessionUser, isAdmin: verification.isAdmin });
+            resolve({ user: sessionUser, isAdmin: verification.isAdmin, pilot: verification.pilot || null });
         });
 
         // Firebase can emit its initial null state before LOCAL persistence

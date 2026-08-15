@@ -42,7 +42,7 @@ export const Auth = {
             if (email) {
                 const doc = await db.collection('allowedUsers').doc(email.toLowerCase()).get();
                 if (!doc.exists) return { allowed: false, error: 'Access denied. This app is invite-only.' };
-                return { allowed: true, isAdmin: doc.data().isAdmin === true };
+                return { allowed: true, isAdmin: doc.data().isAdmin === true, pilot: doc.data().pilot || null };
             }
 
             if (!userId) return { allowed: false, error: 'Access denied. This app is invite-only.' };
@@ -60,7 +60,7 @@ export const Auth = {
                 if (email) {
                     const doc = await db.collection('allowedUsers').doc(email.toLowerCase()).get();
                     if (!doc.exists) return { allowed: false, error: 'Access denied. This app is invite-only.' };
-                    return { allowed: true, isAdmin: doc.data().isAdmin === true };
+                    return { allowed: true, isAdmin: doc.data().isAdmin === true, pilot: doc.data().pilot || null };
                 }
 
                 if (!userId) return { allowed: false, error: 'Access denied. This app is invite-only.' };

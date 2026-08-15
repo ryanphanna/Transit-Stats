@@ -4,14 +4,16 @@ import { refreshIcons } from '../shared/icons.js';
 import { Profile } from '../profile.js';
 import { UI } from '../ui-utils.js';
 import { Auth } from '../auth.js';
+import { initPrestoImporter } from '../presto-importer.js';
 
 async function init() {
-    const { user, isAdmin } = await requireAuth();
+    const { user, isAdmin, pilot } = await requireAuth();
     initHeader({ isAdmin, currentPage: 'settings' });
 
     await Profile.load(user);
     await Profile.loadAgencies(user);
     await Profile.init();
+    if (pilot === 'presto') initPrestoImporter({ user });
 
     if (window.location.hash === '#public-profile-settings') {
         document.getElementById('public-profile-settings')?.scrollIntoView({ block: 'start' });
