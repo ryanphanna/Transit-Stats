@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const username = pathMatch ? decodeURIComponent(pathMatch[1]) : params.get('user');
 
     if (!username) {
-        showError('No user specified');
+        showError('Profile not found', 'No public profile was specified.');
         return;
     }
 
@@ -22,19 +22,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         const res = await fetch(`https://us-central1-transitstats-21ba4.cloudfunctions.net/publicProfile?user=${encodeURIComponent(username.toLowerCase())}`);
         const errorData = res.ok ? null : await res.json().catch(() => ({}));
         if (errorData?.code === 'COMING_SOON') {
-            showError('Public profiles are coming soon.');
+            showError('Public profiles are coming soon.', 'Public profiles are not available to everyone yet.');
             return;
         }
         if (res.status === 404) {
-            showError('User not found');
+            showError('Profile not found', 'That profile link does not point to an available TransitStats profile.');
             return;
         }
         if (res.status === 403) {
-            showError('This profile is private');
+            showError('This profile is private', 'The owner has not enabled public sharing for this map.');
             return;
         }
         if (!res.ok) {
-            showError(errorData.error || 'Error loading profile');
+            showError('We could not load this profile', errorData.error || 'Please try again later.');
             return;
         }
 
@@ -65,24 +65,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     } catch (error) {
         console.error('Error loading profile:', error);
-        showError('Error loading profile');
+        showError('We could not load this profile', 'Please try again later.');
     }
 });
 
-function showError(msg) {
-    const overlay = document.querySelector('.public-overlay');
-    if (!overlay) {
-        console.error(msg);
+function showError(title, message) {
+    document.querySelector('.public-view')?.classList.remove('is-loading');
+    document.querySelector('.dashboard-map')?.setAttribute('hidden', '');
+    document.querySelector('.dashboard-map-wash')?.setAttribute('hidden', '');
+    document.getElementById('public-map-loading')?.remove();
+    document.querySelector('.dashboard-atlas-hero-inner')?.setAttribute('hidden', '');
+
+    const error = document.getElementById('public-error');
+    if (!error) {
+        console.error(title, message);
         return;
     }
-    overlay.innerHTML = `
-        <div class="public-card" style="text-align: center;">
-            <div style="font-size: 2em; margin-bottom: 10px; color: var(--danger);"><i data-lucide="alert-circle"></i></div>
-            <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">${msg}</h2>
-            <a href="/" class="btn btn-sm btn-outline full-width">Go Home</a>
-        </div>
-    `;
-    if (window.lucide) window.lucide.createIcons();
+
+    document.getElementById('public-error-title').textContent = title;
+    document.getElementById('public-error-message').textContent = message;
+    error.hidden = false;
 }
 
 function escapeHtml(value) {
