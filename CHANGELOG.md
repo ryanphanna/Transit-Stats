@@ -9,6 +9,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 ## [Unreleased]
 
 ### Changed
+- **Experimental V4/V5 prediction shadowing is now opt-in per user**, keeping candidate model work away from regular users until it is ready.
 - **Dashboard maps now show cached stop markers immediately and avoid snapping from a city zoom to the final overview.**
 - **Wide map views now show more distinct stop locations instead of collapsing coverage into a few dots.**
 - **The dashboard now verifies the Leaflet CDN script before loading it.**

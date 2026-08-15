@@ -11,6 +11,7 @@ const {
   clearPendingState,
   getUserProfile,
   isEmailAdmin,
+  isExperimentalIntelligenceEnabled,
   lookupStop,
   findMatchingStops,
   getRoutesAtStop,
@@ -229,7 +230,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
   let isAdmin = false;
   let defaultAgency = null;
   try {
-    const [history, stopsLibrary, routesAtStop, profile, networkGraph, habits, adminStatus] = await Promise.all([
+    const [history, stopsLibrary, routesAtStop, profile, networkGraph, habits, adminStatus, experimentalIntelligence] = await Promise.all([
       getRecentCompletedTrips(user.userId, 100),
       getStopsLibrary(),
       getRoutesAtStop(startStopCode, resolvedAgency),
@@ -237,6 +238,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       NetworkEngine.load(db, user.userId, resolvedAgency, route),
       HabitEngine.load(db, user.userId),
       isEmailAdmin(user.email),
+      isExperimentalIntelligenceEnabled(user.email),
     ]);
     PredictionEngine.stopsLibrary = stopsLibrary;
     PredictionEngine.networkGraph = networkGraph || null;
@@ -315,7 +317,7 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
       });
       // V4/V5 only run when the trip is on the user's default agency —
       // the models are trained on one agency's data and produce garbage elsewhere.
-      if (resolvedAgency === defaultAgency) {
+      if (experimentalIntelligence && resolvedAgency === defaultAgency) {
         const [rawTopV4, rawTopV5, topEndV4, topEndV5] = await Promise.all([
           Promise.resolve(PredictionEngineV4.guessTopRoutes(routeContext, 5)),
           PredictionEngineV5.guessTopRoutes(routeContext, 5),
@@ -421,13 +423,14 @@ async function handleConfirmStart(phoneNumber, user, state, traceId = null) {
   let confirmProvisionalTransfer = null;
   let newStopData = null;
   try {
-    const [history, stopsLibrary, routesAtStop, confirmProfile, confirmNetworkGraph, confirmAdminStatus] = await Promise.all([
+    const [history, stopsLibrary, routesAtStop, confirmProfile, confirmNetworkGraph, confirmAdminStatus, experimentalIntelligence] = await Promise.all([
       getRecentCompletedTrips(user.userId, 100),
       getStopsLibrary(),
       getRoutesAtStop(newTrip.stopCode, newTrip.agency),
       getUserProfile(user.userId),
       NetworkEngine.load(db, user.userId, newTrip.agency, newTrip.route),
       isEmailAdmin(user.email),
+      isExperimentalIntelligenceEnabled(user.email),
     ]);
     PredictionEngine.stopsLibrary = stopsLibrary;
     confirmIsAdmin = confirmAdminStatus;
@@ -476,7 +479,7 @@ async function handleConfirmStart(phoneNumber, user, state, traceId = null) {
       routesAtStop: routesAtStop || undefined,
       lastEndStopName,
     });
-    if (newTrip.agency === confirmDefaultAgency) {
+    if (experimentalIntelligence && newTrip.agency === confirmDefaultAgency) {
       const [confirmRawV4, confirmRawV5, confirmTopV4, confirmTopV5] = await Promise.all([
         Promise.resolve(PredictionEngineV4.guessTopRoutes(confirmRouteContext, 5)),
         PredictionEngineV5.guessTopRoutes(confirmRouteContext, 5),

@@ -26,6 +26,12 @@ async function isEmailAdmin(email) {
   return allowedDoc.exists && allowedDoc.data()?.isAdmin === true;
 }
 
+async function isExperimentalIntelligenceEnabled(email) {
+  if (!email) return false;
+  const allowedDoc = await db.collection('allowedUsers').doc(email.toLowerCase()).get();
+  return allowedDoc.exists && allowedDoc.data()?.experimentalIntelligence === true;
+}
+
 async function storeVerificationCode(phoneNumber, email, code, ttlMs = 15 * 60 * 1000) {
   const expiresAt = Timestamp.fromDate(new Date(Date.now() + ttlMs));
   await db.collection('smsVerification').doc(phoneNumber).set({ email, code, expiresAt, attempts: 0 });
@@ -49,6 +55,7 @@ module.exports = {
   getUserProfile,
   isEmailAllowed,
   isEmailAdmin,
+  isExperimentalIntelligenceEnabled,
   storeVerificationCode,
   getVerificationData,
 };

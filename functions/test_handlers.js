@@ -41,6 +41,7 @@ function loadHandlers(overrides = {}) {
     getVerificationData: async () => null,
     isEmailAllowed: async () => true,
     isEmailAdmin: async () => false,
+    isExperimentalIntelligenceEnabled: async () => true,
     getUserByPhone: async () => ({ userId: 'u1', email: 'user@example.com' }),
     getUserProfile: async () => ({ defaultAgency: 'TTC', isAdmin: false }),
     lookupStop: async () => ({
@@ -572,6 +573,39 @@ test('handleTripLog: GTFS correction picks route supported by routesAtStop for V
   assert.equal(calls.createTrip.length, 1);
   assert.equal(calls.createTrip[0].predictionV4.route, '510');
   assert.equal(calls.createTrip[0].predictionV5.route, '510');
+});
+
+test('handleTripLog: skips V4/V5 shadow inference when experimental access is disabled', async () => {
+  let v4Calls = 0;
+  let v5Calls = 0;
+  const { handlers, calls, restore } = loadHandlers({
+    dbModule: {
+      isExperimentalIntelligenceEnabled: async () => false,
+    },
+    predictV4: {
+      PredictionEngineV4: {
+        guessTopRoutes: () => { v4Calls += 1; return []; },
+        guessTopEndStops: () => { v4Calls += 1; return []; },
+      },
+    },
+    predictV5: {
+      PredictionEngineV5: {
+        guessTopRoutes: async () => { v5Calls += 1; return []; },
+        guessTopEndStops: async () => { v5Calls += 1; return []; },
+      },
+    },
+  });
+
+  try {
+    await handlers.handleTripLog('+14165550004', { userId: 'u4', email: 'user@example.com' }, '11985', '510', null, 'TTC');
+  } finally {
+    restore();
+  }
+
+  assert.equal(v4Calls, 0);
+  assert.equal(v5Calls, 0);
+  assert.equal(calls.createTrip[0].predictionV4, null);
+  assert.equal(calls.createTrip[0].predictionV5, null);
 });
 
 test('handleTripLog: end-to-end prediction prompt does not surface illegal 506 destinations', async () => {
