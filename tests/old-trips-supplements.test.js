@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { OLD_TRIPS_GTFS_STOP_SUPPLEMENTS } from '../js/old-trips-gtfs-supplements.js';
+import stopSupplements from '../js/stop-supplements.json';
 import { buildStopIndex, resolveStopLocation } from '../js/atlas-stop-resolver.js';
 
+const OLD_TRIPS_GTFS_STOP_SUPPLEMENTS = stopSupplements.oldTrips;
 const stops = Object.entries(OLD_TRIPS_GTFS_STOP_SUPPLEMENTS)
     .flatMap(([agency, rows]) => rows.map(stop => ({ ...stop, agency })));
 

@@ -8,6 +8,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- Move verified stop supplements into a separately loaded JSON asset so the map’s main bundle stays smaller.
+
 - Add browser smoke checks and direct OTP/API handler tests so auth regressions are caught before release.
 - Make the Functions lint command complete successfully while retaining legacy formatting and unused-variable warnings.
 

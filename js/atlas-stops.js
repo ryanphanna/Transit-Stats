@@ -1,6 +1,3 @@
-import { LOCAL_GTFS_STOP_SUPPLEMENTS } from './local-gtfs-stop-supplements.js';
-import { OLD_TRIPS_GTFS_STOP_SUPPLEMENTS } from './old-trips-gtfs-supplements.js';
-
 const ATLAS_STOPS_PROXY = import.meta.env.VITE_ATLAS_STOPS_URL
     || (import.meta.env.DEV ? '/atlas-dev/stops' : 'https://us-central1-transitstats-21ba4.cloudfunctions.net/atlasStops');
 const STOP_CACHE_DB = 'transitstats-map-cache';
@@ -8,6 +5,16 @@ const STOP_CACHE_STORE = 'agency-stops';
 const STOP_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const stopCacheMemory = new Map();
 const stopCacheRequests = new Map();
+let stopSupplementsPromise;
+
+function loadStopSupplements() {
+    if (!stopSupplementsPromise) {
+        stopSupplementsPromise = import('./stop-supplements.json')
+            .then(module => module.default)
+            .catch(() => ({ local: {}, oldTrips: {} }));
+    }
+    return stopSupplementsPromise;
+}
 
 // Some user agencies share physical stops with an Atlas agency. Keep the
 // trip's agency on the returned stop while loading every verified GTFS source
@@ -111,15 +118,16 @@ export async function loadAtlasStops(agencies) {
             .map(slug => [agency, slug]));
     if (agencySlugs.length === 0) return [];
 
-    const results = await Promise.allSettled(
-        agencySlugs.map(([agency, slug]) => fetchAgencyStops(agency, slug))
-    );
+    const [results, supplementsData] = await Promise.all([
+        Promise.allSettled(agencySlugs.map(([agency, slug]) => fetchAgencyStops(agency, slug))),
+        loadStopSupplements(),
+    ]);
     const publishedStops = results
         .filter(result => result.status === 'fulfilled')
         .flatMap(result => result.value);
     const supplements = agencySlugs.flatMap(([agency]) => [
-        ...(LOCAL_GTFS_STOP_SUPPLEMENTS[agency] || []),
-        ...(OLD_TRIPS_GTFS_STOP_SUPPLEMENTS[agency] || []),
+        ...(supplementsData.local[agency] || []),
+        ...(supplementsData.oldTrips[agency] || []),
     ].map(stop => ({
             ...stop,
             agency,
