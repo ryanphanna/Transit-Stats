@@ -12,6 +12,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Admin profile links can use a custom username while preserving the emoji URL as an alias.**
 - **Share actions now fail quietly when the browser cannot share or copy a link.**
 - **Recent activity replaces the vague “Recent movement” dashboard label.**
+- **Possessive name endings now use the same emphasis as the display name.**
 
 ## [1.48.0] — 2026-08-14
 
