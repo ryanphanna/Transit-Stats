@@ -1,4 +1,4 @@
-import firebase, { db, auth } from './firebase.js';
+import { db, auth, serverTimestamp } from './firebase.js';
 import { UI } from './ui-utils.js';
 import { Identity } from './identity.js';
 
@@ -217,8 +217,8 @@ export const Profile = {
             isPremium: false,
             isAdmin: false,
             isPublic: false,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
         };
 
         try {
@@ -327,7 +327,7 @@ export const Profile = {
         try {
             await db.collection('profiles').doc(user.uid).set({
                 [key]: value,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                updatedAt: serverTimestamp()
             }, { merge: true });
             
             // Update local state
@@ -360,12 +360,12 @@ export const Profile = {
 
             await db.collection('usernames').doc(username).set({
                 uid: user.uid,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                createdAt: serverTimestamp(),
             });
 
             await db.collection('profiles').doc(user.uid).set({
                 username,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: serverTimestamp(),
             }, { merge: true });
 
             if (!this.data) this.data = {};

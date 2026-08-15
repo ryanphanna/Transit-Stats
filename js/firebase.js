@@ -1,7 +1,39 @@
-
-import firebase from 'firebase/compat/app';
-import 'firebase/compat/auth';
-import 'firebase/compat/firestore';
+import { getApps, initializeApp } from 'firebase/app';
+import {
+    browserLocalPersistence,
+    getAuth,
+    isSignInWithEmailLink,
+    onAuthStateChanged,
+    sendPasswordResetEmail,
+    sendSignInLinkToEmail,
+    setPersistence,
+    signInWithCustomToken,
+    signInWithEmailAndPassword,
+    signInWithEmailLink,
+    signOut,
+} from 'firebase/auth';
+import {
+    addDoc,
+    arrayUnion,
+    collection as firestoreCollection,
+    deleteDoc,
+    deleteField,
+    doc as firestoreDoc,
+    enableMultiTabIndexedDbPersistence,
+    getDoc,
+    getDocs,
+    getFirestore,
+    limit as firestoreLimit,
+    onSnapshot,
+    orderBy as firestoreOrderBy,
+    query as firestoreQuery,
+    serverTimestamp,
+    setDoc,
+    Timestamp,
+    updateDoc,
+    where as firestoreWhere,
+    writeBatch,
+} from 'firebase/firestore';
 
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -9,19 +41,147 @@ const firebaseConfig = {
     projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
     storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
     messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 if (!firebaseConfig.apiKey) {
     console.error('❌ Firebase Configuration Error: API Key is missing. Check your environment variables.');
 }
 
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
+const app = getApps().length > 0 ? getApps()[0] : initializeApp(firebaseConfig);
+const authClient = getAuth(app);
+const firestoreClient = getFirestore(app);
+
+function wrapDocument(reference) {
+    return {
+        _ref: reference,
+        async get() {
+            return getDoc(reference);
+        },
+        async set(data, options) {
+            return setDoc(reference, data, options);
+        },
+        async update(data) {
+            return updateDoc(reference, data);
+        },
+        async delete() {
+            return deleteDoc(reference);
+        },
+    };
 }
 
-export const auth = firebase.auth();
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-export const db = firebase.firestore();
-export const Timestamp = firebase.firestore.Timestamp;
-export default firebase;
+function wrapQuery(reference) {
+    const api = {
+        where(field, operator, value) {
+            return wrapQuery(firestoreQuery(reference, firestoreWhere(field, operator, value)));
+        },
+        orderBy(field, direction) {
+            return wrapQuery(firestoreQuery(reference, firestoreOrderBy(field, direction)));
+        },
+        limit(count) {
+            return wrapQuery(firestoreQuery(reference, firestoreLimit(count)));
+        },
+        async get() {
+            return getDocs(reference);
+        },
+        onSnapshot(...args) {
+            return onSnapshot(reference, ...args);
+        },
+    };
+    return api;
+}
+
+function wrapCollection(reference) {
+    return {
+        ...wrapQuery(reference),
+        doc(id) {
+            return wrapDocument(firestoreDoc(reference, id));
+        },
+        async add(data) {
+            return addDoc(reference, data);
+        },
+    };
+}
+
+function createBatch() {
+    const batch = writeBatch(firestoreClient);
+    return {
+        set(document, data, options) {
+            batch.set(document._ref, data, options);
+            return this;
+        },
+        update(document, data) {
+            batch.update(document._ref, data);
+            return this;
+        },
+        delete(document) {
+            batch.delete(document._ref);
+            return this;
+        },
+        commit() {
+            return batch.commit();
+        },
+    };
+}
+
+// Keep the small existing app-facing surface stable while its implementation
+// uses the tree-shakeable modular Firestore API underneath.
+export const db = {
+    collection(path) {
+        return wrapCollection(firestoreCollection(firestoreClient, path));
+    },
+    batch: createBatch,
+};
+
+// Keep the existing app-facing auth calls stable while using modular Auth.
+export const auth = {
+    get currentUser() {
+        return authClient.currentUser;
+    },
+    onAuthStateChanged(callback) {
+        return onAuthStateChanged(authClient, callback);
+    },
+    authStateReady() {
+        return typeof authClient.authStateReady === 'function'
+            ? authClient.authStateReady()
+            : Promise.resolve();
+    },
+    signInWithEmailAndPassword(email, password) {
+        return signInWithEmailAndPassword(authClient, email, password);
+    },
+    sendSignInLinkToEmail(email, settings) {
+        return sendSignInLinkToEmail(authClient, email, settings);
+    },
+    isSignInWithEmailLink(url) {
+        return isSignInWithEmailLink(authClient, url);
+    },
+    signInWithEmailLink(email, url) {
+        return signInWithEmailLink(authClient, email, url);
+    },
+    sendPasswordResetEmail(email) {
+        return sendPasswordResetEmail(authClient, email);
+    },
+    signInWithCustomToken(token) {
+        return signInWithCustomToken(authClient, token);
+    },
+    signOut() {
+        return signOut(authClient);
+    },
+};
+
+// Finish configuring persistence before any page guard decides that a page
+// reload means the user is signed out.
+export const authPersistenceReady = setPersistence(authClient, browserLocalPersistence)
+    .catch(error => {
+        console.warn('Firebase local persistence unavailable:', error.message);
+    });
+
+// Let repeat visits render the last authorized snapshot immediately while
+// Firestore refreshes it from the server. This remains best-effort because
+// some browsers or multi-tab configurations do not support persistent storage.
+export const firestorePersistenceReady = enableMultiTabIndexedDbPersistence(firestoreClient)
+    .catch(error => {
+        console.warn('Firebase offline cache unavailable:', error.code || error.message);
+    });
+
+export { arrayUnion, deleteField, serverTimestamp, Timestamp };
