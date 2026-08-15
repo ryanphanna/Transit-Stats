@@ -3,9 +3,11 @@ import {
     fitMapToDensePoints,
 } from './map-presentation.js';
 import { createMapSurface, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from './map-surface.js';
+import { formatAtlasNumber, renderAtlasCard, setAtlasDisplayName } from './shared/atlas-card.js';
 
 // Public Profile Logic
 document.addEventListener('DOMContentLoaded', async () => {
+    renderAtlasCard({ publicProfile: true });
     const pathMatch = window.location.pathname.match(/^\/user\/([^/]+)\/?$/i);
     const params = new URLSearchParams(window.location.search);
     const username = pathMatch ? decodeURIComponent(pathMatch[1]) : params.get('user');
@@ -48,15 +50,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // Render Profile Header
-        document.getElementById('profile-name').textContent = data.displayName || 'Traveler';
+        setAtlasDisplayName(data.displayName || 'Traveler');
 
         // Render the same dashboard facts as the signed-in card.
-        document.getElementById('stat-trips-lifetime').textContent = data.totalTrips ?? 0;
-        document.getElementById('stat-trips-month').textContent = data.thisMonth ?? 0;
-        document.getElementById('stat-trips-week').textContent = data.thisWeek ?? 0;
-        document.getElementById('stat-days-ridden').textContent = data.daysRidden ?? 0;
-        document.getElementById('stat-agencies-ridden').textContent = data.agencies ?? 0;
-        document.getElementById('stat-countries-ridden').textContent = data.countries ?? 0;
+        document.getElementById('stat-trips-lifetime').textContent = formatAtlasNumber(data.totalTrips ?? 0);
+        document.getElementById('stat-trips-month').textContent = formatAtlasNumber(data.thisMonth ?? 0);
+        document.getElementById('stat-trips-week').textContent = formatAtlasNumber(data.thisWeek ?? 0);
+        document.getElementById('stat-days-ridden').textContent = formatAtlasNumber(data.daysRidden ?? 0);
+        document.getElementById('stat-agencies-ridden').textContent = formatAtlasNumber(data.agencies ?? 0);
+        document.getElementById('stat-countries-ridden').textContent = formatAtlasNumber(data.countries ?? 0);
 
         // Render Map
         initPublicMap(data.points, data.mapStopMode);

@@ -1,0 +1,55 @@
+// @vitest-environment jsdom
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { describe, expect, it } from 'vitest';
+import {
+    ATLAS_COPY,
+    formatAtlasNumber,
+    renderAtlasCard,
+    setAtlasDisplayName,
+} from '../js/shared/atlas-card.js';
+
+const root = path.resolve(process.cwd());
+const dashboardHtml = fs.readFileSync(path.join(root, 'dashboard.html'), 'utf8');
+const publicHtml = fs.readFileSync(path.join(root, 'public.html'), 'utf8');
+
+describe('shared Atlas card', () => {
+    it('keeps both pages on the shared card renderer', () => {
+        expect(dashboardHtml).toContain('data-atlas-card');
+        expect(publicHtml).toContain('data-atlas-card');
+        expect(dashboardHtml).not.toContain('Recent movement');
+        expect(publicHtml).not.toContain('Recent movement');
+    });
+
+    it('uses one set of labels for dashboard and public cards', () => {
+        document.body.innerHTML = '<div data-atlas-card></div>';
+        const dashboardCard = renderAtlasCard();
+        const dashboardMarkup = dashboardCard.innerHTML;
+        renderAtlasCard({ publicProfile: true });
+        const publicCard = document.querySelector('[data-atlas-card]');
+
+        expect(dashboardCard.textContent).toContain(ATLAS_COPY.recentHeading);
+        expect(publicCard.textContent).toContain(ATLAS_COPY.recentHeading);
+        expect(publicCard.querySelector('#atlas-share-map')).toBeNull();
+        expect(publicCard.querySelector('.atlas-card-cta')?.textContent).toContain('Sign up');
+        expect(dashboardMarkup).toContain('Share your map');
+    });
+
+    it('handles possessive names consistently', () => {
+        document.body.innerHTML = '<div data-atlas-card></div>';
+        renderAtlasCard();
+
+        setAtlasDisplayName('TransitStats');
+        expect(document.querySelector('#profile-name').textContent).toBe('TransitStats');
+        expect(document.querySelector('.atlas-title-tail').textContent).toBe('’');
+
+        setAtlasDisplayName('Ryan');
+        expect(document.querySelector('.atlas-title-tail').textContent).toBe('’s');
+    });
+
+    it('formats large dashboard and public totals with separators', () => {
+        expect(formatAtlasNumber(2767)).toBe('2,767');
+        expect(formatAtlasNumber(0)).toBe('0');
+    });
+});

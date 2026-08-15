@@ -9,6 +9,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 ## [Unreleased]
 
 ### Changed
+- **Large ride totals now use thousands separators consistently on dashboard and public profiles.**
+- **Dashboard and public-profile cards now share one renderer and parity checks, preventing copy and layout drift between surfaces.**
 - **Public profile links now show a clear not-found state and use the same title and branding as the signed-in dashboard.**
 - **Public profiles now keep the map visible on phones by placing the stats card at the bottom as a scrollable sheet.**
 - **Experimental V4/V5 prediction shadowing is now opt-in per user**, keeping candidate model work away from regular users until it is ready.
