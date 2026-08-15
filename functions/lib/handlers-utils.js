@@ -14,6 +14,7 @@ const {
   getLastTripAgency,
   getTripCount,
 } = require('./db');
+const { getConfiguredPrimaryAgency } = require('./primary-agency');
 const {
   getStopDisplay,
   getRouteDisplay,
@@ -50,7 +51,7 @@ function correctPredictionByGtfs(topRoutes, routesAtStop) {
  * @returns {string}
  */
 function agencySuffix(tripAgency, defaultAgency) {
-  if (!tripAgency || tripAgency === defaultAgency) return '';
+  if (!tripAgency || !defaultAgency || tripAgency === defaultAgency) return '';
   return ` via ${tripAgency}`;
 }
 
@@ -87,20 +88,21 @@ Reply 1, 2, or SKIP to use default.`
 async function resolveTripAgency(
   phoneNumber, userId, parsedStop, route, direction, agency, options, stopInput, stopDisplay
 ) {
-  let resolvedAgency = agency;
+  const userProfile = await getUserProfile(userId);
+  const configuredAgency = getConfiguredPrimaryAgency(userProfile);
+  let resolvedAgency = agency || configuredAgency;
   if (options.agencyExplicit) return { resolvedAgency, handled: false };
 
   const lastAgency = await getLastTripAgency(userId);
-  if (!lastAgency || lastAgency === agency) return { resolvedAgency, handled: false };
+  if (!lastAgency || lastAgency === resolvedAgency) return { resolvedAgency, handled: false };
 
   const [stopInDefault, stopInLast] = await Promise.all([
-    lookupStop(parsedStop.stopCode, parsedStop.stopName, agency, route, direction),
+    lookupStop(parsedStop.stopCode, parsedStop.stopName, resolvedAgency, route, direction),
     lookupStop(parsedStop.stopCode, parsedStop.stopName, lastAgency, route, direction),
   ]);
 
   if (stopInDefault && stopInLast) {
-    const userProfile = await getUserProfile(userId);
-    const defaultAgency = userProfile?.defaultAgency || agency;
+    const defaultAgency = configuredAgency || resolvedAgency;
     await promptAgencyChoice(phoneNumber, stopDisplay, route, direction, stopInput, options, lastAgency, defaultAgency);
     return { resolvedAgency, handled: true };
   }

@@ -11,6 +11,11 @@ import { PredictionEngine } from '../predict.js';
 import { Utils } from '../utils.js';
 import { UI } from '../ui-utils.js';
 import { db } from '../firebase.js';
+import { createAgencyAutocomplete } from '../agency-autocomplete.js';
+import { displayAgencyName, getConfiguredAgency } from '../profile-fields.js';
+import { MapEngine } from '../map-engine.js';
+import { TripController } from '../trips/TripController.js';
+import { loadAtlasStops } from '../atlas-stops.js';
 
 window.Trips = Trips;
 window.Utils = Utils;
@@ -31,6 +36,22 @@ const tripEdit = {
     btnDelete: document.getElementById('btn-delete-trip')
 };
 
+let tripAgencyAutocomplete = null;
+
+function setupTripAgencyAutocomplete() {
+    const profile = window.currentUserProfile || {};
+    const defaultAgency = getConfiguredAgency(profile);
+    const optionsByValue = new Map((Profile.agencyOptions || []).map(option => [option.value, option]));
+    if (defaultAgency && !optionsByValue.has(defaultAgency)) {
+        optionsByValue.set(defaultAgency, { value: defaultAgency, label: displayAgencyName(defaultAgency) });
+    }
+    tripAgencyAutocomplete = createAgencyAutocomplete({
+        input: tripEdit.agency,
+        options: [...optionsByValue.values()],
+    });
+    window.TripAgencyAutocomplete = tripAgencyAutocomplete;
+}
+
 function setupTripEditListeners() {
     tripEdit.direction?.addEventListener('change', () => {
         const isOther = tripEdit.direction.value === '__other__';
@@ -49,7 +70,7 @@ function setupTripEditListeners() {
                 ? tripEdit.directionOther.value.trim()
                 : tripEdit.direction.value.trim(),
             vehicle: tripEdit.vehicle.value.trim(),
-            agency: tripEdit.agency.value
+            agency: tripAgencyAutocomplete?.getValue() || tripEdit.agency.value.trim()
         };
         if (!data.route) return UI.showNotification('Route number or name is required.');
         tripEdit.btnSave.disabled = true;
@@ -98,22 +119,61 @@ function setupTripEditListeners() {
     });
 }
 
+function setupShareMap() {
+    const shareButton = document.getElementById('atlas-share-map');
+    if (!shareButton) return;
+
+    shareButton.addEventListener('click', async () => {
+        const username = Profile.data?.username;
+        if (!username || !Profile.data?.isPublic) {
+            UI.showNotification(username ? 'Turn on your public profile first.' : 'Set up your public identity first.');
+            window.location.href = '/settings#public-profile-settings';
+            return;
+        }
+
+        const url = `${window.location.origin}/user/${encodeURIComponent(username)}`;
+        try {
+            if (navigator.share) {
+                await navigator.share({
+                    title: `${Profile.getDisplayName() || 'My'} TransitStats map`,
+                    url,
+                });
+                return;
+            }
+            await navigator.clipboard.writeText(url);
+            UI.showNotification('Map link copied to clipboard.', 'success');
+        } catch (error) {
+            if (error?.name !== 'AbortError') UI.showNotification('Could not share your map.');
+        }
+    });
+}
+
 function closeAllModals() {
     document.getElementById('modal-backdrop')?.classList.add('hidden');
     document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
 }
 
-function setupStatsToggle() {
-    document.getElementById('toggle-stats-30-insights')?.addEventListener('click', () => {
-        document.getElementById('toggle-stats-30-insights').classList.add('active');
-        document.getElementById('toggle-stats-all-insights').classList.remove('active');
-        Stats.showPeriod('30d');
-    });
-    document.getElementById('toggle-stats-all-insights')?.addEventListener('click', () => {
-        document.getElementById('toggle-stats-all-insights').classList.add('active');
-        document.getElementById('toggle-stats-30-insights').classList.remove('active');
-        Stats.showPeriod('all');
-    });
+async function loadDashboardAtlasStops() {
+    // Let the map show immediately, then improve its markers with Atlas data.
+    const initialRender = MapEngine.releaseInitialView();
+    await initialRender;
+
+    const agencies = [...new Set((TripController.allTrips || [])
+        .map(trip => String(trip.agency || '').trim())
+        .filter(Boolean))];
+    if (agencies.length === 0) {
+        return;
+    }
+
+    try {
+        const atlasStops = await loadAtlasStops(agencies);
+        await MapEngine.setStopSources({
+            atlasStops,
+            firestoreStops: PredictionEngine.stopsLibrary || [],
+        });
+    } catch (error) {
+        console.warn('Dashboard: Atlas stop data unavailable', error);
+    }
 }
 
 async function init() {
@@ -121,13 +181,22 @@ async function init() {
     initHeader({ isAdmin, currentPage: 'dashboard' });
     ModalManager.init();
 
+    if (window.L) {
+        MapEngine.init([], null, { deferInitialView: true });
+    }
+
     await Profile.load(user);
+    await Profile.loadAgencies(user);
+    setupShareMap();
 
     const profileName = document.getElementById('profile-name');
-    if (profileName) profileName.textContent = Profile.getDisplayName(user) || 'Traveler';
+    const displayName = Profile.getDisplayName(user)?.trim() || 'Traveler';
+    if (profileName) profileName.textContent = displayName;
+    const titleTail = document.querySelector('.atlas-title-tail');
+    if (titleTail) titleTail.textContent = /s$/i.test(displayName) ? '’' : '’s';
 
+    setupTripAgencyAutocomplete();
     setupTripEditListeners();
-    setupStatsToggle();
 
     // Edit trip modal backdrop close
     document.getElementById('modal-backdrop')?.addEventListener('click', closeAllModals);
@@ -135,10 +204,10 @@ async function init() {
         btn.addEventListener('click', closeAllModals);
     });
 
-    Trips.init();
-    Trips._readyPromise.then(() => {
+    const tripsInitPromise = Trips.init();
+    Promise.all([Trips._readyPromise, tripsInitPromise]).then(() => {
         Stats.init();
-        RouteTracker.init({ compact: true });
+        loadDashboardAtlasStops();
         refreshIcons();
     });
 

@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: npm install && npm run build
+      - run: npm ci && npm run build && cd functions && npm ci --omit=optional && cd ..
         env:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
@@ -25,6 +25,7 @@ jobs:
           VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_BUILD_SHA: ${{ github.sha }}
       - run: npm install -g firebase-tools
       - name: Deploy beta hosting
         env:
@@ -34,6 +35,18 @@ jobs:
           VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_BUILD_SHA: ${{ github.sha }}
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_TRANSITSTATS_21BA4 }}' > /tmp/sa.json
-          GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json firebase deploy --only hosting:beta --project transitstats-21ba4
+          GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json firebase deploy --only hosting:beta,functions --project transitstats-21ba4
+      - name: Verify deployed build
+        env:
+          EXPECTED_BUILD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          for URL in "https://beta.transitstats.fyi/" "https://beta.transitstats.fyi/heatmap"; do
+            echo "Checking $URL"
+            page_file="/tmp/$(echo "$URL" | tr '/:' '_').html"
+            curl --fail --silent --show-error --location "$URL" -o "$page_file"
+            grep -Fq "name=\"transitstats-build\" content=\"$EXPECTED_BUILD\"" "$page_file"
+          done

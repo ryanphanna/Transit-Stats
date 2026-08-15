@@ -2,53 +2,84 @@ import { requireAuth } from '../shared/auth-guard.js';
 import { initHeader } from '../shared/header.js';
 import { db } from '../firebase.js';
 import { MapEngine } from '../map-engine.js';
-import { ATLAS_AGENCY_SLUGS, loadAtlasStops } from '../atlas-stops.js';
+import { loadAtlasStops } from '../atlas-stops.js';
 
 console.log("map.js: Module script loaded");
+
+function setMapLoading(message) {
+    const loading = document.getElementById('map-loading');
+    if (!loading) return;
+    loading.textContent = message || '';
+    loading.hidden = !message;
+}
 
 async function init() {
     try {
         console.log("Map: Init started");
-        const { user, isAdmin } = await requireAuth();
+        // Render navigation before auth, Firestore, and GTFS work so the user
+        // can leave Stops immediately instead of waiting for map startup.
+        initHeader({ currentPage: 'map' });
+        const { user } = await requireAuth();
         console.log("Map: Auth resolved", user.email);
-        initHeader({ isAdmin, currentPage: 'map' });
 
-        let firestoreStops = [];
-        try {
-            console.log("Map: Loading stops...");
-            const stopsSnap = await db.collection('stops').get();
-            firestoreStops = stopsSnap.docs.map(doc => doc.data());
-            MapEngine.setStopSources({ firestoreStops });
-            console.log(`Map: Loaded ${firestoreStops.length} Firestore stops.`);
-        } catch (err) {
-            console.error("Map: Failed to load stops library:", err);
-        }
-
-        // Initialize Leaflet immediately with empty data
+        // Initialize Leaflet before any Firestore or Atlas reads. The map is
+        // interactive immediately while the stop library and trip stream load.
         console.log("Map: Initializing MapEngine");
-        MapEngine.init([]);
+        let normalizedStops = [];
+        let atlasStops = [];
+        MapEngine.setStopSources({ atlasStops, firestoreStops: normalizedStops });
+        MapEngine.init([], null, { deferInitialView: true });
         setTimeout(() => { if (MapEngine.map) MapEngine.map.invalidateSize(); }, 150);
 
         if (window.lucide) lucide.createIcons();
 
+        // Do not hold map initialization hostage to the normalized-stop read.
+        db.collection('stops').get().then(stopsSnapshot => {
+                normalizedStops = stopsSnapshot.docs.map(doc => doc.data());
+                MapEngine.setStopSources({ atlasStops, firestoreStops: normalizedStops });
+        }).catch(error => {
+            console.warn('Map: normalized stop aliases unavailable', error);
+        });
+
         // Stream trips live — update map as data arrives
-        let atlasLoadStarted = false;
+        const loadedAtlasAgencies = new Set();
+        const loadingAtlasAgencies = new Set();
+        const loadMissingAtlasStops = async agencies => {
+            const missing = agencies.filter(agency =>
+                !loadedAtlasAgencies.has(agency) && !loadingAtlasAgencies.has(agency)
+            );
+            if (missing.length === 0) return;
+            missing.forEach(agency => loadingAtlasAgencies.add(agency));
+            try {
+                const loadedStops = await loadAtlasStops(missing);
+                atlasStops = [...atlasStops, ...loadedStops];
+                missing.forEach(agency => {
+                    loadedAtlasAgencies.add(agency);
+                    loadingAtlasAgencies.delete(agency);
+                });
+                MapEngine.setStopSources({ atlasStops, firestoreStops: normalizedStops });
+                setMapLoading(null);
+            } catch (err) {
+                missing.forEach(agency => loadingAtlasAgencies.delete(agency));
+                console.warn('Map: Atlas stops unavailable', err);
+                setMapLoading(null);
+            }
+        };
+
         db.collection('trips')
             .where('userId', '==', user.uid)
             .orderBy('startTime', 'desc')
             .onSnapshot(snap => {
                 const trips = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 MapEngine.updateTrips(trips);
-                const agencies = [...new Set(trips.map(trip => trip.agency || 'TTC'))]
-                    .filter(agency => ATLAS_AGENCY_SLUGS[agency]);
-                if (!atlasLoadStarted && agencies.length > 0) {
-                    atlasLoadStarted = true;
-                    loadAtlasStops(agencies)
-                        .then(atlasStops => MapEngine.setStopSources({ atlasStops, firestoreStops }))
-                        .catch(err => console.warn('Map: Atlas stops unavailable; using Firestore stops', err));
-                }
+                const agencies = [...new Set(trips.map(trip => trip.agency || 'TTC'))];
+                loadMissingAtlasStops(agencies).catch(error => {
+                    console.warn('Map: Atlas stop loading failed', error);
+                }).then(() => MapEngine.releaseInitialView())
+                    .then(() => setMapLoading(null));
             }, err => {
                 console.error('Map trips stream error:', err);
+                setMapLoading('Could not load your trips.');
             });
         
         console.log("Map: Init completed successfully");

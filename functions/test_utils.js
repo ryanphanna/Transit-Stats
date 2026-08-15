@@ -1,7 +1,7 @@
-const {test} = require('node:test');
+const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
-const {isValidRoute} = require('./lib/utils');
+const { isValidRoute } = require('./lib/utils');
 
 test('isValidRoute accepts compact TTC-style identifiers', () => {
   assert.equal(isValidRoute('510A'), true);

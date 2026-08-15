@@ -1,4 +1,4 @@
-const {test} = require('node:test');
+const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
@@ -31,21 +31,21 @@ test('normalizeRouteForMl preserves distinct non-TTC route identities', () => {
 
 test('canonicalizeStop and getStopFeature normalize aliases consistently', () => {
   const lib = [
-    {name: 'Spadina Ave at Nassau St South Side', aliases: ['Spadina / Nassau', 'SPADINA & NASSAU']},
+    { name: 'Spadina Ave at Nassau St South Side', aliases: ['Spadina / Nassau', 'SPADINA & NASSAU'] },
   ];
   assert.equal(
-      canonicalizeStop('SPADINA & NASSAU', lib),
-      'spadina ave/nassau st south side',
+    canonicalizeStop('SPADINA & NASSAU', lib),
+    'spadina ave/nassau st south side',
   );
   assert.equal(
-      getStopFeature('Spadina / Nassau', lib),
-      'stop_spadina_ave_nassau_st_south_side',
+    getStopFeature('Spadina / Nassau', lib),
+    'stop_spadina_ave_nassau_st_south_side',
   );
 });
 
 test('getGapFeatures encodes missing and present gaps predictably', () => {
-  assert.deepEqual(getGapFeatures(null), {gapLog: 0, gapMissing: 1});
-  assert.deepEqual(getGapFeatures(-5), {gapLog: 0, gapMissing: 1});
+  assert.deepEqual(getGapFeatures(null), { gapLog: 0, gapMissing: 1 });
+  assert.deepEqual(getGapFeatures(-5), { gapLog: 0, gapMissing: 1 });
 
   const zero = getGapFeatures(0);
   assert.equal(zero.gapMissing, 0);

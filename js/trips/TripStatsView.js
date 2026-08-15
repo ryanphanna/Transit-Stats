@@ -6,6 +6,16 @@ import { Utils } from '../utils.js';
  */
 export const TripStatsView = {
     render(trips, range = 30) {
+        const periodCounts = Stats.computeTripPeriodCounts(trips);
+        this._updateBox('stat-trips-lifetime', periodCounts.lifetime);
+        this._updateBox('stat-trips-month', periodCounts.thisMonth);
+        this._updateBox('stat-trips-week', periodCounts.thisWeek);
+        this._updateBox('stat-days-ridden', periodCounts.daysRidden);
+        this._updateBox('stat-agencies-ridden', new Set(
+            (trips || []).map(trip => String(trip.agency || '').trim()).filter(Boolean)
+        ).size);
+        this._updateBox('stat-countries-ridden', Stats.getCountriesRidden(trips));
+
         const metrics = Stats.computeMetrics(trips, range);
 
         // Update primary metric boxes (try both base and -insights suffixed IDs)
@@ -44,7 +54,7 @@ export const TripStatsView = {
 
     _updateBox(id, val) {
         const el = document.getElementById(id);
-        if (el) el.textContent = val;
+        if (el) el.textContent = typeof val === 'number' ? val.toLocaleString('en-US') : val;
     },
 
     _renderCompactList(containerId, items) {
@@ -59,7 +69,7 @@ export const TripStatsView = {
         container.innerHTML = items.map(item => `
             <div class="compact-row">
                 <span class="row-label">${Utils.hide(item.name)}</span>
-                <span class="row-value font-mono">${item.count}</span>
+                <span class="row-value font-mono">${item.count.toLocaleString('en-US')}</span>
             </div>
         `).join('');
     },

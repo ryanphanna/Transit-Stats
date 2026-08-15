@@ -29,7 +29,10 @@ export const Trips = {
             });
         }
 
-        await this.loadStopsLibrary();
+        // Stop metadata is enrichment, not a prerequisite for showing the
+        // rider's trips. Let the map render saved coordinates first and load
+        // the larger fallback library in the background.
+        void this.loadStopsLibrary();
     },
 
     async loadStopsLibrary() {
@@ -44,6 +47,7 @@ export const Trips = {
                 if (Date.now() - timestamp < CACHE_TTL) {
                     console.log(`Loaded ${data.length} stops from cache`);
                     PredictionEngine.stopsLibrary = data;
+                    MapEngine.setStopSources({ firestoreStops: data });
                     this.sync(TripController.allTrips, TripController.activeTrip);
                     MapEngine.renderMarkers();
                     return;
@@ -56,6 +60,7 @@ export const Trips = {
             const data = snap.docs.map(doc => doc.data());
             
             PredictionEngine.stopsLibrary = data;
+            MapEngine.setStopSources({ firestoreStops: data });
             this.sync(TripController.allTrips, TripController.activeTrip);
             MapEngine.renderMarkers();
 
@@ -118,7 +123,13 @@ export const Trips = {
             }
         }
         if (form.vehicle) form.vehicle.value = trip.vehicle || '';
-        if (form.agency) form.agency.value = trip.agency || 'TTC';
+        if (form.agency) {
+            if (window.TripAgencyAutocomplete) {
+                window.TripAgencyAutocomplete.setValue(trip.agency || 'TTC');
+            } else {
+                form.agency.value = trip.agency || 'TTC';
+            }
+        }
 
         ModalManager.open('modal-edit-trip');
     },
@@ -126,8 +137,15 @@ export const Trips = {
     updateProfileStatus(active, trips = []) {
         const el = document.getElementById('profile-status');
         if (!el) return;
+
+        if (!active) {
+            el.hidden = true;
+            el.textContent = '';
+            return;
+        }
         
         // Use textContent for user data, innerHTML only for the fixed indicator span
+        el.hidden = false;
         el.innerHTML = '<span class="status-indicator"></span><span class="status-text"></span>';
         const indicator = el.querySelector('.status-indicator');
         const text = el.querySelector('.status-text');
@@ -135,11 +153,6 @@ export const Trips = {
         if (active) {
             indicator.classList.add('active');
             text.textContent = `Riding ${getTripRouteLabel(active)}`;
-        } else {
-            indicator.classList.remove('active');
-            text.textContent = trips[0]?.incomplete
-                ? 'Last ride marked incomplete'
-                : trips.length > 0 ? 'Ready for your next ride' : 'Ready for your first ride';
         }
     },
 

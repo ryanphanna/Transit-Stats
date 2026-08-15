@@ -1,5 +1,5 @@
 .beta-map-view {
-  height: calc(100vh - 72px);
+  height: calc(100vh - 64px);
   min-height: 0 !important;
   padding: 0 !important;
   position: relative;
@@ -30,6 +30,32 @@
   flex-wrap: wrap;
   gap: 8px;
   pointer-events: auto;
+}
+
+.beta-map-heading {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 106px;
+  padding: 8px 12px;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+
+.beta-map-kicker {
+  color: var(--accent);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.beta-map-heading strong {
+  margin-top: 2px;
+  font-size: 0.82rem;
 }
 
 .beta-map-pills {

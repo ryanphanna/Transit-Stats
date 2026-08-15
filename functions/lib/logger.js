@@ -76,7 +76,7 @@ function formatPrefix(level, traceId) {
  */
 function info(message, data = {}, traceId = null) {
   let finalTrace = traceId;
-  let logData = data;
+  let logData;
 
   if (typeof data === 'string' && !traceId) {
     // allow info(msg, traceId) calls for convenience

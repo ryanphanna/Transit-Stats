@@ -29,7 +29,11 @@ export const UI = {
      */
     showNotification: function (message, type = 'error') {
         const notification = document.createElement('div');
-        const bgColor = type === 'error' ? 'var(--danger)' : 'var(--success)';
+        const bgColor = type === 'error'
+            ? 'var(--danger)'
+            : type === 'info'
+                ? 'var(--text-secondary)'
+                : 'var(--success)';
         notification.setAttribute('role', type === 'error' ? 'alert' : 'status');
         notification.setAttribute('aria-live', 'polite');
 
