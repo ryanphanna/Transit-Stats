@@ -10,6 +10,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 - Give dashboard stat labels equal height and loosen low-zoom map clustering so wrapped labels and city stops stay visually balanced.
 
+- Give the weekly and monthly dashboard totals matching two-line labels so the stat row reads evenly.
+
 - Cluster nearby map stops lightly at lower zoom levels so city-level patterns stay readable without hiding nearby stops.
 
 - Apply SMS verification cooldowns and daily limits to regular users while letting admins request codes without those caps.
