@@ -1,21 +1,18 @@
 /**
- * API Webhook Handler for Transit Stats (Twilio-free iOS app companion logging)
+ * HTTP API for the Transit Stats companion app.
+ * OTP login and authenticated command dispatch live in their own modules.
  */
 
 const { onRequest } = require('firebase-functions/v2/https');
 const { initializeApp, getApps } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
-const { getFirestore, FieldValue, Timestamp } = require('firebase-admin/firestore');
-const { randomInt } = require('crypto');
+const { getFirestore } = require('firebase-admin/firestore');
 const { dispatch } = require('./lib/dispatcher');
 const { apiContextStorage, sendSmsReply } = require('./lib/twilio');
+const { createOtpHandlers } = require('./lib/otp');
+const { createCommandHandler } = require('./lib/api-command');
 const logger = require('./lib/logger');
 
-const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
-const OTP_DAILY_LIMIT = 5;
-const OTP_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
-
-// Initialize Admin SDK if not already done
 if (getApps().length === 0) {
   initializeApp({
     serviceAccountId: 'firebase-adminsdk-fbsvc@transitstats-21ba4.iam.gserviceaccount.com',
@@ -25,8 +22,7 @@ if (getApps().length === 0) {
 const db = getFirestore();
 const adminAuth = getAuth();
 
-/** Local short trace ID generator */
-function generateTraceIdLocal() {
+function generateTraceId() {
   try {
     const { randomUUID } = require('crypto');
     return randomUUID().replace(/-/g, '').slice(0, 8);
@@ -35,212 +31,24 @@ function generateTraceIdLocal() {
   }
 }
 
-/**
- * Normalize manually typed phone numbers to E.164 format.
- * Automatically prefixes 10-digit North American numbers with '+1'.
- */
-function normalizePhoneNumber(phone) {
-  let cleaned = (phone || '').trim().replace(/[^\d]/g, '');
-  if (cleaned.length === 10) {
-    return '+1' + cleaned;
-  }
-  if (cleaned.length === 11 && cleaned.startsWith('1')) {
-    return '+' + cleaned;
-  }
-  // Fallback: prefix with + if not already present
-  return ((phone || '').startsWith('+') ? '' : '+') + cleaned;
-}
+const { handleRequestOtp, handleVerifyOtp } = createOtpHandlers({
+  db,
+  adminAuth,
+  sendSmsReply,
+  logger,
+});
 
-async function isAdminPhone(phoneDoc) {
-  const data = phoneDoc.data() || {};
-  if (data.userId) {
-    const profile = await db.collection('profiles').doc(data.userId).get();
-    if (profile.exists && profile.data()?.isAdmin === true) return true;
-  }
+const handleAuthenticatedCommand = createCommandHandler({
+  db,
+  apiContextStorage,
+  dispatch,
+  logger,
+  generateTraceId,
+});
 
-  if (data.email) {
-    const allowedUser = await db.collection('allowedUsers').doc(String(data.email).toLowerCase()).get();
-    return allowedUser.exists && allowedUser.data()?.isAdmin === true;
-  }
-
-  return false;
-}
-
-/**
- * Handle passwordless login OTP request
- */
-async function handleRequestOtp(req, res, traceId) {
-  const phoneNumber = normalizePhoneNumber(req.body.phoneNumber);
-
-  if (phoneNumber.length < 8) {
-    res.status(400).json({ error: 'Invalid phone number format.' });
-    return;
-  }
-
-  try {
-    const phoneDoc = await db.collection('phoneNumbers').doc(phoneNumber).get();
-    if (!phoneDoc.exists) {
-      logger.warn('OTP Request denied: Phone number not registered', { phoneNumber, traceId }, traceId);
-      res.status(400).json({
-        error: 'This phone number is not registered. Please register your number via SMS first.'
-      });
-      return;
-    }
-
-    const isAdmin = await isAdminPhone(phoneDoc);
-
-    const verificationRef = db.collection('phoneLoginVerification').doc(phoneNumber);
-    const limitRef = db.collection('phoneLoginOtpLimits').doc(phoneNumber);
-    const code = randomInt(100000, 1000000).toString();
-    const expiresAt = Timestamp.fromDate(new Date(Date.now() + 10 * 60 * 1000));
-    let secondsRemaining = 0;
-    let dailyLimitReached = false;
-    const reservedSentAt = Date.now() + Math.random();
-
-    await db.runTransaction(async (transaction) => {
-        const existingVerification = await transaction.get(verificationRef);
-        const lastSentAt = existingVerification.exists ? existingVerification.data().sentAt : null;
-      if (!isAdmin && lastSentAt?.toDate) {
-        secondsRemaining = Math.ceil((lastSentAt.toDate().getTime() + OTP_RESEND_COOLDOWN_MS - Date.now()) / 1000);
-        if (secondsRemaining > 0) return;
-      }
-
-      if (!isAdmin) {
-        const existingLimit = await transaction.get(limitRef);
-        const sentAt = existingLimit.exists ? existingLimit.data().sentAt : [];
-        const recentSentAt = Array.isArray(sentAt)
-          ? sentAt.filter(value => Number(value) > Date.now() - OTP_LIMIT_WINDOW_MS)
-          : [];
-        if (recentSentAt.length >= OTP_DAILY_LIMIT) {
-          dailyLimitReached = true;
-          return;
-        }
-
-        transaction.set(limitRef, {
-          sentAt: [...recentSentAt, reservedSentAt],
-          updatedAt: Timestamp.now(),
-        });
-      }
-
-      transaction.set(verificationRef, {
-        code,
-        expiresAt,
-        attempts: 0,
-        sentAt: Timestamp.now(),
-      });
-    });
-
-    if (secondsRemaining > 0) {
-      res.status(429).json({ error: `Please wait ${secondsRemaining} seconds before requesting another code.` });
-      return;
-    }
-
-    if (dailyLimitReached) {
-      res.status(429).json({ error: 'Daily text limit reached. Try again tomorrow.' });
-      return;
-    }
-
-    const message = `Your TransitStats login verification code is: ${code}`;
-    const smsSent = await sendSmsReply(phoneNumber, message);
-    if (!smsSent) {
-      await verificationRef.delete();
-      if (!isAdmin) {
-        await limitRef.update({ sentAt: FieldValue.arrayRemove(reservedSentAt) }).catch(() => {});
-      }
-      logger.error('OTP Request failed: Twilio send failed', { phoneNumber, traceId }, traceId);
-      res.status(500).json({ error: 'Failed to send SMS verification code. Please try again.' });
-      return;
-    }
-
-    logger.info('OTP code sent successfully', { phoneNumber, traceId }, traceId);
-    res.status(200).json({ success: true, isAdmin });
-  } catch (error) {
-    logger.error('Error in request_otp handler', { error: error.message, phoneNumber, traceId }, traceId);
-    res.status(500).json({ error: 'Internal Server Error', traceId });
-  }
-}
-
-/**
- * Handle passwordless login OTP verification and custom token generation
- */
-async function handleVerifyOtp(req, res, traceId) {
-  const phoneNumber = normalizePhoneNumber(req.body.phoneNumber);
-  const code = (req.body.code || '').trim();
-
-  if (!code) {
-    res.status(400).json({ error: 'Missing verification code.' });
-    return;
-  }
-
-  try {
-    const verifyDoc = await db.collection('phoneLoginVerification').doc(phoneNumber).get();
-    if (!verifyDoc.exists) {
-      res.status(400).json({ error: 'No pending verification found. Please request a new code.' });
-      return;
-    }
-
-    const verifyData = verifyDoc.data();
-
-    if (verifyData.expiresAt.toDate() < new Date()) {
-      await db.collection('phoneLoginVerification').doc(phoneNumber).delete();
-      res.status(400).json({ error: 'Verification code has expired. Please request a new one.' });
-      return;
-    }
-
-    if (verifyData.attempts >= 3) {
-      await db.collection('phoneLoginVerification').doc(phoneNumber).delete();
-      res.status(400).json({ error: 'Too many failed verification attempts. Please request a new code.' });
-      return;
-    }
-
-    if (verifyData.code !== code) {
-      await db.collection('phoneLoginVerification').doc(phoneNumber).update({
-        attempts: FieldValue.increment(1),
-      });
-      res.status(400).json({ error: 'Invalid verification code.' });
-      return;
-    }
-
-    await db.collection('phoneLoginVerification').doc(phoneNumber).delete();
-
-    const phoneDoc = await db.collection('phoneNumbers').doc(phoneNumber).get();
-    if (!phoneDoc.exists) {
-      res.status(400).json({ error: 'Registration record not found for this phone number.' });
-      return;
-    }
-
-    const userId = phoneDoc.data().userId;
-    if (typeof userId !== 'string' || !userId.trim()) {
-      res.status(400).json({ error: 'Registration record is missing its account link.' });
-      return;
-    }
-
-    // Older phone registrations can outlive their Firebase Auth user. Restore
-    // the original UID so the existing Firestore trips remain attached.
-    try {
-      await adminAuth.getUser(userId);
-    } catch (error) {
-      if (error.code !== 'auth/user-not-found') throw error;
-      await adminAuth.createUser({ uid: userId });
-    }
-
-    const customToken = await adminAuth.createCustomToken(userId);
-
-    logger.info('OTP verification successful. Minted custom token.', { phoneNumber, userId, traceId }, traceId);
-    res.status(200).json({ success: true, token: customToken });
-  } catch (error) {
-    logger.error('Error in verify_otp handler', { error: error.message, phoneNumber, traceId }, traceId);
-    res.status(500).json({ error: 'Internal Server Error', traceId });
-  }
-}
-
-/**
- * HTTP handler for API requests
- */
 async function handleApiRequest(req, res) {
-  const traceId = generateTraceIdLocal();
+  const traceId = generateTraceId();
 
-  // CORS support
   res.set('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') {
     res.set('Access-Control-Allow-Methods', 'POST');
@@ -251,17 +59,16 @@ async function handleApiRequest(req, res) {
   }
 
   try {
-    // Check for auth bypass actions
     const action = req.body?.action;
     if (action === 'request_otp') {
       await handleRequestOtp(req, res, traceId);
       return;
-    } else if (action === 'verify_otp') {
+    }
+    if (action === 'verify_otp') {
       await handleVerifyOtp(req, res, traceId);
       return;
     }
 
-    // 1. Authenticate Request
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       logger.warn('API authentication failed: Missing or invalid token format', { traceId }, traceId);
@@ -269,74 +76,24 @@ async function handleApiRequest(req, res) {
       return;
     }
 
-    const idToken = authHeader.split('Bearer ')[1];
     let decodedToken;
     try {
-      decodedToken = await adminAuth.verifyIdToken(idToken);
-    } catch (authErr) {
-      logger.warn('API authentication failed: Invalid ID token', { error: authErr.message, traceId }, traceId);
+      decodedToken = await adminAuth.verifyIdToken(authHeader.slice('Bearer '.length));
+    } catch (authError) {
+      logger.warn('API authentication failed: Invalid ID token', { error: authError.message, traceId }, traceId);
       res.status(401).json({ error: 'Unauthorized: Invalid token' });
       return;
     }
 
-    const uid = decodedToken.uid;
-    const email = decodedToken.email || '';
-    
-    // 2. Validate Whitelist (allowedUsers)
-    const allowedDoc = await db.collection('allowedUsers').doc(email.toLowerCase()).get();
-    if (!allowedDoc.exists) {
-      logger.warn('API access denied: User not whitelisted', { email, traceId }, traceId);
-      res.status(403).json({ error: 'Access denied: User is not whitelisted' });
-      return;
-    }
-
-    // 3. Find registered phone number for this user
-    const phoneQuery = await db.collection('phoneNumbers')
-      .where('userId', '==', uid)
-      .limit(1)
-      .get();
-
-    if (phoneQuery.empty) {
-      logger.warn('API request failed: No registered phone number', { uid, email, traceId }, traceId);
-      res.status(400).json({
-        error: 'Failed: No registered phone number found for this account. Please register your phone number first.'
-      });
-      return;
-    }
-
-    const phoneNumber = phoneQuery.docs[0].id;
-    const command = (req.body.command || '').trim();
-
-    if (!command) {
-      res.status(400).json({ error: 'Missing command' });
-      return;
-    }
-
-    logger.info('API Command received', { uid, email, phoneNumber, command, traceId }, traceId);
-
-    // 4. Run dispatch inside AsyncLocalStorage context to capture replies
-    const apiContext = {
-      isApiRequest: true,
-      replies: []
-    };
-
-    await apiContextStorage.run(apiContext, async () => {
-      // Mock Twilio messageSid with a random/API prefix to avoid duplicate checks colliding with real SMS
-      const mockMessageSid = `api_${generateTraceIdLocal()}_${Date.now()}`;
-      await dispatch(phoneNumber, command, mockMessageSid, { numMedia: 0 }, traceId);
+    await handleAuthenticatedCommand(req, res, {
+      uid: decodedToken.uid,
+      email: decodedToken.email || '',
+      traceId,
     });
-
-    // 5. Respond with captured SMS messages
-    res.status(200).json({
-      success: true,
-      replies: apiContext.replies,
-      traceId
-    });
-
-  } catch (err) {
+  } catch (error) {
     logger.error('CRITICAL API DISPATCH ERROR', {
-      error: err.message,
-      stack: err.stack,
+      error: error.message,
+      stack: error.stack,
       request: req.body,
       traceId,
     }, traceId);
@@ -344,7 +101,6 @@ async function handleApiRequest(req, res) {
   }
 }
 
-// Export the Cloud Function with proper secrets configuration
 const { defineSecret } = require('firebase-functions/params');
 const geminiApiKey = defineSecret('GEMINI_API_KEY');
 const twilioAuthToken = defineSecret('TWILIO_AUTH_TOKEN');

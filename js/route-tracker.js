@@ -2,6 +2,7 @@
 import { db } from './firebase.js';
 import { UI } from './ui-utils.js';
 import { TripController } from './trips/TripController.js';
+import { getConfiguredAgency } from './profile-fields.js';
 
 /**
  * Route Tracker Module
@@ -43,9 +44,7 @@ export const RouteTracker = {
         // The full Routes page starts with the main agency; the dashboard's
         // compact card still summarizes every agency represented in trips.
         const profile = window.currentUserProfile || {};
-        const configuredAgency = profile.defaultAgencyMode === 'automatic'
-            ? profile.primaryAgency
-            : profile.defaultAgency;
+        const configuredAgency = getConfiguredAgency(profile);
         this.currentAgency = compact ? 'all' : normalizeAgency(configuredAgency || 'all');
 
         this._loadAndRender();
@@ -111,9 +110,7 @@ export const RouteTracker = {
             .filter(Boolean));
         if (agencies.size === 0) {
             const profile = window.currentUserProfile || {};
-            const configuredAgency = profile.defaultAgencyMode === 'automatic'
-                ? profile.primaryAgency
-                : profile.defaultAgency;
+            const configuredAgency = getConfiguredAgency(profile);
             if (configuredAgency) agencies.add(normalizeAgency(configuredAgency));
         }
         return [...agencies];

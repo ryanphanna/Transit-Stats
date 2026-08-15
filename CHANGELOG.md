@@ -8,6 +8,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- Split profile settings, API authentication, and shared profile-field logic into focused modules with regression coverage.
+
 - Give dashboard stat labels equal height and loosen low-zoom map clustering so wrapped labels and city stops stay visually balanced.
 
 - Give the weekly and monthly dashboard totals matching two-line labels so the stat row reads evenly.

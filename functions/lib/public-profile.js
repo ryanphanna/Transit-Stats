@@ -11,12 +11,7 @@
 const { onRequest } = require('firebase-functions/v2/https');
 const { db, getUserProfile } = require('./db');
 const logger = require('./logger');
-const PUBLIC_PROFILE_BETA_USERNAME = 'subway-subway-subway';
-
-function isPublicProfileBetaOwner(profile = {}) {
-  const candidates = [profile.username, profile.emojiUsername, ...(profile.usernameAliases || [])];
-  return candidates.some(username => String(username || '').replace(/_/g, '-') === PUBLIC_PROFILE_BETA_USERNAME);
-}
+const { isPublicProfileBetaOwner, getMapStopMode } = require('./profile-fields');
 
 const AGENCY_COUNTRIES = new Map([
   ...['TTC', 'GO', 'GO Transit', 'MiWay', 'YRT', 'Brampton Transit', 'Durham Transit', 'HSR', 'GRT', 'Grand River Transit', 'OC Transpo', 'STM', 'TransLink', 'Oakville Transit', 'GTAA Terminal Link', 'Flagship Cruises & Events', 'Exo', 'CDPQ Infra', 'Niagara Region Transit'].map(agency => [agency.toLowerCase(), 'Canada']),
@@ -136,7 +131,7 @@ async function handlePublicProfile(req, res) {
       canonicalUsername: profile.username || requestedUsername,
       emoji: profile.emoji || null,
       defaultAgency: profile.defaultAgency || null,
-      mapStopMode: profile.mapStopMode === 'exiting' ? 'exiting' : 'boarding',
+      mapStopMode: getMapStopMode(profile),
       totalTrips: tripsSnap.size,
       totalHours: Math.round((totalMinutes / 60) * 10) / 10,
       thisMonth,

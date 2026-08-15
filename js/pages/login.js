@@ -1,5 +1,6 @@
 import { auth } from '../firebase.js';
 import { Auth } from '../auth.js';
+import { normalizePhone } from '../phone-fields.js';
 
 const DOM = {
     phoneStep: document.getElementById('auth-phone-step'),
@@ -58,13 +59,6 @@ async function applyLocalTransitTheme() {
         });
         if (featuredLine) featuredLine.textContent = theme.featuredLine;
     } catch { /* Default colours remain in place. */ }
-}
-
-function normalizePhone(phone) {
-    const digits = phone.replace(/\D/g, '');
-    if (digits.length === 10) return `+1${digits}`;
-    if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
-    return phone.trim().startsWith('+') ? `+${digits}` : `+${digits}`;
 }
 
 function setStatus(message, type = 'error') {

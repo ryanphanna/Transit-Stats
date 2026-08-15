@@ -12,7 +12,7 @@ import { Utils } from '../utils.js';
 import { UI } from '../ui-utils.js';
 import { db } from '../firebase.js';
 import { createAgencyAutocomplete } from '../agency-autocomplete.js';
-import { displayAgencyName } from '../profile.js';
+import { displayAgencyName, getConfiguredAgency } from '../profile-fields.js';
 import { MapEngine } from '../map-engine.js';
 import { TripController } from '../trips/TripController.js';
 import { loadAtlasStops } from '../atlas-stops.js';
@@ -40,9 +40,7 @@ let tripAgencyAutocomplete = null;
 
 function setupTripAgencyAutocomplete() {
     const profile = window.currentUserProfile || {};
-    const defaultAgency = profile.defaultAgencyMode === 'automatic'
-        ? profile.primaryAgency
-        : profile.defaultAgency;
+    const defaultAgency = getConfiguredAgency(profile);
     const optionsByValue = new Map((Profile.agencyOptions || []).map(option => [option.value, option]));
     if (defaultAgency && !optionsByValue.has(defaultAgency)) {
         optionsByValue.set(defaultAgency, { value: defaultAgency, label: displayAgencyName(defaultAgency) });

@@ -1,83 +1,20 @@
 import firebase, { db, auth } from './firebase.js';
 import { UI } from './ui-utils.js';
 import { Identity } from './identity.js';
-import { createAgencyAutocomplete } from './agency-autocomplete.js';
-import { UsernameGenerator } from './username-generator.js';
+import { setupProfileListeners } from './profile-settings-ui.js';
+import { initializeIdentityPicker, updateUsernameDisplay } from './profile-identity.js';
+import {
+    BUILT_IN_AGENCY_OPTIONS,
+    displayAgencyName,
+    formatPhoneNumber,
+    getConfiguredAgency,
+    getEmojiUsername,
+    getMapStopMode,
+    isEmojiUsername,
+    isPublicProfileBetaOwner,
+} from './profile-fields.js';
 
-const AGENCY_DISPLAY_NAMES = {
-    TTC: 'Toronto Transit Commission',
-    GO: 'GO Transit',
-    'GO Transit': 'GO Transit',
-    MiWay: 'Mississauga Transit',
-    YRT: 'York Region Transit',
-    'Brampton Transit': 'Brampton Transit',
-    'Durham Transit': 'Durham Region Transit',
-    HSR: 'Hamilton Street Railway',
-    GRT: 'Grand River Transit',
-    'OC Transpo': 'OC Transpo',
-    STM: 'Société de transport de Montréal',
-    TransLink: 'TransLink',
-    'NYC MTA': 'New York City Transit',
-    'LA Metro': 'Los Angeles Metro',
-    LADOT: 'Los Angeles Department of Transportation',
-    'Big Blue Bus': 'Santa Monica Big Blue Bus',
-    BART: 'Bay Area Rapid Transit',
-    Muni: 'San Francisco Municipal Transportation Agency',
-    Caltrain: 'Caltrain',
-    VTA: 'Santa Clara Valley Transportation Authority',
-    'AC Transit': 'Alameda-Contra Costa Transit District',
-    SamTrans: 'San Mateo County Transit District',
-    MTS: 'San Diego Metropolitan Transit System',
-    Amtrak: 'Amtrak',
-    'Golden Gate Transit': 'Golden Gate Transit',
-    SMART: 'Sonoma-Marin Area Rail Transit',
-    'Santa Rosa CityBus': 'Santa Rosa CityBus',
-    'Oakville Transit': 'Oakville Transit',
-    'GTAA Terminal Link': 'GTAA Terminal Link',
-    'Flagship Cruises & Events': 'Flagship Cruises & Events',
-};
-
-const BUILT_IN_AGENCY_OPTIONS = Object.entries(AGENCY_DISPLAY_NAMES)
-    .map(([value, label]) => ({ value, label }));
-const PUBLIC_PROFILE_BETA_USERNAME = 'subway-subway-subway';
-
-function normalizeUsername(username) {
-    return String(username || '').trim().toLowerCase().replace(/_/g, '-');
-}
-
-function isEmojiUsername(username) {
-    const keys = String(username || '').split(/[-_]/).filter(Boolean);
-    return keys.length === 3 && keys.every(key => Object.prototype.hasOwnProperty.call(Identity.LIBRARY, key));
-}
-
-function getEmojiUsername(profile = {}) {
-    const candidates = [profile.emojiUsername, ...(profile.usernameAliases || []), profile.username];
-    return candidates.find(isEmojiUsername) || '';
-}
-
-function isPublicProfileBetaOwner(profile = {}) {
-    const candidates = [profile.username, profile.emojiUsername, ...(profile.usernameAliases || [])];
-    return candidates.some(username => normalizeUsername(username) === PUBLIC_PROFILE_BETA_USERNAME);
-}
-
-export function displayAgencyName(value) {
-    const name = String(value || '').trim();
-    return AGENCY_DISPLAY_NAMES[name] || name;
-}
-
-export function formatPhoneNumber(value) {
-    const phone = String(value || '').trim();
-    const digits = phone.replace(/\D/g, '');
-    const nationalDigits = digits.length === 11 && digits.startsWith('1')
-        ? digits.slice(1)
-        : digits;
-
-    if (nationalDigits.length === 10) {
-        return `(${nationalDigits.slice(0, 3)}) ${nationalDigits.slice(3, 6)}-${nationalDigits.slice(6)}`;
-    }
-
-    return phone || 'Not linked';
-}
+export { displayAgencyName, formatPhoneNumber } from './profile-fields.js';
 
 /**
  * TransitStats - Preference Management
@@ -99,207 +36,9 @@ export const Profile = {
     },
 
     async init() {
-        this.setupListeners();
-        this.initEmojiPicker();
+        setupProfileListeners(this);
+        initializeIdentityPicker(this);
         this.syncAgencyOptions();
-    },
-
-    setupListeners() {
-        const agencySelect = document.getElementById('settings-agency');
-        const agencyField = document.getElementById('settings-agency-field');
-        const agencyDisplay = document.getElementById('settings-agency-display');
-        const changeAgencyButton = document.getElementById('btn-change-agency');
-        const customUsernameDisplay = document.getElementById('settings-custom-username-display');
-        const customUsernameInput = document.getElementById('settings-custom-username');
-        const changeCustomUsernameButton = document.getElementById('btn-change-custom-username');
-        const saveCustomUsernameButton = document.getElementById('btn-save-custom-username');
-        const customUsernameEditor = document.getElementById('settings-custom-username-editor');
-        const betaPredictions = document.getElementById('settings-beta-predictions');
-        const publicProfile = document.getElementById('settings-public-profile');
-        const themeSelect = document.getElementById('settings-theme');
-        const mapStopModeSelect = document.getElementById('settings-map-stop-mode');
-
-        if (agencySelect) {
-            this.agencyAutocomplete = createAgencyAutocomplete({
-                input: agencySelect,
-                options: this.agencyOptions,
-                allowCustom: false,
-                onCommit: value => this.updateAgencyPreference(value).then(() => {
-                    agencyField?.classList.add('hidden');
-                    agencyDisplay?.classList.remove('hidden');
-                    changeAgencyButton?.classList.remove('hidden');
-                    this.syncAgencyOptions();
-                }),
-                onInvalid: () => UI.showNotification('Choose an agency from the suggestions.'),
-            });
-            document.getElementById('btn-clear-agency')?.addEventListener('click', () => {
-                this.agencyAutocomplete?.clear();
-                agencyField?.classList.add('hidden');
-                agencyDisplay?.classList.remove('hidden');
-                changeAgencyButton?.classList.remove('hidden');
-            });
-        }
-
-        changeAgencyButton?.addEventListener('click', () => {
-            agencyField?.classList.remove('hidden');
-            agencyDisplay?.classList.add('hidden');
-            changeAgencyButton.classList.add('hidden');
-            agencySelect?.focus();
-        });
-
-        changeCustomUsernameButton?.addEventListener('click', () => {
-            customUsernameDisplay?.classList.add('hidden');
-            changeCustomUsernameButton.classList.add('hidden');
-            customUsernameEditor?.classList.remove('hidden');
-            customUsernameInput?.focus();
-            customUsernameInput?.select();
-        });
-
-        saveCustomUsernameButton?.addEventListener('click', async () => {
-            await this.reserveCustomUsername(customUsernameInput?.value || '');
-        });
-
-        betaPredictions?.addEventListener('change', (e) => {
-            this.updateSetting('betaFeatures', {
-                ...this.data?.betaFeatures,
-                predictions: e.target.checked
-            });
-        });
-
-        const nameInput = document.getElementById('settings-name');
-        const nameDisplay = document.getElementById('settings-name-display');
-        const changeNameButton = document.getElementById('btn-change-name');
-        const saveNameButton = document.getElementById('btn-save-name');
-
-        changeNameButton?.addEventListener('click', () => {
-            nameInput?.classList.remove('hidden');
-            nameDisplay?.classList.add('hidden');
-            changeNameButton.classList.add('hidden');
-            saveNameButton?.classList.remove('hidden');
-            nameInput?.focus();
-            nameInput?.select();
-        });
-
-        saveNameButton?.addEventListener('click', async () => {
-            const name = nameInput?.value.trim();
-            if (!name) return;
-            await this.updateSetting('displayName', name);
-            nameDisplay.textContent = name;
-            nameInput.classList.add('hidden');
-            nameDisplay.classList.remove('hidden');
-            saveNameButton.classList.add('hidden');
-            changeNameButton?.classList.remove('hidden');
-        });
-
-        publicProfile?.addEventListener('change', async (e) => {
-            const isPublic = e.target.checked;
-            await this.updateSetting('isPublic', isPublic);
-            
-            // Sync to all trips (Master Switch behavior)
-            try {
-                UI.showNotification(`Syncing ${isPublic ? 'public' : 'private'} state to all trips...`, 'info');
-                const user = auth.currentUser;
-                const tripsSnap = await db.collection('trips').where('userId', '==', user.uid).get();
-
-                // Firestore batches are limited to 500 writes. Large histories
-                // must be synced in chunks or the public switch silently fails.
-                for (let start = 0; start < tripsSnap.docs.length; start += 500) {
-                    const batch = db.batch();
-                    tripsSnap.docs.slice(start, start + 500).forEach(doc => {
-                        batch.update(doc.ref, { isPublic: isPublic });
-                    });
-                    await batch.commit();
-                }
-                UI.showNotification('All trips updated.', 'success');
-            } catch (err) {
-                console.error('Trip sync failed:', err);
-                UI.showNotification('Failed to sync trips: ' + err.message);
-            }
-        });
-
-        themeSelect?.addEventListener('change', (e) => {
-            window.TransitTheme?.apply(e.target.value);
-            this.updateSetting('theme', e.target.value);
-        });
-
-        mapStopModeSelect?.addEventListener('change', (e) => {
-            const mode = e.target.value === 'exiting' ? 'exiting' : 'boarding';
-            localStorage.setItem('transitstats-map-stop-mode', mode);
-            this.updateSetting('mapStopMode', mode);
-        });
-
-        document.getElementById('btn-save-identity')?.addEventListener('click', () => {
-            const slug = Identity.toSlug(this.currentTriplet);
-            this.reserveUsername(slug);
-        });
-
-        // Close popover on outside click
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.emoji-slot') && !e.target.closest('.emoji-popover')) {
-                document.getElementById('emoji-popover')?.classList.add('hidden');
-            }
-        });
-    },
-
-    initEmojiPicker() {
-        const slots = document.querySelectorAll('.emoji-slot');
-        const popover = document.getElementById('emoji-popover');
-        const grid = popover?.querySelector('.emoji-grid');
-
-        if (!grid) return;
-
-        // Populate grid
-        grid.innerHTML = Identity.getLibrary().map(item => `
-            <div class="emoji-item" data-key="${item.key}">${item.emoji}</div>
-        `).join('');
-
-        slots.forEach(slot => {
-            slot.addEventListener('click', (e) => {
-                if (this.data?.username) return; // Locked if saved
-                
-                this.activeSlot = parseInt(e.currentTarget.dataset.index, 10);
-                
-                // Refresh grid states to show what is already used
-                const used = new Set(this.currentTriplet);
-                // The current slot's emoji is NOT "used" in terms of blocking selection
-                used.delete(this.currentTriplet[this.activeSlot]);
-
-                grid.querySelectorAll('.emoji-item').forEach(item => {
-                    const isUsed = used.has(item.dataset.key);
-                    item.classList.toggle('used', isUsed);
-                    item.style.opacity = isUsed ? '0.3' : '1';
-                    item.style.pointerEvents = isUsed ? 'none' : 'auto';
-                });
-
-                // Position popover
-                const rect = e.currentTarget.getBoundingClientRect();
-                popover.style.top = `${rect.bottom + window.scrollY + 5}px`;
-                popover.style.left = `${rect.left + window.scrollX}px`;
-                popover.classList.remove('hidden');
-            });
-        });
-
-        grid.addEventListener('click', (e) => {
-            const item = e.target.closest('.emoji-item');
-            if (!item || item.classList.contains('used')) return;
-
-            const key = item.dataset.key;
-            this.currentTriplet[this.activeSlot] = key;
-            
-            // Update UI
-            const slot = document.querySelector(`.emoji-slot[data-index="${this.activeSlot}"]`);
-            if (slot) slot.textContent = Identity.LIBRARY[key];
-            
-            popover.classList.add('hidden');
-            this.updateUsernameDisplay();
-        });
-    },
-
-    updateUsernameDisplay() {
-        const display = document.getElementById('settings-username-display');
-        if (display) {
-            display.textContent = `@${Identity.toSlug(this.currentTriplet)}`;
-        }
     },
 
     /**
@@ -387,9 +126,9 @@ export const Profile = {
         if (!agencyEl) return;
 
         const optionsByValue = new Map(this.agencyOptions.map(option => [option.value, option]));
-        const defaultValue = String(this.data?.defaultAgency || '').trim();
+        const defaultValue = getConfiguredAgency(this.data || {});
         const options = [...optionsByValue.values()].sort((a, b) => a.label.localeCompare(b.label));
-        const automatic = this.data?.defaultAgencyMode === 'automatic';
+        const automatic = this.data?.defaultAgencyMode === 'automatic' || !defaultValue;
         const agencyDisplay = document.getElementById('settings-agency-display');
         const selectedAgency = options.find(option => option.value.toLowerCase() === defaultValue.toLowerCase());
         const effectiveAutomatic = automatic || !selectedAgency;
@@ -491,9 +230,7 @@ export const Profile = {
         }
 
         if (mapStopModeEl) {
-            const mode = this.data?.mapStopMode === 'exiting'
-                ? 'exiting'
-                : (localStorage.getItem('transitstats-map-stop-mode') === 'exiting' ? 'exiting' : 'boarding');
+            const mode = getMapStopMode(this.data || {}, localStorage.getItem('transitstats-map-stop-mode'));
             mapStopModeEl.value = mode;
             localStorage.setItem('transitstats-map-stop-mode', mode);
         }
@@ -543,7 +280,7 @@ export const Profile = {
             if (username) slot.style.cursor = 'default';
         });
 
-        this.updateUsernameDisplay();
+        updateUsernameDisplay(this);
 
         if (publicLinkEl) {
             const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
@@ -628,106 +365,4 @@ export const Profile = {
         }
     },
 
-    async reserveUsername(username) {
-        const user = auth.currentUser;
-        if (!user) return;
-
-        if (this.data?.username) {
-            UI.showNotification('Identity changes are not supported.');
-            return;
-        }
-
-        try {
-            const legacyUsername = username.replace(/-/g, '_');
-            const usernameDocs = await Promise.all(
-                [...new Set([username, legacyUsername])].map(candidate => (
-                    db.collection('usernames').doc(candidate).get()
-                )),
-            );
-            if (usernameDocs.some(existing => existing.exists)) {
-                UI.showNotification('That public identity is already in use. Choose another.');
-                return;
-            }
-
-            await db.collection('usernames').doc(username).set({
-                uid: user.uid,
-                type: 'emoji',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            });
-
-            await db.collection('profiles').doc(user.uid).set({
-                username,
-                emojiUsername: username,
-                usernameAliases: [username],
-                usernameType: 'emoji',
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            }, { merge: true });
-
-            if (!this.data) this.data = {};
-            this.data.username = username;
-            window.currentUserProfile = this.data;
-            this.syncUI(user.email);
-            UI.showNotification('Identity reserved!');
-        } catch (err) {
-            console.error('Username save failed:', err);
-            UI.showNotification('Failed to reserve identity: ' + err.message);
-        }
-    },
-
-    async reserveCustomUsername(value) {
-        const user = auth.currentUser;
-        if (!user || !window.isAdmin) return;
-
-        const validation = UsernameGenerator.isCustomValid(value);
-        if (!validation.valid) {
-            UI.showNotification(validation.error);
-            return;
-        }
-
-        const username = validation.value;
-        const currentUsername = this.data?.username || '';
-        if (currentUsername === username) return;
-
-        try {
-            const legacyUsername = username.replace(/-/g, '_');
-            const usernameDocs = await Promise.all(
-                [...new Set([username, legacyUsername])].map(candidate => (
-                    db.collection('usernames').doc(candidate).get()
-                )),
-            );
-            const occupiedByOtherUser = usernameDocs.some(existing => existing.exists && existing.data()?.uid !== user.uid);
-            if (occupiedByOtherUser) {
-                UI.showNotification('That username is already in use. Choose another.');
-                return;
-            }
-
-            const emojiUsername = getEmojiUsername(this.data || {}) || currentUsername;
-            const aliases = [...new Set([
-                ...(this.data?.usernameAliases || []),
-                emojiUsername,
-                currentUsername,
-            ].filter(Boolean))];
-
-            await db.collection('usernames').doc(username).set({
-                uid: user.uid,
-                type: 'custom',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            });
-            await db.collection('profiles').doc(user.uid).set({
-                username,
-                emojiUsername,
-                usernameAliases: aliases,
-                usernameType: 'custom',
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            }, { merge: true });
-
-            this.data = { ...this.data, username, emojiUsername, usernameAliases: aliases, usernameType: 'custom' };
-            window.currentUserProfile = this.data;
-            this.syncUI(user.email);
-            UI.showNotification('Custom username saved.', 'success');
-        } catch (err) {
-            console.error('Custom username save failed:', err);
-            UI.showNotification('Failed to save username: ' + err.message);
-        }
-    },
 };

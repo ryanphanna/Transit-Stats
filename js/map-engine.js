@@ -38,13 +38,11 @@ export const MapEngine = {
     _stopLookup: new Map(),
     _skipLookup: new Set(),
     _hasIndexedStops: false,
-    _lastRenderedCount: 0,
     _isFirstLoad: true,
     _renderTimer: null,
     _lastLibSize: 0,
     _stopIndex: new Map(),
     _stopSourcesReady: false,
-    _usesMarkerClusters: false,
     _canvasRenderer: null,
     _renderGeneration: 0,
     _deferInitialView: false,
@@ -91,7 +89,6 @@ export const MapEngine = {
             this.layers.markers = surface.markers;
             this._canvasRenderer = surface.renderer;
             this.layers.transit = null;
-            this._usesMarkerClusters = false;
             console.log("MapEngine: Leaflet map instance created");
             this.renderMarkers();
             this.setupControls();
