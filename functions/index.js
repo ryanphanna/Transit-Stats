@@ -17,6 +17,7 @@ if (getApps().length === 0) {
 const { sms } = require('./sms');
 const { api } = require('./api');
 const { authSession } = require('./auth-session');
+const { createAdminMetricsHandler } = require('./lib/admin-metrics');
 const { atlasStops } = require('./atlas-stops');
 const { atlasRoutes } = require('./atlas-routes');
 const { publicProfile } = require('./lib/public-profile');
@@ -33,6 +34,11 @@ exports.api = api;
 // Shared parent-domain session used to move an authenticated user between
 // the regular, beta, and admin surfaces without putting an ID token in a URL.
 exports.authSession = authSession;
+
+// Admin-only operational metrics. The browser cannot read other users' trips
+// under Firestore rules, so this endpoint returns aggregate counts only after
+// verifying the caller against the admin whitelist.
+exports.adminMetrics = createAdminMetricsHandler();
 
 // Public Atlas proxies used by the isolated trip-paths and heatmap betas.
 exports.atlasStops = atlasStops;

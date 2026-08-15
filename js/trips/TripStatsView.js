@@ -1,5 +1,6 @@
 import { Stats } from '../stats.js';
 import { Utils } from '../utils.js';
+import { formatAtlasNumber } from '../shared/atlas-card.js';
 
 /**
  * TripStatsView - Manages the visualization of transit metrics and analytics.
@@ -54,7 +55,7 @@ export const TripStatsView = {
 
     _updateBox(id, val) {
         const el = document.getElementById(id);
-        if (el) el.textContent = typeof val === 'number' ? val.toLocaleString('en-US') : val;
+        if (el) el.textContent = formatAtlasNumber(val);
     },
 
     _renderCompactList(containerId, items) {

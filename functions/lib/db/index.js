@@ -3,7 +3,15 @@
  */
 const { admin, db, FieldValue, Timestamp } = require('./core');
 const { isRateLimited, isGeminiRateLimited, shouldRespondToUnknown, checkIdempotency, checkContentDuplicate } = require('./rate-limit');
-const { getUserByPhone, getUserProfile, isEmailAllowed, isEmailAdmin, storeVerificationCode, getVerificationData } = require('./users');
+const {
+  getUserByPhone,
+  getUserProfile,
+  isEmailAllowed,
+  isEmailAdmin,
+  isExperimentalIntelligenceEnabled,
+  storeVerificationCode,
+  getVerificationData,
+} = require('./users');
 const { getActiveTrip, createTrip, getRecentCompletedTrips, hasBlockingCorrection, getPendingState, setPendingState, clearPendingState, getLastTripAgency, getTripCount } = require('./trips');
 const { lookupStop, findMatchingStops, getRoutesAtStop, getStopsLibrary } = require('./stops');
 const { getConversationHistory, saveConversationTurn } = require('./conversations');
@@ -22,6 +30,7 @@ module.exports = {
   getUserProfile,
   isEmailAllowed,
   isEmailAdmin,
+  isExperimentalIntelligenceEnabled,
   storeVerificationCode,
   getVerificationData,
   getActiveTrip,

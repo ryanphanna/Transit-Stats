@@ -106,7 +106,7 @@ Current active signals, config, strengths, and data notes are documented above. 
 
 **What it does:** Uses trained logistic-regression models to predict routes and end stops from trip history instead of relying on hand-tuned weights.
 
-**Status:** Candidate. Evaluated in parallel against the live V3 path.
+**Status:** Candidate. Evaluated in parallel against the live V3 path for users explicitly enabled with `allowedUsers/{email}.experimentalIntelligence`.
 
 Detailed version history, benchmarks, and per-iteration notes: [docs/intelligence/V4.md](./intelligence/V4.md).
 
@@ -118,7 +118,7 @@ Detailed version history, benchmarks, and per-iteration notes: [docs/intelligenc
 
 **What it does:** Uses XGBoost models exported to ONNX for richer feature interactions and stronger learned route/end-stop inference than V4.
 
-**Status:** Candidate. Evaluated in parallel against the live V3 path.
+**Status:** Candidate. Evaluated in parallel against the live V3 path for users explicitly enabled with `allowedUsers/{email}.experimentalIntelligence`.
 
 Detailed version history, benchmarks, and per-iteration notes: [docs/intelligence/V5.md](./intelligence/V5.md).
 

@@ -9,6 +9,14 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 ## [Unreleased]
 
 ### Changed
+- **Admin now has a protected processing overview** for users, login activity, ride finalization, stop matching, AI queries, and prediction-model usage.
+- **Admin navigation now uses the shared shell and keeps Rocket out of the normal menu** while preserving its protected direct route.
+- **Prediction grading tests now use the normal V3 path explicitly**, so experimental-model access controls cannot make the end-to-end safety check flaky.
+- **Large ride totals now use thousands separators consistently on dashboard and public profiles.**
+- **Dashboard and public-profile cards now share one renderer and parity checks, preventing copy and layout drift between surfaces.**
+- **Public profile links now show a clear not-found state and use the same title and branding as the signed-in dashboard.**
+- **Public profiles now keep the map visible on phones by placing the stats card at the bottom as a scrollable sheet.**
+- **Experimental V4/V5 prediction shadowing is now opt-in per user**, keeping candidate model work away from regular users until it is ready.
 - **Dashboard maps now show cached stop markers immediately and avoid snapping from a city zoom to the final overview.**
 - **Wide map views now show more distinct stop locations instead of collapsing coverage into a few dots.**
 - **The dashboard now verifies the Leaflet CDN script before loading it.**

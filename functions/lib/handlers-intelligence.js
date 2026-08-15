@@ -9,6 +9,7 @@ const {
   getUserProfile,
   getRecentCompletedTrips,
   getStopsLibrary,
+  isExperimentalIntelligenceEnabled,
   db,
 } = require('./db');
 const { getConfiguredPrimaryAgency } = require('./primary-agency');
@@ -31,6 +32,7 @@ const { handleTripLog } = require('./handlers-trip');
 async function fillPredictions(user, tripId, stopName, route, direction, agency, traceId = null) {
   try {
     const profile = await getUserProfile(user.userId);
+    if (!(await isExperimentalIntelligenceEnabled(user.email))) return;
     const defaultAgency = getConfiguredPrimaryAgency(profile);
     if (!defaultAgency || agency !== defaultAgency) return;
 

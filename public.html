@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="/styles/main.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -19,33 +19,26 @@
             <div class="dashboard-map-wash" aria-hidden="true"></div>
             <div class="dashboard-map-loading" id="public-map-loading" role="status">Mapping their rides…</div>
 
+            <a class="public-branding" href="/" aria-label="TransitStats home">
+                <span class="logo-icon"><i data-lucide="zap"></i></span>
+                <span class="logo-text">TransitStats</span>
+            </a>
+
             <div class="dashboard-atlas-hero-inner">
-                <div class="atlas-identity-card">
-                    <div class="atlas-card-topline">
-                        <span class="atlas-card-type">TransitStats</span>
-                        <span class="atlas-card-tagline">Your transit life, mapped.</span>
-                    </div>
-                    <h1><span id="profile-name">Traveler</span><span class="atlas-title-tail">'s map</span></h1>
-                    <div class="atlas-hero-count">
-                        <strong id="stat-trips-lifetime">0</strong>
-                        <span>total rides</span>
-                    </div>
-                    <div class="atlas-card-period" aria-label="Recent trip totals">
-                        <div class="atlas-period-heading"><span>Recent activity</span></div>
-                        <div class="atlas-period-grid">
-                            <div class="atlas-fact atlas-fact-week"><strong id="stat-trips-week">0</strong><span>Rides this week</span></div>
-                            <div class="atlas-fact atlas-fact-month"><strong id="stat-trips-month">0</strong><span>Rides this month</span></div>
-                            <div class="atlas-fact atlas-fact-days"><strong id="stat-days-ridden">0</strong><span>Days ridden</span></div>
-                            <div class="atlas-fact atlas-fact-agencies"><strong id="stat-agencies-ridden">0</strong><span>Agencies</span></div>
-                            <div class="atlas-fact atlas-fact-countries"><strong id="stat-countries-ridden">0</strong><span>Countries</span></div>
-                        </div>
-                    </div>
-                    <a class="atlas-card-cta" href="/">Sign up <span aria-hidden="true">→</span></a>
+                <div class="atlas-identity-card" data-atlas-card></div>
+            </div>
+
+            <div class="public-error" id="public-error" hidden role="alert">
+                <div class="public-error-card">
+                    <span class="public-error-kicker">TransitStats</span>
+                    <h1 id="public-error-title">Profile not found</h1>
+                    <p id="public-error-message"></p>
+                    <a class="public-error-cta" href="/">Make your own map <span aria-hidden="true">→</span></a>
                 </div>
             </div>
         </section>
     </main>
 
-    <script type="module" src="js/public.js"></script>
+    <script type="module" src="/js/public.js"></script>
 </body>
 </html>

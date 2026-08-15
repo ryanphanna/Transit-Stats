@@ -16,6 +16,7 @@ import { displayAgencyName, getConfiguredAgency } from '../profile-fields.js';
 import { MapEngine } from '../map-engine.js';
 import { TripController } from '../trips/TripController.js';
 import { loadAtlasStops } from '../atlas-stops.js';
+import { renderAtlasCard, setAtlasDisplayName } from '../shared/atlas-card.js';
 
 window.Trips = Trips;
 window.Utils = Utils;
@@ -183,6 +184,7 @@ async function loadDashboardAtlasStops() {
 }
 
 async function init() {
+    renderAtlasCard();
     const { user, isAdmin } = await requireAuth();
     initHeader({ isAdmin, currentPage: 'dashboard' });
     ModalManager.init();
@@ -195,11 +197,8 @@ async function init() {
     await Profile.loadAgencies(user);
     setupShareMap();
 
-    const profileName = document.getElementById('profile-name');
     const displayName = Profile.getDisplayName(user)?.trim() || 'Traveler';
-    if (profileName) profileName.textContent = displayName;
-    const titleTail = document.querySelector('.atlas-title-tail');
-    if (titleTail) titleTail.textContent = /s$/i.test(displayName) ? '’' : '’s';
+    setAtlasDisplayName(displayName);
 
     setupTripAgencyAutocomplete();
     setupTripEditListeners();
