@@ -372,7 +372,12 @@ export const MapEngine = {
         // density instead of fitting every continent into one unusable view.
         if (this._isFirstLoad && !this._deferInitialView) {
             try {
-                if (fitMapToDensePoints(this.map, points, { maxZoom: 13 })) this._isFirstLoad = false;
+                const identityCard = document.querySelector('.atlas-identity-card');
+                const panelPadding = identityCard && window.matchMedia('(min-width: 781px)').matches
+                    ? [Math.round(identityCard.getBoundingClientRect().width + 84), 60]
+                    : null;
+                const fitOptions = panelPadding ? { maxZoom: 13, paddingTopLeft: panelPadding } : { maxZoom: 13 };
+                if (fitMapToDensePoints(this.map, points, fitOptions)) this._isFirstLoad = false;
             } catch (err) {
                 console.warn("MapEngine: Fit bounds failed", err);
             }

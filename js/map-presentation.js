@@ -1,10 +1,7 @@
 // At 14, one stop is readable without opening labels over the city overview.
 export const STOP_POPUP_MIN_ZOOM = 14;
 
-const TYPE_COLORS = {
-    boarding: '#0b9f6e',
-    exiting: '#7c5ce6',
-};
+const MAP_PIN_COLOR = '#066b4b';
 
 export function addMapZoomControl(map) {
     const control = L.control({ position: 'bottomright' });
@@ -88,18 +85,19 @@ export function groupMapPoints(points = [], getLabel = () => null) {
 }
 
 export function getUsageMarkerStyle(point, maxUsage, { baseRadius = 4 } = {}) {
-    const usageRatio = maxUsage === 1
-        ? 0.35
-        : Math.log(point.usage) / Math.log(maxUsage);
-    const baseColor = TYPE_COLORS[normalizeType(point.type)];
+    const usageRatio = maxUsage <= 1
+        ? 0
+        : Math.log(Math.max(1, point.usage)) / Math.log(maxUsage);
+    const usageIntensity = Math.pow(Math.max(0, Math.min(1, usageRatio)), 0.65);
+    const baseColor = MAP_PIN_COLOR;
 
     return {
-        radius: baseRadius + (usageRatio * 3),
-        fillColor: blend('#9ed9c2', baseColor, 0.3 + (usageRatio * 0.7)),
+        radius: baseRadius,
+        fillColor: blend('#d8eee6', baseColor, 0.12 + (usageIntensity * 0.88)),
         color: '#fff',
         weight: 1,
-        opacity: 0.55 + (usageRatio * 0.4),
-        fillOpacity: 0.42 + (usageRatio * 0.45),
+        opacity: 0.55 + (usageIntensity * 0.4),
+        fillOpacity: 0.42 + (usageIntensity * 0.45),
     };
 }
 
@@ -188,7 +186,12 @@ export function getDenseViewport(points = []) {
         .flatMap(region => region.points);
 }
 
-export function fitMapToDensePoints(map, points = [], { maxZoom = 13 } = {}) {
+export function fitMapToDensePoints(map, points = [], {
+    maxZoom = 13,
+    padding = [60, 60],
+    paddingTopLeft = null,
+    paddingBottomRight = null,
+} = {}) {
     if (!map) return false;
     const viewportPoints = getDenseViewport(points);
     const validPoints = viewportPoints
@@ -207,7 +210,10 @@ export function fitMapToDensePoints(map, points = [], { maxZoom = 13 } = {}) {
     if (latitudeSpan < 0.001 && longitudeSpan < 0.001) {
         map.setView(validPoints[0], maxZoom, { animate: false });
     } else {
-        map.fitBounds(bounds, { padding: [60, 60], animate: false, maxZoom });
+        const fitOptions = { padding, animate: false, maxZoom };
+        if (paddingTopLeft) fitOptions.paddingTopLeft = paddingTopLeft;
+        if (paddingBottomRight) fitOptions.paddingBottomRight = paddingBottomRight;
+        map.fitBounds(bounds, fitOptions);
     }
     map.invalidateSize({ animate: false });
     return true;

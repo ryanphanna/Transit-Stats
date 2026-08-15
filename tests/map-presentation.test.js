@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { groupMapPoints } from '../js/map-presentation.js';
+import { getUsageMarkerStyle, groupMapPoints } from '../js/map-presentation.js';
 
 describe('groupMapPoints', () => {
     it('groups nearby saved coordinates into one weighted stop marker', () => {
@@ -19,5 +19,16 @@ describe('groupMapPoints', () => {
         ]);
 
         expect(grouped).toHaveLength(2);
+    });
+});
+
+describe('getUsageMarkerStyle', () => {
+    it('makes more-used stops darker and larger', () => {
+        const lowUsage = getUsageMarkerStyle({ usage: 1 }, 64);
+        const highUsage = getUsageMarkerStyle({ usage: 64 }, 64);
+
+        expect(lowUsage.fillColor).not.toBe(highUsage.fillColor);
+        expect(lowUsage.radius).toBe(highUsage.radius);
+        expect(highUsage.fillColor).toBe('#066b4b');
     });
 });

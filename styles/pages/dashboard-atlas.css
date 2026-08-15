@@ -299,9 +299,7 @@ body.dark .dashboard-map-wash {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  margin-top: 32px;
-  padding-top: 18px;
-  border-top: 1px solid var(--border);
+  margin-top: 24px;
 }
 
 .atlas-hero-count strong {

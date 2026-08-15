@@ -12,6 +12,9 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Phone validation now gives immediate field feedback**: an incomplete number gets a brief shake instead of a red error message below the form.
 - **Verification codes now use the same type style as phone sign-in**: the placeholder no longer switches to a strange-looking monospace zero.
 - **Verification field focus now stays on one surface**: the code input no longer gets a second green highlight inside its wrapper.
+- **The dashboard map now keeps the identity card from hiding the main ride region**: desktop fit-to-bounds leaves room for the card so the rider’s home city stays visible.
+- **The dashboard’s total-rides stat now flows into the card**: tightened the title-to-stat spacing and kept one subtle divider before recent movement.
+- **Map pins now use one consistent hue with clearer intensity**: boarding and exiting are selected separately, while more-used stops are now visibly darker.
 - **Settings now opens directly into its sections**: removed the oversized repeated page title so the page gets to the controls faster.
 - **Primary agency is now optional**: new riders can let TransitStats detect the agency from their rides instead of choosing TTC up front.
 
