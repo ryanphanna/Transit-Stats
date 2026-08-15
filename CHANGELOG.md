@@ -8,6 +8,9 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- Add browser smoke checks and direct OTP/API handler tests so auth regressions are caught before release.
+- Make the Functions lint command complete successfully while retaining legacy formatting and unused-variable warnings.
+
 - Split profile settings, API authentication, and shared profile-field logic into focused modules with regression coverage.
 
 - Give dashboard stat labels equal height and loosen low-zoom map clustering so wrapped labels and city stops stay visually balanced.

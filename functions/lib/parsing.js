@@ -347,12 +347,10 @@ function parseSingleLineTripFormat(body, defaultAgency) {
   if (stopWords.length === 0) return null;
 
   let stop = toTitleCase(stopWords.join(' '));
-  let vehicle = null;
-
   // Check for vehicle info in single-line stop text
   const inlineV = extractVehicleFromStop(stop);
   stop = inlineV.cleanStop;
-  vehicle = inlineV.vehicle;
+  const vehicle = inlineV.vehicle;
 
   if (!isHeuristicLogValid(stop, route)) return null;
 

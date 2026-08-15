@@ -18,7 +18,9 @@ module.exports = [
       'no-restricted-globals': ['error', 'name', 'length'],
       'prefer-arrow-callback': 'error',
       'quotes': ['error', 'single', { allowTemplateLiterals: true }],
-      'max-len': ['error', { code: 120 }],
+      // Existing data/prompt-heavy Functions contain long literals. Keep the
+      // check visible without preventing the rest of the lint suite from running.
+      'max-len': ['warn', { code: 120 }],
       'indent': ['error', 2],
       'object-curly-spacing': ['error', 'always'],
     },

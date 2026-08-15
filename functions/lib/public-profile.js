@@ -28,13 +28,13 @@ async function handlePublicProfile(req, res) {
     return;
   }
 
-    const requestedUsername = String(req.query.user || '').trim().toLowerCase();
-    if (!requestedUsername) {
-        res.status(400).json({ error: 'Missing user parameter' });
-        return;
-    }
+  const requestedUsername = String(req.query.user || '').trim().toLowerCase();
+  if (!requestedUsername) {
+    res.status(400).json({ error: 'Missing user parameter' });
+    return;
+  }
 
-    try {
+  try {
     let username = requestedUsername;
     let usernameDoc = await db.collection('usernames').doc(username).get();
     if (!usernameDoc.exists && username.includes('-')) {
