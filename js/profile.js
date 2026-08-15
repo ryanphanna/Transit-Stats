@@ -315,9 +315,12 @@ export const Profile = {
                 return;
             }
 
+            const phoneLookup = user.phoneNumber
+                ? db.collection('phoneNumbers').where('userId', '==', user.uid).limit(1).get()
+                : Promise.resolve({ empty: true, docs: [] });
             const [profileDoc, phoneSnap] = await Promise.all([
                 db.collection('profiles').doc(user.uid).get(),
-                db.collection('phoneNumbers').where('userId', '==', user.uid).limit(1).get()
+                phoneLookup
             ]);
 
             if (profileDoc.exists) {
@@ -330,7 +333,7 @@ export const Profile = {
             this.phone = !phoneSnap.empty ? phoneSnap.docs[0].id : null;
 
             // Fallback: search by email if userId lookup failed (legacy or email-primary accounts)
-            if (!this.phone && user.email) {
+            if (!this.phone && user.phoneNumber && user.email) {
                 const emailPhoneSnap = await db.collection('phoneNumbers')
                     .where('email', '==', user.email)
                     .limit(1)
