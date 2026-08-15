@@ -11,10 +11,6 @@ async function init() {
     window.RouteTracker = RouteTracker;
     initHeader({ isAdmin, currentPage: 'routes' });
 
-    document.getElementById('routeTrackerAgency')?.addEventListener('change', (event) => {
-        RouteTracker.setAgency(event.target.value);
-    });
-
     await Trips.init();
     await Trips._readyPromise;
     RouteTracker.init();

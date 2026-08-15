@@ -4,10 +4,8 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 72px;
-  background: rgba(248, 250, 252, 0.6);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  height: 64px;
+  background: var(--bg-card);
   border-bottom: 1px solid var(--border);
   z-index: var(--z-header);
   display: flex;
@@ -16,11 +14,11 @@
 
 /* The shared header no longer takes up document flow once fixed. */
 .header ~ .view {
-  padding-top: 104px;
+  padding-top: 96px;
 }
 body.dark .header,
 html[data-theme="dark"] .header {
-  background: rgba(15, 23, 42, 0.6);
+  background: var(--bg-card);
 }
 
 .header-inner {
@@ -31,15 +29,12 @@ html[data-theme="dark"] .header {
 }
 
 .logo {
-  font-size: 1.5rem;
+  font-size: 1.15rem;
   font-weight: 900;
   cursor: pointer;
   margin: 0;
   text-decoration: none;
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--text-primary);
   letter-spacing: -0.02em;
   display: flex;
   align-items: center;
@@ -100,7 +95,7 @@ html[data-theme="dark"] .header {
 
 .nav-desktop {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
     margin-left: 16px;
 }
@@ -108,25 +103,28 @@ html[data-theme="dark"] .header {
 .nav-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    border-radius: 10px;
+    gap: 0;
+    padding: 8px 13px;
+    border: 1px solid transparent;
+    border-radius: 999px;
     text-decoration: none;
     color: var(--text-secondary);
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 0.82rem;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
 }
 
 .nav-item:hover {
     color: var(--text-primary);
+    border-color: var(--border);
     background: var(--bg-muted);
 }
 
 .nav-item.active {
-    color: var(--accent);
-    background: var(--accent-glass);
+    border-color: var(--accent);
+    color: white;
+    background: var(--accent);
 }
 
 .nav-item i, .nav-item svg {
@@ -142,9 +140,9 @@ html[data-theme="dark"] .header {
 }
 
 .logo-icon {
-    width: 32px;
-    height: 32px;
-    background: var(--accent-gradient);
+    width: 29px;
+    height: 29px;
+    background: var(--accent);
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -158,18 +156,15 @@ html[data-theme="dark"] .header {
 }
 
 .logo-text {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     font-weight: 900;
     letter-spacing: -0.02em;
-    background: var(--accent-gradient);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--text-primary);
 }
 
 .icon-btn {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
     border-radius: 10px;
     border: 1px solid var(--border);
     background: var(--bg-card);
@@ -185,7 +180,6 @@ html[data-theme="dark"] .header {
 .icon-btn:hover {
     background: var(--bg-muted);
     color: var(--text-primary);
-    transform: translateY(-2px);
 }
 
 .icon-btn.active {

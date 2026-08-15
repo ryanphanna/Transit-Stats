@@ -42,6 +42,12 @@ async function getActiveTrip(userId) {
 }
 
 async function createTrip(tripData) {
+  const hasBoardingStop = [tripData.startStopCode, tripData.startStopName, tripData.startStop]
+    .some(value => value !== null && value !== undefined && String(value).trim() !== '');
+  if (!hasBoardingStop) {
+    throw new Error('Cannot create a trip without a boarding stop');
+  }
+
   const profile = await getUserProfile(tripData.userId);
   const { startTime: startTimeOverride, ...restTripData } = tripData;
   const startTime = startTimeOverride

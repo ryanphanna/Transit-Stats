@@ -7,7 +7,7 @@
 
 body {
     background: var(--bg-app);
-    color: var(--text-main);
+    color: var(--text-primary);
     font-family: 'Inter', system-ui, sans-serif;
     margin: 0;
     -webkit-font-smoothing: antialiased;
@@ -34,12 +34,10 @@ body {
 /* Setup Card */
 .setup-card {
     background: var(--bg-card);
-    backdrop-filter: blur(24px) saturate(160%);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     padding: 2.5rem;
-    box-shadow: var(--shadow-xl);
+    box-shadow: var(--shadow-sm);
     animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -88,7 +86,7 @@ body {
     justify-content: center;
     padding: 1.5rem;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: border-color 0.18s ease, background 0.18s ease;
     position: relative;
     overflow: hidden;
 }
@@ -156,7 +154,7 @@ body {
     position: sticky;
     bottom: 0;
     padding: 1.5rem;
-    background: linear-gradient(to top, var(--bg-app) 80%, transparent);
+    background: var(--bg-app);
     z-index: 10;
 }
 
@@ -166,7 +164,7 @@ body {
     border-radius: var(--radius-lg);
     padding: 1rem;
     margin-bottom: 1rem;
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-sm);
 }
 
 .main-btn {
@@ -177,26 +175,26 @@ body {
     font-size: 1rem;
     border: none;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background 0.18s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
-    box-shadow: var(--shadow);
+    box-shadow: none;
 }
 
 .btn-start {
-    background: var(--accent-gradient);
+    background: var(--accent);
     color: white;
 }
 
 .btn-finalize {
-    background: var(--text-main);
+    background: var(--text-primary);
     color: var(--bg-app);
 }
 
-.btn-start:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
-.btn-start:active { transform: translateY(0); }
+.btn-start:hover { background: #087f59; }
+.btn-start:active { background: #066b4b; }
 
 @keyframes slideUp {
     from { transform: translateY(20px); opacity: 0; }

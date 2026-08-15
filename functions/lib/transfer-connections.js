@@ -12,8 +12,8 @@ const CONNECTION_GROUPS = {
     'College St at Yonge St - College Station',
   ],
   queens_park_complex: [
-    "Queen's Park",
-    "Queen's Park Station",
+    'Queen\'s Park',
+    'Queen\'s Park Station',
     'College St at University Ave - Queen\'s Park Station',
   ],
   spadina_complex: [

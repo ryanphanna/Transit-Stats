@@ -272,6 +272,19 @@ function loadHandlers(overrides = {}) {
   return { handlers, calls, restore };
 }
 
+test('handleTripLog: refuses to start without a boarding stop', async () => {
+  const { handlers, calls, restore } = loadHandlers();
+
+  try {
+    await handlers.handleTripLog('+14165550000', { userId: 'u0' }, '', '506', 'Westbound', 'TTC');
+  } finally {
+    restore();
+  }
+
+  assert.equal(calls.createTrip.length, 0);
+  assert.match(calls.sendSmsReply[0]?.message || '', /boarding stop/i);
+});
+
 test('handleTripLog: disambiguation prompt includes direction labels', async () => {
   const startTime = 1778770440000;
   const { handlers, calls, restore } = loadHandlers({

@@ -330,7 +330,7 @@
 }
 
 .v2-status-msg.success { background: #f0fdf4; color: #16a34a; }
-.v2-status-msg.error { background: #fef2f2; color: #dc2626; }
+.v2-status-msg.error { background: color-mix(in srgb, var(--text-secondary) 12%, var(--bg-card)); color: var(--text-secondary); }
 .v2-status-msg.info { background: #f0f9ff; color: #0284c7; }
 
 /* Success State */

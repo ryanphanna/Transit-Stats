@@ -1,9 +1,14 @@
-import { Identity } from './identity.js';
+import {
+    addMapPointMarkers,
+    fitMapToDensePoints,
+} from './map-presentation.js';
+import { createMapSurface, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from './map-surface.js';
 
 // Public Profile Logic
 document.addEventListener('DOMContentLoaded', async () => {
+    const pathMatch = window.location.pathname.match(/^\/user\/([^/]+)\/?$/i);
     const params = new URLSearchParams(window.location.search);
-    const username = params.get('user');
+    const username = pathMatch ? decodeURIComponent(pathMatch[1]) : params.get('user');
 
     if (!username) {
         showError('No user specified');
@@ -15,6 +20,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         // this endpoint reads them server-side with the Admin SDK and returns only
         // aggregate/anonymized fields (totals + lat/lng points, no route/stop/userId).
         const res = await fetch(`https://us-central1-transitstats-21ba4.cloudfunctions.net/publicProfile?user=${encodeURIComponent(username.toLowerCase())}`);
+        const errorData = res.ok ? null : await res.json().catch(() => ({}));
+        if (errorData.code === 'COMING_SOON') {
+            showError('Public profiles are coming soon.');
+            return;
+        }
         if (res.status === 404) {
             showError('User not found');
             return;
@@ -24,35 +34,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         if (!res.ok) {
-            showError('Error loading profile');
+            showError(errorData.error || 'Error loading profile');
             return;
         }
 
         const data = await res.json();
 
+        if (data.canonicalUsername) {
+            const canonicalPath = `/user/${encodeURIComponent(data.canonicalUsername)}`;
+            if (window.location.pathname !== canonicalPath) {
+                window.history.replaceState({}, document.title, canonicalPath);
+            }
+        }
+
         // Render Profile Header
-        document.getElementById('userName').textContent = data.displayName || 'Traveler';
+        document.getElementById('profile-name').textContent = data.displayName || 'Traveler';
 
-        const emojiEl = document.getElementById('userEmoji');
-        if (data.username) {
-            emojiEl.textContent = Identity.toEmojis(data.username);
-        } else if (data.emoji) {
-            emojiEl.textContent = data.emoji;
-        } else {
-            emojiEl.innerHTML = '<i data-lucide="user"></i>';
-            if (window.lucide) window.lucide.createIcons();
-        }
-
-        if (data.defaultAgency) {
-            document.getElementById('userAgency').textContent = data.defaultAgency;
-        }
-
-        // Render Stats
-        document.getElementById('totalTrips').textContent = data.totalTrips;
-        document.getElementById('totalHours').textContent = data.totalHours;
+        // Render the same dashboard facts as the signed-in card.
+        document.getElementById('stat-trips-lifetime').textContent = data.totalTrips ?? 0;
+        document.getElementById('stat-trips-month').textContent = data.thisMonth ?? 0;
+        document.getElementById('stat-trips-week').textContent = data.thisWeek ?? 0;
+        document.getElementById('stat-days-ridden').textContent = data.daysRidden ?? 0;
+        document.getElementById('stat-agencies-ridden').textContent = data.agencies ?? 0;
+        document.getElementById('stat-countries-ridden').textContent = data.countries ?? 0;
 
         // Render Map
-        initPublicMap(data.points);
+        initPublicMap(data.points, data.mapStopMode);
+        document.querySelector('.public-view')?.classList.remove('is-loading');
+        document.getElementById('public-map-loading')?.remove();
 
     } catch (error) {
         console.error('Error loading profile:', error);
@@ -72,35 +81,43 @@ function showError(msg) {
     if (window.lucide) window.lucide.createIcons();
 }
 
-function initPublicMap(points) {
-    const map = L.map('publicMap', {
-        zoomControl: false,
-        attributionControl: false
-    }).setView([43.70, -79.42], 12);
+function escapeHtml(value) {
+    return String(value || '').replace(/[&<>'"]/g, character => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;',
+    }[character]));
+}
 
+function initPublicMap(points, mapStopMode = 'boarding') {
     const isDark = document.documentElement.dataset.theme === 'dark'
         || document.body.classList.contains('dark');
-    const tileTheme = isDark ? 'dark_nolabels' : 'light_nolabels';
-    L.tileLayer(`https://{s}.basemaps.cartocdn.com/${tileTheme}/{z}/{x}/{y}{r}.png`, {
-        maxZoom: 19,
-        attribution: '© CARTO © OpenStreetMap',
-    }).addTo(map);
+    const tileTheme = isDark ? 'dark_all' : 'light_all';
+    const surface = createMapSurface({
+        containerId: 'publicMap',
+        center: DEFAULT_MAP_CENTER,
+        zoom: DEFAULT_MAP_ZOOM,
+        tileTheme,
+    });
+    const { map, markers, renderer } = surface;
 
     if (points && points.length > 0) {
-        // Built directly from anonymized {lat,lng,type} points rather than
-        // Visuals.renderHeatmap, which expects full trip objects — the public
-        // profile endpoint never receives raw trips, so it can't build those.
-        const heatPoints = points.map(p => [p.lat, p.lng, p.type === 'start' ? 0.8 : 0.5]);
-        if (typeof L.heatLayer !== 'undefined') {
-            L.heatLayer(heatPoints, {
-                radius: 25,
-                blur: 15,
-                maxZoom: 17,
-                gradient: { 0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red' }
-            }).addTo(map);
-        }
+        const visibleType = mapStopMode === 'exiting' ? 'end' : 'start';
+        const visiblePoints = points.filter(point => point.type === visibleType);
+        addMapPointMarkers({
+            map,
+            markers,
+            renderer,
+            points: visiblePoints,
+            getLabel: point => {
+                const names = Array.isArray(point.names) ? point.names : [point.name];
+                return names.filter(Boolean).map(escapeHtml).join('<br>');
+            },
+            formatPopup: value => value,
+        });
 
-        const bounds = points.map(p => [p.lat, p.lng]);
-        map.fitBounds(bounds, { padding: [100, 100] });
+        fitMapToDensePoints(map, visiblePoints, { maxZoom: 13 });
     }
 }

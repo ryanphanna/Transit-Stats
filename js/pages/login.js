@@ -1,21 +1,29 @@
 import { auth } from '../firebase.js';
 import { Auth } from '../auth.js';
+import { normalizePhone } from '../phone-fields.js';
 
 const DOM = {
     phoneStep: document.getElementById('auth-phone-step'),
     codeStep: document.getElementById('auth-code-step'),
+    stepFrame: document.querySelector('.auth-step-frame'),
+    heading: document.getElementById('auth-heading'),
     phoneInput: document.getElementById('auth-phone'),
-    phoneDisplay: document.getElementById('auth-phone-display'),
+    phoneWrap: document.getElementById('auth-phone-wrap'),
     codeInput: document.getElementById('auth-code'),
+    codeWrap: document.querySelector('.auth-code-wrap'),
     requestCode: document.getElementById('btn-auth-request-code'),
     verifyCode: document.getElementById('btn-auth-verify-code'),
     resendCode: document.getElementById('btn-auth-resend-code'),
-    changePhone: document.getElementById('btn-auth-change-phone'),
     status: document.getElementById('auth-status')
 };
 
 let normalizedPhone = '';
 let requestBusy = false;
+let adminSession = false;
+let resendSeconds = 0;
+let resendTimer = null;
+let phoneCooldownTimer = null;
+const RESEND_COOLDOWN_SECONDS = 60;
 
 const TRANSIT_THEMES = [
     { match: ['toronto'], label: 'Toronto transit colours', featuredLine: 'Line 2 · Bloor–Danforth', colors: ['#f8c84b', '#009b4e', '#8b4a9c', '#e87511'] },
@@ -53,20 +61,6 @@ async function applyLocalTransitTheme() {
     } catch { /* Default colours remain in place. */ }
 }
 
-function normalizePhone(phone) {
-    const digits = phone.replace(/\D/g, '');
-    if (digits.length === 10) return `+1${digits}`;
-    if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
-    return phone.trim().startsWith('+') ? `+${digits}` : `+${digits}`;
-}
-
-function formatPhone(phone) {
-    if (phone.length === 12 && phone.startsWith('+1')) {
-        return `(${phone.slice(2, 5)}) ${phone.slice(5, 8)}-${phone.slice(8)}`;
-    }
-    return phone;
-}
-
 function setStatus(message, type = 'error') {
     DOM.status.textContent = message;
     DOM.status.className = `status-msg auth-status ${type}`;
@@ -85,8 +79,104 @@ function setBusy(button, busy, busyText, idleText) {
 }
 
 function syncButtons() {
-    DOM.requestCode.disabled = requestBusy;
+    if (!requestBusy) updateRequestButton();
     DOM.verifyCode.disabled = DOM.codeInput.value.trim().length !== 6;
+    DOM.codeWrap?.classList.toggle('ready', !DOM.verifyCode.disabled);
+}
+
+function phoneCooldownKey(phone) {
+    let hash = 2166136261;
+    for (const character of phone) {
+        hash ^= character.charCodeAt(0);
+        hash = Math.imul(hash, 16777619);
+    }
+    return `auth_otp_cooldown_${(hash >>> 0).toString(36)}`;
+}
+
+function getPhoneCooldownSeconds(phone) {
+    if (adminSession) return 0;
+    try {
+        const until = Number(localStorage.getItem(phoneCooldownKey(phone)) || 0);
+        const seconds = Math.ceil((until - Date.now()) / 1000);
+        if (seconds > 0) return seconds;
+        if (until) localStorage.removeItem(phoneCooldownKey(phone));
+    } catch { /* Continue without persisted cooldown if storage is unavailable. */ }
+    return 0;
+}
+
+function persistPhoneCooldown(phone) {
+    try {
+        localStorage.setItem(phoneCooldownKey(phone), String(Date.now() + RESEND_COOLDOWN_SECONDS * 1000));
+    } catch { /* The server still enforces the cooldown. */ }
+}
+
+function clearPhoneCooldown(phone) {
+    try {
+        localStorage.removeItem(phoneCooldownKey(phone));
+    } catch { /* Ignore unavailable storage. */ }
+}
+
+function updateRequestButton() {
+    const phone = normalizePhone(DOM.phoneInput.value);
+    const cooldownSeconds = hasValidPhone() ? getPhoneCooldownSeconds(phone) : 0;
+    if (cooldownSeconds > 0) {
+        DOM.requestCode.disabled = true;
+        DOM.requestCode.textContent = `Try again in ${cooldownSeconds}s`;
+        if (!phoneCooldownTimer) {
+            phoneCooldownTimer = window.setInterval(() => {
+                updateRequestButton();
+                if (!getPhoneCooldownSeconds(normalizePhone(DOM.phoneInput.value))) {
+                    window.clearInterval(phoneCooldownTimer);
+                    phoneCooldownTimer = null;
+                }
+            }, 1000);
+        }
+        return;
+    }
+    DOM.requestCode.disabled = false;
+    DOM.requestCode.innerHTML = 'Text me a code <i data-lucide="arrow-right" aria-hidden="true"></i>';
+    if (window.lucide) lucide.createIcons();
+}
+
+function updateResendButton() {
+    const coolingDown = resendSeconds > 0;
+    DOM.resendCode.disabled = coolingDown;
+    DOM.resendCode.textContent = coolingDown ? `Resend (${resendSeconds}s)` : 'Resend code';
+}
+
+function startResendCooldown(skipCooldown = false) {
+    window.clearInterval(resendTimer);
+    resendSeconds = skipCooldown ? 0 : RESEND_COOLDOWN_SECONDS;
+    updateResendButton();
+    if (skipCooldown) return;
+    resendTimer = window.setInterval(() => {
+        resendSeconds -= 1;
+        updateResendButton();
+        if (resendSeconds <= 0) window.clearInterval(resendTimer);
+    }, 1000);
+}
+
+function wait(milliseconds) {
+    return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+}
+
+async function transitionAuthStep(fromStep, toStep) {
+    const frame = DOM.stepFrame;
+    const startHeight = frame.offsetHeight;
+    frame.style.height = `${startHeight}px`;
+    fromStep.classList.add('is-exiting');
+    await wait(140);
+    fromStep.classList.add('hidden');
+    fromStep.classList.remove('is-exiting');
+    toStep.classList.remove('hidden');
+    toStep.classList.add('is-entering');
+    const endHeight = frame.scrollHeight;
+    requestAnimationFrame(() => {
+        frame.style.height = `${endHeight}px`;
+        toStep.classList.remove('is-entering');
+    });
+    await wait(230);
+    frame.style.height = '';
 }
 
 function hasValidPhone() {
@@ -96,23 +186,38 @@ function hasValidPhone() {
 async function requestCode() {
     if (requestBusy) return;
     if (!hasValidPhone()) {
-        setStatus('Enter a 10-digit phone number first.');
+        clearStatus();
+        DOM.phoneWrap.classList.remove('auth-input-shake');
+        void DOM.phoneWrap.offsetWidth;
+        DOM.phoneWrap.classList.add('auth-input-shake');
         DOM.phoneInput.focus();
         return;
     }
 
     normalizedPhone = normalizePhone(DOM.phoneInput.value);
+    const existingCooldown = getPhoneCooldownSeconds(normalizedPhone);
+    if (!adminSession && existingCooldown > 0) {
+        setStatus(`Please wait ${existingCooldown} seconds before requesting another code.`);
+        updateRequestButton();
+        return;
+    }
     clearStatus();
     requestBusy = true;
     setBusy(DOM.requestCode, true, 'Sending…', 'Text me a code');
 
     try {
-        await Auth.requestPhoneCode(normalizedPhone);
-        DOM.phoneDisplay.textContent = formatPhone(normalizedPhone);
-        DOM.phoneStep.classList.add('hidden');
-        DOM.codeStep.classList.remove('hidden');
+        const result = await Auth.requestPhoneCode(normalizedPhone);
+        adminSession = result.isAdmin === true;
+        if (adminSession) clearPhoneCooldown(normalizedPhone);
+        else persistPhoneCooldown(normalizedPhone);
+        DOM.requestCode.innerHTML = 'Code sent <i data-lucide="check" aria-hidden="true"></i>';
+        if (window.lucide) lucide.createIcons();
+        await wait(350);
         DOM.codeInput.value = '';
+        DOM.heading.textContent = 'Enter the 6-digit code';
+        await transitionAuthStep(DOM.phoneStep, DOM.codeStep);
         DOM.codeInput.focus();
+        startResendCooldown(adminSession);
     } catch (error) {
         setStatus(error.message);
     } finally {
@@ -138,16 +243,11 @@ async function verifyCode() {
     }
 }
 
-function resetToPhoneStep() {
-    clearStatus();
-    DOM.codeStep.classList.add('hidden');
-    DOM.phoneStep.classList.remove('hidden');
-    DOM.phoneInput.focus();
-    syncButtons();
-}
-
 function setupListeners() {
-    DOM.phoneInput.addEventListener('input', syncButtons);
+    DOM.phoneInput.addEventListener('input', () => {
+        DOM.phoneWrap.classList.remove('auth-input-shake');
+        syncButtons();
+    });
     DOM.phoneInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' && !DOM.requestCode.disabled) requestCode();
     });
@@ -161,7 +261,6 @@ function setupListeners() {
     DOM.requestCode.addEventListener('click', requestCode);
     DOM.verifyCode.addEventListener('click', verifyCode);
     DOM.resendCode.addEventListener('click', requestCode);
-    DOM.changePhone.addEventListener('click', resetToPhoneStep);
 }
 
 function init() {

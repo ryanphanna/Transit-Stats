@@ -17,6 +17,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:browser": "node tests/browser-smoke.mjs",
+    "test:supplements": "node tests/validate-stop-supplements.mjs",
     "test:rules": "firebase emulators:exec --only firestore \"vitest run --config vitest.rules.config.js\""
   },
   "devDependencies": {

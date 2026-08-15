@@ -141,7 +141,7 @@ test('single-line: tonight\'s failing case', () => {
 // ─── parseCasualTripFormat ───────────────────────────────────────────────────
 
 test('casual: "I\'m on the [route] from [stop]"', () => {
-  const result = parseCasualTripFormat("I'm on the 510 from Spadina and Nassau", DEFAULT_AGENCY);
+  const result = parseCasualTripFormat('I\'m on the 510 from Spadina and Nassau', DEFAULT_AGENCY);
   assert.ok(result !== null);
   assert.equal(result.route, '510');
   assert.equal(result.stop, 'Spadina & Nassau');

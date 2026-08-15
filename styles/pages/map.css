@@ -2,7 +2,7 @@
 .map-view {
   padding: 0 !important;
   margin-top: 0;
-  height: calc(100vh - 72px);
+  height: calc(100vh - 64px);
   min-height: 0 !important;
   position: relative;
   width: 100%;
@@ -11,7 +11,7 @@
 
 /* The shared header is fixed, so the map must begin beneath it. */
 .header ~ .map-view {
-  margin-top: 72px;
+  margin-top: 64px;
 }
 
 .full-map {
@@ -21,11 +21,45 @@
   z-index: var(--z-map);
 }
 
+.map-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 900;
+  transform: translate(-50%, -50%);
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow);
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+.map-stop-dot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+}
+
+.map-stop-dot--boarding {
+  background: #4f46e5;
+}
+
+.map-stop-dot--exiting {
+  background: #10b981;
+}
+
 .map-controls {
   position: absolute;
-  top: 24px;
-  left: 24px;
-  right: 24px;
+  top: 16px;
+  left: 16px;
+  right: 16px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -35,47 +69,33 @@
 
 .filter-pills {
   display: flex;
-  background: var(--bg-card);
-  backdrop-filter: blur(12px);
-  padding: 4px;
-  border-radius: 12px;
-  box-shadow: var(--shadow);
-  border: 1px solid var(--border);
+  padding: 2px;
+  background: rgb(255 255 255 / 72%);
+  border: 1px solid rgb(255 255 255 / 80%);
+  border-radius: 9px;
+  box-shadow: 0 2px 10px rgb(16 42 42 / 8%);
   pointer-events: auto;
 }
 
 .filter-pills .pill {
-  padding: 8px 16px;
+  padding: 6px 10px;
   border: none;
   background: transparent;
   border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 700;
+  font-size: 0.68rem;
+  font-weight: 600;
   cursor: pointer;
   color: var(--text-secondary);
   transition: all 0.2s;
 }
 
 .filter-pills .pill.active {
-  background: var(--accent);
+  background: #7c5ce6;
   color: white;
 }
 
-#btn-locate {
-  background: var(--bg-card);
-  backdrop-filter: blur(12px);
-  color: var(--text-primary);
-  box-shadow: var(--shadow);
-  border: 1px solid var(--border);
-  pointer-events: auto;
-}
-
-#btn-locate:hover {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
 .map-diagnostics {
+  display: none;
   position: absolute;
   left: 24px;
   bottom: 24px;

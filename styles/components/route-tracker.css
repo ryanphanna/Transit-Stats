@@ -64,18 +64,44 @@
 }
 
 .dashboard-route-tracker {
-  grid-column: 1 / -1;
   width: 100%;
   margin: 0;
   padding: 0;
 }
 
 .dashboard-route-tracker > .card {
-  margin-bottom: 0;
+  margin-bottom: 18px;
 }
 
 .route-tracker-card-compact .route-tracker-header {
   align-items: center;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.route-tracker-card-compact .route-tracker-header > div:first-child {
+  width: 100%;
+}
+
+.route-tracker-card-compact .route-tracker-subtitle {
+  margin-top: 3px;
+  font-size: 0.7rem;
+}
+
+.route-tracker-links {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.route-tracker-card-compact {
+  padding: 16px;
+}
+
+.route-tracker-card-compact .route-tracker-link {
+  font-size: 0.72rem;
 }
 
 .route-tracker-link {
@@ -92,16 +118,12 @@
 
 .rt-compact-summary {
   display: flex;
-  align-items: stretch;
-  gap: 12px;
+  align-items: baseline;
+  gap: 16px;
 }
 
 .rt-compact-stat {
-  flex: 1;
-  padding: 14px 16px;
-  border: 1px solid var(--border-outer);
-  border-radius: 10px;
-  background: var(--bg-muted);
+  min-width: 0;
 }
 
 .rt-compact-stat strong,
@@ -110,14 +132,14 @@
 }
 
 .rt-compact-stat strong {
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   line-height: 1.1;
 }
 
 .rt-compact-stat span {
   margin-top: 4px;
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: 0.65rem;
   font-weight: 600;
 }
 
@@ -126,7 +148,7 @@
 }
 
 .rt-compact-progress {
-  margin-top: 14px;
+  margin-top: 12px;
 }
 
 .rt-compact-progress-label {
@@ -281,9 +303,19 @@
 }
 
 .rt-top-route strong {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
   overflow: hidden;
   color: var(--accent);
   font-size: 0.9rem;
+}
+
+.rt-top-route strong small {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

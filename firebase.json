@@ -95,6 +95,10 @@
           "destination": "/public.html"
         },
         {
+          "source": "/user/**",
+          "destination": "/public.html"
+        },
+        {
           "source": "/beta-map",
           "destination": "/beta-map.html"
         },
@@ -238,7 +242,31 @@
           "destination": "/public.html"
         },
         {
-          "source": "/{dashboard,routes,settings,map,beta-map,admin,users,insights,public,rocket}",
+          "source": "/user/**",
+          "destination": "/public.html"
+        },
+        {
+          "source": "/dashboard",
+          "destination": "/dashboard.html"
+        },
+        {
+          "source": "/routes",
+          "destination": "/routes.html"
+        },
+        {
+          "source": "/map",
+          "destination": "/map.html"
+        },
+        {
+          "source": "/beta-map",
+          "destination": "/beta-map.html"
+        },
+        {
+          "source": "/settings",
+          "destination": "/settings.html"
+        },
+        {
+          "source": "/{admin,users,insights,public,rocket}",
           "destination": "/index.html"
         },
         {

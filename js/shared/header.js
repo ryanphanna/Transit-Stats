@@ -14,6 +14,7 @@ function _render(isAdmin, currentPage) {
 
     const adminHost = window.location.hostname === 'admin.transitstats.fyi';
     const adminSurface = adminHost || ['admin', 'users', 'insights', 'rocket'].includes(currentPage);
+    const betaSurface = ['localhost', '127.0.0.1', 'beta.transitstats.fyi'].includes(window.location.hostname);
     const navItems = adminSurface
         ? [
             { id: 'admin', label: 'Stops', icon: 'database', href: '/admin' },
@@ -21,8 +22,8 @@ function _render(isAdmin, currentPage) {
             { id: 'insights', label: 'Insights', icon: 'line-chart', href: '/insights' },
             ...(isAdmin ? [{ id: 'rocket', label: 'Rocket', icon: 'rocket', href: '/rocket' }] : []),
         ]
-        : [
-            { id: 'map', label: 'Map', icon: 'map', href: '/map' },
+        : ['dashboard', 'settings'].includes(currentPage) ? [] : [
+            { id: 'map', label: 'Stops', icon: 'map-pin', href: '/map' },
             { id: 'routes', label: 'Routes', icon: 'route', href: '/routes' },
         ];
     const logoHref = adminHost ? '/admin' : '/dashboard';
@@ -38,18 +39,17 @@ function _render(isAdmin, currentPage) {
                 <nav class="nav-desktop">
                     ${navItems.map(item => `
                         <a href="${item.href}" class="nav-item ${currentPage === item.id ? 'active' : ''}">
-                            <i data-lucide="${item.icon}"></i>
                             <span>${item.label}</span>
                         </a>
                     `).join('')}
                 </nav>
 
                 <div class="header-actions">
-                    <a href="/settings" class="icon-btn ${currentPage === 'settings' ? 'active' : ''}" title="Settings">
-                        <i data-lucide="settings"></i>
+                    <a href="/settings" class="header-action-link ${currentPage === 'settings' ? 'active' : ''}" title="Settings">
+                        <span>Settings</span>
                     </a>
-                    <button id="btn-header-logout" class="icon-btn header-logout" title="Sign out" aria-label="Sign out">
-                        <i data-lucide="log-out"></i>
+                    <button id="btn-header-logout" class="header-action-link header-logout" title="Log out" aria-label="Log out">
+                        <span>Log out</span>
                     </button>
                 </div>
             </div>

@@ -2,6 +2,7 @@
 import { db } from './firebase.js';
 import { UI } from './ui-utils.js';
 import { TripController } from './trips/TripController.js';
+import { getConfiguredAgency } from './profile-fields.js';
 
 /**
  * Route Tracker Module
@@ -16,17 +17,19 @@ import { TripController } from './trips/TripController.js';
 const ATLAS_ROUTES_PROXY = import.meta.env.VITE_ATLAS_ROUTES_URL
     || (import.meta.env.DEV ? '/atlas-dev/routes' : 'https://us-central1-transitstats-21ba4.cloudfunctions.net/atlasRoutes');
 
-// Transit Stats agency name -> Atlas slug (must match Atlas index.json).
-const ATLAS_SLUGS = {
-    'TTC': 'ttc',
-    'OC Transpo': 'octranspo',
-    'GO Transit': 'go',
-    'MiWay': 'miway',
-    'YRT': 'yrt',
-    'Brampton Transit': 'brampton',
-    'Durham Transit': 'drt',
-    'HSR': 'hamilton',
+const AGENCY_ALIASES = {
+    go: 'GO Transit',
 };
+
+function normalizeAgency(value) {
+    const name = String(value || '').trim();
+    if (!name) return 'TTC';
+    return AGENCY_ALIASES[name.toLocaleLowerCase()] || name;
+}
+
+function tripRouteValue(trip) {
+    return trip?.route ?? trip?.routeNumber ?? trip?.routeName ?? '';
+}
 
 const IDB_NAME = 'transitstats-cache';
 const IDB_STORE = 'atlasRoutes';
@@ -40,16 +43,15 @@ export const RouteTracker = {
         this.compact = compact;
         // The full Routes page starts with the main agency; the dashboard's
         // compact card still summarizes every agency represented in trips.
-        this.currentAgency = compact ? 'all' : 'TTC';
-
-        const select = document.getElementById('routeTrackerAgency');
-        if (select) select.value = this.currentAgency;
+        const profile = window.currentUserProfile || {};
+        const configuredAgency = getConfiguredAgency(profile);
+        this.currentAgency = compact ? 'all' : normalizeAgency(configuredAgency || 'all');
 
         this._loadAndRender();
     },
 
     setAgency: function (agency) {
-        this.currentAgency = agency || (this.compact ? 'all' : 'TTC');
+        this.currentAgency = agency === 'all' ? 'all' : normalizeAgency(agency || 'all');
         this._loadAndRender();
     },
 
@@ -94,7 +96,7 @@ export const RouteTracker = {
             }
 
             const riddenSet = this._getRiddenSet(this.currentAgency, routes);
-            this._render(container, routes, riddenSet);
+            await this._render(container, routes, riddenSet);
             if (!this.compact) await this._appendOtherAgencyCoverage(container);
         } catch (err) {
             console.error('RouteTracker error:', err);
@@ -104,9 +106,13 @@ export const RouteTracker = {
 
     _getObservedAgencies: function () {
         const agencies = new Set((TripController.allTrips || [])
-            .map(trip => trip.agency || 'TTC')
+            .map(trip => normalizeAgency(trip.agency || 'TTC'))
             .filter(Boolean));
-        if (agencies.size === 0) agencies.add(window.currentUserProfile?.defaultAgency || 'TTC');
+        if (agencies.size === 0) {
+            const profile = window.currentUserProfile || {};
+            const configuredAgency = getConfiguredAgency(profile);
+            if (configuredAgency) agencies.add(normalizeAgency(configuredAgency));
+        }
         return [...agencies];
     },
 
@@ -115,7 +121,7 @@ export const RouteTracker = {
         (TripController.allTrips || [])
             .filter(trip => !trip.discarded)
             .forEach(trip => {
-                const agency = trip.agency || 'TTC';
+                const agency = normalizeAgency(trip.agency || 'TTC');
                 if (agency !== primaryAgency) tripCounts.set(agency, (tripCounts.get(agency) || 0) + 1);
             });
 
@@ -131,14 +137,15 @@ export const RouteTracker = {
                 ...this._coverage(agency, routes, riddenSet),
                 tripCount: tripCounts.get(agency) || 0,
             };
-        })));
+        }))).sort((a, b) => b.pct - a.pct || b.tripCount - a.tripCount || a.agency.localeCompare(b.agency));
     },
 
     _getRoutes: async function (agency) {
+        agency = normalizeAgency(agency);
         if (this.routesCache[agency]) return this.routesCache[agency];
 
         let routes = null;
-        const slug = ATLAS_SLUGS[agency];
+        const slug = agency;
         if (slug) {
             const cacheKey = `${slug}-${this._weekVersion()}`;
             routes = await this._idbGet(cacheKey).catch(() => null);
@@ -251,9 +258,8 @@ export const RouteTracker = {
 
         return new Set(
             TripController.allTrips
-                .filter(t => (t.agency || 'TTC') === agency && t.route)
-                .map(t => this._matchRouteToAtlas(t.route, atlasRouteKeys))
-            .filter(Boolean)
+                .filter(t => !t.discarded && normalizeAgency(t.agency || 'TTC') === normalizeAgency(agency) && tripRouteValue(t))
+                .flatMap(t => this._matchRoutesToAtlas(tripRouteValue(t), atlasRouteKeys))
         );
     },
 
@@ -264,25 +270,81 @@ export const RouteTracker = {
         const counts = new Map();
 
         (TripController.allTrips || [])
-            .filter(trip => !trip.discarded && (trip.agency || 'TTC') === agency && trip.route)
+            .filter(trip => !trip.discarded && normalizeAgency(trip.agency || 'TTC') === normalizeAgency(agency) && tripRouteValue(trip))
             .forEach(trip => {
-                const route = this._matchRouteToAtlas(trip.route, atlasRouteKeys);
+                const route = this._matchRouteToAtlas(tripRouteValue(trip), atlasRouteKeys);
                 if (route) counts.set(route, (counts.get(route) || 0) + 1);
             });
 
         return counts;
     },
 
+    _getTopRideRoutes: async function (limit = 5) {
+        const counts = new Map();
+        const labels = new Map();
+
+        (TripController.allTrips || [])
+            .filter(trip => !trip.discarded && tripRouteValue(trip))
+            .forEach(trip => {
+                const agency = normalizeAgency(trip.agency || 'TTC');
+                const rawRoute = String(tripRouteValue(trip)).trim();
+                const normalizedRoute = this._normalizeRoute(rawRoute);
+                if (!normalizedRoute) return;
+
+                // Keep route frequency about the line rather than a branch or
+                // service suffix, while keeping agencies separate.
+                const routeKey = normalizedRoute.match(/^(\d+)/)?.[1] || normalizedRoute;
+                const key = `${agency}::${routeKey}`;
+                counts.set(key, (counts.get(key) || 0) + 1);
+                if (!labels.has(key)) labels.set(key, { agency, route: routeKey });
+            });
+
+        const topRoutes = [...counts.entries()]
+            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+            .slice(0, limit)
+            .map(([key, count]) => ({ ...labels.get(key), count }));
+
+        const inventories = await Promise.all([...new Set(topRoutes.map(route => route.agency))].map(async agency => [
+            agency,
+            await this._getRoutes(agency),
+        ]));
+        const inventoryByAgency = new Map(inventories);
+
+        return topRoutes.map(route => {
+            const inventory = inventoryByAgency.get(route.agency) || [];
+            const matchingRoute = inventory.find(candidate => {
+                const candidateKey = this._normalizeRoute(candidate.routeShortName);
+                return candidateKey === route.route
+                    || candidateKey.match(/^(\d+)/)?.[1] === route.route
+                    || candidateKey.startsWith(`${route.route}-`);
+            });
+            return {
+                ...route,
+                name: matchingRoute?.routeLongName?.trim() || route.route,
+            };
+        });
+    },
+
     _matchRouteToAtlas: function (value, atlasRouteKeys) {
+        return this._matchRoutesToAtlas(value, atlasRouteKeys)[0] || null;
+    },
+
+    _matchRoutesToAtlas: function (value, atlasRouteKeys) {
         const normalized = this._normalizeRoute(value);
-        if (!normalized) return null;
-        if (atlasRouteKeys.has(normalized)) return normalized;
+        if (!normalized) return [];
+        if (atlasRouteKeys.has(normalized)) return [normalized];
 
         // Branches, shuttles, and short-turn labels generally begin with the
         // base numeric route: 510a, 510b shuttle, 506 bus b, etc. Only accept
         // the fallback when Atlas actually contains that numeric base route.
         const numericBase = normalized.match(/^(\d+)/)?.[1];
-        return numericBase && atlasRouteKeys.has(numericBase) ? numericBase : null;
+        if (numericBase && atlasRouteKeys.has(numericBase)) return [numericBase];
+
+        // Some GTFS feeds encode direction as part of the route name (for
+        // example BART's Red-N and Red-S), while trip logs store the line
+        // name only. A ride on the line therefore marks all matching GTFS
+        // direction variants as ridden.
+        return [...atlasRouteKeys].filter(route => route.startsWith(`${normalized}-`));
     },
 
     _normalizeRoute: function (value) {
@@ -292,18 +354,43 @@ export const RouteTracker = {
             .replace(/^(route|line)\s+/i, '');
     },
 
+    _baseRouteKey: function (value) {
+        const normalized = this._normalizeRoute(value);
+        const numericBase = normalized.match(/^(\d+)/)?.[1];
+        if (numericBase) return numericBase;
+        return normalized.replace(/-(?:n|s|e|w)$/i, '');
+    },
+
+    _baseRouteLabel: function (value) {
+        const raw = String(value || '').trim();
+        const numericBase = raw.match(/^(\d+)/)?.[1];
+        if (numericBase) return numericBase;
+        return raw.replace(/-(?:N|S|E|W)$/i, '');
+    },
+
     _coverage: function (agency, routes, riddenSet) {
-        const normalize = r => this._normalizeRoute(r.routeShortName);
-        const ridden = routes.filter(r => riddenSet.has(normalize(r)));
-        const total = routes.length;
+        const groupedRoutes = new Map();
+        routes.forEach(route => {
+            const key = this._baseRouteKey(route.routeShortName);
+            if (!key || groupedRoutes.has(key)) return;
+            groupedRoutes.set(key, {
+                ...route,
+                routeShortName: this._baseRouteLabel(route.routeShortName),
+            });
+        });
+        const normalizedRidden = new Set([...riddenSet].map(route => this._baseRouteKey(route)));
+        const grouped = [...groupedRoutes.entries()];
+        const ridden = grouped.filter(([key]) => normalizedRidden.has(key)).map(([, route]) => route);
+        const displayRoutes = grouped.map(([, route]) => route);
+        const total = displayRoutes.length;
         const riddenCount = ridden.length;
         const missingCount = Math.max(total - riddenCount, 0);
         const pct = total > 0 ? Math.round((riddenCount / total) * 100) : 0;
 
-        return { agency, routes, ridden, total, riddenCount, missingCount, pct };
+        return { agency, routes: displayRoutes, ridden, total, riddenCount, missingCount, pct };
     },
 
-    _render: function (container, routes, riddenSet) {
+    _render: async function (container, routes, riddenSet) {
         const coverage = this._coverage(this.currentAgency, routes, riddenSet);
 
         if (this.compact) {
@@ -326,14 +413,7 @@ export const RouteTracker = {
             return;
         }
 
-        const rideCounts = this._getRideCounts(this.currentAgency, routes);
-        const topRoutes = [...coverage.ridden]
-            .sort((a, b) => {
-                const countDiff = (rideCounts.get(this._normalizeRoute(b.routeShortName)) || 0)
-                    - (rideCounts.get(this._normalizeRoute(a.routeShortName)) || 0);
-                return countDiff || String(a.routeShortName).localeCompare(String(b.routeShortName));
-            })
-            .slice(0, 5);
+        const topRoutes = await this._getTopRideRoutes();
 
         container.innerHTML = `
             <div class="rt-summary">
@@ -364,12 +444,11 @@ export const RouteTracker = {
             <section class="rt-top-routes" aria-labelledby="rt-top-routes-title">
                 <div class="rt-list-heading">
                     <span id="rt-top-routes-title">Top routes</span>
-                    <span>Most ridden</span>
+                    <span>Across all agencies</span>
                 </div>
                 <div class="rt-top-route-list">
                     ${topRoutes.length > 0 ? topRoutes.map(route => {
-                        const count = rideCounts.get(this._normalizeRoute(route.routeShortName)) || 0;
-                        return `<div class="rt-top-route"><strong>${UI.escapeHtml(String(route.routeShortName))}</strong><span>${count} ${count === 1 ? 'ride' : 'rides'}</span></div>`;
+                        return `<div class="rt-top-route"><strong>${UI.escapeHtml(route.name)} <small>${UI.escapeHtml(route.agency)} · ${UI.escapeHtml(route.route)}</small></strong><span>${route.count} ${route.count === 1 ? 'ride' : 'rides'}</span></div>`;
                     }).join('') : '<div class="empty-state">Ride a route to see your top routes here.</div>'}
                 </div>
             </section>
@@ -385,14 +464,12 @@ export const RouteTracker = {
 
     _appendOtherAgencyCoverage: async function (container) {
         const coverageItems = await this._getOtherAgencyCoverage(this.currentAgency);
-        const availableCoverage = coverageItems.filter(coverage => coverage.total > 0);
         const inventoryGaps = coverageItems.filter(coverage => coverage.total === 0);
         this.inventoryGaps = inventoryGaps.map(coverage => coverage.agency);
         if (this.inventoryGaps.length > 0) {
             console.warn('RouteTracker: route inventory needed for:', this.inventoryGaps);
         }
-        if (availableCoverage.length === 0 && inventoryGaps.length === 0) return;
-
+        const availableCoverage = coverageItems.filter(coverage => coverage.total > 0);
         if (availableCoverage.length > 0) {
             const section = document.createElement('section');
             section.className = 'rt-other-agencies';
@@ -407,7 +484,7 @@ export const RouteTracker = {
                         <div class="rt-agency-progress-row" role="progressbar" aria-label="${UI.escapeHtml(coverage.agency)}: ${coverage.pct}% network coverage" aria-valuenow="${coverage.pct}" aria-valuemin="0" aria-valuemax="100">
                             <div class="rt-agency-progress-meta">
                                 <strong>${UI.escapeHtml(coverage.agency)}</strong>
-                                <span>${coverage.riddenCount} of ${coverage.total} routes</span>
+                                <span>${coverage.riddenCount} of ${coverage.total} routes · ${coverage.tripCount} ${coverage.tripCount === 1 ? 'ride' : 'rides'}</span>
                             </div>
                             <div class="mastery-bar-bg"><div class="mastery-bar-fill" style="width: ${coverage.pct}%;"></div></div>
                         </div>`).join('')}
@@ -418,9 +495,10 @@ export const RouteTracker = {
     },
 
     _renderAll: function (container, coverageItems) {
+        const summaries = coverageItems.map(item => this._coverage(item.agency, item.routes, item.riddenSet));
         if (this.compact) {
-            const total = coverageItems.reduce((sum, item) => sum + item.routes.length, 0);
-            const ridden = coverageItems.reduce((sum, item) => sum + item.riddenSet.size, 0);
+            const total = summaries.reduce((sum, item) => sum + item.total, 0);
+            const ridden = summaries.reduce((sum, item) => sum + item.riddenCount, 0);
             const pct = total > 0 ? Math.round((ridden / total) * 100) : 0;
             container.innerHTML = `
                 <div class="rt-compact-summary">
@@ -434,8 +512,7 @@ export const RouteTracker = {
             return;
         }
 
-        const cards = coverageItems.map(item => {
-            const coverage = this._coverage(item.agency, item.routes, item.riddenSet);
+        const cards = summaries.map(coverage => {
             return `
                 <section class="rt-agency-section">
                     <div class="rt-list-heading"><strong>${UI.escapeHtml(coverage.agency)}</strong><span>${coverage.riddenCount} of ${coverage.total} ridden</span></div>

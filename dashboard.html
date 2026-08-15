@@ -7,142 +7,44 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha256-tXCrvaljxgtN5LT/Syb5Mm9T+yzPFGH98JVcoJT7JTk=" crossorigin="anonymous">
     <link rel="stylesheet" href="styles/main.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body>
+<body class="dashboard-surface dashboard-auth-pending">
     <main id="app-root">
         <section id="view-dashboard" class="view dashboard-view active">
-            <div class="container dashboard-grid">
-                <!-- Left Column -->
-                <aside class="col-profile">
-                    <div class="card profile-card">
-                        <div class="profile-header">
-                            <div id="profile-avatar" class="avatar"><i data-lucide="user"></i></div>
-                            <div class="profile-info">
-                                <h2 id="profile-name">Traveler</h2>
-                                <p id="profile-status">Ready to ride</p>
+            <section class="dashboard-atlas-hero" aria-label="Your transit atlas">
+                <div id="main-map" class="dashboard-map"></div>
+                <div class="dashboard-map-wash" aria-hidden="true"></div>
+
+                <div class="dashboard-atlas-hero-inner">
+                    <div class="atlas-identity-card">
+                        <h1><span id="profile-name">Traveler</span><span class="atlas-title-tail">’s</span><span class="atlas-title-product">TransitStats</span></h1>
+                        <p id="profile-status" class="atlas-profile-status" hidden></p>
+                        <div class="atlas-hero-count">
+                            <strong id="stat-trips-lifetime">0</strong>
+                            <span>total rides</span>
+                        </div>
+                        <div class="atlas-card-period" aria-label="Recent trip totals">
+                        <div class="atlas-period-heading"><span>Recent movement</span></div>
+                            <div class="atlas-period-grid">
+                                <div class="atlas-fact atlas-fact-week"><strong id="stat-trips-week">0</strong><span>Rides this<br>week</span></div>
+                                <div class="atlas-fact atlas-fact-month"><strong id="stat-trips-month">0</strong><span>Rides this<br>month</span></div>
+                                <div class="atlas-fact atlas-fact-days"><strong id="stat-days-ridden">0</strong><span>Days ridden</span></div>
+                                <div class="atlas-fact atlas-fact-agencies"><strong id="stat-agencies-ridden">0</strong><span>Agencies</span></div>
+                                <div class="atlas-fact atlas-fact-countries"><strong id="stat-countries-ridden">0</strong><span>Countries</span></div>
                             </div>
                         </div>
-                        <div class="streak-box">
-                            <div class="streak-title"><i data-lucide="flame" class="icon-inline"></i> Riding Streak</div>
-                            <div class="streak-data">
-                                <div class="streak-item">
-                                    <strong id="stat-current-streak" class="text-accent">0</strong>
-                                    <span>Current</span>
-                                </div>
-                                <div class="divider-v"></div>
-                                <div class="streak-item">
-                                    <strong id="stat-best-streak">0</strong>
-                                    <span>Best</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h3><i data-lucide="trending-up" class="icon-inline"></i> Activity</h3>
-                        </div>
-                        <div id="activity-grid-container" class="activity-grid"></div>
-                        <div id="activity-grid-legend" class="grid-legend">
-                            <span>Less</span>
-                            <div class="legend-square heat-0"></div>
-                            <div class="legend-square heat-1"></div>
-                            <div class="legend-square heat-2"></div>
-                            <div class="legend-square heat-3"></div>
-                            <div class="legend-square heat-4"></div>
-                            <span>More</span>
-                        </div>
-                    </div>
-
-                </aside>
-
-                <!-- Center Column -->
-                <div class="col-feed">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3><i data-lucide="history" class="icon-inline"></i> Recent Trips</h3>
-                        </div>
-                        <div id="recent-trips-list" class="feed-list">
-                            <div class="loading-state">Loading trips...</div>
-                        </div>
+                        <button id="atlas-share-map" class="atlas-card-cta" type="button">Share your map <span aria-hidden="true">→</span></button>
                     </div>
                 </div>
+            </section>
 
-                <!-- Right Column: Stats -->
-                <aside class="col-stats">
-                    <div class="card stats-card">
-                        <div class="card-header">
-                            <h3><i data-lucide="bar-chart-3" class="icon-inline"></i> Travel Stats</h3>
-                            <div class="toggle-group">
-                                <button id="toggle-stats-30-insights" class="toggle-btn active">30d</button>
-                                <button id="toggle-stats-all-insights" class="toggle-btn">All</button>
-                            </div>
-                        </div>
-                        <div class="stats-grid">
-                            <div class="stat-box">
-                                <strong id="stat-trips-insights">0</strong>
-                                <span>Trips</span>
-                            </div>
-                            <div class="stat-box">
-                                <strong id="stat-routes-insights">0</strong>
-                                <span>Routes</span>
-                            </div>
-                            <div class="stat-box">
-                                <strong id="stat-hours-insights">0</strong>
-                                <span>Hours</span>
-                            </div>
-                            <div class="stat-box">
-                                <strong id="stat-stops-insights">0</strong>
-                                <span>Stops</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card peak-times-card">
-                        <div class="card-header">
-                            <h3><i data-lucide="clock" class="icon-inline"></i> Peak Riding Times</h3>
-                        </div>
-                        <div id="time-of-day-chart-insights" class="chart-compact">
-                            <div class="loading-state">Calculating peaks...</div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h3><i data-lucide="route" class="icon-inline"></i> Popular Routes</h3>
-                        </div>
-                        <div id="top-routes-list-insights" class="list-compact">
-                            <div class="loading-state">Loading...</div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h3><i data-lucide="map-pin" class="icon-inline"></i> Frequent Stops</h3>
-                        </div>
-                        <div id="top-stops-list-insights" class="list-compact">
-                            <div class="loading-state">Loading...</div>
-                        </div>
-                    </div>
-                </aside>
-                <section class="dashboard-route-tracker">
-                <div class="card route-tracker-card-compact">
-                    <div class="card-header route-tracker-header">
-                        <div>
-                            <h3><i data-lucide="route" class="icon-inline"></i> Routes</h3>
-                            <p class="route-tracker-subtitle">Your route coverage, by agency.</p>
-                        </div>
-                        <a class="route-tracker-link" href="/routes">View all routes <span aria-hidden="true">→</span></a>
-                    </div>
-                    <div id="routeTrackerContent"></div>
-                </div>
-                </section>
-            </div>
         </section>
     </main>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <!-- Edit Trip Modal -->
     <div id="modal-edit-trip" class="modal hidden">
         <div class="modal-header">
@@ -185,18 +87,9 @@
             </div>
             <div class="form-group mb-4">
                 <label>Agency</label>
-                <input type="text" id="edit-agency" list="edit-agency-options" autocomplete="off" placeholder="Search agencies">
-                <datalist id="edit-agency-options">
-                    <option value="TTC"></option>
-                    <option value="GO Transit"></option>
-                    <option value="OC Transpo"></option>
-                    <option value="MiWay"></option>
-                    <option value="YRT"></option>
-                    <option value="Brampton Transit"></option>
-                    <option value="Durham Transit"></option>
-                    <option value="HSR"></option>
-                    <option value="GRT"></option>
-                </datalist>
+                <div class="agency-autocomplete">
+                    <input type="text" id="edit-agency" autocomplete="off" placeholder="Search agencies">
+                </div>
             </div>
             <div class="modal-footer-actions">
                 <button id="btn-save-edit" class="btn btn-primary full-width mb-3">Save Changes</button>

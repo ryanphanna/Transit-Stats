@@ -85,7 +85,7 @@ export const Admin = {
                 const groupKey = el.dataset.groupKey;
                 const stopId = el.dataset.stopId;
                 const items = AdminTriage.inbox.filter(i => {
-                    const iKey = `${i.rawName.toLowerCase()}||${(i.route||'').toLowerCase()}||${(i.direction||'').toLowerCase()}`;
+                    const iKey = `${(i.agency || '').toLowerCase()}||${i.rawName.toLowerCase()}||${(i.route||'').toLowerCase()}||${(i.direction||'').toLowerCase()}`;
                     return iKey === groupKey;
                 });
                 if (items.length) {
@@ -242,7 +242,7 @@ export const Admin = {
         // Group items by normalized stop name + route + direction
         const groups = new Map();
         for (const item of filtered) {
-            const key = `${item.rawName.toLowerCase()}||${(item.route||'').toLowerCase()}||${(item.direction||'').toLowerCase()}`;
+            const key = `${(item.agency || '').toLowerCase()}||${item.rawName.toLowerCase()}||${(item.route||'').toLowerCase()}||${(item.direction||'').toLowerCase()}`;
             if (!groups.has(key)) groups.set(key, { name: item.rawName, route: item.route, direction: item.direction, items: [] });
             groups.get(key).items.push(item);
         }
@@ -252,7 +252,7 @@ export const Admin = {
         const groupHtml = Array.from(groups.entries()).map(([groupKey, group]) => {
             // Get the best suggestion for the group header
             const firstItem = group.items[0];
-            const suggestion = AdminTriage._suggestStop(firstItem.rawName, firstItem.rawCode, AdminLibrary.stops);
+            const suggestion = AdminTriage._suggestStop(firstItem.rawName, firstItem.rawCode, firstItem.agency, AdminLibrary.stops);
 
             const tripRows = group.items.map(item => {
                 const date = item.date?.toDate ? item.date.toDate() : new Date(item.date || 0);
@@ -517,5 +517,3 @@ export const Admin = {
 };
 
 window.Admin = Admin;
-
-

@@ -17,11 +17,14 @@ function loadPublicProfile(overrides = {}) {
         doc: (id) => ({
           get: async () => (overrides.docs?.[name]?.[id] ?? { exists: false }),
         }),
-        where: () => ({
-          where: () => ({
-            limit: () => ({ get: async () => (overrides.tripsSnap ?? { size: 0, forEach: () => {} }) }),
-          }),
-        }),
+        where: () => {
+          const query = {
+            where: () => query,
+            limit: () => query,
+            get: async () => (overrides.tripsSnap ?? { size: 0, forEach: () => {} }),
+          };
+          return query;
+        },
       }),
     },
     getUserProfile: async () => overrides.profile ?? null,
@@ -81,30 +84,52 @@ test('publicProfile returns 404 when username is not found', async () => {
 
 test('publicProfile returns 403 when profile is not public', async () => {
   const handler = loadPublicProfile({
-    docs: { usernames: { alice: { exists: true, data: () => ({ uid: 'u1' }) } } },
+    docs: { usernames: { 'subway-subway-subway': { exists: true, data: () => ({ uid: 'u1' }) } } },
     profile: { isPublic: false },
+  });
+  const res = mockRes();
+  await handler({ method: 'GET', query: { user: 'subway-subway-subway' } }, res);
+  assert.equal(res.statusCode, 403);
+});
+
+test('publicProfile marks other profiles as coming soon', async () => {
+  const handler = loadPublicProfile({
+    docs: { usernames: { alice: { exists: true, data: () => ({ uid: 'u1' }) } } },
+    profile: { isPublic: true, username: 'alice' },
   });
   const res = mockRes();
   await handler({ method: 'GET', query: { user: 'alice' } }, res);
   assert.equal(res.statusCode, 403);
+  assert.equal(res.body.code, 'COMING_SOON');
 });
 
 test('publicProfile returns 200 with aggregated stats for a public profile', async () => {
   const tripDocs = [
-    { data: () => ({ duration: 10, boardingLocation: { lat: 1, lng: 2 }, exitLocation: { lat: 3, lng: 4 } }) },
+    { data: () => ({ duration: 10, startStopName: 'Start', endStopName: 'End', boardingLocation: { lat: 1, lng: 2 }, exitLocation: { lat: 3, lng: 4 } }) },
   ];
   const handler = loadPublicProfile({
-    docs: { usernames: { alice: { exists: true, data: () => ({ uid: 'u1' }) } } },
-    profile: { isPublic: true, displayName: 'Alice', username: 'alice', defaultAgency: 'TTC' },
+    docs: { usernames: { 'subway-subway-subway': { exists: true, data: () => ({ uid: 'u1' }) } } },
+    profile: {
+      isPublic: true,
+      displayName: 'Alice',
+      username: 'r',
+      emojiUsername: 'subway-subway-subway',
+      usernameAliases: ['subway-subway-subway'],
+      defaultAgency: 'TTC',
+      mapStopMode: 'exiting',
+    },
     tripsSnap: { size: 1, forEach: (fn) => tripDocs.forEach(fn) },
   });
   const res = mockRes();
-  await handler({ method: 'GET', query: { user: 'alice' } }, res);
+  await handler({ method: 'GET', query: { user: 'subway-subway-subway' } }, res);
   assert.equal(res.statusCode, 200);
   assert.equal(res.body.totalTrips, 1);
   assert.equal(res.body.totalHours, Math.round((10 / 60) * 10) / 10);
   assert.equal(res.body.points.length, 2);
+  assert.deepEqual(res.body.points[0].names, ['Start']);
   assert.equal(res.body.displayName, 'Alice');
+  assert.equal(res.body.canonicalUsername, 'r');
+  assert.equal(res.body.mapStopMode, 'exiting');
 });
 
 test('publicProfile returns 500 and does not leak internal error detail on unexpected failure', async () => {
