@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // aggregate/anonymized fields (totals + lat/lng points, no route/stop/userId).
         const res = await fetch(`https://us-central1-transitstats-21ba4.cloudfunctions.net/publicProfile?user=${encodeURIComponent(username.toLowerCase())}`);
         const errorData = res.ok ? null : await res.json().catch(() => ({}));
-        if (errorData.code === 'COMING_SOON') {
+        if (errorData?.code === 'COMING_SOON') {
             showError('Public profiles are coming soon.');
             return;
         }
@@ -71,6 +71,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function showError(msg) {
     const overlay = document.querySelector('.public-overlay');
+    if (!overlay) {
+        console.error(msg);
+        return;
+    }
     overlay.innerHTML = `
         <div class="public-card" style="text-align: center;">
             <div style="font-size: 2em; margin-bottom: 10px; color: var(--danger);"><i data-lucide="alert-circle"></i></div>
