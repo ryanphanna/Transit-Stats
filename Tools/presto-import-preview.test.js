@@ -37,6 +37,7 @@ test('keeps cents exact and preserves the raw location alongside an alias', () =
   assert.equal(record.location, 'Toronto- New USBT');
   assert.equal(record.locationLabel, 'Union Station Bus Terminal');
   assert.equal(record.locationAliasApplied, true);
+  assert.equal(record.stopMatchStatus, 'pending');
 });
 
 test('summarizes dates chronologically instead of lexicographically', () => {

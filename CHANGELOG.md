@@ -10,6 +10,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Changed
 
+- **Imported PRESTO activity stays visible while stop matching is deferred**, so an unclear location doesn't block the rest of the import.
 - **PRESTO pilot uploads now preview multiple reports and import activity in user-scoped batches.**
 - **PRESTO trials can sign in with email only**, so trying the pilot doesn't require a second phone number.
 - **PRESTO fare exports can now be previewed in an isolated report**, keeping imported fare transactions separate from canonical trip history until matched.

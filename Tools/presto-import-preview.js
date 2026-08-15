@@ -109,6 +109,7 @@ function toRecord(row, rowNumber) {
     location: rawLocation,
     locationLabel: LOCATION_ALIASES.get(rawLocation) || rawLocation,
     locationAliasApplied: LOCATION_ALIASES.has(rawLocation),
+    stopMatchStatus: 'pending',
     raw: row,
   };
 }
