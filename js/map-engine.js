@@ -2,7 +2,7 @@ import { UI } from './ui-utils.js';
 import { PredictionEngine } from './predict.js';
 import { buildStopIndex, resolveStopLocation } from './atlas-stop-resolver.js';
 import { getTripStopLabel } from './trip-display.js';
-import { createMapSurface, DEFAULT_MAP_CENTER } from './map-surface.js';
+import { createMapSurface, DEFAULT_MAP_CENTER, DEFAULT_MAP_OVERVIEW_ZOOM } from './map-surface.js';
 import {
     addMapPointMarkers,
     fitMapToDensePoints,
@@ -17,6 +17,9 @@ function buildMapPointKey(trip, side, resolution, location, fallbackLabel) {
     const lng = Number(location.lng).toFixed(4);
     return `${agency}:${label}:${lat}:${lng}`;
 }
+
+const MAP_POINTS_CACHE_PREFIX = 'transitstats-map-points:';
+const MAP_POINTS_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function getMapMarkerLabel(trip = {}, side = 'boarding', resolution = null) {
     return getTripStopLabel(trip, side, resolution);
@@ -81,7 +84,7 @@ export const MapEngine = {
             const surface = createMapSurface({
                 containerId: 'main-map',
                 center,
-                zoom: deferInitialView ? 10 : 13,
+                zoom: deferInitialView ? DEFAULT_MAP_OVERVIEW_ZOOM : 13,
                 tileTheme,
             });
             this.map = surface.map;
@@ -91,6 +94,7 @@ export const MapEngine = {
             this.layers.transit = null;
             console.log("MapEngine: Leaflet map instance created");
             this.renderMarkers();
+            this._loadCachedPoints();
             this.setupControls();
             console.log("MapEngine: Setup complete");
         } catch (err) {
@@ -114,6 +118,50 @@ export const MapEngine = {
         this.filter = filter === 'exiting' ? 'exiting' : 'boarding';
         localStorage.setItem('transitstats-map-stop-mode', this.filter);
         this.renderMarkers();
+        if (this.trips.length === 0) this._loadCachedPoints();
+    },
+
+    _getPointsCacheKey() {
+        const userId = window.currentUser?.uid;
+        return userId ? `${MAP_POINTS_CACHE_PREFIX}${userId}:${this.filter}` : null;
+    },
+
+    _loadCachedPoints() {
+        if (!this.map || !this.layers.markers) return false;
+        const cacheKey = this._getPointsCacheKey();
+        if (!cacheKey) return false;
+
+        try {
+            const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+            if (!cached || Date.now() - cached.timestamp > MAP_POINTS_CACHE_TTL_MS
+                || !Array.isArray(cached.points) || cached.points.length === 0) return false;
+            addMapPointMarkers({
+                map: this.map,
+                markers: this.layers.markers,
+                renderer: this._canvasRenderer,
+                points: cached.points,
+                baseRadius: document.body.classList.contains('v2-clean') ? 4 : 4.5,
+                formatPopup: label => UI.escapeHtml(label),
+            });
+            console.log(`MapEngine: Loaded ${cached.points.length} cached markers`);
+            return true;
+        } catch (error) {
+            console.warn('MapEngine: Cached markers unavailable', error);
+            return false;
+        }
+    },
+
+    _cachePoints(points) {
+        const cacheKey = this._getPointsCacheKey();
+        if (!cacheKey || !points?.length) return;
+        try {
+            localStorage.setItem(cacheKey, JSON.stringify({
+                timestamp: Date.now(),
+                points,
+            }));
+        } catch (error) {
+            console.warn('MapEngine: Could not cache markers', error);
+        }
     },
 
     updateTrips(newTrips) {
@@ -344,7 +392,7 @@ export const MapEngine = {
 
             // Let the header and navigation respond while a large trip history
             // is being resolved into map points.
-            if (index > 0 && index % 40 === 0) {
+            if (index > 0 && index % 200 === 0) {
                 await new Promise(resolve => requestAnimationFrame(resolve));
                 if (renderId !== this._renderGeneration) return;
             }
@@ -361,6 +409,7 @@ export const MapEngine = {
             baseRadius,
             formatPopup: label => UI.escapeHtml(label),
         });
+        this._cachePoints(points);
 
         this._renderDiagnostics(resolutionStats, limitedTrips.length);
 
