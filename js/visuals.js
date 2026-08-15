@@ -77,7 +77,7 @@ export const Visuals = {
         this.heatmapLayer = L.layerGroup();
 
         markers.forEach(m => {
-            let color = m.type === 'boarding' ? '#ff4b4b' : '#4b7bff';
+            let color = m.type === 'boarding' ? '#0f9d72' : '#4b7bff';
 
             L.circleMarker([m.lat, m.lng], {
                 radius: 6,

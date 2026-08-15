@@ -67,7 +67,7 @@ export const Identity = {
      */
     toEmojis(slug) {
         if (!slug) return '';
-        return slug.split('_')
+        return slug.split(/[-_]/)
             .map(key => this.LIBRARY[key] || '')
             .join('');
     },
@@ -76,7 +76,7 @@ export const Identity = {
      * Convert array of keys to slug
      */
     toSlug(keys) {
-        return keys.join('_');
+        return keys.join('-');
     },
 
     /**

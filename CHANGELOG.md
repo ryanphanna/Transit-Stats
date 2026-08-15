@@ -8,6 +8,52 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- Align the Primary agency value and Change action on one baseline.
+
+- Remove red UI treatments so errors, destructive actions, and sync progress stay within the site’s muted slate/green palette.
+
+- Remove internal divider lines from settings panels so the cards feel lighter and less tabular.
+
+- Show the full Profile URL with a direct link and copy/share action.
+- Match Sharing labels to the standard settings label size.
+- Align reserved public identity emojis with the username they represent.
+
+- Shorten the Map stops choices to “Boarding” and “Exiting” for a cleaner selector.
+
+- Match the Public identity label to the other bold settings labels.
+
+- **Public identity emojis now read as one compact mark**: each choice uses a 28px slot so there is no visible empty space between them.
+- **Public identity emojis now use smaller slots**: the three glyphs sit tightly together instead of reading as widely spaced controls.
+- **Theme and Map stops selectors now share one compact width**: related settings controls have a consistent shape and footprint.
+- **Theme selection now uses a compact control**: the three-option dropdown no longer stretches across the settings row.
+- **The public identity picker now locks both its container and slots to the compact width**: no surrounding grid space can spread the emojis apart.
+- **Public identity emojis now use an explicit three-column grid**: the choices cannot be distributed by flex sizing or surrounding card width.
+- **Account actions now align to the right edge of their value rows**: Reset password and Change no longer crowd the values they control.
+- **Public identity emojis now use a locked compact row**: the three choices cannot spread apart as the surrounding layout changes.
+- **Display name alignment now matches Password**: Change sits on the same baseline as the saved name instead of floating beside the whole row.
+- **Password status spacing now gives Reset password room to breathe**: the action remains aligned with the mask without crowding it.
+- **Unknown saved agency codes now fall back to Automatic**: raw values such as `bu` no longer appear as if they were agency names.
+- **Primary agency now uses the same quiet editing pattern as Display name**: the current agency is shown as text until Change is selected.
+- **Map-stop guidance is now shorter and always visible**: the setting explains boarding versus exiting without hiding the context behind an info button.
+- **Public identities now use hyphens for new handles**: existing underscore-based profiles and links continue to work.
+- **Reserved public identities now use regular value styling**: the `@username` no longer appears as a bold heading.
+- **The sharing control now labels the destination as Profile URL**: the row label and Share link action no longer repeat the same wording.
+- **Identity permanence is now explained before selection**: reserved identities no longer show a late warning after the choice is already locked.
+- **Public identity emoji spacing is now fixed-width**: the three choices stay tightly packed instead of expanding across the row.
+- **Display name now renders its saved value before editing**: Profile no longer incorrectly shows “Not set” until Change is clicked.
+- **Public identity emojis now stay grouped together**: the picker no longer stretches the three choices across the settings card.
+- **Public profile sharing now uses a single Share link action**: the long URL is hidden while sharing still works through the native share sheet or clipboard fallback.
+- **Settings saves now use the correct success feedback**: routine changes no longer appear as red error notifications.
+- **Profile and Sharing now sit beside each other on desktop**: the settings page no longer makes Sharing span the entire row beneath Profile.
+- **Display name now uses a quiet Change action**: the current name is shown as text and the editor appears only when requested.
+- **Password reset now aligns with the masked password status**: the text action sits beside the value it controls instead of floating between the two account lines.
+- **Profile settings now separate personal controls from sharing**: Display name and map stops stay under Profile, while visibility, identity, and the share link live under Sharing.
+- **Reset password is now a quiet text action**: the account section keeps its visual weight on the account information instead of a bordered button.
+- **Settings now use three clearer sections**: Account holds credentials, Map preferences holds agency and theme, and Profile holds display, map-stop, and public-profile choices.
+- **Public-profile settings now group the public-facing name with sharing controls**: Display name no longer sits among private account credentials.
+- **Account settings now use consistent status styling**: Email and Phone share one emphasized style, phone numbers use a readable format, and Password is represented as a compact masked status beside the reset action.
+- **Public-profile emoji choices now sit directly on the settings surface**: removed the distracting tile backgrounds so the identity reads as a simple three-emoji mark.
+- **Map-stop preferences now apply to public profiles too**: boarding or exiting stops stay consistent across both map views, and the public-profile settings are more compact with clearer labels and consistent controls.
 - **Phone sign-in now confirms delivery and keeps verification consistent**: “Code sent” briefly confirms the request, Continue uses the primary action style, resend stays in the code bar, and new requests are limited to once per minute.
 - **Phone validation now gives immediate field feedback**: an incomplete number gets a brief shake instead of a red error message below the form.
 - **Verification codes now use the same type style as phone sign-in**: the placeholder no longer switches to a strange-looking monospace zero.

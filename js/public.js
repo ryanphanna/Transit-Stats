@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('stat-countries-ridden').textContent = data.countries ?? 0;
 
         // Render Map
-        initPublicMap(data.points);
+        initPublicMap(data.points, data.mapStopMode);
         document.querySelector('.public-view')?.classList.remove('is-loading');
         document.getElementById('public-map-loading')?.remove();
 
@@ -78,7 +78,7 @@ function escapeHtml(value) {
     }[character]));
 }
 
-function initPublicMap(points) {
+function initPublicMap(points, mapStopMode = 'boarding') {
     const isDark = document.documentElement.dataset.theme === 'dark'
         || document.body.classList.contains('dark');
     const tileTheme = isDark ? 'dark_all' : 'light_all';
@@ -91,8 +91,8 @@ function initPublicMap(points) {
     const { map, markers, renderer } = surface;
 
     if (points && points.length > 0) {
-        // Match the signed-in map's default: show boarding stops first.
-        const visiblePoints = points.filter(point => point.type === 'start' || point.type === 'boarding');
+        const visibleType = mapStopMode === 'exiting' ? 'end' : 'start';
+        const visiblePoints = points.filter(point => point.type === visibleType);
         addMapPointMarkers({
             map,
             markers,

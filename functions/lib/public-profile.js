@@ -27,14 +27,19 @@ async function handlePublicProfile(req, res) {
     return;
   }
 
-  const username = String(req.query.user || '').trim().toLowerCase();
-  if (!username) {
-    res.status(400).json({ error: 'Missing user parameter' });
-    return;
-  }
+    const requestedUsername = String(req.query.user || '').trim().toLowerCase();
+    if (!requestedUsername) {
+        res.status(400).json({ error: 'Missing user parameter' });
+        return;
+    }
 
-  try {
-    const usernameDoc = await db.collection('usernames').doc(username).get();
+    try {
+    let username = requestedUsername;
+    let usernameDoc = await db.collection('usernames').doc(username).get();
+    if (!usernameDoc.exists && username.includes('-')) {
+      username = username.replace(/-/g, '_');
+      usernameDoc = await db.collection('usernames').doc(username).get();
+    }
     if (!usernameDoc.exists) {
       res.status(404).json({ error: 'User not found' });
       return;
@@ -117,6 +122,7 @@ async function handlePublicProfile(req, res) {
       username: profile.username || null,
       emoji: profile.emoji || null,
       defaultAgency: profile.defaultAgency || null,
+      mapStopMode: profile.mapStopMode === 'exiting' ? 'exiting' : 'boarding',
       totalTrips: tripsSnap.size,
       totalHours: Math.round((totalMinutes / 60) * 10) / 10,
       thisMonth,
@@ -130,7 +136,7 @@ async function handlePublicProfile(req, res) {
       })),
     });
   } catch (err) {
-    logger.error('Public profile lookup failed', { error: err.message, username });
+    logger.error('Public profile lookup failed', { error: err.message, username: requestedUsername });
     res.status(500).json({ error: 'Internal error' });
   }
 }

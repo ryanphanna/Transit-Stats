@@ -44,6 +44,20 @@ export function displayAgencyName(value) {
     return AGENCY_DISPLAY_NAMES[name] || name;
 }
 
+export function formatPhoneNumber(value) {
+    const phone = String(value || '').trim();
+    const digits = phone.replace(/\D/g, '');
+    const nationalDigits = digits.length === 11 && digits.startsWith('1')
+        ? digits.slice(1)
+        : digits;
+
+    if (nationalDigits.length === 10) {
+        return `(${nationalDigits.slice(0, 3)}) ${nationalDigits.slice(3, 6)}-${nationalDigits.slice(6)}`;
+    }
+
+    return phone || 'Not linked';
+}
+
 /**
  * TransitStats - Preference Management
  * Handles user profile settings, beta features, and agency preferences.
@@ -71,6 +85,9 @@ export const Profile = {
 
     setupListeners() {
         const agencySelect = document.getElementById('settings-agency');
+        const agencyField = document.getElementById('settings-agency-field');
+        const agencyDisplay = document.getElementById('settings-agency-display');
+        const changeAgencyButton = document.getElementById('btn-change-agency');
         const betaPredictions = document.getElementById('settings-beta-predictions');
         const publicProfile = document.getElementById('settings-public-profile');
         const themeSelect = document.getElementById('settings-theme');
@@ -81,13 +98,28 @@ export const Profile = {
                 input: agencySelect,
                 options: this.agencyOptions,
                 allowCustom: false,
-                onCommit: value => this.updateAgencyPreference(value),
+                onCommit: value => this.updateAgencyPreference(value).then(() => {
+                    agencyField?.classList.add('hidden');
+                    agencyDisplay?.classList.remove('hidden');
+                    changeAgencyButton?.classList.remove('hidden');
+                    this.syncAgencyOptions();
+                }),
                 onInvalid: () => UI.showNotification('Choose an agency from the suggestions.'),
             });
             document.getElementById('btn-clear-agency')?.addEventListener('click', () => {
                 this.agencyAutocomplete?.clear();
+                agencyField?.classList.add('hidden');
+                agencyDisplay?.classList.remove('hidden');
+                changeAgencyButton?.classList.remove('hidden');
             });
         }
+
+        changeAgencyButton?.addEventListener('click', () => {
+            agencyField?.classList.remove('hidden');
+            agencyDisplay?.classList.add('hidden');
+            changeAgencyButton.classList.add('hidden');
+            agencySelect?.focus();
+        });
 
         betaPredictions?.addEventListener('change', (e) => {
             this.updateSetting('betaFeatures', {
@@ -96,9 +128,29 @@ export const Profile = {
             });
         });
 
-        document.getElementById('btn-save-name')?.addEventListener('click', () => {
-            const name = document.getElementById('settings-name')?.value.trim();
-            if (name) this.updateSetting('displayName', name);
+        const nameInput = document.getElementById('settings-name');
+        const nameDisplay = document.getElementById('settings-name-display');
+        const changeNameButton = document.getElementById('btn-change-name');
+        const saveNameButton = document.getElementById('btn-save-name');
+
+        changeNameButton?.addEventListener('click', () => {
+            nameInput?.classList.remove('hidden');
+            nameDisplay?.classList.add('hidden');
+            changeNameButton.classList.add('hidden');
+            saveNameButton?.classList.remove('hidden');
+            nameInput?.focus();
+            nameInput?.select();
+        });
+
+        saveNameButton?.addEventListener('click', async () => {
+            const name = nameInput?.value.trim();
+            if (!name) return;
+            await this.updateSetting('displayName', name);
+            nameDisplay.textContent = name;
+            nameInput.classList.add('hidden');
+            nameDisplay.classList.remove('hidden');
+            saveNameButton.classList.add('hidden');
+            changeNameButton?.classList.remove('hidden');
         });
 
         publicProfile?.addEventListener('change', async (e) => {
@@ -107,7 +159,7 @@ export const Profile = {
             
             // Sync to all trips (Master Switch behavior)
             try {
-                UI.showNotification(`Syncing ${isPublic ? 'public' : 'private'} state to all trips...`);
+                UI.showNotification(`Syncing ${isPublic ? 'public' : 'private'} state to all trips...`, 'info');
                 const user = auth.currentUser;
                 const tripsSnap = await db.collection('trips').where('userId', '==', user.uid).get();
 
@@ -120,7 +172,7 @@ export const Profile = {
                     });
                     await batch.commit();
                 }
-                UI.showNotification('All trips updated.');
+                UI.showNotification('All trips updated.', 'success');
             } catch (err) {
                 console.error('Trip sync failed:', err);
                 UI.showNotification('Failed to sync trips: ' + err.message);
@@ -300,14 +352,20 @@ export const Profile = {
         const defaultValue = String(this.data?.defaultAgency || '').trim();
         const options = [...optionsByValue.values()].sort((a, b) => a.label.localeCompare(b.label));
         const automatic = this.data?.defaultAgencyMode === 'automatic';
+        const agencyDisplay = document.getElementById('settings-agency-display');
+        const selectedAgency = options.find(option => option.value.toLowerCase() === defaultValue.toLowerCase());
+        const effectiveAutomatic = automatic || !selectedAgency;
 
         agencyEl.disabled = false;
-        agencyEl.placeholder = automatic ? 'Automatic' : 'Search agencies…';
+        agencyEl.placeholder = effectiveAutomatic ? 'Automatic' : 'Search agencies…';
+        if (agencyDisplay && document.getElementById('settings-agency-field')?.classList.contains('hidden')) {
+            agencyDisplay.textContent = effectiveAutomatic ? 'Automatic' : selectedAgency.label;
+        }
         if (this.agencyAutocomplete) {
             this.agencyAutocomplete.setOptions(options);
-            this.agencyAutocomplete.setValue(automatic ? '' : defaultValue);
-        } else if (defaultValue) {
-            agencyEl.value = displayAgencyName(defaultValue);
+            this.agencyAutocomplete.setValue(effectiveAutomatic ? '' : selectedAgency.value);
+        } else if (!effectiveAutomatic) {
+            agencyEl.value = selectedAgency.label;
         }
     },
 
@@ -358,10 +416,14 @@ export const Profile = {
         const mapStopModeEl = document.getElementById('settings-map-stop-mode');
 
         if (emailEl) emailEl.textContent = email || auth.currentUser?.email || '—';
-        if (phoneEl) phoneEl.textContent = this.phone || 'Not linked';
+        if (phoneEl) phoneEl.textContent = formatPhoneNumber(this.phone);
         
         const nameEl = document.getElementById('settings-name');
         if (nameEl) nameEl.value = this.getDisplayName();
+        const nameDisplayEl = document.getElementById('settings-name-display');
+        if (nameDisplayEl && nameEl?.classList.contains('hidden')) {
+            nameDisplayEl.textContent = this.getDisplayName() || 'Not set';
+        }
 
         // Update Global Header/Dashboard Name
         const profileName = document.getElementById('profile-name');
@@ -398,12 +460,20 @@ export const Profile = {
 
         // --- Identity UI ---
         const username = this.data?.username;
+        const identityRow = document.querySelector('.settings-identity-row');
         if (username) {
-            this.currentTriplet = username.split('_');
+            identityRow?.classList.add('is-reserved');
+            this.currentTriplet = username.split(/[-_]/);
             const saveBtn = document.getElementById('btn-save-identity');
             if (saveBtn) saveBtn.style.display = 'none';
             const help = document.getElementById('settings-identity-help');
-            if (help) help.textContent = 'This public identity cannot be changed after it is reserved.';
+            if (help) {
+                help.textContent = '';
+                help.classList.add('hidden');
+            }
+        } else {
+            identityRow?.classList.remove('is-reserved');
+            document.getElementById('settings-identity-help')?.classList.remove('hidden');
         }
         
         document.querySelectorAll('.emoji-slot').forEach((slot, i) => {
@@ -420,15 +490,39 @@ export const Profile = {
             const url = username ? `${baseUrl}/public?user=${username}` : '';
             
             if (url) {
-                publicLinkEl.innerHTML = `
-                    <div class="public-link-box">
-                        <span class="public-url">${url}</span>
-                        <button id="btn-copy-public-link" class="btn btn-sm btn-ghost">Copy</button>
-                    </div>
-                `;
-                document.getElementById('btn-copy-public-link')?.addEventListener('click', () => {
-                    navigator.clipboard.writeText(url);
-                    UI.showNotification('Link copied to clipboard!', 'success');
+                publicLinkEl.innerHTML = '';
+                const linkBox = document.createElement('div');
+                linkBox.className = 'public-link-box';
+
+                const link = document.createElement('a');
+                link.className = 'public-url settings-profile-url';
+                link.href = url;
+                link.target = '_blank';
+                link.rel = 'noopener';
+                link.textContent = url;
+
+                const shareButton = document.createElement('button');
+                shareButton.id = 'btn-share-public-link';
+                shareButton.className = 'btn btn-link settings-text-action';
+                shareButton.textContent = navigator.share ? 'Share' : 'Copy';
+                linkBox.append(link, shareButton);
+                publicLinkEl.append(linkBox);
+
+                shareButton.addEventListener('click', async () => {
+                    if (navigator.share) {
+                        try {
+                            await navigator.share({
+                                title: `${this.getDisplayName() || 'My'} TransitStats`,
+                                url,
+                            });
+                            return;
+                        } catch (error) {
+                            if (error?.name === 'AbortError') return;
+                        }
+                    }
+
+                    await navigator.clipboard.writeText(url);
+                    UI.showNotification('Link copied.', 'success');
                 });
             } else {
                 publicLinkEl.textContent = 'Pick your identity to enable sharing.';
@@ -466,7 +560,7 @@ export const Profile = {
             Object.assign(this.data, changes);
             window.currentUserProfile = this.data;
             
-            UI.showNotification('Preference saved.');
+            UI.showNotification('Saved.', 'success');
         } catch (err) {
             console.error('Save failed:', err);
             UI.showNotification('Failed to save: ' + err.message);
@@ -483,9 +577,14 @@ export const Profile = {
         }
 
         try {
-            const existing = await db.collection('usernames').doc(username).get();
-            if (existing.exists) {
-                UI.showNotification('This emoji combination is already taken! Try another.');
+            const legacyUsername = username.replace(/-/g, '_');
+            const usernameDocs = await Promise.all(
+                [...new Set([username, legacyUsername])].map(candidate => (
+                    db.collection('usernames').doc(candidate).get()
+                )),
+            );
+            if (usernameDocs.some(existing => existing.exists)) {
+                UI.showNotification('That public identity is already in use. Choose another.');
                 return;
             }
 

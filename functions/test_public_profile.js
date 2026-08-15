@@ -98,7 +98,7 @@ test('publicProfile returns 200 with aggregated stats for a public profile', asy
   ];
   const handler = loadPublicProfile({
     docs: { usernames: { alice: { exists: true, data: () => ({ uid: 'u1' }) } } },
-    profile: { isPublic: true, displayName: 'Alice', username: 'alice', defaultAgency: 'TTC' },
+    profile: { isPublic: true, displayName: 'Alice', username: 'alice', defaultAgency: 'TTC', mapStopMode: 'exiting' },
     tripsSnap: { size: 1, forEach: (fn) => tripDocs.forEach(fn) },
   });
   const res = mockRes();
@@ -109,6 +109,7 @@ test('publicProfile returns 200 with aggregated stats for a public profile', asy
   assert.equal(res.body.points.length, 2);
   assert.deepEqual(res.body.points[0].names, ['Start']);
   assert.equal(res.body.displayName, 'Alice');
+  assert.equal(res.body.mapStopMode, 'exiting');
 });
 
 test('publicProfile returns 500 and does not leak internal error detail on unexpected failure', async () => {
