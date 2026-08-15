@@ -8,7 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
-- Cluster nearby map stops at lower zoom levels and recalculate visible intensity so city-level patterns stay readable.
+- Cluster nearby map stops lightly at lower zoom levels so city-level patterns stay readable without hiding nearby stops.
 
 - Apply SMS verification cooldowns and daily limits to regular users while letting admins request codes without those caps.
 

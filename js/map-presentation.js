@@ -86,9 +86,9 @@ export function groupMapPoints(points = [], getLabel = () => null) {
 
 export function clusterMapPoints(points = [], map, { zoom = map?.getZoom?.() } = {}) {
     const currentZoom = Number.isFinite(zoom) ? zoom : 13;
-    if (!map || currentZoom >= 13) return points;
+    if (!map || currentZoom >= 11) return points;
 
-    const cellSize = currentZoom <= 8 ? 48 : currentZoom <= 10 ? 40 : 32;
+    const cellSize = currentZoom <= 8 ? 36 : 28;
     const clusters = new Map();
 
     points.forEach(point => {
