@@ -9,6 +9,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 ## [Unreleased]
 
 ### Changed
+- **The dashboard now verifies the Leaflet CDN script before loading it.**
 - **Public profile pages now render their returned stats instead of staying on the zero-state screen.**
 - **Admin profile links can use a custom username while preserving the emoji URL as an alias.**
 - **Share actions now fail quietly when the browser cannot share or copy a link.**
