@@ -255,6 +255,30 @@ html[data-theme="dark"] body.settings-surface .header {
   padding: 12px 16px;
 }
 
+.settings-coming-soon {
+  padding: 24px 20px;
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+}
+
+.settings-custom-username-value-row,
+.settings-custom-username-editor {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.settings-custom-username-editor {
+  align-items: center;
+  margin-top: 8px;
+}
+
+.settings-custom-username-editor .minimal-input {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .settings-public-profile-group .settings-identity-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

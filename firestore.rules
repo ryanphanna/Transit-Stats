@@ -121,9 +121,16 @@ service cloud.firestore {
       allow read: if true; // Public profiles must be resolvable without auth
       allow create: if request.auth != null 
         && request.resource.data.uid == request.auth.uid
-        && username.size() >= 3
+        && username.size() >= 1
         && username.size() <= 20
-        && username.matches('^[a-z0-9_]+$');
+        && (
+          (request.resource.data.type == 'custom'
+            && isAdmin()
+            && username.matches('^[a-z0-9-]+$'))
+          ||
+          (request.resource.data.type == 'emoji'
+            && username.matches('^[a-z0-9_-]+$'))
+        );
       allow update, delete: if false; // Usernames are permanent for now
     }
 

@@ -2,6 +2,7 @@ import firebase, { db, auth } from './firebase.js';
 import { UI } from './ui-utils.js';
 import { Identity } from './identity.js';
 import { createAgencyAutocomplete } from './agency-autocomplete.js';
+import { UsernameGenerator } from './username-generator.js';
 
 const AGENCY_DISPLAY_NAMES = {
     TTC: 'Toronto Transit Commission',
@@ -40,8 +41,23 @@ const BUILT_IN_AGENCY_OPTIONS = Object.entries(AGENCY_DISPLAY_NAMES)
     .map(([value, label]) => ({ value, label }));
 const PUBLIC_PROFILE_BETA_USERNAME = 'subway-subway-subway';
 
-function isPublicProfileBetaOwner(username) {
-    return String(username || '').trim().toLowerCase().replace(/_/g, '-') === PUBLIC_PROFILE_BETA_USERNAME;
+function normalizeUsername(username) {
+    return String(username || '').trim().toLowerCase().replace(/_/g, '-');
+}
+
+function isEmojiUsername(username) {
+    const keys = String(username || '').split(/[-_]/).filter(Boolean);
+    return keys.length === 3 && keys.every(key => Object.prototype.hasOwnProperty.call(Identity.LIBRARY, key));
+}
+
+function getEmojiUsername(profile = {}) {
+    const candidates = [profile.emojiUsername, ...(profile.usernameAliases || []), profile.username];
+    return candidates.find(isEmojiUsername) || '';
+}
+
+function isPublicProfileBetaOwner(profile = {}) {
+    const candidates = [profile.username, profile.emojiUsername, ...(profile.usernameAliases || [])];
+    return candidates.some(username => normalizeUsername(username) === PUBLIC_PROFILE_BETA_USERNAME);
 }
 
 export function displayAgencyName(value) {
@@ -93,6 +109,11 @@ export const Profile = {
         const agencyField = document.getElementById('settings-agency-field');
         const agencyDisplay = document.getElementById('settings-agency-display');
         const changeAgencyButton = document.getElementById('btn-change-agency');
+        const customUsernameDisplay = document.getElementById('settings-custom-username-display');
+        const customUsernameInput = document.getElementById('settings-custom-username');
+        const changeCustomUsernameButton = document.getElementById('btn-change-custom-username');
+        const saveCustomUsernameButton = document.getElementById('btn-save-custom-username');
+        const customUsernameEditor = document.getElementById('settings-custom-username-editor');
         const betaPredictions = document.getElementById('settings-beta-predictions');
         const publicProfile = document.getElementById('settings-public-profile');
         const themeSelect = document.getElementById('settings-theme');
@@ -124,6 +145,18 @@ export const Profile = {
             agencyDisplay?.classList.add('hidden');
             changeAgencyButton.classList.add('hidden');
             agencySelect?.focus();
+        });
+
+        changeCustomUsernameButton?.addEventListener('click', () => {
+            customUsernameDisplay?.classList.add('hidden');
+            changeCustomUsernameButton.classList.add('hidden');
+            customUsernameEditor?.classList.remove('hidden');
+            customUsernameInput?.focus();
+            customUsernameInput?.select();
+        });
+
+        saveCustomUsernameButton?.addEventListener('click', async () => {
+            await this.reserveCustomUsername(customUsernameInput?.value || '');
         });
 
         betaPredictions?.addEventListener('change', (e) => {
@@ -465,17 +498,33 @@ export const Profile = {
             localStorage.setItem('transitstats-map-stop-mode', mode);
         }
 
-        const publicProfileBetaOwner = isPublicProfileBetaOwner(this.data?.username);
+        const username = this.data?.username;
+        const emojiUsername = getEmojiUsername(this.data || {});
+        const customUsername = username && !isEmojiUsername(username) ? username : '';
+        const adminUsernameEl = document.getElementById('settings-admin-username');
+        const customUsernameDisplayEl = document.getElementById('settings-custom-username-display');
+        const customUsernameInputEl = document.getElementById('settings-custom-username');
+        const customUsernameEditorEl = document.getElementById('settings-custom-username-editor');
+        const changeCustomUsernameButtonEl = document.getElementById('btn-change-custom-username');
+        if (adminUsernameEl) adminUsernameEl.classList.toggle('hidden', !window.isAdmin);
+        if (window.isAdmin) {
+            if (customUsernameDisplayEl) customUsernameDisplayEl.textContent = customUsername ? `@${customUsername}` : 'Not set';
+            if (customUsernameInputEl) customUsernameInputEl.value = customUsername;
+            customUsernameDisplayEl?.classList.remove('hidden');
+            customUsernameEditorEl?.classList.add('hidden');
+            changeCustomUsernameButtonEl?.classList.remove('hidden');
+        }
+
+        const publicProfileBetaOwner = isPublicProfileBetaOwner(this.data || {});
         sharingContentEl?.classList.toggle('hidden', !publicProfileBetaOwner);
         sharingComingSoonEl?.classList.toggle('hidden', publicProfileBetaOwner);
         if (!publicProfileBetaOwner) return;
 
         // --- Identity UI ---
-        const username = this.data?.username;
         const identityRow = document.querySelector('.settings-identity-row');
         if (username) {
             identityRow?.classList.add('is-reserved');
-            this.currentTriplet = username.split(/[-_]/);
+            if (emojiUsername) this.currentTriplet = emojiUsername.split(/[-_]/);
             const saveBtn = document.getElementById('btn-save-identity');
             if (saveBtn) saveBtn.style.display = 'none';
             const help = document.getElementById('settings-identity-help');
@@ -602,11 +651,15 @@ export const Profile = {
 
             await db.collection('usernames').doc(username).set({
                 uid: user.uid,
+                type: 'emoji',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             });
 
             await db.collection('profiles').doc(user.uid).set({
                 username,
+                emojiUsername: username,
+                usernameAliases: [username],
+                usernameType: 'emoji',
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
             }, { merge: true });
 
@@ -618,6 +671,63 @@ export const Profile = {
         } catch (err) {
             console.error('Username save failed:', err);
             UI.showNotification('Failed to reserve identity: ' + err.message);
+        }
+    },
+
+    async reserveCustomUsername(value) {
+        const user = auth.currentUser;
+        if (!user || !window.isAdmin) return;
+
+        const validation = UsernameGenerator.isCustomValid(value);
+        if (!validation.valid) {
+            UI.showNotification(validation.error);
+            return;
+        }
+
+        const username = validation.value;
+        const currentUsername = this.data?.username || '';
+        if (currentUsername === username) return;
+
+        try {
+            const legacyUsername = username.replace(/-/g, '_');
+            const usernameDocs = await Promise.all(
+                [...new Set([username, legacyUsername])].map(candidate => (
+                    db.collection('usernames').doc(candidate).get()
+                )),
+            );
+            const occupiedByOtherUser = usernameDocs.some(existing => existing.exists && existing.data()?.uid !== user.uid);
+            if (occupiedByOtherUser) {
+                UI.showNotification('That username is already in use. Choose another.');
+                return;
+            }
+
+            const emojiUsername = getEmojiUsername(this.data || {}) || currentUsername;
+            const aliases = [...new Set([
+                ...(this.data?.usernameAliases || []),
+                emojiUsername,
+                currentUsername,
+            ].filter(Boolean))];
+
+            await db.collection('usernames').doc(username).set({
+                uid: user.uid,
+                type: 'custom',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+            await db.collection('profiles').doc(user.uid).set({
+                username,
+                emojiUsername,
+                usernameAliases: aliases,
+                usernameType: 'custom',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            }, { merge: true });
+
+            this.data = { ...this.data, username, emojiUsername, usernameAliases: aliases, usernameType: 'custom' };
+            window.currentUserProfile = this.data;
+            this.syncUI(user.email);
+            UI.showNotification('Custom username saved.', 'success');
+        } catch (err) {
+            console.error('Custom username save failed:', err);
+            UI.showNotification('Failed to save username: ' + err.message);
         }
     },
 };

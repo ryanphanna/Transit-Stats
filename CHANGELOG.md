@@ -8,6 +8,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- Allow admins to reserve a moderated custom username while preserving their emoji URL as an alias.
+
 - Move profile links to `/user/<username>` and keep public profiles in a private beta for the owner account while pricing is decided.
 
 - Match the Settings header to the dashboard’s floating navigation treatment.

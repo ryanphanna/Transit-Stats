@@ -40,6 +40,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const data = await res.json();
 
+        if (data.canonicalUsername) {
+            const canonicalPath = `/user/${encodeURIComponent(data.canonicalUsername)}`;
+            if (window.location.pathname !== canonicalPath) {
+                window.history.replaceState({}, document.title, canonicalPath);
+            }
+        }
+
         // Render Profile Header
         document.getElementById('profile-name').textContent = data.displayName || 'Traveler';
 

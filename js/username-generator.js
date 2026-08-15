@@ -7,7 +7,22 @@ export const UsernameGenerator = {
     FUN: ['Panda', 'Taco', 'Pizza', 'Falcon', 'Robot', 'Wizard', 'Captain', 'Ninja', 'Cookie', 'Cactus', 'Ghost', 'Donut'],
 
     // Obvious blocks - expand as needed
-    BLACKLIST: ['admin', 'transitstats', 'support', 'staff', 'moderator', 'ilikepussy', 'pussy', 'dick', 'fuck', 'shit', 'asshole', 'nigger', 'faggot'],
+    BLACKLIST: ['admin', 'transitstats', 'support', 'staff', 'moderator', 'public', 'user', 'settings', 'dashboard', 'map', 'routes', 'login', 'api', 'ilikepussy', 'pussy', 'dick', 'fuck', 'shit', 'asshole', 'nigger', 'faggot'],
+
+    isCustomValid(username) {
+        if (!username) return { valid: false, error: 'Username is required.' };
+        const clean = username.trim().toLowerCase();
+        if (!/^[a-z0-9-]{1,20}$/.test(clean)) {
+            return { valid: false, error: 'Use 1–20 lowercase letters, numbers, or hyphens.' };
+        }
+        if (clean.startsWith('-') || clean.endsWith('-') || clean.includes('--')) {
+            return { valid: false, error: 'Use hyphens only between characters.' };
+        }
+        if (this.BLACKLIST.some(word => clean.includes(word))) {
+            return { valid: false, error: 'This username is not allowed.' };
+        }
+        return { valid: true, value: clean };
+    },
 
     generate() {
         const pool = [this.ADJECTIVES, this.TRANSIT, this.FUN];

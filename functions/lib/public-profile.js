@@ -13,8 +13,9 @@ const { db, getUserProfile } = require('./db');
 const logger = require('./logger');
 const PUBLIC_PROFILE_BETA_USERNAME = 'subway-subway-subway';
 
-function isPublicProfileBetaOwner(username) {
-  return String(username || '').replace(/_/g, '-') === PUBLIC_PROFILE_BETA_USERNAME;
+function isPublicProfileBetaOwner(profile = {}) {
+  const candidates = [profile.username, profile.emojiUsername, ...(profile.usernameAliases || [])];
+  return candidates.some(username => String(username || '').replace(/_/g, '-') === PUBLIC_PROFILE_BETA_USERNAME);
 }
 
 const AGENCY_COUNTRIES = new Map([
@@ -49,18 +50,18 @@ async function handlePublicProfile(req, res) {
       res.status(404).json({ error: 'User not found' });
       return;
     }
-    if (!isPublicProfileBetaOwner(requestedUsername)) {
-      res.status(403).json({
-        code: 'COMING_SOON',
-        error: 'Public profiles are coming soon.',
-      });
-      return;
-    }
     const userId = usernameDoc.data().uid;
 
     const profile = await getUserProfile(userId);
     if (!profile || !profile.isPublic) {
       res.status(403).json({ error: 'This profile is private' });
+      return;
+    }
+    if (!isPublicProfileBetaOwner(profile)) {
+      res.status(403).json({
+        code: 'COMING_SOON',
+        error: 'Public profiles are coming soon.',
+      });
       return;
     }
 
@@ -132,6 +133,7 @@ async function handlePublicProfile(req, res) {
     res.status(200).json({
       displayName: profile.displayName || profile.name || null,
       username: profile.username || null,
+      canonicalUsername: profile.username || requestedUsername,
       emoji: profile.emoji || null,
       defaultAgency: profile.defaultAgency || null,
       mapStopMode: profile.mapStopMode === 'exiting' ? 'exiting' : 'boarding',

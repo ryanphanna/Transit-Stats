@@ -108,6 +108,20 @@
                         <div id="sharing-settings" class="settings-group settings-public-profile-group">
                             <div class="settings-group-title"><span>Sharing</span></div>
                             <div class="settings-card premium-card">
+                                <div id="settings-admin-username" class="settings-row settings-admin-username-row hidden">
+                                    <div class="settings-label-group">
+                                        <span class="settings-main-label">Custom username</span>
+                                        <span class="settings-sub-label">Admins only</span>
+                                        <div class="settings-custom-username-value-row">
+                                            <span id="settings-custom-username-display" class="settings-main-label settings-account-value">Not set</span>
+                                            <button id="btn-change-custom-username" class="btn btn-link settings-text-action">Change</button>
+                                        </div>
+                                        <div id="settings-custom-username-editor" class="settings-custom-username-editor hidden">
+                                            <input id="settings-custom-username" class="minimal-input" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="e.g. r" aria-label="Custom username">
+                                            <button id="btn-save-custom-username" class="btn btn-link settings-text-action">Save</button>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div id="settings-sharing-coming-soon" class="settings-coming-soon hidden">
                                     Public profiles are coming soon.
                                 </div>
