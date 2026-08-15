@@ -7,8 +7,8 @@ export function addMapZoomControl(map) {
     const control = L.control({ position: 'bottomright' });
     control.onAdd = targetMap => {
         const container = L.DomUtil.create('div', 'atlas-zoom-control');
-        const zoomOut = L.DomUtil.create('button', 'atlas-zoom-button atlas-zoom-button-out', container);
         const zoomIn = L.DomUtil.create('button', 'atlas-zoom-button atlas-zoom-button-in', container);
+        const zoomOut = L.DomUtil.create('button', 'atlas-zoom-button atlas-zoom-button-out', container);
 
         zoomOut.type = 'button';
         zoomOut.textContent = '−';

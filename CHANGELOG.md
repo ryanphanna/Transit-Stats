@@ -6,6 +6,16 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Changed
+- **Public profile pages now render their returned stats instead of staying on the zero-state screen.**
+- **Admin profile links can use a custom username while preserving the emoji URL as an alias.**
+- **Share actions now fail quietly when the browser cannot share or copy a link.**
+- **Recent activity replaces the vague “Recent movement” dashboard label.**
+- **Possessive name endings now use the same emphasis as the display name.**
+- **Map zoom controls are stacked vertically for a more familiar layout.**
+
 ## [1.48.0] — 2026-08-14
 
 ### Changed

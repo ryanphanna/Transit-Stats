@@ -132,18 +132,24 @@ function setupShareMap() {
         }
 
         const url = `${window.location.origin}/user/${encodeURIComponent(username)}`;
-        try {
-            if (navigator.share) {
+        if (navigator.share) {
+            try {
                 await navigator.share({
                     title: `${Profile.getDisplayName() || 'My'} TransitStats map`,
                     url,
                 });
                 return;
+            } catch (error) {
+                if (error?.name === 'AbortError') return;
             }
+        }
+
+        try {
+            if (!navigator.clipboard?.writeText) return;
             await navigator.clipboard.writeText(url);
             UI.showNotification('Map link copied to clipboard.', 'success');
-        } catch (error) {
-            if (error?.name !== 'AbortError') UI.showNotification('Could not share your map.');
+        } catch {
+            // Sharing is optional; avoid surfacing a generic failure toast.
         }
     });
 }
