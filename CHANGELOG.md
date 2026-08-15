@@ -8,6 +8,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- Add a PRESTO pilot upload that previews multiple reports and imports activity in user-scoped batches.
+
 - Add email-only pilot sign-in so PRESTO trials do not require a second phone number.
 
 - Add an isolated PRESTO report preview that keeps fare transactions separate from canonical trip history.

@@ -227,3 +227,63 @@ describe('firestore.rules: trips are never publicly readable', () => {
         await assertSucceeds(getDoc(doc(ownerDb, 'trips/trip_1')));
     });
 });
+
+describe('firestore.rules: PRESTO activity is user-scoped', () => {
+    beforeAll(async () => {
+        testEnv = await initializeTestEnvironment({
+            projectId: PROJECT_ID,
+            firestore: {
+                rules: readFileSync(RULES_PATH, 'utf8'),
+            },
+        });
+    });
+
+    beforeEach(async () => {
+        if (testEnv) await testEnv.clearFirestore();
+    });
+
+    afterAll(async () => {
+        if (testEnv) await testEnv.cleanup();
+    });
+
+    test('owner can create and read their own PRESTO activity', async () => {
+        const ownerDb = authedDb('user_1', 'user@example.com');
+        const activity = doc(ownerDb, 'prestoTransactions/transaction_1');
+        await assertSucceeds(setDoc(activity, {
+            userId: 'user_1',
+            source: 'presto',
+            type: 'fare_payment',
+        }));
+        await assertSucceeds(getDoc(activity));
+    });
+
+    test('another user cannot read or create activity for the owner', async () => {
+        await testEnv.withSecurityRulesDisabled(async (context) => {
+            await setDoc(doc(context.firestore(), 'prestoTransactions/transaction_1'), {
+                userId: 'user_1',
+                source: 'presto',
+            });
+        });
+
+        const otherDb = authedDb('user_2', 'other@example.com');
+        await assertFails(getDoc(doc(otherDb, 'prestoTransactions/transaction_1')));
+        await assertFails(setDoc(doc(otherDb, 'prestoTransactions/transaction_2'), {
+            userId: 'user_1',
+            source: 'presto',
+        }));
+    });
+
+    test('owner cannot change activity ownership', async () => {
+        await testEnv.withSecurityRulesDisabled(async (context) => {
+            await setDoc(doc(context.firestore(), 'prestoTransactions/transaction_1'), {
+                userId: 'user_1',
+                source: 'presto',
+            });
+        });
+
+        const ownerDb = authedDb('user_1', 'user@example.com');
+        await assertFails(updateDoc(doc(ownerDb, 'prestoTransactions/transaction_1'), {
+            userId: 'user_2',
+        }));
+    });
+});
