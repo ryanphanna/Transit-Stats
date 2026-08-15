@@ -392,6 +392,7 @@ body.dark .dashboard-map-wash {
 
 .atlas-fact span {
   display: block;
+  min-height: 2.04em;
   color: var(--text-muted);
   font-size: 0.59rem;
   font-weight: 800;
