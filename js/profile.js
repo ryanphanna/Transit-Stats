@@ -38,6 +38,11 @@ const AGENCY_DISPLAY_NAMES = {
 
 const BUILT_IN_AGENCY_OPTIONS = Object.entries(AGENCY_DISPLAY_NAMES)
     .map(([value, label]) => ({ value, label }));
+const PUBLIC_PROFILE_BETA_USERNAME = 'subway-subway-subway';
+
+function isPublicProfileBetaOwner(username) {
+    return String(username || '').trim().toLowerCase().replace(/_/g, '-') === PUBLIC_PROFILE_BETA_USERNAME;
+}
 
 export function displayAgencyName(value) {
     const name = String(value || '').trim();
@@ -411,6 +416,8 @@ export const Profile = {
         const phoneEl = document.getElementById('settings-phone');
         const betaEl = document.getElementById('settings-beta-predictions');
         const publicProfileEl = document.getElementById('settings-public-profile');
+        const sharingContentEl = document.getElementById('settings-sharing-content');
+        const sharingComingSoonEl = document.getElementById('settings-sharing-coming-soon');
         const publicLinkEl = document.getElementById('settings-public-link');
         const themeEl = document.getElementById('settings-theme');
         const mapStopModeEl = document.getElementById('settings-map-stop-mode');
@@ -458,6 +465,11 @@ export const Profile = {
             localStorage.setItem('transitstats-map-stop-mode', mode);
         }
 
+        const publicProfileBetaOwner = isPublicProfileBetaOwner(this.data?.username);
+        sharingContentEl?.classList.toggle('hidden', !publicProfileBetaOwner);
+        sharingComingSoonEl?.classList.toggle('hidden', publicProfileBetaOwner);
+        if (!publicProfileBetaOwner) return;
+
         // --- Identity UI ---
         const username = this.data?.username;
         const identityRow = document.querySelector('.settings-identity-row');
@@ -487,7 +499,7 @@ export const Profile = {
         if (publicLinkEl) {
             const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
             const baseUrl = isLocal ? 'https://transitstats.fyi' : window.location.origin;
-            const url = username ? `${baseUrl}/public?user=${username}` : '';
+            const url = username ? `${baseUrl}/user/${encodeURIComponent(username)}` : '';
             
             if (url) {
                 publicLinkEl.innerHTML = '';

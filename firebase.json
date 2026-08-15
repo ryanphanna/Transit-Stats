@@ -95,6 +95,10 @@
           "destination": "/public.html"
         },
         {
+          "source": "/user/**",
+          "destination": "/public.html"
+        },
+        {
           "source": "/settings",
           "destination": "/settings.html"
         },
@@ -231,6 +235,10 @@
         },
         {
           "source": "/public",
+          "destination": "/public.html"
+        },
+        {
+          "source": "/user/**",
           "destination": "/public.html"
         },
         {

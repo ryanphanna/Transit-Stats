@@ -11,6 +11,11 @@
 const { onRequest } = require('firebase-functions/v2/https');
 const { db, getUserProfile } = require('./db');
 const logger = require('./logger');
+const PUBLIC_PROFILE_BETA_USERNAME = 'subway-subway-subway';
+
+function isPublicProfileBetaOwner(username) {
+  return String(username || '').replace(/_/g, '-') === PUBLIC_PROFILE_BETA_USERNAME;
+}
 
 const AGENCY_COUNTRIES = new Map([
   ...['TTC', 'GO', 'GO Transit', 'MiWay', 'YRT', 'Brampton Transit', 'Durham Transit', 'HSR', 'GRT', 'Grand River Transit', 'OC Transpo', 'STM', 'TransLink', 'Oakville Transit', 'GTAA Terminal Link', 'Flagship Cruises & Events', 'Exo', 'CDPQ Infra', 'Niagara Region Transit'].map(agency => [agency.toLowerCase(), 'Canada']),
@@ -42,6 +47,13 @@ async function handlePublicProfile(req, res) {
     }
     if (!usernameDoc.exists) {
       res.status(404).json({ error: 'User not found' });
+      return;
+    }
+    if (!isPublicProfileBetaOwner(requestedUsername)) {
+      res.status(403).json({
+        code: 'COMING_SOON',
+        error: 'Public profiles are coming soon.',
+      });
       return;
     }
     const userId = usernameDoc.data().uid;

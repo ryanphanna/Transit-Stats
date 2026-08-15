@@ -8,6 +8,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- Move profile links to `/user/<username>` and keep public profiles in a private beta for the owner account while pricing is decided.
+
 - Match the Settings header to the dashboard’s floating navigation treatment.
 
 - Align the Primary agency value and Change action on one baseline.

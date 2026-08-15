@@ -108,34 +108,39 @@
                         <div id="sharing-settings" class="settings-group settings-public-profile-group">
                             <div class="settings-group-title"><span>Sharing</span></div>
                             <div class="settings-card premium-card">
-                                <div class="settings-row">
-                                    <div class="settings-label-group">
-                                        <span class="settings-sub-label">Allow others to view your shared stats page</span>
-                                    </div>
-                                    <input type="checkbox" id="settings-public-profile" aria-label="Allow others to view your shared stats page">
+                                <div id="settings-sharing-coming-soon" class="settings-coming-soon hidden">
+                                    Public profiles are coming soon.
                                 </div>
-                                <div class="settings-row settings-identity-row">
-                                    <span class="settings-main-label">Public identity</span>
-                                    <div id="emoji-identity-picker" class="emoji-picker-container">
-                                        <div class="emoji-slots">
-                                            <div class="emoji-slot" data-index="0">❓</div>
-                                            <div class="emoji-slot" data-index="1">❓</div>
-                                            <div class="emoji-slot" data-index="2">❓</div>
+                                <div id="settings-sharing-content">
+                                    <div class="settings-row">
+                                        <div class="settings-label-group">
+                                            <span class="settings-sub-label">Allow others to view your shared stats page</span>
                                         </div>
-                                        <button id="btn-save-identity" class="btn btn-sm btn-primary">Save identity</button>
+                                        <input type="checkbox" id="settings-public-profile" aria-label="Allow others to view your shared stats page">
                                     </div>
-                                    <span id="settings-identity-help" class="settings-sub-label">Choose carefully — this identity can’t be changed later.</span>
-                                    <div id="settings-username-display" class="settings-main-label settings-account-value text-xxs text-muted"></div>
-                                </div>
-                                <div class="settings-row">
-                                    <div class="settings-label-group">
-                                        <span class="settings-main-label">Profile URL</span>
-                                        <span id="settings-public-link" class="settings-main-label text-xs">Pick your identity to enable sharing.</span>
+                                    <div class="settings-row settings-identity-row">
+                                        <span class="settings-main-label">Public identity</span>
+                                        <div id="emoji-identity-picker" class="emoji-picker-container">
+                                            <div class="emoji-slots">
+                                                <div class="emoji-slot" data-index="0">❓</div>
+                                                <div class="emoji-slot" data-index="1">❓</div>
+                                                <div class="emoji-slot" data-index="2">❓</div>
+                                            </div>
+                                            <button id="btn-save-identity" class="btn btn-sm btn-primary">Save identity</button>
+                                        </div>
+                                        <span id="settings-identity-help" class="settings-sub-label">Choose carefully — this identity can’t be changed later.</span>
+                                        <div id="settings-username-display" class="settings-main-label settings-account-value text-xxs text-muted"></div>
                                     </div>
-                                </div>
-                                <!-- Emoji Picker Popover -->
-                                <div id="emoji-popover" class="emoji-popover hidden">
-                                    <div class="emoji-grid"></div>
+                                    <div class="settings-row">
+                                        <div class="settings-label-group">
+                                            <span class="settings-main-label">Profile URL</span>
+                                            <span id="settings-public-link" class="settings-main-label text-xs">Pick your identity to enable sharing.</span>
+                                        </div>
+                                    </div>
+                                    <!-- Emoji Picker Popover -->
+                                    <div id="emoji-popover" class="emoji-popover hidden">
+                                        <div class="emoji-grid"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

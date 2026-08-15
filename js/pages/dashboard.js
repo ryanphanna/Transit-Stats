@@ -133,7 +133,7 @@ function setupShareMap() {
             return;
         }
 
-        const url = `${window.location.origin}/public?user=${encodeURIComponent(username)}`;
+        const url = `${window.location.origin}/user/${encodeURIComponent(username)}`;
         try {
             if (navigator.share) {
                 await navigator.share({

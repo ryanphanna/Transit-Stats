@@ -6,8 +6,9 @@ import { createMapSurface, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from './map-su
 
 // Public Profile Logic
 document.addEventListener('DOMContentLoaded', async () => {
+    const pathMatch = window.location.pathname.match(/^\/user\/([^/]+)\/?$/i);
     const params = new URLSearchParams(window.location.search);
-    const username = params.get('user');
+    const username = pathMatch ? decodeURIComponent(pathMatch[1]) : params.get('user');
 
     if (!username) {
         showError('No user specified');
@@ -19,6 +20,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         // this endpoint reads them server-side with the Admin SDK and returns only
         // aggregate/anonymized fields (totals + lat/lng points, no route/stop/userId).
         const res = await fetch(`https://us-central1-transitstats-21ba4.cloudfunctions.net/publicProfile?user=${encodeURIComponent(username.toLowerCase())}`);
+        const errorData = res.ok ? null : await res.json().catch(() => ({}));
+        if (errorData.code === 'COMING_SOON') {
+            showError('Public profiles are coming soon.');
+            return;
+        }
         if (res.status === 404) {
             showError('User not found');
             return;
@@ -28,7 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         if (!res.ok) {
-            showError('Error loading profile');
+            showError(errorData.error || 'Error loading profile');
             return;
         }
 
