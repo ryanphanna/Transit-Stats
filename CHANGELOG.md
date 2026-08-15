@@ -6,6 +6,12 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Changed
+- **Admin profile links can use a custom username while preserving the emoji URL as an alias.**
+- **Share actions now fail quietly when the browser cannot share or copy a link.**
+
 ## [1.48.0] — 2026-08-14
 
 ### Changed

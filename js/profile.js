@@ -319,8 +319,13 @@ export const Profile = {
                         }
                     }
 
-                    await navigator.clipboard.writeText(url);
-                    UI.showNotification('Link copied.', 'success');
+                    try {
+                        if (!navigator.clipboard?.writeText) return;
+                        await navigator.clipboard.writeText(url);
+                        UI.showNotification('Link copied.', 'success');
+                    } catch {
+                        // Sharing is optional; avoid surfacing a generic failure toast.
+                    }
                 });
             } else {
                 publicLinkEl.textContent = 'Pick your identity to enable sharing.';
