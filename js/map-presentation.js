@@ -84,6 +84,45 @@ export function groupMapPoints(points = [], getLabel = () => null) {
     return [...grouped.values()];
 }
 
+export function clusterMapPoints(points = [], map, { zoom = map?.getZoom?.() } = {}) {
+    const currentZoom = Number.isFinite(zoom) ? zoom : 13;
+    if (!map || currentZoom >= 13) return points;
+
+    const cellSize = currentZoom <= 8 ? 48 : currentZoom <= 10 ? 40 : 32;
+    const clusters = new Map();
+
+    points.forEach(point => {
+        const projected = map.project([point.lat, point.lng], currentZoom);
+        const cellX = Math.floor(projected.x / cellSize);
+        const cellY = Math.floor(projected.y / cellSize);
+        const key = `${point.type}:${cellX}:${cellY}`;
+        const usage = Math.max(1, Number(point.usage) || 1);
+        const existing = clusters.get(key);
+
+        if (existing) {
+            existing.lat += point.lat * usage;
+            existing.lng += point.lng * usage;
+            existing.usage += usage;
+            point.labels?.forEach(label => existing.labels.add(label));
+            return;
+        }
+
+        clusters.set(key, {
+            lat: point.lat * usage,
+            lng: point.lng * usage,
+            type: point.type,
+            usage,
+            labels: new Set(point.labels || []),
+        });
+    });
+
+    return [...clusters.values()].map(cluster => ({
+        ...cluster,
+        lat: cluster.lat / cluster.usage,
+        lng: cluster.lng / cluster.usage,
+    }));
+}
+
 export function getUsageMarkerStyle(point, maxUsage, { baseRadius = 4 } = {}) {
     const usageRatio = maxUsage <= 1
         ? 0
@@ -112,20 +151,33 @@ export function addMapPointMarkers({
 } = {}) {
     if (!markers) return [];
     const grouped = groupMapPoints(points, getLabel);
-    const maxUsage = Math.max(...grouped.map(point => point.usage), 1);
-    markers.clearLayers();
+    const renderMarkers = () => {
+        const visibleGroups = clusterMapPoints(grouped, map);
+        const maxUsage = Math.max(...visibleGroups.map(point => point.usage), 1);
+        markers.clearLayers();
 
-    grouped.forEach(point => {
-        const marker = L.circleMarker([point.lat, point.lng], {
-            renderer,
-            ...getUsageMarkerStyle(point, maxUsage, { baseRadius }),
+        visibleGroups.forEach(point => {
+            const marker = L.circleMarker([point.lat, point.lng], {
+                renderer,
+                ...getUsageMarkerStyle(point, maxUsage, { baseRadius }),
+            });
+            const popup = [...point.labels].map(formatPopup).filter(Boolean).join('<br>');
+            if (popup && map) addZoomGatedPopup(marker, map, popup);
+            markers.addLayer(marker);
         });
-        const popup = [...point.labels].map(formatPopup).filter(Boolean).join('<br>');
-        if (popup && map) addZoomGatedPopup(marker, map, popup);
-        markers.addLayer(marker);
-    });
 
-    return grouped;
+        return visibleGroups;
+    };
+
+    if (map) {
+        if (map.__transitStatsMarkerZoomHandler) {
+            map.off('zoomend', map.__transitStatsMarkerZoomHandler);
+        }
+        map.__transitStatsMarkerZoomHandler = renderMarkers;
+        map.on('zoomend', renderMarkers);
+    }
+
+    return renderMarkers();
 }
 
 export function addZoomGatedPopup(marker, map, popup) {

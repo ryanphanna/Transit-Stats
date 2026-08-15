@@ -8,6 +8,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- Cluster nearby map stops at lower zoom levels and recalculate visible intensity so city-level patterns stay readable.
+
 - Apply SMS verification cooldowns and daily limits to regular users while letting admins request codes without those caps.
 
 - Allow admins to reserve a moderated custom username while preserving their emoji URL as an alias.
