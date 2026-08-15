@@ -10,7 +10,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Changed
 
-- **Imported PRESTO activity shows on the map once its stop is uniquely known**, leaving ambiguous or unresolved locations for later matching instead of guessing.
+- **Imported PRESTO activity shows on the dashboard map and, for flagged pilot profiles, the public map, once its stop is uniquely known**, leaving ambiguous or unresolved locations for later matching instead of guessing.
 - **Imported PRESTO activity stays visible while stop matching is deferred**, so an unclear location doesn't block the rest of the import.
 - **PRESTO pilot uploads now preview multiple reports and import activity in user-scoped batches.**
 - **PRESTO trials can sign in with email only**, so trying the pilot doesn't require a second phone number.
