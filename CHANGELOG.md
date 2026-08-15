@@ -8,6 +8,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- Add automated validation for normalized stop supplements so malformed coordinates and duplicate stop codes are caught early.
+
 - Move verified stop supplements into a separately loaded JSON asset so the map’s main bundle stays smaller.
 
 - Add browser smoke checks and direct OTP/API handler tests so auth regressions are caught before release.
