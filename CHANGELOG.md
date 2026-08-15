@@ -8,6 +8,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+## [1.49.0] — 2026-08-15
+
 ### Changed
 - **Admin now has a protected processing overview** for users, login activity, ride finalization, stop matching, AI queries, and prediction-model usage.
 - **Admin navigation now uses the shared shell and keeps Rocket out of the normal menu** while preserving its protected direct route.
