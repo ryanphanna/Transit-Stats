@@ -8,6 +8,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- Keep imported PRESTO activity available while stop matching is deferred, so unclear locations do not block the import.
+
 - Add a PRESTO pilot upload that previews multiple reports and imports activity in user-scoped batches.
 
 - Add email-only pilot sign-in so PRESTO trials do not require a second phone number.

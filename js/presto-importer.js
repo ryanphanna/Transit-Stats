@@ -100,6 +100,9 @@ function toRecord(row, rowNumber, fileName) {
         location: rawLocation,
         locationLabel: LOCATION_ALIASES.get(rawLocation) || rawLocation,
         locationAliasApplied: LOCATION_ALIASES.has(rawLocation),
+        // Stop resolution is deliberately deferred. The raw PRESTO activity
+        // remains importable even when a location is ambiguous or unknown.
+        stopMatchStatus: 'pending',
         raw: row,
     };
 }
@@ -195,6 +198,7 @@ export function initPrestoImporter({ user }) {
                 `${summary.first || 'Unknown'} to ${summary.last || 'unknown'}`,
                 `Agencies: ${agencySummary || 'none'}`,
                 summary.invalidRows ? `${summary.invalidRows} rows need review and will not be imported.` : 'All rows passed basic validation.',
+                'Stop matching happens after import. Unclear locations will still be saved and can be matched later.',
             ].join('\n');
             show(preview, true);
             show(actions, summary.invalidRows === 0 && pendingRecords.length > 0);
@@ -229,7 +233,7 @@ export function initPrestoImporter({ user }) {
                 await batch.commit();
             }
             const imported = await db.collection('prestoTransactions').where('userId', '==', user.uid).get();
-            status(statusElement, `${records.length} rows processed; ${imported.size} unique PRESTO records now stored. Re-imports will not create duplicates.`, 'success');
+            status(statusElement, `${records.length} rows processed; ${imported.size} unique PRESTO records now stored. Stop matching will continue later, and re-imports will not create duplicates.`, 'success');
             show(actions, false);
         } catch (error) {
             status(statusElement, error.message || 'Could not import PRESTO activity.');
