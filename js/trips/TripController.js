@@ -17,7 +17,7 @@ export const TripController = {
         this.unsubscribe = db.collection('trips')
             .where('userId', '==', userId)
             .orderBy('startTime', 'desc')
-            .onSnapshot(snap => {
+            .onSnapshot({ includeMetadataChanges: true }, snap => {
                 const now = Date.now();
                 const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 

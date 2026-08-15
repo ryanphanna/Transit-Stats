@@ -88,7 +88,9 @@ export function clusterMapPoints(points = [], map, { zoom = map?.getZoom?.() } =
     const currentZoom = Number.isFinite(zoom) ? zoom : 13;
     if (!map || currentZoom >= 10) return points;
 
-    const cellSize = currentZoom <= 8 ? 24 : 18;
+    // Keep more geographic detail visible in the wide view without changing
+    // marker size or making city-level clusters compete with each other.
+    const cellSize = currentZoom <= 8 ? 12 : 14;
     const clusters = new Map();
 
     points.forEach(point => {

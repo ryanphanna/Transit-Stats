@@ -1,4 +1,4 @@
-import { db } from './firebase.js';
+import { db, firestorePersistenceReady } from './firebase.js';
 import { TripController } from './trips/TripController.js';
 import { TripFeed } from './trips/TripFeed.js';
 import { TripStatsView } from './trips/TripStatsView.js';
@@ -17,6 +17,10 @@ export const Trips = {
 
     async init() {
         this._readyPromise = new Promise(resolve => { this._resolveReady = resolve; });
+
+        // Let Firestore finish opening its local cache before attaching the
+        // trip listener, so repeat visits can render cached trips immediately.
+        await firestorePersistenceReady;
         
         // Connect to Firestore
         if (window.currentUser) {
