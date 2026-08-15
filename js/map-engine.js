@@ -1,6 +1,7 @@
 import { UI } from './ui-utils.js';
 import { PredictionEngine } from './predict.js';
 import { buildStopIndex, resolveStopLocation } from './atlas-stop-resolver.js';
+import { preparePrestoStops, resolvePrestoStopLocation } from './presto-stop-matcher.js';
 import { getTripStopLabel } from './trip-display.js';
 import { createMapSurface, DEFAULT_MAP_CENTER } from './map-surface.js';
 import {
@@ -43,6 +44,7 @@ export const MapEngine = {
     _renderTimer: null,
     _lastLibSize: 0,
     _stopIndex: new Map(),
+    _prestoStops: [],
     _stopSourcesReady: false,
     _usesMarkerClusters: false,
     _canvasRenderer: null,
@@ -168,6 +170,7 @@ export const MapEngine = {
     setStopSources({ atlasStops = [], firestoreStops = [] } = {}) {
         PredictionEngine.stopsLibrary = firestoreStops;
         this._stopIndex = buildStopIndex({ atlasStops, normalizedStops: firestoreStops });
+        this._prestoStops = preparePrestoStops({ atlasStops, firestoreStops });
         this._stopSourcesReady = true;
         this._skipLookup.clear();
         return this.map ? this.renderMarkers() : Promise.resolve();
@@ -242,6 +245,12 @@ export const MapEngine = {
     },
 
     _resolveStop(trip, side) {
+        if (trip.source === 'presto') {
+            return side === 'boarding'
+                ? resolvePrestoStopLocation(trip, this._prestoStops)
+                : { source: 'unresolved', location: null, matchStatus: 'not_applicable', candidates: [] };
+        }
+
         if (this._stopSourcesReady) return resolveStopLocation(trip, side, this._stopIndex);
 
         const saved = side === 'boarding'

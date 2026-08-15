@@ -8,6 +8,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- Show imported PRESTO fare activity on the map when its stop is uniquely known, while leaving ambiguous and unresolved locations for later matching.
+
 - Keep imported PRESTO activity available while stop matching is deferred, so unclear locations do not block the import.
 
 - Add a PRESTO pilot upload that previews multiple reports and imports activity in user-scoped batches.

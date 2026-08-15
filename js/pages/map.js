@@ -27,6 +27,8 @@ async function init() {
         console.log("Map: Initializing MapEngine");
         let normalizedStops = [];
         let atlasStops = [];
+        let canonicalTrips = [];
+        let prestoActivities = [];
         MapEngine.setStopSources({ atlasStops, firestoreStops: normalizedStops });
         MapEngine.init([], null, { deferInitialView: true });
         setTimeout(() => { if (MapEngine.map) MapEngine.map.invalidateSize(); }, 150);
@@ -66,20 +68,43 @@ async function init() {
             }
         };
 
+        const refreshMapActivities = () => {
+            const trips = [...canonicalTrips, ...prestoActivities];
+            MapEngine.updateTrips(trips);
+            const agencies = [...new Set(trips.map(trip => trip.agency || 'TTC'))];
+            return loadMissingAtlasStops(agencies)
+                .catch(error => {
+                    console.warn('Map: Atlas stop loading failed', error);
+                })
+                .then(() => MapEngine.releaseInitialView())
+                .then(() => setMapLoading(null));
+        };
+
         db.collection('trips')
             .where('userId', '==', user.uid)
             .orderBy('startTime', 'desc')
             .onSnapshot(snap => {
-                const trips = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                MapEngine.updateTrips(trips);
-                const agencies = [...new Set(trips.map(trip => trip.agency || 'TTC'))];
-                loadMissingAtlasStops(agencies).catch(error => {
-                    console.warn('Map: Atlas stop loading failed', error);
-                }).then(() => MapEngine.releaseInitialView())
-                    .then(() => setMapLoading(null));
+                canonicalTrips = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                refreshMapActivities();
             }, err => {
                 console.error('Map trips stream error:', err);
                 setMapLoading('Could not load your trips.');
+            });
+
+        db.collection('prestoTransactions')
+            .where('userId', '==', user.uid)
+            .onSnapshot(snap => {
+                prestoActivities = snap.docs
+                    .map(doc => ({ id: `presto:${doc.id}`, ...doc.data() }))
+                    .filter(record => record.type === 'fare_payment' && (record.locationLabel || record.location))
+                    .map(record => ({
+                        ...record,
+                        source: 'presto',
+                        startStopName: record.locationLabel || record.location,
+                    }));
+                refreshMapActivities();
+            }, err => {
+                console.warn('Map PRESTO activity stream error:', err);
             });
         
         console.log("Map: Init completed successfully");
