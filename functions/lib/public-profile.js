@@ -242,4 +242,9 @@ async function handlePublicProfile(req, res) {
   }
 }
 
-exports.publicProfile = onRequest({ concurrency: 80, maxInstances: 10 }, handlePublicProfile);
+const publicProfileOptions = { concurrency: 80, maxInstances: 10 };
+
+exports.publicProfile = onRequest(publicProfileOptions, handlePublicProfile);
+// Pull-request previews use a separate function name so the preview can be
+// deployed without replacing the live public-profile endpoint.
+exports.publicProfilePreview = onRequest(publicProfileOptions, handlePublicProfile);

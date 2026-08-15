@@ -19,7 +19,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Trips are never publicly readable from Firestore (see firestore.rules) —
         // this endpoint reads them server-side with the Admin SDK and returns only
         // aggregate/anonymized fields (totals + lat/lng points, no route/stop/userId).
-        const res = await fetch(`https://us-central1-transitstats-21ba4.cloudfunctions.net/publicProfile?user=${encodeURIComponent(username.toLowerCase())}`);
+        const functionName = import.meta.env.VITE_PUBLIC_PROFILE_FUNCTION || 'publicProfile';
+        const res = await fetch(`https://us-central1-transitstats-21ba4.cloudfunctions.net/${functionName}?user=${encodeURIComponent(username.toLowerCase())}`);
         const errorData = res.ok ? null : await res.json().catch(() => ({}));
         if (errorData.code === 'COMING_SOON') {
             showError('Public profiles are coming soon.');
