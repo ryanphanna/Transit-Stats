@@ -18,6 +18,7 @@ const DOM = {
 
 let normalizedPhone = '';
 let requestBusy = false;
+let adminSession = false;
 let resendSeconds = 0;
 let resendTimer = null;
 let phoneCooldownTimer = null;
@@ -99,6 +100,7 @@ function phoneCooldownKey(phone) {
 }
 
 function getPhoneCooldownSeconds(phone) {
+    if (adminSession) return 0;
     try {
         const until = Number(localStorage.getItem(phoneCooldownKey(phone)) || 0);
         const seconds = Math.ceil((until - Date.now()) / 1000);
@@ -112,6 +114,12 @@ function persistPhoneCooldown(phone) {
     try {
         localStorage.setItem(phoneCooldownKey(phone), String(Date.now() + RESEND_COOLDOWN_SECONDS * 1000));
     } catch { /* The server still enforces the cooldown. */ }
+}
+
+function clearPhoneCooldown(phone) {
+    try {
+        localStorage.removeItem(phoneCooldownKey(phone));
+    } catch { /* Ignore unavailable storage. */ }
 }
 
 function updateRequestButton() {
@@ -142,10 +150,11 @@ function updateResendButton() {
     DOM.resendCode.textContent = coolingDown ? `Resend (${resendSeconds}s)` : 'Resend code';
 }
 
-function startResendCooldown() {
+function startResendCooldown(skipCooldown = false) {
     window.clearInterval(resendTimer);
-    resendSeconds = RESEND_COOLDOWN_SECONDS;
+    resendSeconds = skipCooldown ? 0 : RESEND_COOLDOWN_SECONDS;
     updateResendButton();
+    if (skipCooldown) return;
     resendTimer = window.setInterval(() => {
         resendSeconds -= 1;
         updateResendButton();
@@ -193,7 +202,7 @@ async function requestCode() {
 
     normalizedPhone = normalizePhone(DOM.phoneInput.value);
     const existingCooldown = getPhoneCooldownSeconds(normalizedPhone);
-    if (existingCooldown > 0) {
+    if (!adminSession && existingCooldown > 0) {
         setStatus(`Please wait ${existingCooldown} seconds before requesting another code.`);
         updateRequestButton();
         return;
@@ -203,8 +212,10 @@ async function requestCode() {
     setBusy(DOM.requestCode, true, 'Sending…', 'Text me a code');
 
     try {
-        await Auth.requestPhoneCode(normalizedPhone);
-        persistPhoneCooldown(normalizedPhone);
+        const result = await Auth.requestPhoneCode(normalizedPhone);
+        adminSession = result.isAdmin === true;
+        if (adminSession) clearPhoneCooldown(normalizedPhone);
+        else persistPhoneCooldown(normalizedPhone);
         DOM.requestCode.innerHTML = 'Code sent <i data-lucide="check" aria-hidden="true"></i>';
         if (window.lucide) lucide.createIcons();
         await wait(350);
@@ -212,7 +223,7 @@ async function requestCode() {
         DOM.heading.textContent = 'Enter the 6-digit code';
         await transitionAuthStep(DOM.phoneStep, DOM.codeStep);
         DOM.codeInput.focus();
-        startResendCooldown();
+        startResendCooldown(adminSession);
     } catch (error) {
         setStatus(error.message);
     } finally {

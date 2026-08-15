@@ -11,6 +11,10 @@ const { dispatch } = require('./lib/dispatcher');
 const { apiContextStorage, sendSmsReply } = require('./lib/twilio');
 const logger = require('./lib/logger');
 
+const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
+const OTP_DAILY_LIMIT = 5;
+const OTP_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 // Initialize Admin SDK if not already done
 if (getApps().length === 0) {
   initializeApp({
@@ -47,6 +51,21 @@ function normalizePhoneNumber(phone) {
   return ((phone || '').startsWith('+') ? '' : '+') + cleaned;
 }
 
+async function isAdminPhone(phoneDoc) {
+  const data = phoneDoc.data() || {};
+  if (data.userId) {
+    const profile = await db.collection('profiles').doc(data.userId).get();
+    if (profile.exists && profile.data()?.isAdmin === true) return true;
+  }
+
+  if (data.email) {
+    const allowedUser = await db.collection('allowedUsers').doc(String(data.email).toLowerCase()).get();
+    return allowedUser.exists && allowedUser.data()?.isAdmin === true;
+  }
+
+  return false;
+}
+
 /**
  * Handle passwordless login OTP request
  */
@@ -68,17 +87,39 @@ async function handleRequestOtp(req, res, traceId) {
       return;
     }
 
+    const isAdmin = await isAdminPhone(phoneDoc);
+
     const verificationRef = db.collection('phoneLoginVerification').doc(phoneNumber);
+    const limitRef = db.collection('phoneLoginOtpLimits').doc(phoneNumber);
     const code = randomInt(100000, 1000000).toString();
     const expiresAt = Timestamp.fromDate(new Date(Date.now() + 10 * 60 * 1000));
     let secondsRemaining = 0;
+    let dailyLimitReached = false;
+    const reservedSentAt = Date.now() + Math.random();
 
     await db.runTransaction(async (transaction) => {
-      const existingVerification = await transaction.get(verificationRef);
-      const lastSentAt = existingVerification.exists ? existingVerification.data().sentAt : null;
-      if (lastSentAt?.toDate) {
-        secondsRemaining = Math.ceil((lastSentAt.toDate().getTime() + 60 * 1000 - Date.now()) / 1000);
+        const existingVerification = await transaction.get(verificationRef);
+        const lastSentAt = existingVerification.exists ? existingVerification.data().sentAt : null;
+      if (!isAdmin && lastSentAt?.toDate) {
+        secondsRemaining = Math.ceil((lastSentAt.toDate().getTime() + OTP_RESEND_COOLDOWN_MS - Date.now()) / 1000);
         if (secondsRemaining > 0) return;
+      }
+
+      if (!isAdmin) {
+        const existingLimit = await transaction.get(limitRef);
+        const sentAt = existingLimit.exists ? existingLimit.data().sentAt : [];
+        const recentSentAt = Array.isArray(sentAt)
+          ? sentAt.filter(value => Number(value) > Date.now() - OTP_LIMIT_WINDOW_MS)
+          : [];
+        if (recentSentAt.length >= OTP_DAILY_LIMIT) {
+          dailyLimitReached = true;
+          return;
+        }
+
+        transaction.set(limitRef, {
+          sentAt: [...recentSentAt, reservedSentAt],
+          updatedAt: Timestamp.now(),
+        });
       }
 
       transaction.set(verificationRef, {
@@ -94,17 +135,25 @@ async function handleRequestOtp(req, res, traceId) {
       return;
     }
 
+    if (dailyLimitReached) {
+      res.status(429).json({ error: 'Daily text limit reached. Try again tomorrow.' });
+      return;
+    }
+
     const message = `Your TransitStats login verification code is: ${code}`;
     const smsSent = await sendSmsReply(phoneNumber, message);
     if (!smsSent) {
       await verificationRef.delete();
+      if (!isAdmin) {
+        await limitRef.update({ sentAt: FieldValue.arrayRemove(reservedSentAt) }).catch(() => {});
+      }
       logger.error('OTP Request failed: Twilio send failed', { phoneNumber, traceId }, traceId);
       res.status(500).json({ error: 'Failed to send SMS verification code. Please try again.' });
       return;
     }
 
     logger.info('OTP code sent successfully', { phoneNumber, traceId }, traceId);
-    res.status(200).json({ success: true });
+    res.status(200).json({ success: true, isAdmin });
   } catch (error) {
     logger.error('Error in request_otp handler', { error: error.message, phoneNumber, traceId }, traceId);
     res.status(500).json({ error: 'Internal Server Error', traceId });
