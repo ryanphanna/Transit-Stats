@@ -13,6 +13,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Share actions now fail quietly when the browser cannot share or copy a link.**
 - **Recent activity replaces the vague “Recent movement” dashboard label.**
 - **Possessive name endings now use the same emphasis as the display name.**
+- **Map zoom controls are stacked vertically for a more familiar layout.**
 
 ## [1.48.0] — 2026-08-14
 
