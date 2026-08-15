@@ -55,4 +55,13 @@ describe('clusterMapPoints', () => {
 
         expect(clusterMapPoints(points, map, { zoom: 9 })).toHaveLength(1);
     });
+
+    it('keeps more distinct locations visible in the wide view', () => {
+        const points = [
+            { lat: 1, lng: 1, type: 'boarding', usage: 1 },
+            { lat: 1, lng: 1.15, type: 'boarding', usage: 1 },
+        ];
+
+        expect(clusterMapPoints(points, map, { zoom: 8 })).toHaveLength(2);
+    });
 });
