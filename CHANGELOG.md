@@ -9,6 +9,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 ## [Unreleased]
 
 ### Changed
+- **Admin now has a protected processing overview** for users, login activity, ride finalization, stop matching, AI queries, and prediction-model usage.
+- **Admin navigation now uses the shared shell and keeps Rocket out of the normal menu** while preserving its protected direct route.
 - **Prediction grading tests now use the normal V3 path explicitly**, so experimental-model access controls cannot make the end-to-end safety check flaky.
 - **Large ride totals now use thousands separators consistently on dashboard and public profiles.**
 - **Dashboard and public-profile cards now share one renderer and parity checks, preventing copy and layout drift between surfaces.**

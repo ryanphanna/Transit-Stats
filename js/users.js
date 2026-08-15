@@ -71,15 +71,15 @@ export const Users = {
         list.innerHTML = this.profiles.map(u => {
             const name = Utils.hide(u.displayName || u.name || 'Traveler');
             const email = Utils.hide(u.email || '—');
-            const phone = u.phone ? Utils.hide(u.phone) : '<span style="color:var(--text-muted)">No phone</span>';
+            const phone = u.phone ? Utils.hide(u.phone) : '<span class="admin-user-phone-muted">No phone</span>';
             const badge = u.isPremium
-                ? '<span class="badge" style="background:var(--success);color:#fff;margin-left:6px">Premium</span>'
-                : '<span class="badge" style="background:var(--bg-tertiary);color:var(--text-muted);margin-left:6px">Free</span>';
+                ? '<span class="badge admin-user-badge admin-user-badge-premium">Premium</span>'
+                : '<span class="badge admin-user-badge admin-user-badge-free">Free</span>';
             const btnLabel = u.isPremium ? 'Revoke' : 'Grant Premium';
             const btnClass = u.isPremium ? 'btn btn-sm btn-danger-outline' : 'btn btn-sm btn-primary';
 
             return `
-                <div class="inbox-item">
+                <div class="inbox-item admin-user-row">
                     <div class="inbox-item-content">
                         <span class="inbox-item-name">${name}${badge}</span>
                         <span class="inbox-item-meta">${email} &middot; ${phone}</span>

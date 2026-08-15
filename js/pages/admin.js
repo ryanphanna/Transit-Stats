@@ -6,6 +6,7 @@ import { Trips } from '../trips.js';
 import { Utils } from '../utils.js';
 import { UI } from '../ui-utils.js';
 import { Profile } from '../profile.js';
+import { loadAdminMetrics } from '../admin-metrics.js';
 
 window.Admin = Admin;
 window.Utils = Utils;
@@ -27,6 +28,8 @@ async function init() {
     const { user, isAdmin } = await requireAuth({ adminOnly: true });
     await Profile.load(user);
     initHeader({ isAdmin, currentPage: 'admin' });
+
+    loadAdminMetrics(document.querySelector('[data-admin-metrics]'));
 
     setupModalListeners();
 

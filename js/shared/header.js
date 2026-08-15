@@ -20,7 +20,6 @@ function _render(isAdmin, currentPage) {
             { id: 'admin', label: 'Stops', icon: 'database', href: '/admin' },
             { id: 'users', label: 'Users', icon: 'users', href: '/users' },
             { id: 'insights', label: 'Insights', icon: 'line-chart', href: '/insights' },
-            ...(isAdmin ? [{ id: 'rocket', label: 'Rocket', icon: 'rocket', href: '/rocket' }] : []),
         ]
         : ['dashboard', 'settings'].includes(currentPage) ? [] : [
             { id: 'map', label: 'Stops', icon: 'map-pin', href: '/map' },
@@ -45,6 +44,10 @@ function _render(isAdmin, currentPage) {
                 </nav>
 
                 <div class="header-actions">
+                    ${isAdmin && !adminSurface ? `
+                        <a href="/admin" class="header-action-link header-admin-link" title="Admin">
+                            <span>Admin</span>
+                        </a>` : ''}
                     <a href="/settings" class="header-action-link ${currentPage === 'settings' ? 'active' : ''}" title="Settings">
                         <span>Settings</span>
                     </a>

@@ -4,6 +4,7 @@ const { getFirestore } = require('firebase-admin/firestore');
 
 const SESSION_COOKIE = 'transitstats_session';
 const SESSION_MAX_AGE_SECONDS = 5 * 24 * 60 * 60;
+const LOGIN_ACTIVITY_WINDOW_MS = 15 * 60 * 1000;
 const ALLOWED_HOSTS = new Set([
   'transitstats.fyi',
   'www.transitstats.fyi',
@@ -33,6 +34,32 @@ function getCookie(req) {
   const header = req.get('cookie') || '';
   const match = header.match(new RegExp(`(?:^|;\\s*)${SESSION_COOKIE}=([^;]+)`));
   return match ? decodeURIComponent(match[1]) : '';
+}
+
+async function recordLoginActivity(uid, host) {
+  if (!uid) return;
+  const db = getFirestore();
+  const ref = db.collection('loginActivity').doc(uid);
+  const now = new Date();
+
+  try {
+    await db.runTransaction(async transaction => {
+      const snapshot = await transaction.get(ref);
+      const data = snapshot.exists ? snapshot.data() : {};
+      const previous = data.lastLoginAt?.toDate ? data.lastLoginAt.toDate() : null;
+      if (previous && now.getTime() - previous.getTime() < LOGIN_ACTIVITY_WINDOW_MS) return;
+
+      transaction.set(ref, {
+        userId: uid,
+        loginCount: Number(data.loginCount || 0) + 1,
+        lastLoginAt: now,
+        lastHost: host || null,
+      }, { merge: true });
+    });
+  } catch (error) {
+    // Login tracking is diagnostic only and must never block authentication.
+    console.warn('Login activity could not be recorded:', error.message);
+  }
 }
 
 async function isAllowedUser(uid, email) {
@@ -75,6 +102,8 @@ async function handleAuthSession(req, res) {
         return;
       }
 
+      await recordLoginActivity(decoded.uid, getHost(req));
+
       const sessionCookie = await adminAuth.createSessionCookie(authHeader.slice(7), {
         expiresIn: SESSION_MAX_AGE_SECONDS * 1000,
       });
@@ -103,7 +132,7 @@ async function handleAuthSession(req, res) {
 
     const customToken = await adminAuth.createCustomToken(decoded.uid);
     res.status(200).json({ token: customToken });
-  } catch (error) {
+  } catch {
     if (req.method === 'GET') res.set('Set-Cookie', cookieHeader('', 0));
     res.status(401).json({ error: 'Shared session is invalid' });
   }
@@ -111,3 +140,4 @@ async function handleAuthSession(req, res) {
 
 exports.handleAuthSession = handleAuthSession;
 exports.authSession = onRequest({ concurrency: 80, maxInstances: 10 }, handleAuthSession);
+exports.recordLoginActivity = recordLoginActivity;

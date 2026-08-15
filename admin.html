@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="styles/main.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body>
+<body class="admin-surface">
     <main id="app-root">
         <section id="view-admin" class="view admin-view active">
             <div class="container admin-container">
@@ -19,6 +19,19 @@
                     <h1>Stop library</h1>
                     <p>Resolve, consolidate, and maintain the canonical stops used by TransitStats.</p>
                 </div>
+                <section class="admin-overview" aria-labelledby="admin-overview-title">
+                    <div class="admin-overview-header">
+                        <div>
+                            <p class="page-kicker">System health</p>
+                            <h2 id="admin-overview-title">Processing overview</h2>
+                            <p>Quick checks for automated ride processing, stop matching, and model activity.</p>
+                        </div>
+                        <span class="admin-metrics-updated" data-admin-metrics-updated>Loading…</span>
+                    </div>
+                    <div class="admin-metrics" data-admin-metrics>
+                        <p class="loading-state">Loading system metrics…</p>
+                    </div>
+                </section>
                 <div class="admin-grid">
                     <div class="col-library">
                         <div class="card">
