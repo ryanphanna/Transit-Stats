@@ -8,8 +8,6 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [1.47.16] — 2026-08-14
 
-- Replace Firebase compatibility APIs with modular Auth and Firestore calls without changing stored data.
-
 ### Added
 - **Shared sign-in across TransitStats surfaces** — moving between the regular, beta, and admin sites no longer requires another login.
 - **Theme choices and multi-agency route coverage** — choose System, Light, or Dark and see route progress across every agency you have ridden.
@@ -21,6 +19,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Route Tracker now loads agency route inventories** and compares them with saved rides.
 
 ### Changed
+- **Replaced Firebase compatibility APIs with modular Auth and Firestore calls** without changing stored data.
 - **Main, beta, and admin now deploy independently** so each hostname reflects its own branch.
 - **Map basemaps are now quieter and label-free** so personal trip data stays the visual focus.
 - **Trip-path beta lines now use uniform strokes and route colours** so overlapping routes remain readable.
