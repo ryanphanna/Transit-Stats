@@ -187,6 +187,20 @@ describe('E2E: basic trip lifecycle with background finalization', () => {
     assert.ok(startReply, 'should get start reply');
     assert.match(startReply, /Started/i);
 
+    // The first synthetic trip has no history, so the normal V3 predictor may
+    // legitimately return no candidate. Seed one explicitly so this test
+    // exercises grading without depending on the opt-in V4/V5 models.
+    const startedTrip = await getLatestTrip();
+    assert.ok(startedTrip, 'started trip should exist');
+    await db.collection('trips').doc(startedTrip.id).update({
+      prediction: {
+        route: '510',
+        stop: 'Spadina / College',
+        confidence: 0.5,
+        version: 'v3-e2e',
+      },
+    });
+
     await backdateActiveTripStart(10);
     const reply = await sms('END Spadina / Bloor');
     assert.ok(reply, 'should get end reply');

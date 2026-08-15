@@ -9,6 +9,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 ## [Unreleased]
 
 ### Changed
+- **Prediction grading tests now use the normal V3 path explicitly**, so experimental-model access controls cannot make the end-to-end safety check flaky.
 - **Large ride totals now use thousands separators consistently on dashboard and public profiles.**
 - **Dashboard and public-profile cards now share one renderer and parity checks, preventing copy and layout drift between surfaces.**
 - **Public profile links now show a clear not-found state and use the same title and branding as the signed-in dashboard.**
