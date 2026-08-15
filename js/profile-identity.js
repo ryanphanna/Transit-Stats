@@ -1,4 +1,4 @@
-import firebase, { db, auth } from './firebase.js';
+import { db, auth, serverTimestamp } from './firebase.js';
 import { UI } from './ui-utils.js';
 import { Identity } from './identity.js';
 import { UsernameGenerator } from './username-generator.js';
@@ -75,7 +75,7 @@ export async function reserveUsername(profile, username) {
         await db.collection('usernames').doc(username).set({
             uid: user.uid,
             type: 'emoji',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            createdAt: serverTimestamp(),
         });
 
         await db.collection('profiles').doc(user.uid).set({
@@ -83,7 +83,7 @@ export async function reserveUsername(profile, username) {
             emojiUsername: username,
             usernameAliases: [username],
             usernameType: 'emoji',
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: serverTimestamp(),
         }, { merge: true });
 
         profile.data = {
@@ -137,14 +137,14 @@ export async function reserveCustomUsername(profile, value) {
         await db.collection('usernames').doc(username).set({
             uid: user.uid,
             type: 'custom',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            createdAt: serverTimestamp(),
         });
         await db.collection('profiles').doc(user.uid).set({
             username,
             emojiUsername,
             usernameAliases: aliases,
             usernameType: 'custom',
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: serverTimestamp(),
         }, { merge: true });
 
         profile.data = { ...profile.data, username, emojiUsername, usernameAliases: aliases, usernameType: 'custom' };

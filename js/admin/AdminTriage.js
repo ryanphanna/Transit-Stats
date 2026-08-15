@@ -1,5 +1,4 @@
-import { db } from '../firebase.js';
-import firebase from '../firebase.js';
+import { arrayUnion, db } from '../firebase.js';
 import { Utils } from '../utils.js';
 import { UI } from '../ui-utils.js';
 import { TripController } from '../trips/TripController.js';
@@ -69,10 +68,10 @@ export const AdminTriage = {
 
         const updates = {};
         if (!alreadyAliased && item.rawName !== stop.name) {
-            updates.aliases = firebase.firestore.FieldValue.arrayUnion(item.rawName);
+            updates.aliases = arrayUnion(item.rawName);
         }
         if (!alreadyHasRoute) {
-            updates.routes = firebase.firestore.FieldValue.arrayUnion(item.route);
+            updates.routes = arrayUnion(item.route);
         }
         if (item.direction && !stop.direction) {
             updates.direction = item.direction;

@@ -8,6 +8,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- Replace Firebase compatibility APIs with modular Auth and Firestore calls, reducing the Firebase bundle by about 12% without changing stored data.
+
 - Add automated validation for normalized stop supplements so malformed coordinates and duplicate stop codes are caught early.
 
 - Move verified stop supplements into a separately loaded JSON asset so the map’s main bundle stays smaller.
