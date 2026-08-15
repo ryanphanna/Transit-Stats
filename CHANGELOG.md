@@ -8,6 +8,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- Match the Settings header to the dashboard’s floating navigation treatment.
+
 - Align the Primary agency value and Change action on one baseline.
 
 - Remove red UI treatments so errors, destructive actions, and sync progress stay within the site’s muted slate/green palette.
