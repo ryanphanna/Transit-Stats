@@ -15,6 +15,7 @@ const dashboardHtml = fs.readFileSync(path.join(root, 'dashboard.html'), 'utf8')
 const publicHtml = fs.readFileSync(path.join(root, 'public.html'), 'utf8');
 const mainCss = fs.readFileSync(path.join(root, 'styles/main.css'), 'utf8');
 const publicJs = fs.readFileSync(path.join(root, 'js/public.js'), 'utf8');
+const dashboardAtlasCss = fs.readFileSync(path.join(root, 'styles/pages/dashboard-atlas.css'), 'utf8');
 
 describe('shared Atlas card', () => {
     it('keeps both pages on the shared card renderer', () => {
@@ -44,7 +45,6 @@ describe('shared Atlas card', () => {
     });
 
     it('keeps the public mobile card compact enough to leave the map visible', () => {
-        const dashboardAtlasCss = fs.readFileSync(path.join(root, 'styles/pages/dashboard-atlas.css'), 'utf8');
         expect(dashboardAtlasCss).toContain('max-height: 52dvh');
         expect(dashboardAtlasCss).toContain('.public-view .atlas-card-period');
         expect(dashboardAtlasCss).toContain('overflow-x: auto');
@@ -55,6 +55,11 @@ describe('shared Atlas card', () => {
         expect(publicHtml).toContain('data-lucide="zap"');
         expect(publicJs).toContain("import { refreshIcons } from './shared/icons.js';");
         expect(publicJs).toContain('refreshIcons();');
+    });
+
+    it('keeps the public card hidden while profile data loads', () => {
+        expect(dashboardAtlasCss).toContain('.public-view.is-loading .atlas-identity-card');
+        expect(dashboardAtlasCss).toContain('visibility: hidden');
     });
 
     it('handles possessive names consistently', () => {
