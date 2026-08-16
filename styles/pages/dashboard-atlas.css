@@ -140,6 +140,10 @@ body.dark .dashboard-map-wash {
   pointer-events: auto;
 }
 
+.public-view.is-loading .atlas-identity-card {
+  visibility: hidden;
+}
+
 .atlas-map-label {
   position: absolute;
   top: 28px;
@@ -279,7 +283,7 @@ body.dark .dashboard-map-wash {
 }
 
 .atlas-title-tail {
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-weight: 900;
 }
 
