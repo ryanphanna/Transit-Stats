@@ -3,11 +3,13 @@ import {
     fitMapToDensePoints,
 } from './map-presentation.js';
 import { createMapSurface, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from './map-surface.js';
+import { refreshIcons } from './shared/icons.js';
 import { formatAtlasNumber, renderAtlasCard, setAtlasDisplayName } from './shared/atlas-card.js';
 
 // Public Profile Logic
 document.addEventListener('DOMContentLoaded', async () => {
     renderAtlasCard({ publicProfile: true });
+    refreshIcons();
     const pathMatch = window.location.pathname.match(/^\/user\/([^/]+)\/?$/i);
     const params = new URLSearchParams(window.location.search);
     const username = pathMatch ? decodeURIComponent(pathMatch[1]) : params.get('user');

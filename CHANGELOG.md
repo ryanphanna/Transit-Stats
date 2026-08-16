@@ -8,6 +8,12 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+### Fixed
+- **Hidden public-profile error cards no longer appear over valid profile maps.**
+- **Public profile cards are shorter on mobile**, keeping more of the map visible while retaining scrolling for the details.
+- **Mobile public-profile stats now stay in one horizontal, scrollable row** instead of stacking into two rows.
+- **The public-profile logo now renders its lightning icon** instead of showing an empty square.
+
 ## [1.49.0] — 2026-08-15
 
 ### Changed
