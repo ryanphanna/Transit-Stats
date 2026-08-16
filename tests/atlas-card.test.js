@@ -57,9 +57,13 @@ describe('shared Atlas card', () => {
         expect(publicJs).toContain('refreshIcons();');
     });
 
-    it('keeps the public card hidden while profile data loads', () => {
-        expect(dashboardAtlasCss).toContain('.public-view.is-loading .atlas-identity-card');
-        expect(dashboardAtlasCss).toContain('visibility: hidden');
+    it('keeps the public card visible with neutral placeholders while profile data loads', () => {
+        document.body.innerHTML = '<div data-atlas-card></div>';
+        const card = renderAtlasCard({ publicProfile: true, loading: true });
+        expect(card.classList.contains('is-loading')).toBe(true);
+        expect(card.getAttribute('aria-busy')).toBe('true');
+        expect(card.querySelector('#profile-name').textContent).toBe('');
+        expect(dashboardAtlasCss).toContain('.atlas-identity-card.is-loading h1::after');
     });
 
     it('handles possessive names consistently', () => {

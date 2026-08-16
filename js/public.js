@@ -8,7 +8,7 @@ import { formatAtlasNumber, renderAtlasCard, setAtlasDisplayName } from './share
 
 // Public Profile Logic
 document.addEventListener('DOMContentLoaded', async () => {
-    renderAtlasCard({ publicProfile: true });
+    renderAtlasCard({ publicProfile: true, loading: true });
     refreshIcons();
     const pathMatch = window.location.pathname.match(/^\/user\/([^/]+)\/?$/i);
     const params = new URLSearchParams(window.location.search);
@@ -61,6 +61,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('stat-days-ridden').textContent = formatAtlasNumber(data.daysRidden ?? 0);
         document.getElementById('stat-agencies-ridden').textContent = formatAtlasNumber(data.agencies ?? 0);
         document.getElementById('stat-countries-ridden').textContent = formatAtlasNumber(data.countries ?? 0);
+        const atlasCard = document.querySelector('[data-atlas-card]');
+        atlasCard?.classList.remove('is-loading');
+        atlasCard?.setAttribute('aria-busy', 'false');
 
         // Render Map
         initPublicMap(data.points, data.mapStopMode);

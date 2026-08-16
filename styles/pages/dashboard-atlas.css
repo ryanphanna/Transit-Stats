@@ -140,10 +140,6 @@ body.dark .dashboard-map-wash {
   pointer-events: auto;
 }
 
-.public-view.is-loading .atlas-identity-card {
-  visibility: hidden;
-}
-
 .atlas-map-label {
   position: absolute;
   top: 28px;
@@ -291,6 +287,71 @@ body.dark .dashboard-map-wash {
   display: block;
   color: var(--text-secondary);
   font-weight: 600;
+}
+
+.atlas-identity-card.is-loading h1 {
+  min-height: 1.96em;
+}
+
+.atlas-identity-card.is-loading h1 > span {
+  visibility: hidden;
+}
+
+.atlas-identity-card.is-loading h1::after {
+  display: block;
+  width: 172px;
+  height: 42px;
+  border-radius: 8px;
+  background: var(--bg-muted);
+  content: '';
+  animation: atlas-loading-pulse 1.4s ease-in-out infinite;
+}
+
+.atlas-identity-card.is-loading .atlas-hero-count strong,
+.atlas-identity-card.is-loading .atlas-hero-count span,
+.atlas-identity-card.is-loading .atlas-period-heading span,
+.atlas-identity-card.is-loading .atlas-fact strong,
+.atlas-identity-card.is-loading .atlas-fact span {
+  color: transparent;
+  background: var(--bg-muted);
+  border-radius: 5px;
+  animation: atlas-loading-pulse 1.4s ease-in-out infinite;
+}
+
+.atlas-identity-card.is-loading .atlas-hero-count strong {
+  width: 72px;
+  height: 38px;
+}
+
+.atlas-identity-card.is-loading .atlas-hero-count span {
+  width: 74px;
+  height: 10px;
+}
+
+.atlas-identity-card.is-loading .atlas-period-heading span {
+  width: 112px;
+  height: 9px;
+}
+
+.atlas-identity-card.is-loading .atlas-fact strong {
+  width: 38px;
+  height: 23px;
+}
+
+.atlas-identity-card.is-loading .atlas-fact span {
+  width: 56px;
+  min-height: 12px;
+  height: 12px;
+}
+
+.atlas-identity-card.is-loading .atlas-card-cta {
+  color: transparent;
+  pointer-events: none;
+}
+
+@keyframes atlas-loading-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
 }
 
 .atlas-profile-status {
