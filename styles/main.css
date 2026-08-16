@@ -229,6 +229,10 @@
     font-weight: 900;
 }
 
+.public-error[hidden] {
+    display: none !important;
+}
+
 .public-error {
     position: absolute;
     inset: 0;

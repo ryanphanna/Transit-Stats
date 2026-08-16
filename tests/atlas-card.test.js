@@ -13,6 +13,7 @@ import {
 const root = path.resolve(process.cwd());
 const dashboardHtml = fs.readFileSync(path.join(root, 'dashboard.html'), 'utf8');
 const publicHtml = fs.readFileSync(path.join(root, 'public.html'), 'utf8');
+const mainCss = fs.readFileSync(path.join(root, 'styles/main.css'), 'utf8');
 
 describe('shared Atlas card', () => {
     it('keeps both pages on the shared card renderer', () => {
@@ -34,6 +35,11 @@ describe('shared Atlas card', () => {
         expect(publicCard.querySelector('#atlas-share-map')).toBeNull();
         expect(publicCard.querySelector('.atlas-card-cta')?.textContent).toContain('Sign up');
         expect(dashboardMarkup).toContain('Share your map');
+    });
+
+    it('keeps the public error card hidden until a profile error occurs', () => {
+        expect(publicHtml).toContain('class="public-error" id="public-error" hidden');
+        expect(mainCss).toContain('.public-error[hidden]');
     });
 
     it('handles possessive names consistently', () => {

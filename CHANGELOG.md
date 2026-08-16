@@ -8,6 +8,9 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+### Fixed
+- **Hidden public-profile error cards no longer appear over valid profile maps.**
+
 ## [1.49.0] — 2026-08-15
 
 ### Changed
