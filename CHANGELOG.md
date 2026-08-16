@@ -16,6 +16,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Mobile public-profile stats now stay in one horizontal, scrollable row** instead of stacking into two rows.
 - **The public-profile logo now renders its lightning icon** instead of showing an empty square.
 - **Public profiles no longer flash placeholder names while loading**, and possessive endings now match the display-name colour.
+- **Public-profile calls to action now say “Make your own map”** instead of using a generic “Sign up” label.
 
 ## [1.49.0] — 2026-08-15
 

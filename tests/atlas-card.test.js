@@ -35,7 +35,7 @@ describe('shared Atlas card', () => {
         expect(dashboardCard.textContent).toContain(ATLAS_COPY.recentHeading);
         expect(publicCard.textContent).toContain(ATLAS_COPY.recentHeading);
         expect(publicCard.querySelector('#atlas-share-map')).toBeNull();
-        expect(publicCard.querySelector('.atlas-card-cta')?.textContent).toContain('Sign up');
+        expect(publicCard.querySelector('.atlas-card-cta')?.textContent).toContain('Make your own map');
         expect(dashboardMarkup).toContain('Share your map');
     });
 

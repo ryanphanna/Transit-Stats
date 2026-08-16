@@ -27,7 +27,7 @@ export function renderAtlasCard({ publicProfile = false } = {}) {
     if (!container) return null;
 
     const action = publicProfile
-        ? '<a class="atlas-card-cta" href="/">Sign up <span aria-hidden="true">→</span></a>'
+        ? '<a class="atlas-card-cta" href="/">Make your own map <span aria-hidden="true">→</span></a>'
         : '<button id="atlas-share-map" class="atlas-card-cta" type="button">Share your map <span aria-hidden="true">→</span></button>';
 
     container.innerHTML = `
