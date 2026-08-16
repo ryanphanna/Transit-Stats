@@ -792,22 +792,18 @@ body.dark .dashboard-map-wash {
   }
 
   .public-view .atlas-period-grid {
-    display: flex;
-    gap: 12px;
-    margin-right: -18px;
-    overflow-x: auto;
-    padding-right: 18px;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .public-view .atlas-period-grid::-webkit-scrollbar {
-    display: none;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+    overflow: hidden;
   }
 
   .public-view .atlas-fact {
-    flex: 0 0 78px;
     padding: 4px 0 3px;
+  }
+
+  .public-view .atlas-fact span {
+    font-size: 0.56rem;
   }
 
   .public-view .atlas-card-cta {
