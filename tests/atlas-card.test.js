@@ -14,6 +14,7 @@ const root = path.resolve(process.cwd());
 const dashboardHtml = fs.readFileSync(path.join(root, 'dashboard.html'), 'utf8');
 const publicHtml = fs.readFileSync(path.join(root, 'public.html'), 'utf8');
 const mainCss = fs.readFileSync(path.join(root, 'styles/main.css'), 'utf8');
+const publicJs = fs.readFileSync(path.join(root, 'js/public.js'), 'utf8');
 
 describe('shared Atlas card', () => {
     it('keeps both pages on the shared card renderer', () => {
@@ -48,6 +49,12 @@ describe('shared Atlas card', () => {
         expect(dashboardAtlasCss).toContain('.public-view .atlas-card-period');
         expect(dashboardAtlasCss).toContain('overflow-x: auto');
         expect(dashboardAtlasCss).toContain('flex: 0 0 78px');
+    });
+
+    it('initializes the public page logo icon', () => {
+        expect(publicHtml).toContain('data-lucide="zap"');
+        expect(publicJs).toContain("import { refreshIcons } from './shared/icons.js';");
+        expect(publicJs).toContain('refreshIcons();');
     });
 
     it('handles possessive names consistently', () => {
