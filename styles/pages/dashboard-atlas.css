@@ -697,9 +697,9 @@ body.dark .dashboard-map-wash {
     bottom: 0;
     left: 0;
     width: auto;
-    max-height: 62dvh;
+    max-height: 52dvh;
     overflow-y: auto;
-    padding: 22px 22px calc(22px + env(safe-area-inset-bottom));
+    padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
     border-radius: 26px 26px 0 0;
     transform: none;
   }
@@ -713,8 +713,26 @@ body.dark .dashboard-map-wash {
   }
 
   .public-view .atlas-identity-card {
-    padding: 20px 18px calc(20px + env(safe-area-inset-bottom));
+    padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
     border-radius: 22px 22px 0 0;
+  }
+
+  .public-view .atlas-hero-count {
+    margin-top: 18px;
+  }
+
+  .public-view .atlas-card-period {
+    margin-top: 11px;
+    padding-top: 10px;
+  }
+
+  .public-view .atlas-fact {
+    padding: 4px 0 3px;
+  }
+
+  .public-view .atlas-card-cta {
+    margin-top: 10px;
+    padding-top: 10px;
   }
 
   .atlas-hero-count {

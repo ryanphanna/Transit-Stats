@@ -10,6 +10,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Fixed
 - **Hidden public-profile error cards no longer appear over valid profile maps.**
+- **Public profile cards are shorter on mobile**, keeping more of the map visible while retaining scrolling for the details.
 
 ## [1.49.0] — 2026-08-15
 

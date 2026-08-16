@@ -42,6 +42,12 @@ describe('shared Atlas card', () => {
         expect(mainCss).toContain('.public-error[hidden]');
     });
 
+    it('keeps the public mobile card compact enough to leave the map visible', () => {
+        const dashboardAtlasCss = fs.readFileSync(path.join(root, 'styles/pages/dashboard-atlas.css'), 'utf8');
+        expect(dashboardAtlasCss).toContain('max-height: 52dvh');
+        expect(dashboardAtlasCss).toContain('.public-view .atlas-card-period');
+    });
+
     it('handles possessive names consistently', () => {
         document.body.innerHTML = '<div data-atlas-card></div>';
         renderAtlasCard();
