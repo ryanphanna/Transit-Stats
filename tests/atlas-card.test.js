@@ -46,6 +46,8 @@ describe('shared Atlas card', () => {
         const dashboardAtlasCss = fs.readFileSync(path.join(root, 'styles/pages/dashboard-atlas.css'), 'utf8');
         expect(dashboardAtlasCss).toContain('max-height: 52dvh');
         expect(dashboardAtlasCss).toContain('.public-view .atlas-card-period');
+        expect(dashboardAtlasCss).toContain('overflow-x: auto');
+        expect(dashboardAtlasCss).toContain('flex: 0 0 78px');
     });
 
     it('handles possessive names consistently', () => {
