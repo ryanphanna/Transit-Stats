@@ -13,6 +13,7 @@ const {
   db,
 } = require('./db');
 const { getConfiguredPrimaryAgency } = require('./primary-agency');
+const { NetworkEngine } = require('./network.js');
 const { PredictionEngineV4 } = require('./predict_v4.js');
 const { PredictionEngineV5 } = require('./predict_v5.js');
 const {
@@ -36,9 +37,10 @@ async function fillPredictions(user, tripId, stopName, route, direction, agency,
     const defaultAgency = getConfiguredPrimaryAgency(profile);
     if (!defaultAgency || agency !== defaultAgency) return;
 
-    const [history, stopsLibrary] = await Promise.all([
+    const [history, stopsLibrary, networkGraph] = await Promise.all([
       getRecentCompletedTrips(user.userId, 200),
       getStopsLibrary(),
+      NetworkEngine.load(db, user.userId, agency, route),
     ]);
 
     const now = new Date();
@@ -48,7 +50,14 @@ async function fillPredictions(user, tripId, stopName, route, direction, agency,
     const minutesSinceLastTrip = lastTrip?.startTime?.toDate
       ? Math.max(0, Math.round((now.getTime() - lastTrip.startTime.toDate().getTime()) / 60000))
       : null;
-    const routeContext = { stopName, time: now, lastEndStopName, stopsLibrary };
+    const routeContext = {
+      stopName,
+      time: now,
+      lastEndStopName,
+      lastRoute,
+      stopsLibrary,
+      primaryAgency: defaultAgency,
+    };
     const endStopContext = {
       route,
       startStopName: stopName,
@@ -58,7 +67,9 @@ async function fillPredictions(user, tripId, stopName, route, direction, agency,
       lastRoute,
       minutesSinceLastTrip,
       agency,
+      primaryAgency: defaultAgency,
       stopsLibrary,
+      networkGraph,
     };
 
     const [rawTopV4, rawTopV5, topV4, topV5] = await Promise.all([

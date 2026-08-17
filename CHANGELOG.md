@@ -8,6 +8,9 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Experimental prediction paths now receive the same previous-route, agency, and learned-network context** after stop disambiguation, keeping fallback inference aligned with normal trip starts.
+- **Weekly model retraining now stops before deployment when validation accuracy drops materially**, preventing an automatic refresh from silently replacing a stronger model.
+
 ## [1.49.1] — 2026-08-15
 
 ### Fixed
