@@ -575,6 +575,88 @@ test('handleTripLog: GTFS correction picks route supported by routesAtStop for V
   assert.equal(calls.createTrip[0].predictionV5.route, '510');
 });
 
+test('handleTripLog: experimental models receive previous-route and learned-network context', async () => {
+  let routeContext;
+  let endStopContext;
+  const networkGraph = { edges: { learned: { tripCount: 3 } } };
+  const { handlers, restore } = loadHandlers({
+    dbModule: {
+      getRecentCompletedTrips: async () => [{
+        route: '506',
+        endStopName: 'College Station',
+        startTime: { toDate: () => new Date(Date.now() - 10 * 60 * 1000) },
+      }],
+      getRoutesAtStop: async () => ['510'],
+    },
+    network: {
+      NetworkEngine: {
+        load: async () => networkGraph,
+      },
+    },
+    predictV4: {
+      PredictionEngineV4: {
+        guessTopRoutes: context => { routeContext = context; return []; },
+        guessTopEndStops: context => { endStopContext = context; return []; },
+      },
+    },
+  });
+
+  try {
+    await handlers.handleTripLog('+14165550005', { userId: 'u5', email: 'user@example.com' }, '11985', '510', 'Southbound', 'TTC');
+  } finally {
+    restore();
+  }
+
+  assert.equal(routeContext.lastRoute, '506');
+  assert.equal(routeContext.primaryAgency, 'TTC');
+  assert.equal(endStopContext.primaryAgency, 'TTC');
+  assert.equal(endStopContext.networkGraph, networkGraph);
+});
+
+test('fillPredictions: fallback inference receives the same model context', async () => {
+  let routeContext;
+  let endStopContext;
+  const networkGraph = { edges: { learned: { tripCount: 3 } } };
+  const { handlers, restore } = loadHandlers({
+    dbModule: {
+      getRecentCompletedTrips: async () => [{
+        route: '506',
+        endStopName: 'College Station',
+        startTime: { toDate: () => new Date(Date.now() - 10 * 60 * 1000) },
+      }],
+    },
+    network: {
+      NetworkEngine: {
+        load: async () => networkGraph,
+      },
+    },
+    predictV4: {
+      PredictionEngineV4: {
+        guessTopRoutes: context => { routeContext = context; return []; },
+        guessTopEndStops: context => { endStopContext = context; return []; },
+      },
+    },
+  });
+
+  try {
+    await handlers.fillPredictions(
+      { userId: 'u5', email: 'user@example.com' },
+      'trip_5',
+      'Spadina Station',
+      '510',
+      'Southbound',
+      'TTC',
+    );
+  } finally {
+    restore();
+  }
+
+  assert.equal(routeContext.lastRoute, '506');
+  assert.equal(routeContext.primaryAgency, 'TTC');
+  assert.equal(endStopContext.primaryAgency, 'TTC');
+  assert.equal(endStopContext.networkGraph, networkGraph);
+});
+
 test('handleTripLog: skips V4/V5 shadow inference when experimental access is disabled', async () => {
   let v4Calls = 0;
   let v5Calls = 0;

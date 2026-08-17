@@ -34,6 +34,14 @@ jobs:
           mkdir -p "$HOME/Desktop/Dev/Credentials"
           echo "$FIREBASE_KEY" > "$HOME/Desktop/Dev/Credentials/Firebase for Transit Stats.json"
 
+      - name: Save current model metrics
+        run: |
+          mkdir -p /tmp/transitstats-model-baseline
+          cp ml/model_v4_meta.json /tmp/transitstats-model-baseline/
+          cp ml/model_v4_endstop_meta.json /tmp/transitstats-model-baseline/
+          cp ml/model_v5_meta.json /tmp/transitstats-model-baseline/
+          cp ml/model_v5_endstop_meta.json /tmp/transitstats-model-baseline/
+
       - name: Export trips from Firestore
         run: GRPC_DNS_RESOLVER=native python3 ml/export_trips.py
 
@@ -42,6 +50,9 @@ jobs:
 
       - name: Retrain route models (V4 + V5)
         run: GRPC_DNS_RESOLVER=native python3 ml/train_routes.py
+
+      - name: Reject material model regressions
+        run: python3 ml/check_model_regression.py --baseline-dir /tmp/transitstats-model-baseline --candidate-dir ml
 
       - name: Copy end-stop models to functions/lib
         run: |

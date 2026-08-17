@@ -28,10 +28,10 @@ export const Stats = {
     },
 
     computeTripPeriodCounts(trips, now = new Date()) {
-        const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const daysSinceMonday = (weekStart.getDay() + 6) % 7;
-        weekStart.setDate(weekStart.getDate() - daysSinceMonday);
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
         let thisWeek = 0;
         let thisMonth = 0;
@@ -40,8 +40,8 @@ export const Stats = {
             const date = this.getTripDate(trip);
             if (!date) return;
             riddenDays.add(`${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`);
-            if (date >= weekStart) thisWeek++;
-            if (date >= monthStart) thisMonth++;
+            if (date >= sevenDaysAgo) thisWeek++;
+            if (date >= thirtyDaysAgo) thisMonth++;
         });
 
         return {

@@ -68,16 +68,17 @@ async function handlePublicProfile(req, res) {
       .get();
 
     let totalMinutes = 0;
-    let thisMonth = 0;
-    let thisWeek = 0;
+    let last30Days = 0;
+    let last7Days = 0;
     const riddenDays = new Set();
     const agencies = new Set();
     const countries = new Set();
     const pointsByStop = new Map();
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const addPoint = (location, type, fallbackName) => {
       if (location?.lat == null || location?.lng == null) return;
       const lat = Number(location.lat);
@@ -104,8 +105,8 @@ async function handlePublicProfile(req, res) {
       const tripDate = trip.startTime?.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
       if (!Number.isNaN(tripDate.getTime())) {
         riddenDays.add(`${tripDate.getFullYear()}-${tripDate.getMonth()}-${tripDate.getDate()}`);
-        if (tripDate >= monthStart) thisMonth += 1;
-        if (tripDate >= weekStart) thisWeek += 1;
+        if (tripDate >= thirtyDaysAgo) last30Days += 1;
+        if (tripDate >= sevenDaysAgo) last7Days += 1;
       }
       const agency = String(trip.agency || '').trim();
       if (agency) {
@@ -134,8 +135,9 @@ async function handlePublicProfile(req, res) {
       mapStopMode: getMapStopMode(profile),
       totalTrips: tripsSnap.size,
       totalHours: Math.round((totalMinutes / 60) * 10) / 10,
-      thisMonth,
-      thisWeek,
+      // Keep the existing response keys for clients that have not refreshed yet.
+      thisMonth: last30Days,
+      thisWeek: last7Days,
       daysRidden: riddenDays.size,
       agencies: agencies.size,
       countries: countries.size,

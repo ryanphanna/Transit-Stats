@@ -2,21 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { Stats } from '../js/stats.js';
 
 describe('Stats.computeTripPeriodCounts', () => {
-    it('counts lifetime, current month, and current Monday-based week', () => {
+    it('counts lifetime, last 30 days, and last 7 days', () => {
         const now = new Date(2026, 7, 13, 12); // Thursday, August 13, 2026
         const trips = [
             { startTime: new Date(2026, 7, 13, 8) },
             { startTime: new Date(2026, 7, 10, 8) },
             { startTime: new Date(2026, 7, 1, 8) },
-            { startTime: new Date(2026, 6, 31, 8) },
-            { startTime: new Date(2026, 7, 9, 8) }
+            { startTime: new Date(2026, 6, 13, 8) },
+            { startTime: new Date(2026, 7, 9, 8) },
+            { startTime: new Date(2026, 7, 6, 11) }
         ];
 
         expect(Stats.computeTripPeriodCounts(trips, now)).toEqual({
-            lifetime: 5,
-            thisMonth: 4,
-            thisWeek: 2,
-            daysRidden: 5
+            lifetime: 6,
+            thisMonth: 5,
+            thisWeek: 3,
+            daysRidden: 6
         });
     });
 

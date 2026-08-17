@@ -265,7 +265,14 @@ FORGOT to save as incomplete. DISCARD to cancel new trip.`;
     const minutesSinceLastTrip = lastTrip?.startTime?.toDate
       ? Math.max(0, Math.round((now.getTime() - lastTrip.startTime.toDate().getTime()) / 60000))
       : null;
-    const routeContext = { stopName: startStopName, time: now, lastEndStopName, stopsLibrary, primaryAgency: defaultAgency };
+    const routeContext = {
+      stopName: startStopName,
+      time: now,
+      lastEndStopName,
+      lastRoute,
+      stopsLibrary,
+      primaryAgency: defaultAgency,
+    };
     const endStopContext = {
       route,
       startStopName,
