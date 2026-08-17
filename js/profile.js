@@ -370,4 +370,40 @@ export const Profile = {
         }
     },
 
+    async reserveUsername(username) {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        if (this.data?.username) {
+            UI.showNotification('Identity changes are not supported.');
+            return;
+        }
+
+        try {
+            const existing = await db.collection('usernames').doc(username).get();
+            if (existing.exists) {
+                UI.showNotification('This emoji combination is already taken! Try another.');
+                return;
+            }
+
+            await db.collection('usernames').doc(username).set({
+                uid: user.uid,
+                createdAt: serverTimestamp(),
+            });
+
+            await db.collection('profiles').doc(user.uid).set({
+                username,
+                updatedAt: serverTimestamp(),
+            }, { merge: true });
+
+            if (!this.data) this.data = {};
+            this.data.username = username;
+            window.currentUserProfile = this.data;
+            this.syncUI(user.email);
+            UI.showNotification('Identity reserved!');
+        } catch (err) {
+            console.error('Username save failed:', err);
+            UI.showNotification('Failed to reserve identity: ' + err.message);
+        }
+    },
 };

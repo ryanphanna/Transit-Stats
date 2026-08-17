@@ -44,4 +44,5 @@ jobs:
           EXPECTED_BUILD: ${{ github.sha }}
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --location "https://admin.transitstats.fyi/" | grep -Fq "name=\"transitstats-build\" content=\"$EXPECTED_BUILD\""
+          curl --fail --silent --show-error --location "https://admin.transitstats.fyi/" -o /tmp/admin.html
+          grep -Fq "name=\"transitstats-build\" content=\"$EXPECTED_BUILD\"" /tmp/admin.html
