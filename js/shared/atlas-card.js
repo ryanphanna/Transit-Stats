@@ -22,26 +22,31 @@ const atlasFacts = [
     ['countries', 'stat-countries-ridden', ATLAS_COPY.countriesLabel],
 ];
 
-export function renderAtlasCard({ publicProfile = false } = {}) {
+export function renderAtlasCard({ publicProfile = false, loading = false } = {}) {
     const container = document.querySelector('[data-atlas-card]');
     if (!container) return null;
+
+    container.classList.toggle('is-loading', loading);
+    container.setAttribute('aria-busy', loading ? 'true' : 'false');
 
     const action = publicProfile
         ? '<a class="atlas-card-cta" href="/">Make your own map <span aria-hidden="true">→</span></a>'
         : '<button id="atlas-share-map" class="atlas-card-cta" type="button">Share your map <span aria-hidden="true">→</span></button>';
+    const initialName = loading ? '' : 'Traveler';
+    const initialValue = loading ? '' : '0';
 
     container.innerHTML = `
-        <h1><span id="profile-name">Traveler</span><span class="atlas-title-tail">’s</span><span class="atlas-title-product">TransitStats</span></h1>
+        <h1><span id="profile-name">${initialName}</span><span class="atlas-title-tail">’s</span><span class="atlas-title-product">TransitStats</span></h1>
         <p id="profile-status" class="atlas-profile-status" hidden></p>
         <div class="atlas-hero-count">
-            <strong id="stat-trips-lifetime">0</strong>
+            <strong id="stat-trips-lifetime">${initialValue}</strong>
             <span>${ATLAS_COPY.totalRides}</span>
         </div>
         <div class="atlas-card-period" aria-label="Recent trip totals">
             <div class="atlas-period-heading"><span>${ATLAS_COPY.recentHeading}</span></div>
             <div class="atlas-period-grid">
                 ${atlasFacts.map(([name, id, label]) => `
-                    <div class="atlas-fact atlas-fact-${name}"><strong id="${id}">0</strong><span>${label}</span></div>
+                    <div class="atlas-fact atlas-fact-${name}"><strong id="${id}">${initialValue}</strong><span>${label}</span></div>
                 `).join('')}
             </div>
         </div>
