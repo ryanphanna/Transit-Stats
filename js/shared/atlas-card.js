@@ -1,8 +1,8 @@
 export const ATLAS_COPY = Object.freeze({
     recentHeading: 'Recent activity',
     totalRides: 'total rides',
-    weekLabel: 'Rides this<br>week',
-    monthLabel: 'Rides this<br>month',
+    weekLabel: 'Last 7<br>days',
+    monthLabel: 'Last 30<br>days',
     daysLabel: 'Days ridden',
     agenciesLabel: 'Agencies',
     countriesLabel: 'Countries',

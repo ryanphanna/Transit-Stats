@@ -105,7 +105,7 @@ test('publicProfile marks other profiles as coming soon', async () => {
 
 test('publicProfile returns 200 with aggregated stats for a public profile', async () => {
   const tripDocs = [
-    { data: () => ({ duration: 10, startStopName: 'Start', endStopName: 'End', boardingLocation: { lat: 1, lng: 2 }, exitLocation: { lat: 3, lng: 4 } }) },
+    { data: () => ({ duration: 10, startTime: new Date(), startStopName: 'Start', endStopName: 'End', boardingLocation: { lat: 1, lng: 2 }, exitLocation: { lat: 3, lng: 4 } }) },
   ];
   const handler = loadPublicProfile({
     docs: { usernames: { 'subway-subway-subway': { exists: true, data: () => ({ uid: 'u1' }) } } },
@@ -125,6 +125,8 @@ test('publicProfile returns 200 with aggregated stats for a public profile', asy
   assert.equal(res.statusCode, 200);
   assert.equal(res.body.totalTrips, 1);
   assert.equal(res.body.totalHours, Math.round((10 / 60) * 10) / 10);
+  assert.equal(res.body.thisMonth, 1);
+  assert.equal(res.body.thisWeek, 1);
   assert.equal(res.body.points.length, 2);
   assert.deepEqual(res.body.points[0].names, ['Start']);
   assert.equal(res.body.displayName, 'Alice');
