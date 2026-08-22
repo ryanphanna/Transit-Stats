@@ -2,7 +2,7 @@
 export const STOP_POPUP_MIN_ZOOM = 14;
 
 const MAP_PIN_COLOR = '#066b4b';
-const MAP_PIN_MIN_COLOR = '#9acfb9';
+const MAP_PIN_MIN_COLOR = '#78b99d';
 
 export function addMapZoomControl(map) {
     const control = L.control({ position: 'bottomright' });
@@ -139,7 +139,7 @@ export function getUsageMarkerStyle(point, maxUsage, { baseRadius = 4 } = {}) {
         color: '#eaf8f2',
         weight: 1.25,
         opacity: 0.78 + (usageIntensity * 0.22),
-        fillOpacity: 0.58 + (usageIntensity * 0.34),
+        fillOpacity: 0.64 + (usageIntensity * 0.28),
     };
 }
 
