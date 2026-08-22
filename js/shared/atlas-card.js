@@ -56,11 +56,20 @@ export function renderAtlasCard({ publicProfile = false, loading = false } = {})
     return container;
 }
 
+function getPossessiveSuffix(name) {
+    return /s$/i.test(name) ? '’' : '’s';
+}
+
+export function getAtlasPageTitle(displayName) {
+    const name = String(displayName || '').trim() || 'Traveler';
+    return `${name}${getPossessiveSuffix(name)} TransitStats`;
+}
+
 export function setAtlasDisplayName(displayName) {
     const name = String(displayName || '').trim() || 'Traveler';
     const profileName = document.getElementById('profile-name');
     if (profileName) profileName.textContent = name;
 
     const titleTail = document.querySelector('.atlas-title-tail');
-    if (titleTail) titleTail.textContent = /s$/i.test(name) ? '’' : '’s';
+    if (titleTail) titleTail.textContent = getPossessiveSuffix(name);
 }

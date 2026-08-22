@@ -4,7 +4,12 @@ import {
 } from './map-presentation.js';
 import { createMapSurface, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from './map-surface.js';
 import { refreshIcons } from './shared/icons.js';
-import { formatAtlasNumber, renderAtlasCard, setAtlasDisplayName } from './shared/atlas-card.js';
+import {
+    formatAtlasNumber,
+    getAtlasPageTitle,
+    renderAtlasCard,
+    setAtlasDisplayName,
+} from './shared/atlas-card.js';
 
 // Public Profile Logic
 document.addEventListener('DOMContentLoaded', async () => {
@@ -52,7 +57,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // Render Profile Header
-        setAtlasDisplayName(data.displayName || 'Traveler');
+        const displayName = data.displayName || 'Traveler';
+        setAtlasDisplayName(displayName);
+        document.title = getAtlasPageTitle(displayName);
 
         // Render the same dashboard facts as the signed-in card.
         document.getElementById('stat-trips-lifetime').textContent = formatAtlasNumber(data.totalTrips ?? 0);
