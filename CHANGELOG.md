@@ -6,7 +6,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
-## [Unreleased]
+## [1.49.2] — 2026-08-22
 
 - **Maps now show nearby stop dots first and fill in the rest progressively**, making large ride histories feel faster without hiding the full footprint.
 - **Public profiles now reuse a short-lived local cache**, making repeat visits appear immediately while refreshing their stats in the background.
@@ -19,6 +19,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Experimental prediction paths now receive the same previous-route, agency, and learned-network context** after stop disambiguation, keeping fallback inference aligned with normal trip starts.
 - **Weekly model retraining now stops before deployment when validation accuracy drops materially**, preventing an automatic refresh from silently replacing a stronger model.
 - **Firebase compatibility calls now use the modular Auth and Firestore APIs without changing stored data.**
+
+## [Unreleased]
 
 ## [1.49.1] — 2026-08-15
 
