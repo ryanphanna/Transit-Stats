@@ -8,7 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
-- **Public profiles now use a light map presentation with stronger stop-dot contrast**, making ride coverage easier to see at a glance.
+- **Public profiles now use a light map presentation, stronger stop-dot contrast, and full ride-footprint framing**, making ride coverage easier to see at a glance.
 - **Public profile browser tabs now identify the profile owner**, such as “Ryan’s TransitStats.”
 - **Ambiguous boarding stops no longer block trip logging**, leaving the stop unverified when the rider does not choose between matches.
 - **Punctuation-only stop-name duplicates now resolve to one rider-facing stop**, avoiding unnecessary choices such as “St Clair West Station” versus “St.Clair West Station.”

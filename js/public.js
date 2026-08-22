@@ -77,9 +77,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         atlasCard?.setAttribute('aria-busy', 'false');
 
         // Render Map
-        initPublicMap(data.points, data.mapStopMode);
+        const refitPublicMap = initPublicMap(data.points, data.mapStopMode);
         document.querySelector('.public-view')?.classList.remove('is-loading');
         document.getElementById('public-map-loading')?.remove();
+        // The map can be measured before the loading state is removed. Refit
+        // once the public profile has its final viewport so no city is lost.
+        requestAnimationFrame(() => refitPublicMap?.());
 
     } catch (error) {
         console.error('Error loading profile:', error);
@@ -123,6 +126,7 @@ function initPublicMap(points, mapStopMode = 'boarding') {
         tileTheme: 'light_all',
     });
     const { map, markers, renderer } = surface;
+    let refit = null;
 
     if (points && points.length > 0) {
         const visibleType = mapStopMode === 'exiting' ? 'end' : 'start';
@@ -139,6 +143,9 @@ function initPublicMap(points, mapStopMode = 'boarding') {
             formatPopup: value => value,
         });
 
-        fitMapToDensePoints(map, visiblePoints, { maxZoom: 13 });
+        refit = () => fitMapToDensePoints(map, visiblePoints, { maxZoom: 13 });
+        refit();
     }
+
+    return refit;
 }
