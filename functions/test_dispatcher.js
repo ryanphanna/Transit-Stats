@@ -377,7 +377,7 @@ test('dispatcher: confirm_stop "1" clears state and updates trip', async () => {
   assert.match(calls.sendSmsReply[0].message, /Stop set to Bathurst \/ King/);
 });
 
-test('dispatcher: confirm_stop unrecognized input sends reminder, does not fall through', async () => {
+test('dispatcher: confirm_stop unrecognized input clears the optional prompt', async () => {
   const stopCandidates = [
     { stopCode: '161', stopName: 'Bathurst / King', routes: ['511'], direction: null },
     { stopCode: '162', stopName: 'Bathurst / King', routes: ['511'], direction: null },
@@ -397,10 +397,10 @@ test('dispatcher: confirm_stop unrecognized input sends reminder, does not fall 
 
   await dispatch('+14165550099', '511 King Northbound', 'SM_STOP_NOISE');
 
-  assert.equal(calls.clearPendingState, 0, 'should not clear pending state');
+  assert.equal(calls.clearPendingState, 1, 'should clear the optional prompt');
   assert.equal(calls.handleTripLog, 0, 'should not start a new trip');
-  assert.equal(calls.sendSmsReply.length, 1, 'should send reminder');
-  assert.match(calls.sendSmsReply[0].message, /Reply with a number/);
+  assert.equal(calls.handleQuery, 1, 'should continue normal dispatch');
+  assert.equal(calls.sendSmsReply.length, 0, 'should not send the old reminder');
 });
 
 test('dispatcher: confirm_stop END falls through so the trip can be ended', async () => {
@@ -424,7 +424,7 @@ test('dispatcher: confirm_stop END falls through so the trip can be ended', asyn
   await dispatch('+14165550099', 'END Spadina Station', 'SM_STOP_END');
 
   assert.equal(calls.handleEndTrip, 1, 'END should reach handleEndTrip');
-  assert.equal(calls.clearPendingState, 0, 'should not clear pending state');
+  assert.equal(calls.clearPendingState, 1, 'should clear the optional prompt');
 });
 
 test('dispatcher: confirm_stop SKIP dismisses the choice and keeps the trip', async () => {
@@ -513,6 +513,6 @@ test('dispatcher: confirm_stop STATUS falls through to normal dispatch', async (
 
   await dispatch('+14165550099', 'STATUS', 'SM_STOP_STATUS');
 
-  assert.equal(calls.clearPendingState, 0, 'should not clear pending state');
+  assert.equal(calls.clearPendingState, 1, 'should clear the optional prompt');
   assert.equal(calls.handleTripLog, 0, 'should not log a trip');
 });

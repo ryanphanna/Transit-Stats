@@ -268,15 +268,23 @@ async function handleConfirmStopState(phoneNumber, body, upperBody, state, trace
     return true;
   }
 
-  if (PENDING_PASSTHROUGH.has(upperBody) || upperBody.startsWith('ASK ')) return false;
+  // Stop clarification is optional. If the rider sends another command or
+  // starts another trip instead, discard the old prompt and process the new
+  // message normally.
+  if (PENDING_PASSTHROUGH.has(upperBody) || upperBody.startsWith('ASK ')) {
+    await clearPendingState(phoneNumber);
+    return false;
+  }
 
   // END/STOP must work mid-disambiguation — the trip already exists and the
   // rider may reach their destination before ever picking a start stop.
-  if (/^(END|STOP)(\s|$)/i.test(body)) return false;
+  if (/^(END|STOP)(\s|$)/i.test(body)) {
+    await clearPendingState(phoneNumber);
+    return false;
+  }
 
-  const count = (state.stopCandidates || []).length;
-  await sendSmsReply(phoneNumber, `Reply with a number (1–${count}) to set your stop, SKIP to leave it, or DISCARD to cancel the trip.`);
-  return true;
+  await clearPendingState(phoneNumber);
+  return false;
 }
 
 async function handleMmsStopNeededState(phoneNumber, body, upperBody, state, traceId = null) {

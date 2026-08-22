@@ -24,7 +24,6 @@ const {
   isValidRoute,
 } = require('./utils');
 const { AGENCY_CITY } = require('./constants');
-const { getConnectionGroup } = require('./transfer-connections');
 
 /**
  * Pick the best V4/V5 route prediction that GTFS confirms actually serves this stop.
@@ -209,30 +208,6 @@ function isStopMatched(trip) {
   return !!trip.verified;
 }
 
-function buildStopChoiceList(candidates) {
-  const names = new Map();
-  const groups = new Map();
-
-  for (const candidate of candidates) {
-    names.set(candidate.stopName, (names.get(candidate.stopName) || 0) + 1);
-    const group = getConnectionGroup(candidate.stopName);
-    if (group) groups.set(group, (groups.get(group) || 0) + 1);
-  }
-
-  return candidates.map((candidate, i) => {
-    const extras = [];
-    if (candidate.direction) extras.push(candidate.direction);
-
-    const sameName = (names.get(candidate.stopName) || 0) > 1;
-    const group = getConnectionGroup(candidate.stopName);
-    const sameGroup = group && (groups.get(group) || 0) > 1;
-    if ((sameName || sameGroup) && candidate.stopCode) extras.push(`stop ${candidate.stopCode}`);
-
-    const suffix = extras.length > 0 ? ` (${extras.join(', ')})` : '';
-    return `${i + 1}. ${candidate.stopName}${suffix}`;
-  }).join('\n');
-}
-
 async function maybeHandleStopDisambiguation({
   phoneNumber, user, activeTrip, parsedStop, route, direction, resolvedAgency, options,
 }) {
@@ -246,25 +221,11 @@ async function maybeHandleStopDisambiguation({
     resolvedAgency
   );
   if (candidates.length <= 1) return false;
-
-  // If every remaining candidate displays the same name and none carries a
-  // direction, the only differentiator we could show is the stop code — an
-  // unanswerable question for a rider. Fall through silently: the trip
-  // records the shared name with stop_matched:false. (Direction labels like
-  // "College Station (Westbound)" ARE answerable, so those still prompt.)
-  const distinctNames = new Set(candidates.map(c => (c.stopName || '').toLowerCase().trim()));
-  if (distinctNames.size === 1 && !candidates.some(c => c.direction)) return false;
-
-  const list = buildStopChoiceList(candidates);
-  // Strip full Firestore doc fields — only keep what the dispatcher needs to resolve the choice.
-  const slimCandidates = candidates.map(({ stopCode, stopName, direction: dir, routes }) =>
-    ({ stopCode, stopName, direction: dir, routes })
-  );
+  const stopDisplay = getStopDisplay(parsedStop.stopCode, parsedStop.stopName);
 
   if (!activeTrip) {
-    let tripId;
     try {
-      tripId = await createTrip({
+      await createTrip({
         userId: user.userId,
         route,
         direction: direction || null,
@@ -293,41 +254,18 @@ async function maybeHandleStopDisambiguation({
       await sendSmsReply(phoneNumber, 'Could not start your trip. Please try again.');
       return true;
     }
-    // 60 min TTL — the rider is mid-trip and may not reply for a while.
-    // The default 5 min expired under real riders, so "1" fell to the fallback.
-    await setPendingState(phoneNumber, {
-      type: 'confirm_stop',
-      tripId,
-      route,
-      direction,
-      agency: resolvedAgency,
-      options,
-      stopCandidates: slimCandidates,
-    }, 60 * 60 * 1000);
     const routeDisplay = getRouteDisplay(route, direction);
     await sendSmsReply(
       phoneNumber,
-      `${routeDisplay} started.\n\nMultiple stops match "${parsedStop.stopName}":\n\n${list}\n\n` +
-      'Reply with a number to set your stop (anytime this trip), SKIP to leave it, or DISCARD to cancel the trip.'
+      `${routeDisplay} started from ${stopDisplay}. I found multiple matching stops, so I left the boarding stop unverified.`
     );
     return true;
   }
 
-  // Active trip conflict — leave trip creation until after disambiguation
-  await setPendingState(phoneNumber, {
-    type: 'confirm_stop',
-    route,
-    direction,
-    agency: resolvedAgency,
-    options,
-    stopCandidates: slimCandidates,
-    stopInput: parsedStop.stopName || null,
-  }, 60 * 60 * 1000);
-  await sendSmsReply(
-    phoneNumber,
-    `Multiple stops match "${parsedStop.stopName}":\n\n${list}\n\nReply with a number or DISCARD to cancel.`
-  );
-  return true;
+  // An ambiguous stop must never block a new trip or require a follow-up.
+  // Keep the active-trip conflict flow intact; handleTripLog will ask whether
+  // the existing trip should be completed before starting this one.
+  return false;
 }
 
 /**

@@ -302,7 +302,7 @@ test('handleTripLog: refuses to start without a boarding stop', async () => {
   assert.match(calls.sendSmsReply[0]?.message || '', /boarding stop/i);
 });
 
-test('handleTripLog: disambiguation prompt includes direction labels', async () => {
+test('handleTripLog: ambiguous stop starts without requiring a choice', async () => {
   const startTime = 1778770440000;
   const { handlers, calls, restore } = loadHandlers({
     dbModule: {
@@ -329,11 +329,10 @@ test('handleTripLog: disambiguation prompt includes direction labels', async () 
 
   assert.equal(calls.createTrip.length, 1);
   assert.equal(calls.createTrip[0].startTime, startTime);
-  assert.equal(calls.setPendingState.length, 1);
-  assert.equal(calls.setPendingState[0].type, 'confirm_stop');
+  assert.equal(calls.setPendingState.length, 0);
   const msg = calls.sendSmsReply[0]?.message || '';
-  assert.match(msg, /\(Northbound, stop 2069\)/);
-  assert.match(msg, /\(Southbound, stop 2070\)/);
+  assert.match(msg, /left the boarding stop unverified/i);
+  assert.doesNotMatch(msg, /Reply with a number/);
 });
 
 test('handleTripLog: 506 College Westbound auto-resolves to one surface stop', async () => {
@@ -365,7 +364,7 @@ test('handleTripLog: 506 College Westbound auto-resolves to one surface stop', a
   assert.equal(calls.createTrip[0].startStopName, 'College Station');
 });
 
-test('handleTripLog: 506 College with no direction falls back to disambiguation prompt', async () => {
+test('handleTripLog: 506 College with no direction leaves the stop unverified', async () => {
   const { handlers, calls, restore } = loadHandlers({
     dbModule: {
       findMatchingStops: async () => [
@@ -383,12 +382,10 @@ test('handleTripLog: 506 College with no direction falls back to disambiguation 
   }
 
   assert.equal(calls.createTrip.length, 1);
-  assert.equal(calls.setPendingState.length, 1);
-  assert.equal(calls.setPendingState[0].type, 'confirm_stop');
+  assert.equal(calls.setPendingState.length, 0);
   const msg = calls.sendSmsReply[0]?.message || '';
-  assert.match(msg, /Multiple stops match "College"/);
-  assert.match(msg, /stop 760/);
-  assert.match(msg, /stop 761/);
+  assert.match(msg, /left the boarding stop unverified/i);
+  assert.doesNotMatch(msg, /Multiple stops match/);
 });
 
 test('handleTripLog: identical names with no direction data do not prompt (unanswerable)', async () => {

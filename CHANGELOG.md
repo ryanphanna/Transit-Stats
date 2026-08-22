@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Ambiguous boarding stops no longer block trip logging**, leaving the stop unverified when the rider does not choose between matches.
 - **Punctuation-only stop-name duplicates now resolve to one rider-facing stop**, avoiding unnecessary choices such as “St Clair West Station” versus “St.Clair West Station.”
 - **Directional platform names now resolve from the trip direction**, avoiding unnecessary stop-choice prompts for platforms like Northbound Platform.
 - **Dashboard activity stats now show the last 7 and 30 days**, making the time windows consistent and unambiguous.
