@@ -2,6 +2,7 @@
 export const STOP_POPUP_MIN_ZOOM = 14;
 
 const MAP_PIN_COLOR = '#066b4b';
+const MAP_PIN_MIN_COLOR = '#78b99d';
 
 export function addMapZoomControl(map) {
     const control = L.control({ position: 'bottomright' });
@@ -47,6 +48,32 @@ function blend(from, to, amount) {
     const start = hexToRgb(from);
     const end = hexToRgb(to);
     return rgbToHex(start.map((value, index) => Math.round(value + ((end[index] - value) * amount))));
+}
+
+function prioritizeVisiblePoints(points, map) {
+    if (!map?.getBounds) return points;
+    const visibleBounds = map.getBounds().pad(0.4);
+    return [...points].sort((first, second) => {
+        const firstVisible = visibleBounds.contains([first.lat, first.lng]);
+        const secondVisible = visibleBounds.contains([second.lat, second.lng]);
+        return Number(secondVisible) - Number(firstVisible);
+    });
+}
+
+function scheduleMarkerBatch(callback) {
+    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+        return { type: 'idle', id: window.requestIdleCallback(callback, { timeout: 120 }) };
+    }
+    return { type: 'timeout', id: setTimeout(callback, 0) };
+}
+
+function cancelMarkerBatch(handle) {
+    if (!handle) return;
+    if (handle.type === 'idle' && typeof window !== 'undefined' && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(handle.id);
+    } else {
+        clearTimeout(handle.id);
+    }
 }
 
 export function groupMapPoints(points = [], getLabel = () => null) {
@@ -134,11 +161,11 @@ export function getUsageMarkerStyle(point, maxUsage, { baseRadius = 4 } = {}) {
 
     return {
         radius: baseRadius,
-        fillColor: blend('#d8eee6', baseColor, 0.12 + (usageIntensity * 0.88)),
-        color: '#fff',
-        weight: 1,
-        opacity: 0.55 + (usageIntensity * 0.4),
-        fillOpacity: 0.42 + (usageIntensity * 0.45),
+        fillColor: blend(MAP_PIN_MIN_COLOR, baseColor, 0.2 + (usageIntensity * 0.8)),
+        color: '#eaf8f2',
+        weight: 1.25,
+        opacity: 0.78 + (usageIntensity * 0.22),
+        fillOpacity: 0.64 + (usageIntensity * 0.28),
     };
 }
 
@@ -154,11 +181,15 @@ export function addMapPointMarkers({
     if (!markers) return [];
     const grouped = groupMapPoints(points, getLabel);
     const renderMarkers = () => {
+        map?._transitStatsMarkerBatch && cancelMarkerBatch(map._transitStatsMarkerBatch);
+        if (map) map._transitStatsMarkerBatchGeneration = (map._transitStatsMarkerBatchGeneration || 0) + 1;
+        const renderGeneration = map?._transitStatsMarkerBatchGeneration;
         const visibleGroups = clusterMapPoints(grouped, map);
         const maxUsage = Math.max(...visibleGroups.map(point => point.usage), 1);
+        const prioritizedGroups = prioritizeVisiblePoints(visibleGroups, map);
         markers.clearLayers();
 
-        visibleGroups.forEach(point => {
+        const addMarker = point => {
             const marker = L.circleMarker([point.lat, point.lng], {
                 renderer,
                 ...getUsageMarkerStyle(point, maxUsage, { baseRadius }),
@@ -166,7 +197,21 @@ export function addMapPointMarkers({
             const popup = [...point.labels].map(formatPopup).filter(Boolean).join('<br>');
             if (popup && map) addZoomGatedPopup(marker, map, popup);
             markers.addLayer(marker);
-        });
+        };
+
+        let renderedCount = 0;
+        const renderBatch = count => {
+            const end = Math.min(renderedCount + count, prioritizedGroups.length);
+            while (renderedCount < end) addMarker(prioritizedGroups[renderedCount++]);
+            if (renderedCount < prioritizedGroups.length && map && renderGeneration === map._transitStatsMarkerBatchGeneration) {
+                map._transitStatsMarkerBatch = scheduleMarkerBatch(() => {
+                    map._transitStatsMarkerBatch = null;
+                    renderBatch(64);
+                });
+            }
+        };
+
+        renderBatch(map ? 48 : prioritizedGroups.length);
 
         return visibleGroups;
     };

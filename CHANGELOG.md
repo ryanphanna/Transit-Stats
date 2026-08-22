@@ -8,6 +8,10 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Maps now show nearby stop dots first and fill in the rest progressively**, making large ride histories feel faster without hiding the full footprint.
+- **Public profiles now reuse a short-lived local cache**, making repeat visits appear immediately while refreshing their stats in the background.
+- **Public profiles now use a light map presentation, stronger stop-dot contrast, and full ride-footprint framing**, making ride coverage easier to see at a glance.
+- **Public profile browser tabs now identify the profile owner**, such as “Ryan’s TransitStats.”
 - **Ambiguous boarding stops no longer block trip logging**, leaving the stop unverified when the rider does not choose between matches.
 - **Punctuation-only stop-name duplicates now resolve to one rider-facing stop**, avoiding unnecessary choices such as “St Clair West Station” versus “St.Clair West Station.”
 - **Directional platform names now resolve from the trip direction**, avoiding unnecessary stop-choice prompts for platforms like Northbound Platform.

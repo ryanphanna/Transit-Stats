@@ -23,12 +23,13 @@ describe('groupMapPoints', () => {
 });
 
 describe('getUsageMarkerStyle', () => {
-    it('makes more-used stops darker and larger', () => {
+    it('makes more-used stops darker without changing their size', () => {
         const lowUsage = getUsageMarkerStyle({ usage: 1 }, 64);
         const highUsage = getUsageMarkerStyle({ usage: 64 }, 64);
 
         expect(lowUsage.fillColor).not.toBe(highUsage.fillColor);
         expect(lowUsage.radius).toBe(highUsage.radius);
+        expect(lowUsage.fillOpacity).toBeLessThan(highUsage.fillOpacity);
         expect(highUsage.fillColor).toBe('#066b4b');
     });
 });

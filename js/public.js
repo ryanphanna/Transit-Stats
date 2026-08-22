@@ -4,10 +4,58 @@ import {
 } from './map-presentation.js';
 import { createMapSurface, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from './map-surface.js';
 import { refreshIcons } from './shared/icons.js';
-import { formatAtlasNumber, renderAtlasCard, setAtlasDisplayName } from './shared/atlas-card.js';
+import {
+    formatAtlasNumber,
+    getAtlasPageTitle,
+    renderAtlasCard,
+    setAtlasDisplayName,
+} from './shared/atlas-card.js';
+
+const PUBLIC_PROFILE_CACHE_PREFIX = 'transitstats-public-profile:';
+const PUBLIC_PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
+let publicMapState = null;
+let publicMapRefitFrame = null;
+
+function getPublicProfileCacheKey(username) {
+    return `${PUBLIC_PROFILE_CACHE_PREFIX}${username.trim().toLowerCase()}`;
+}
+
+function readCachedPublicProfile(username) {
+    try {
+        const cached = JSON.parse(localStorage.getItem(getPublicProfileCacheKey(username)) || 'null');
+        if (!cached?.data || Date.now() - cached.cachedAt >= PUBLIC_PROFILE_CACHE_TTL_MS) return null;
+        return cached.data;
+    } catch (error) {
+        console.warn('Public profile cache unavailable:', error);
+        return null;
+    }
+}
+
+function writeCachedPublicProfile(username, data) {
+    try {
+        localStorage.setItem(getPublicProfileCacheKey(username), JSON.stringify({
+            cachedAt: Date.now(),
+            data,
+        }));
+    } catch (error) {
+        console.warn('Public profile cache could not be saved:', error);
+    }
+}
+
+function clearCachedPublicProfile(username) {
+    try {
+        localStorage.removeItem(getPublicProfileCacheKey(username));
+    } catch (error) {
+        console.warn('Public profile cache could not be cleared:', error);
+    }
+}
 
 // Public Profile Logic
 document.addEventListener('DOMContentLoaded', async () => {
+    // Public profiles use the light presentation consistently; the signed-in
+    // dashboard can still follow each rider's theme preference.
+    document.documentElement.dataset.theme = 'light';
+    document.body.classList.remove('dark');
     renderAtlasCard({ publicProfile: true, loading: true });
     refreshIcons();
     const pathMatch = window.location.pathname.match(/^\/user\/([^/]+)\/?$/i);
@@ -19,62 +67,94 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    const normalizedUsername = username.trim().toLowerCase();
+    const cachedData = readCachedPublicProfile(normalizedUsername);
+    if (cachedData) renderPublicProfile(cachedData);
+
     try {
         // Trips are never publicly readable from Firestore (see firestore.rules) —
         // this endpoint reads them server-side with the Admin SDK and returns only
         // aggregate/anonymized fields (totals + lat/lng points, no route/stop/userId).
-        const res = await fetch(`https://us-central1-transitstats-21ba4.cloudfunctions.net/publicProfile?user=${encodeURIComponent(username.toLowerCase())}`);
+        const res = await fetch(`https://us-central1-transitstats-21ba4.cloudfunctions.net/publicProfile?user=${encodeURIComponent(normalizedUsername)}`, {
+            cache: 'no-store',
+        });
         const errorData = res.ok ? null : await res.json().catch(() => ({}));
         if (errorData?.code === 'COMING_SOON') {
+            clearCachedPublicProfile(normalizedUsername);
             showError('Public profiles are coming soon.', 'Public profiles are not available to everyone yet.');
             return;
         }
         if (res.status === 404) {
+            clearCachedPublicProfile(normalizedUsername);
             showError('Profile not found', 'That profile link does not point to an available TransitStats profile.');
             return;
         }
         if (res.status === 403) {
+            clearCachedPublicProfile(normalizedUsername);
             showError('This profile is private', 'The owner has not enabled public sharing for this map.');
             return;
         }
         if (!res.ok) {
+            if (cachedData) {
+                console.warn('Public profile refresh failed; keeping cached profile.');
+                return;
+            }
             showError('We could not load this profile', errorData.error || 'Please try again later.');
             return;
         }
 
         const data = await res.json();
-
-        if (data.canonicalUsername) {
-            const canonicalPath = `/user/${encodeURIComponent(data.canonicalUsername)}`;
-            if (window.location.pathname !== canonicalPath) {
-                window.history.replaceState({}, document.title, canonicalPath);
-            }
-        }
-
-        // Render Profile Header
-        setAtlasDisplayName(data.displayName || 'Traveler');
-
-        // Render the same dashboard facts as the signed-in card.
-        document.getElementById('stat-trips-lifetime').textContent = formatAtlasNumber(data.totalTrips ?? 0);
-        document.getElementById('stat-trips-month').textContent = formatAtlasNumber(data.thisMonth ?? 0);
-        document.getElementById('stat-trips-week').textContent = formatAtlasNumber(data.thisWeek ?? 0);
-        document.getElementById('stat-days-ridden').textContent = formatAtlasNumber(data.daysRidden ?? 0);
-        document.getElementById('stat-agencies-ridden').textContent = formatAtlasNumber(data.agencies ?? 0);
-        document.getElementById('stat-countries-ridden').textContent = formatAtlasNumber(data.countries ?? 0);
-        const atlasCard = document.querySelector('[data-atlas-card]');
-        atlasCard?.classList.remove('is-loading');
-        atlasCard?.setAttribute('aria-busy', 'false');
-
-        // Render Map
-        initPublicMap(data.points, data.mapStopMode);
-        document.querySelector('.public-view')?.classList.remove('is-loading');
-        document.getElementById('public-map-loading')?.remove();
+        writeCachedPublicProfile(normalizedUsername, data);
+        renderPublicProfile(data);
 
     } catch (error) {
+        if (cachedData) {
+            console.warn('Public profile refresh failed; keeping cached profile.', error);
+            return;
+        }
         console.error('Error loading profile:', error);
         showError('We could not load this profile', 'Please try again later.');
     }
 });
+
+function renderPublicProfile(data) {
+    if (data.canonicalUsername) {
+        const canonicalPath = `/user/${encodeURIComponent(data.canonicalUsername)}`;
+        if (window.location.pathname !== canonicalPath) {
+            window.history.replaceState({}, document.title, canonicalPath);
+        }
+    }
+
+    // Render Profile Header
+    const displayName = data.displayName || 'Traveler';
+    setAtlasDisplayName(displayName);
+    document.title = getAtlasPageTitle(displayName);
+
+    // Render the same dashboard facts as the signed-in card.
+    document.getElementById('stat-trips-lifetime').textContent = formatAtlasNumber(data.totalTrips ?? 0);
+    document.getElementById('stat-trips-month').textContent = formatAtlasNumber(data.thisMonth ?? 0);
+    document.getElementById('stat-trips-week').textContent = formatAtlasNumber(data.thisWeek ?? 0);
+    document.getElementById('stat-days-ridden').textContent = formatAtlasNumber(data.daysRidden ?? 0);
+    document.getElementById('stat-agencies-ridden').textContent = formatAtlasNumber(data.agencies ?? 0);
+    document.getElementById('stat-countries-ridden').textContent = formatAtlasNumber(data.countries ?? 0);
+    const atlasCard = document.querySelector('[data-atlas-card]');
+    atlasCard?.classList.remove('is-loading');
+    atlasCard?.setAttribute('aria-busy', 'false');
+
+    // Render Map
+    const refitPublicMap = initPublicMap(data.points, data.mapStopMode);
+    document.querySelector('.public-view')?.classList.remove('is-loading');
+    document.getElementById('public-map-loading')?.remove();
+    // The map can be measured before the loading state is removed. Refit
+    // once the public profile has its final viewport so no city is lost.
+    if (publicMapRefitFrame) cancelAnimationFrame(publicMapRefitFrame);
+    publicMapRefitFrame = refitPublicMap
+        ? requestAnimationFrame(() => {
+            publicMapRefitFrame = null;
+            refitPublicMap();
+        })
+        : null;
+}
 
 function showError(title, message) {
     document.querySelector('.public-view')?.classList.remove('is-loading');
@@ -105,18 +185,22 @@ function escapeHtml(value) {
 }
 
 function initPublicMap(points, mapStopMode = 'boarding') {
-    const isDark = document.documentElement.dataset.theme === 'dark'
-        || document.body.classList.contains('dark');
-    const tileTheme = isDark ? 'dark_all' : 'light_all';
-    const surface = createMapSurface({
-        containerId: 'publicMap',
-        center: DEFAULT_MAP_CENTER,
-        zoom: DEFAULT_MAP_ZOOM,
-        tileTheme,
-    });
+    if (!publicMapState) {
+        publicMapState = {
+            surface: createMapSurface({
+                containerId: 'publicMap',
+                center: DEFAULT_MAP_CENTER,
+                zoom: DEFAULT_MAP_ZOOM,
+                tileTheme: 'light_all',
+            }),
+            hasFitted: false,
+        };
+    }
+    const { surface } = publicMapState;
     const { map, markers, renderer } = surface;
+    let refit = null;
 
-    if (points && points.length > 0) {
+    if (Array.isArray(points)) {
         const visibleType = mapStopMode === 'exiting' ? 'end' : 'start';
         const visiblePoints = points.filter(point => point.type === visibleType);
         addMapPointMarkers({
@@ -131,6 +215,12 @@ function initPublicMap(points, mapStopMode = 'boarding') {
             formatPopup: value => value,
         });
 
-        fitMapToDensePoints(map, visiblePoints, { maxZoom: 13 });
+        if (!publicMapState.hasFitted && visiblePoints.length > 0) {
+            refit = () => fitMapToDensePoints(map, visiblePoints, { maxZoom: 13 });
+            refit();
+            publicMapState.hasFitted = true;
+        }
     }
+
+    return refit;
 }

@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
     ATLAS_COPY,
     formatAtlasNumber,
+    getAtlasPageTitle,
     renderAtlasCard,
     setAtlasDisplayName,
 } from '../js/shared/atlas-card.js';
@@ -76,6 +77,12 @@ describe('shared Atlas card', () => {
 
         setAtlasDisplayName('Ryan');
         expect(document.querySelector('.atlas-title-tail').textContent).toBe('’s');
+    });
+
+    it('uses the profile name in the public page title', () => {
+        expect(getAtlasPageTitle('Ryan')).toBe('Ryan’s TransitStats');
+        expect(getAtlasPageTitle('James')).toBe('James’ TransitStats');
+        expect(getAtlasPageTitle('')).toBe('Traveler’s TransitStats');
     });
 
     it('formats large dashboard and public totals with separators', () => {
