@@ -19,6 +19,7 @@ const {
   getStopDisplay,
   getRouteDisplay,
   getStopCandidateDirection,
+  collapseEquivalentStopCandidates,
   normalizeRoute,
   isValidRoute,
 } = require('./utils');
@@ -133,6 +134,11 @@ async function narrowStopCandidates(candidates, route, direction, agency = null)
     );
     if (routeFiltered.length >= 1) narrowed = routeFiltered;
   }
+  const hasRouteEvidence = !route || narrowed.every(candidate => (
+    Array.isArray(candidate.routes) &&
+    candidate.routes.some(r => normalizeRoute(r) === normalizeRoute(route))
+  ));
+  if (hasRouteEvidence) narrowed = collapseEquivalentStopCandidates(narrowed);
   // Further narrow by direction if provided and candidates still ambiguous
   if (narrowed.length > 1 && direction) {
     const normalize = value => value?.toString().trim().toLowerCase().replace(/bound$/, '');

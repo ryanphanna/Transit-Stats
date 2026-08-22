@@ -137,6 +137,48 @@ function getStopCandidateDirection(candidate) {
 }
 
 /**
+ * Build a rider-facing identity for a stop candidate. Punctuation-only name
+ * differences should not create a second stop-choice option, but directional
+ * variants must remain distinct.
+ * @param {Object|null} candidate
+ * @returns {string|null}
+ */
+function getStopCandidateKey(candidate) {
+  if (!candidate) return null;
+  const label = candidate.stopName || candidate.name;
+  if (!label) return null;
+  const nameKey = label.toString().trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  const direction = getStopCandidateDirection(candidate) || '';
+  return `${nameKey}|${direction.toLowerCase()}`;
+}
+
+/**
+ * Collapse duplicate stop records that differ only in punctuation or spacing.
+ * @param {Array} candidates
+ * @returns {Array}
+ */
+function collapseEquivalentStopCandidates(candidates) {
+  if (!Array.isArray(candidates) || candidates.length <= 1) return candidates || [];
+
+  const chosen = new Map();
+  for (const candidate of candidates) {
+    const key = getStopCandidateKey(candidate);
+    if (!key || !chosen.has(key)) {
+      chosen.set(key || Symbol('candidate'), candidate);
+      continue;
+    }
+
+    const current = chosen.get(key);
+    const score = value =>
+      (value?.stopCode ? 1 : 0) +
+      (Array.isArray(value?.routes) && value.routes.length > 0 ? 1 : 0) -
+      ((value?.stopName || '').match(/[^a-z0-9 ]/gi) || []).length * 0.01;
+    if (score(candidate) > score(current)) chosen.set(key, candidate);
+  }
+  return [...chosen.values()];
+}
+
+/**
  * Generate a cryptographically secure random 6-digit code
  * @returns {string} 6-digit verification code
  */
@@ -293,6 +335,8 @@ module.exports = {
   escapeXml,
   normalizeDirection,
   getStopCandidateDirection,
+  getStopCandidateKey,
+  collapseEquivalentStopCandidates,
   normalizeRoute,
   normalizeRouteForGrading,
   normalizeAgency,
