@@ -7,6 +7,10 @@ Transit Stats is a premium transit trip tracker for enthusiasts to analyze rider
 
 Behind the scenes, we are building **[NextGen TransitStats](./NEXTGEN.md)**: a transit modeling engine R&D initiative focusing on passive logging, semantic stop resolution, and autonomous trip synthesis, powered by the app's **[Intelligence](../INTELLIGENCE.md)**.
 
+## Planned product improvements
+
+- **Personal map colour themes** — let riders choose from accessible stop-marker palettes for their own map, with expanded or custom themes as a possible premium feature.
+
 ---
 
 [Back to Home](../../README.md)
