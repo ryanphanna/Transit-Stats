@@ -149,6 +149,39 @@ test('lookupStop: generic subway stop still resolves to the line stop', async ()
   assert.equal(result.stopCode, '9001');
 });
 
+test('lookupStop: direction in a platform name resolves over a generic station', async () => {
+  const { lookupStop } = loadStopsModule({
+    stops: [
+      {
+        id: 'ttc_college_nb_platform',
+        data: {
+          agencies: ['TTC'],
+          code: '9001-N',
+          name: 'College Station - Northbound Platform',
+          aliases: ['College'],
+        },
+      },
+      {
+        id: 'ttc_college_station',
+        data: {
+          agencies: ['TTC'],
+          code: '9001',
+          name: 'College Station',
+          aliases: ['College'],
+        },
+      },
+    ],
+    stopRoutes: {
+      'TTC_9001-N': ['1'],
+      TTC_9001: ['1'],
+    },
+  });
+
+  const result = await lookupStop(null, 'College', 'TTC', '1', 'Northbound');
+  assert.ok(result);
+  assert.equal(result.stopCode, '9001-N');
+});
+
 test('lookupStop: returns null when multiple same-name candidates are unconfirmed for route', async () => {
   const { lookupStop } = loadStopsModule({
     stops: [

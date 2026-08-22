@@ -4,6 +4,7 @@
 const { db, FieldValue } = require('./core');
 const { AGENCY_CITY } = require('../constants');
 const { getConnectionGroup, areConnectedStops, normalizeStopName } = require('../transfer-connections');
+const { getStopCandidateDirection } = require('../utils');
 const TopologyConstraints = require('../topology-constraints');
 let _topology = null;
 try { _topology = require('../topology.json'); } catch (_) { /* optional */ }
@@ -240,7 +241,7 @@ async function _resolveCandidates(candidates, agency, route, direction, rawStopN
   if (narrowed.length === 1) return narrowed[0];
 
   if (direction) {
-    const dirFiltered = narrowed.filter(c => _directionMatches(c.direction, direction));
+    const dirFiltered = narrowed.filter(c => _directionMatches(getStopCandidateDirection(c), direction));
     if (dirFiltered.length === 1) return dirFiltered[0];
     if (dirFiltered.length > 1) narrowed = dirFiltered;
   }

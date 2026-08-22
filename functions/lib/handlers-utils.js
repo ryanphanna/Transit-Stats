@@ -18,6 +18,7 @@ const { getConfiguredPrimaryAgency } = require('./primary-agency');
 const {
   getStopDisplay,
   getRouteDisplay,
+  getStopCandidateDirection,
   normalizeRoute,
   isValidRoute,
 } = require('./utils');
@@ -135,7 +136,7 @@ async function narrowStopCandidates(candidates, route, direction, agency = null)
   // Further narrow by direction if provided and candidates still ambiguous
   if (narrowed.length > 1 && direction) {
     const normalize = value => value?.toString().trim().toLowerCase().replace(/bound$/, '');
-    const dirFiltered = narrowed.filter(c => normalize(c.direction) === normalize(direction));
+    const dirFiltered = narrowed.filter(c => normalize(getStopCandidateDirection(c)) === normalize(direction));
     if (dirFiltered.length >= 1) narrowed = dirFiltered;
   }
   if (narrowed.length > 1 && route) {
@@ -179,7 +180,7 @@ function inferRouteMode(route) {
 
 function candidateMatchesRouteMode(candidate, routeMode) {
   const stopName = candidate?.stopName?.toString() || '';
-  const hasDirection = !!candidate?.direction;
+  const hasDirection = !!getStopCandidateDirection(candidate);
   const isStationLike = /\bstation\b/i.test(stopName);
   const isSurfaceNamed = /\/| at |&/i.test(stopName);
 
