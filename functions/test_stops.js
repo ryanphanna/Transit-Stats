@@ -182,6 +182,29 @@ test('lookupStop: direction in a platform name resolves over a generic station',
   assert.equal(result.stopCode, '9001-N');
 });
 
+test('lookupStop: punctuation-only duplicate names resolve to one stop', async () => {
+  const { lookupStop } = loadStopsModule({
+    stops: [
+      {
+        id: 'ttc_st_clair_spaced',
+        data: { agencies: ['TTC'], code: '1001', name: 'St Clair West Station', aliases: ['St Clair West'] },
+      },
+      {
+        id: 'ttc_st_clair_punctuated',
+        data: { agencies: ['TTC'], code: '1002', name: 'St.Clair West Station', aliases: ['St Clair West'] },
+      },
+    ],
+    stopRoutes: {
+      TTC_1001: ['1'],
+      TTC_1002: ['1'],
+    },
+  });
+
+  const result = await lookupStop(null, 'St Clair West', 'TTC', '1', 'Southbound');
+  assert.ok(result);
+  assert.ok(['1001', '1002'].includes(result.stopCode));
+});
+
 test('lookupStop: returns null when multiple same-name candidates are unconfirmed for route', async () => {
   const { lookupStop } = loadStopsModule({
     stops: [

@@ -4,7 +4,7 @@
 const { db, FieldValue } = require('./core');
 const { AGENCY_CITY } = require('../constants');
 const { getConnectionGroup, areConnectedStops, normalizeStopName } = require('../transfer-connections');
-const { getStopCandidateDirection } = require('../utils');
+const { getStopCandidateDirection, collapseEquivalentStopCandidates } = require('../utils');
 const TopologyConstraints = require('../topology-constraints');
 let _topology = null;
 try { _topology = require('../topology.json'); } catch (_) { /* optional */ }
@@ -231,7 +231,9 @@ function _findStopCandidates(stopName, docs) {
 async function _resolveCandidates(candidates, agency, route, direction, rawStopName) {
   if (!route || candidates.length === 1) return candidates[0];
 
-  let narrowed = await _filterCandidatesByRoute(candidates, agency, route);
+  const routeResult = await _filterCandidatesByRoute(candidates, agency, route);
+  let narrowed = routeResult.candidates;
+  if (routeResult.confirmed) narrowed = collapseEquivalentStopCandidates(narrowed);
   if (narrowed.length === 0) {
     if (candidates.length === 1) return candidates[0];
     console.warn(`lookupStop: ${candidates.length} stops named "${rawStopName}" but none confirmed for route ${route} via stopRoutes`);
@@ -281,7 +283,9 @@ async function _filterCandidatesByRoute(candidates, agency, route) {
     if (localRoutes.length === 0) fallback.push(candidate);
   }
 
-  return confirmed.length > 0 ? confirmed : fallback;
+  return confirmed.length > 0
+    ? { candidates: confirmed, confirmed: true }
+    : { candidates: fallback, confirmed: false };
 }
 
 function _normalizeRouteKey(route) {

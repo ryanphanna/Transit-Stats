@@ -134,6 +134,17 @@ function loadHandlers(overrides = {}) {
       const match = String(candidate?.stopName || '').match(/\b(northbound|southbound|eastbound|westbound)\b/i);
       return match ? `${match[1][0].toUpperCase()}${match[1].slice(1).toLowerCase()}` : null;
     },
+    collapseEquivalentStopCandidates: (candidates) => {
+      const seen = new Set();
+      return candidates.filter((candidate) => {
+        const name = String(candidate?.stopName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const direction = candidate?.direction || '';
+        const key = `${name}|${direction.toLowerCase()}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    },
     normalizeDirection: (v) => {
       if (!v) return null;
       const s = v.toString().toLowerCase();
@@ -291,7 +302,7 @@ test('handleTripLog: refuses to start without a boarding stop', async () => {
   assert.match(calls.sendSmsReply[0]?.message || '', /boarding stop/i);
 });
 
-test('handleTripLog: disambiguation prompt includes direction labels', async () => {
+test('handleTripLog: ambiguous stop starts without requiring a choice', async () => {
   const startTime = 1778770440000;
   const { handlers, calls, restore } = loadHandlers({
     dbModule: {
@@ -318,11 +329,10 @@ test('handleTripLog: disambiguation prompt includes direction labels', async () 
 
   assert.equal(calls.createTrip.length, 1);
   assert.equal(calls.createTrip[0].startTime, startTime);
-  assert.equal(calls.setPendingState.length, 1);
-  assert.equal(calls.setPendingState[0].type, 'confirm_stop');
+  assert.equal(calls.setPendingState.length, 0);
   const msg = calls.sendSmsReply[0]?.message || '';
-  assert.match(msg, /\(Northbound, stop 2069\)/);
-  assert.match(msg, /\(Southbound, stop 2070\)/);
+  assert.match(msg, /left the boarding stop unverified/i);
+  assert.doesNotMatch(msg, /Reply with a number/);
 });
 
 test('handleTripLog: 506 College Westbound auto-resolves to one surface stop', async () => {
@@ -354,7 +364,7 @@ test('handleTripLog: 506 College Westbound auto-resolves to one surface stop', a
   assert.equal(calls.createTrip[0].startStopName, 'College Station');
 });
 
-test('handleTripLog: 506 College with no direction falls back to disambiguation prompt', async () => {
+test('handleTripLog: 506 College with no direction leaves the stop unverified', async () => {
   const { handlers, calls, restore } = loadHandlers({
     dbModule: {
       findMatchingStops: async () => [
@@ -372,12 +382,10 @@ test('handleTripLog: 506 College with no direction falls back to disambiguation 
   }
 
   assert.equal(calls.createTrip.length, 1);
-  assert.equal(calls.setPendingState.length, 1);
-  assert.equal(calls.setPendingState[0].type, 'confirm_stop');
+  assert.equal(calls.setPendingState.length, 0);
   const msg = calls.sendSmsReply[0]?.message || '';
-  assert.match(msg, /Multiple stops match "College"/);
-  assert.match(msg, /stop 760/);
-  assert.match(msg, /stop 761/);
+  assert.match(msg, /left the boarding stop unverified/i);
+  assert.doesNotMatch(msg, /Multiple stops match/);
 });
 
 test('handleTripLog: identical names with no direction data do not prompt (unanswerable)', async () => {
@@ -506,6 +514,33 @@ test('handleTripLog: direction in a platform name resolves without prompting', a
   assert.equal(calls.setPendingState.length, 0);
   assert.equal(calls.createTrip.length, 1);
   assert.equal(calls.createTrip[0].startStopCode, '9001-N');
+});
+
+test('handleTripLog: punctuation-only stop duplicates do not prompt', async () => {
+  const { handlers, calls, restore } = loadHandlers({
+    dbModule: {
+      findMatchingStops: async () => [
+        { id: 'spaced', stopCode: '1001', stopName: 'St Clair West Station', routes: ['1'], direction: null },
+        { id: 'punctuated', stopCode: '1002', stopName: 'St.Clair West Station', routes: ['1'], direction: null },
+      ],
+      lookupStop: async (_code, stopName, _agency, route, direction) => {
+        if (stopName === 'St Clair West' && route === '1' && direction === 'Southbound') {
+          return { id: 'spaced', stopCode: '1001', stopName: 'St Clair West Station', source: 'verified' };
+        }
+        return null;
+      },
+    },
+  });
+
+  try {
+    await handlers.handleTripLog('+14165550016', { userId: 'u16' }, 'St Clair West', '1', 'Southbound', 'TTC');
+  } finally {
+    restore();
+  }
+
+  assert.equal(calls.setPendingState.length, 0);
+  assert.equal(calls.createTrip.length, 1);
+  assert.equal(calls.createTrip[0].startStopCode, '1001');
 });
 
 test('handleTripLog: 506 College Station Westbound auto-resolves to westbound surface stop', async () => {
