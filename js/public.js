@@ -13,6 +13,10 @@ import {
 
 // Public Profile Logic
 document.addEventListener('DOMContentLoaded', async () => {
+    // Public profiles use the light presentation consistently; the signed-in
+    // dashboard can still follow each rider's theme preference.
+    document.documentElement.dataset.theme = 'light';
+    document.body.classList.remove('dark');
     renderAtlasCard({ publicProfile: true, loading: true });
     refreshIcons();
     const pathMatch = window.location.pathname.match(/^\/user\/([^/]+)\/?$/i);
@@ -112,14 +116,11 @@ function escapeHtml(value) {
 }
 
 function initPublicMap(points, mapStopMode = 'boarding') {
-    const isDark = document.documentElement.dataset.theme === 'dark'
-        || document.body.classList.contains('dark');
-    const tileTheme = isDark ? 'dark_all' : 'light_all';
     const surface = createMapSurface({
         containerId: 'publicMap',
         center: DEFAULT_MAP_CENTER,
         zoom: DEFAULT_MAP_ZOOM,
-        tileTheme,
+        tileTheme: 'light_all',
     });
     const { map, markers, renderer } = surface;
 
