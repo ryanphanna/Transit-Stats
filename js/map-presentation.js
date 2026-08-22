@@ -50,6 +50,32 @@ function blend(from, to, amount) {
     return rgbToHex(start.map((value, index) => Math.round(value + ((end[index] - value) * amount))));
 }
 
+function prioritizeVisiblePoints(points, map) {
+    if (!map?.getBounds) return points;
+    const visibleBounds = map.getBounds().pad(0.4);
+    return [...points].sort((first, second) => {
+        const firstVisible = visibleBounds.contains([first.lat, first.lng]);
+        const secondVisible = visibleBounds.contains([second.lat, second.lng]);
+        return Number(secondVisible) - Number(firstVisible);
+    });
+}
+
+function scheduleMarkerBatch(callback) {
+    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+        return { type: 'idle', id: window.requestIdleCallback(callback, { timeout: 120 }) };
+    }
+    return { type: 'timeout', id: setTimeout(callback, 0) };
+}
+
+function cancelMarkerBatch(handle) {
+    if (!handle) return;
+    if (handle.type === 'idle' && typeof window !== 'undefined' && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(handle.id);
+    } else {
+        clearTimeout(handle.id);
+    }
+}
+
 export function groupMapPoints(points = [], getLabel = () => null) {
     const grouped = new Map();
 
@@ -155,11 +181,15 @@ export function addMapPointMarkers({
     if (!markers) return [];
     const grouped = groupMapPoints(points, getLabel);
     const renderMarkers = () => {
+        map?._transitStatsMarkerBatch && cancelMarkerBatch(map._transitStatsMarkerBatch);
+        if (map) map._transitStatsMarkerBatchGeneration = (map._transitStatsMarkerBatchGeneration || 0) + 1;
+        const renderGeneration = map?._transitStatsMarkerBatchGeneration;
         const visibleGroups = clusterMapPoints(grouped, map);
         const maxUsage = Math.max(...visibleGroups.map(point => point.usage), 1);
+        const prioritizedGroups = prioritizeVisiblePoints(visibleGroups, map);
         markers.clearLayers();
 
-        visibleGroups.forEach(point => {
+        const addMarker = point => {
             const marker = L.circleMarker([point.lat, point.lng], {
                 renderer,
                 ...getUsageMarkerStyle(point, maxUsage, { baseRadius }),
@@ -167,7 +197,21 @@ export function addMapPointMarkers({
             const popup = [...point.labels].map(formatPopup).filter(Boolean).join('<br>');
             if (popup && map) addZoomGatedPopup(marker, map, popup);
             markers.addLayer(marker);
-        });
+        };
+
+        let renderedCount = 0;
+        const renderBatch = count => {
+            const end = Math.min(renderedCount + count, prioritizedGroups.length);
+            while (renderedCount < end) addMarker(prioritizedGroups[renderedCount++]);
+            if (renderedCount < prioritizedGroups.length && map && renderGeneration === map._transitStatsMarkerBatchGeneration) {
+                map._transitStatsMarkerBatch = scheduleMarkerBatch(() => {
+                    map._transitStatsMarkerBatch = null;
+                    renderBatch(64);
+                });
+            }
+        };
+
+        renderBatch(map ? 48 : prioritizedGroups.length);
 
         return visibleGroups;
     };
