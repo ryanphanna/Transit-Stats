@@ -8,9 +8,11 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Directional platform names now resolve from the trip direction**, avoiding unnecessary stop-choice prompts for platforms like Northbound Platform.
 - **Dashboard activity stats now show the last 7 and 30 days**, making the time windows consistent and unambiguous.
 - **Experimental prediction paths now receive the same previous-route, agency, and learned-network context** after stop disambiguation, keeping fallback inference aligned with normal trip starts.
 - **Weekly model retraining now stops before deployment when validation accuracy drops materially**, preventing an automatic refresh from silently replacing a stronger model.
+- **Firebase compatibility calls now use the modular Auth and Firestore APIs without changing stored data.**
 
 ## [1.49.1] — 2026-08-15
 

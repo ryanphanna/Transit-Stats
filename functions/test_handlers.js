@@ -129,6 +129,11 @@ function loadHandlers(overrides = {}) {
   const utils = {
     getStopDisplay: (code, name, fallback) => code || name || fallback || 'Unknown',
     getRouteDisplay: (route, direction) => direction ? `${route} ${direction}` : `${route}`,
+    getStopCandidateDirection: (candidate) => {
+      if (candidate?.direction) return candidate.direction;
+      const match = String(candidate?.stopName || '').match(/\b(northbound|southbound|eastbound|westbound)\b/i);
+      return match ? `${match[1][0].toUpperCase()}${match[1].slice(1).toLowerCase()}` : null;
+    },
     normalizeDirection: (v) => {
       if (!v) return null;
       const s = v.toString().toLowerCase();
@@ -462,6 +467,45 @@ test('handleTripLog: Line 1 College auto-resolves to subway station', async () =
   assert.equal(calls.createTrip.length, 1);
   assert.equal(calls.createTrip[0].startStopCode, '9001');
   assert.equal(calls.createTrip[0].startStopName, 'College');
+});
+
+test('handleTripLog: direction in a platform name resolves without prompting', async () => {
+  const { handlers, calls, restore } = loadHandlers({
+    dbModule: {
+      findMatchingStops: async () => [
+        {
+          id: 'north_platform',
+          stopCode: '9001-N',
+          stopName: 'College Station - Northbound Platform',
+          routes: ['1'],
+          direction: null,
+        },
+        {
+          id: 'station',
+          stopCode: '9001',
+          stopName: 'College Station',
+          routes: ['1'],
+          direction: null,
+        },
+      ],
+      lookupStop: async (_code, stopName, _agency, route, direction) => {
+        if (stopName === 'College' && route === '1' && direction === 'Northbound') {
+          return { id: 'north_platform', stopCode: '9001-N', stopName: 'College Station - Northbound Platform', source: 'verified' };
+        }
+        return null;
+      },
+    },
+  });
+
+  try {
+    await handlers.handleTripLog('+14165550015', { userId: 'u15' }, 'College', '1', 'Northbound', 'TTC');
+  } finally {
+    restore();
+  }
+
+  assert.equal(calls.setPendingState.length, 0);
+  assert.equal(calls.createTrip.length, 1);
+  assert.equal(calls.createTrip[0].startStopCode, '9001-N');
 });
 
 test('handleTripLog: 506 College Station Westbound auto-resolves to westbound surface stop', async () => {

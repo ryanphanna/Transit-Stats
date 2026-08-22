@@ -115,6 +115,28 @@ function normalizeDirection(input) {
 }
 
 /**
+ * Return the direction encoded on a stop candidate, including directional
+ * platform names such as "College Station - Northbound Platform".
+ *
+ * Normalized stop data usually has a separate direction field, but imported
+ * platform records can carry the direction only in their display name.
+ * @param {Object|null} candidate
+ * @returns {string|null}
+ */
+function getStopCandidateDirection(candidate) {
+  if (!candidate) return null;
+
+  const explicit = normalizeDirection(candidate.direction);
+  if (['Northbound', 'Southbound', 'Eastbound', 'Westbound'].includes(explicit)) {
+    return explicit;
+  }
+
+  const label = [candidate.stopName, candidate.name].filter(Boolean).join(' ');
+  const directionMatch = label.match(/\b(northbound|southbound|eastbound|westbound)\b/i);
+  return directionMatch ? normalizeDirection(directionMatch[1]) : null;
+}
+
+/**
  * Generate a cryptographically secure random 6-digit code
  * @returns {string} 6-digit verification code
  */
@@ -270,6 +292,7 @@ module.exports = {
   toTitleCase,
   escapeXml,
   normalizeDirection,
+  getStopCandidateDirection,
   normalizeRoute,
   normalizeRouteForGrading,
   normalizeAgency,
