@@ -22,6 +22,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Public profile maps now refit after cached data refreshes**, so repeat visits do not stay centered on an incomplete or stale city footprint.
+
 ## [1.49.1] — 2026-08-15
 
 ### Fixed
