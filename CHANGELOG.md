@@ -22,6 +22,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Missing stop coordinates can now be backfilled from local GTFS without changing trip history, names, or aliases.**
 - **Public profile maps now refit after cached data refreshes**, so repeat visits do not stay centered on an incomplete or stale city footprint.
 - **Public profile maps now resolve stops without saved coordinates**, so older trips still appear outside the main city.
 
