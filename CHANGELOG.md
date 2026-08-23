@@ -23,6 +23,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 ## [Unreleased]
 
 - **Public profile maps now refit after cached data refreshes**, so repeat visits do not stay centered on an incomplete or stale city footprint.
+- **Public profile maps now resolve stops without saved coordinates**, so older trips still appear outside the main city.
 
 ## [1.49.1] — 2026-08-15
 
