@@ -168,7 +168,15 @@ async function getStopsLibrary() {
   const snapshot = await db.collection('stops').get();
   return snapshot.docs.map(doc => {
     const data = doc.data();
-    return { name: data.name, aliases: data.aliases || [] };
+    return {
+      name: data.name,
+      aliases: data.aliases || [],
+      code: data.code || null,
+      agency: data.agency || null,
+      agencies: data.agencies || [],
+      lat: data.lat ?? data.location?.lat ?? null,
+      lng: data.lng ?? data.lon ?? data.location?.lng ?? data.location?.lon ?? null,
+    };
   });
 }
 

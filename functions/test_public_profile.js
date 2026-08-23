@@ -25,9 +25,11 @@ function loadPublicProfile(overrides = {}) {
           };
           return query;
         },
+        get: async () => (overrides.stopsSnap ?? { docs: [] }),
       }),
     },
     getUserProfile: async () => overrides.profile ?? null,
+    getStopsLibrary: async () => (overrides.stopsSnap ?? { docs: [] }).docs.map(doc => doc.data()),
     ...overrides.dbModule,
   };
 
@@ -94,11 +96,11 @@ test('publicProfile returns 403 when profile is not public', async () => {
 
 test('publicProfile marks other profiles as coming soon', async () => {
   const handler = loadPublicProfile({
-    docs: { usernames: { alice: { exists: true, data: () => ({ uid: 'u1' }) } } },
-    profile: { isPublic: true, username: 'alice' },
+    docs: { usernames: { r: { exists: true, data: () => ({ uid: 'u1' }) } } },
+    profile: { isPublic: true, username: 'r' },
   });
   const res = mockRes();
-  await handler({ method: 'GET', query: { user: 'alice' } }, res);
+  await handler({ method: 'GET', query: { user: 'r' } }, res);
   assert.equal(res.statusCode, 403);
   assert.equal(res.body.code, 'COMING_SOON');
 });
@@ -132,6 +134,30 @@ test('publicProfile returns 200 with aggregated stats for a public profile', asy
   assert.equal(res.body.displayName, 'Alice');
   assert.equal(res.body.canonicalUsername, 'r');
   assert.equal(res.body.mapStopMode, 'exiting');
+});
+
+test('publicProfile resolves missing trip coordinates from the stop library', async () => {
+  const handler = loadPublicProfile({
+    docs: { usernames: { r: { exists: true, data: () => ({ uid: 'u1' }) } } },
+    profile: { isPublic: true, username: 'r', emojiUsername: 'subway-subway-subway' },
+    tripsSnap: {
+      size: 1,
+      forEach: (fn) => fn({ data: () => ({ agency: 'STM', startStopName: 'Berri-UQAM', endStopName: 'Lionel-Groulx' }) }),
+    },
+    stopsSnap: {
+      docs: [
+        { data: () => ({ name: 'Berri-UQAM', agencies: ['STM'], lat: 45.5152, lng: -73.5618 }) },
+        { data: () => ({ name: 'Lionel-Groulx', agencies: ['STM'], lat: 45.4827, lng: -73.5802 }) },
+      ],
+    },
+  });
+  const res = mockRes();
+  await handler({ method: 'GET', query: { user: 'r' } }, res);
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(res.body.points.map(point => [point.lat, point.lng]), [
+    [45.5152, -73.5618],
+    [45.4827, -73.5802],
+  ]);
 });
 
 test('publicProfile returns 500 and does not leak internal error detail on unexpected failure', async () => {
