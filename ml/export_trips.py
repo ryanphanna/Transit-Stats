@@ -18,6 +18,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 
 # --- Config ---
+PROJECT_ID = os.environ.get("TRANSITSTATS_PROJECT_ID", "transitstats-21ba4")
 KEY_PATH = os.path.expanduser(
     "~/Desktop/Dev/Credentials/Firebase for Transit Stats.json"
 )
@@ -90,8 +91,8 @@ def main():
         sys.exit(1)
 
     cred = credentials.Certificate(KEY_PATH)
-    firebase_admin.initialize_app(cred)
-    db = firestore.client()
+    app = firebase_admin.initialize_app(cred, {"projectId": PROJECT_ID})
+    db = firestore.client(app=app)
 
     print("Fetching trips from Firestore...")
     docs = db.collection("trips").stream()

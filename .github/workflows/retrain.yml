@@ -44,6 +44,8 @@ jobs:
           cp ml/model_v5_endstop_meta.json /tmp/transitstats-model-baseline/
 
       - name: Export trips from Firestore
+        env:
+          TRANSITSTATS_PROJECT_ID: transitstats-21ba4
         run: GRPC_DNS_RESOLVER=native python3 ml/export_trips.py
 
       - name: Retrain end-stop models (V4 + V5)
