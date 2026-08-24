@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Signed-in map branding now sits in the same position as logged-out map branding**, keeping the two map views visually consistent.
 - **Maps now show nearby stop dots first and fill in the rest progressively**, making large ride histories feel faster without hiding the full footprint.
 - **Public profiles now reuse a short-lived local cache**, making repeat visits appear immediately while refreshing their stats in the background.
 - **Public profiles now use a light map presentation, stronger stop-dot contrast, and full ride-footprint framing**, making ride coverage easier to see at a glance.

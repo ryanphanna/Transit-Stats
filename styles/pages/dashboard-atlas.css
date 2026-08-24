@@ -18,7 +18,8 @@
 .dashboard-surface .header-container {
   pointer-events: none;
   max-width: none;
-  padding: 18px 24px;
+  padding: 22px 24px 4px;
+  align-items: flex-start;
 }
 
 .dashboard-surface .header-container > * {
