@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Weekly model retraining now targets the Transit Stats Firestore project explicitly**, preventing CI credentials from resolving the wrong database.
 - **Dashboard refreshes now allow more time for auth recovery**, preventing a slow token refresh from sending a still-valid user back to the sign-in screen.
 - **Login texts now use Apple’s domain-bound one-time-code format**, making iPhone code AutoFill more reliable.
 - **Clicking a map stop now smoothly zooms toward it and highlights the selected pin**, making dense areas easier to explore.
