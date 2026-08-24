@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Clicking a map stop now smoothly zooms toward it and highlights the selected pin**, making dense areas easier to explore.
 - **Sign-in now waits for persistent storage before creating a session**, preventing refreshes from appearing to sign users out.
 - **Public profile totals now use the same history-trip rules as the signed-in dashboard**, so active or malformed records no longer inflate logged-out ride counts.
 - **Logged-in and logged-out maps now open with the same overview and card-aware framing**, so the initial location does not shift between views.
