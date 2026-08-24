@@ -1,8 +1,9 @@
 import {
     addMapPointMarkers,
     fitMapToDensePoints,
+    getAtlasMapFitOptions,
 } from './map-presentation.js';
-import { createMapSurface, DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from './map-surface.js';
+import { createMapSurface, DEFAULT_MAP_CENTER, DEFAULT_MAP_OVERVIEW_ZOOM } from './map-surface.js';
 import { refreshIcons } from './shared/icons.js';
 import {
     formatAtlasNumber,
@@ -190,7 +191,7 @@ function initPublicMap(points, mapStopMode = 'boarding') {
             surface: createMapSurface({
                 containerId: 'publicMap',
                 center: DEFAULT_MAP_CENTER,
-                zoom: DEFAULT_MAP_ZOOM,
+                zoom: DEFAULT_MAP_OVERVIEW_ZOOM,
                 tileTheme: 'light_all',
             }),
             hasFitted: false,
@@ -216,7 +217,7 @@ function initPublicMap(points, mapStopMode = 'boarding') {
         });
 
         if (!publicMapState.hasFitted && visiblePoints.length > 0) {
-            refit = () => fitMapToDensePoints(map, visiblePoints, { maxZoom: 13 });
+            refit = () => fitMapToDensePoints(map, visiblePoints, getAtlasMapFitOptions());
             refit();
             publicMapState.hasFitted = true;
         }
