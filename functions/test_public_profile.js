@@ -105,7 +105,7 @@ test('publicProfile marks other profiles as coming soon', async () => {
 
 test('publicProfile returns 200 with aggregated stats for a public profile', async () => {
   const tripDocs = [
-    { data: () => ({ duration: 10, startTime: new Date(), startStopName: 'Start', endStopName: 'End', boardingLocation: { lat: 1, lng: 2 }, exitLocation: { lat: 3, lng: 4 } }) },
+    { data: () => ({ duration: 10, startTime: new Date(Date.now() - 7 * 60 * 60 * 1000), startStopName: 'Start', endStopName: 'End', boardingLocation: { lat: 1, lng: 2 }, exitLocation: { lat: 3, lng: 4 } }) },
   ];
   const handler = loadPublicProfile({
     docs: { usernames: { 'subway-subway-subway': { exists: true, data: () => ({ uid: 'u1' }) } } },
