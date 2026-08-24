@@ -1,4 +1,5 @@
 firebase-admin
+google-cloud-firestore==2.26.0
 pandas
 scikit-learn
 xgboost
