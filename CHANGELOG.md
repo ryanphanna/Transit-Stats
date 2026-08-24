@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Login texts now use Apple’s domain-bound one-time-code format**, making iPhone code AutoFill more reliable.
 - **Clicking a map stop now smoothly zooms toward it and highlights the selected pin**, making dense areas easier to explore.
 - **Sign-in now waits for persistent storage before creating a session**, preventing refreshes from appearing to sign users out.
 - **Public profile totals now use the same history-trip rules as the signed-in dashboard**, so active or malformed records no longer inflate logged-out ride counts.
