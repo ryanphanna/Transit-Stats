@@ -30,7 +30,7 @@ jobs:
 
       - name: Write service account key
         env:
-          FIREBASE_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TRANSITSTATS_21BA4 }}
         run: |
           mkdir -p "$HOME/Desktop/Dev/Credentials"
           echo "$FIREBASE_KEY" > "$HOME/Desktop/Dev/Credentials/Firebase for Transit Stats.json"
