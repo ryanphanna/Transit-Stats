@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clusterMapPoints, getUsageMarkerStyle, groupMapPoints } from '../js/map-presentation.js';
+import { addZoomGatedPopup, clusterMapPoints, getUsageMarkerStyle, groupMapPoints } from '../js/map-presentation.js';
 
 describe('groupMapPoints', () => {
     it('groups nearby saved coordinates into one weighted stop marker', () => {
@@ -64,5 +64,29 @@ describe('clusterMapPoints', () => {
         ];
 
         expect(clusterMapPoints(points, map, { zoom: 8 })).toHaveLength(2);
+    });
+});
+
+describe('addZoomGatedPopup', () => {
+    it('zooms toward a pin before opening its popup', () => {
+        const events = {};
+        const marker = {
+            _transitStatsPointKey: 'boarding:43.65:-79.38',
+            _transitStatsBaseStyle: { color: '#eaf8f2', weight: 1.25 },
+            on: (event, callback) => { events[event] = callback; },
+            setStyle: vi.fn(),
+            closePopup: vi.fn(),
+            getLatLng: () => [43.65, -79.38],
+        };
+        const map = {
+            getZoom: () => 10,
+            flyTo: vi.fn(),
+        };
+
+        addZoomGatedPopup(marker, map, 'Union Station');
+        events.click();
+
+        expect(map.flyTo).toHaveBeenCalledWith([43.65, -79.38], 12, { animate: true, duration: 0.35 });
+        expect(marker.closePopup).toHaveBeenCalled();
     });
 });

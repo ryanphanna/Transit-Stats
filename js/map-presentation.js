@@ -190,12 +190,18 @@ export function addMapPointMarkers({
         markers.clearLayers();
 
         const addMarker = point => {
+            const style = getUsageMarkerStyle(point, maxUsage, { baseRadius });
             const marker = L.circleMarker([point.lat, point.lng], {
                 renderer,
-                ...getUsageMarkerStyle(point, maxUsage, { baseRadius }),
+                ...style,
             });
+            marker._transitStatsBaseStyle = style;
+            marker._transitStatsPointKey = `${point.type}:${point.lat.toFixed(5)}:${point.lng.toFixed(5)}`;
+            if (map?._transitStatsSelectedMarkerKey === marker._transitStatsPointKey) {
+                marker.setStyle({ color: '#045337', weight: 3, fillOpacity: 0.95 });
+            }
             const popup = [...point.labels].map(formatPopup).filter(Boolean).join('<br>');
-            if (popup && map) addZoomGatedPopup(marker, map, popup);
+            if (map) addZoomGatedPopup(marker, map, popup);
             markers.addLayer(marker);
         };
 
@@ -230,10 +236,25 @@ export function addMapPointMarkers({
 export function addZoomGatedPopup(marker, map, popup) {
     let popupBound = false;
     marker.on('click', () => {
+        const previousMarker = map._transitStatsSelectedMarker;
+        if (previousMarker && previousMarker !== marker) {
+            previousMarker.setStyle(previousMarker._transitStatsBaseStyle || {});
+        }
+        map._transitStatsSelectedMarker = marker;
+        map._transitStatsSelectedMarkerKey = marker._transitStatsPointKey;
+        marker.setStyle({ color: '#045337', weight: 3, fillOpacity: 0.95 });
+
         if (map.getZoom() < STOP_POPUP_MIN_ZOOM) {
             marker.closePopup();
+            const targetZoom = Math.min(map.getZoom() + 2, STOP_POPUP_MIN_ZOOM);
+            if (typeof map.flyTo === 'function') {
+                map.flyTo(marker.getLatLng(), targetZoom, { animate: true, duration: 0.35 });
+            } else {
+                map.setView(marker.getLatLng(), targetZoom, { animate: true });
+            }
             return;
         }
+        if (!popup) return;
         if (!popupBound) {
             marker.bindPopup(popup);
             popupBound = true;
