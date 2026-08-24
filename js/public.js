@@ -195,7 +195,13 @@ function initPublicMap(points, mapStopMode = 'boarding') {
                 tileTheme: 'light_all',
             }),
             hasFitted: false,
+            hasUserInteracted: false,
+            isFitting: false,
         };
+        const { map } = publicMapState.surface;
+        map.on('dragstart zoomstart', () => {
+            if (!publicMapState.isFitting) publicMapState.hasUserInteracted = true;
+        });
     }
     const { surface } = publicMapState;
     const { map, markers, renderer } = surface;
@@ -216,10 +222,18 @@ function initPublicMap(points, mapStopMode = 'boarding') {
             formatPopup: value => value,
         });
 
-        if (!publicMapState.hasFitted && visiblePoints.length > 0) {
-            refit = () => fitMapToDensePoints(map, visiblePoints, getAtlasMapFitOptions());
-            refit();
-            publicMapState.hasFitted = true;
+        if (!publicMapState.hasUserInteracted && visiblePoints.length > 0) {
+            refit = () => {
+                publicMapState.isFitting = true;
+                fitMapToDensePoints(map, visiblePoints, getAtlasMapFitOptions());
+                requestAnimationFrame(() => {
+                    if (publicMapState) publicMapState.isFitting = false;
+                });
+            };
+            if (!publicMapState.hasFitted) {
+                refit();
+                publicMapState.hasFitted = true;
+            }
         }
     }
 

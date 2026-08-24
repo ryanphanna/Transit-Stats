@@ -9,7 +9,7 @@
  */
 
 const { onRequest } = require('firebase-functions/v2/https');
-const { db, getUserProfile } = require('./db');
+const { db, getUserProfile, getStopsLibrary } = require('./db');
 const logger = require('./logger');
 const { isPublicProfileBetaOwner, getMapStopMode } = require('./profile-fields');
 
@@ -27,6 +27,54 @@ const AGENCY_COUNTRIES = new Map([
   ...['RATP', 'SNCF Transilien'].map(agency => [agency.toLowerCase(), 'France']),
   ...['TMB'].map(agency => [agency.toLowerCase(), 'Spain']),
 ]);
+
+function normalizeStopLabel(value) {
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function buildStopLocationIndex(stops = []) {
+  const index = new Map();
+  const add = (key, location) => {
+    if (key && !index.has(key)) index.set(key, location);
+  };
+
+  for (const stop of stops) {
+    const lat = Number(stop.lat);
+    const lng = Number(stop.lng ?? stop.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat === 0 || lng === 0) continue;
+
+    const labels = [stop.name, stop.stopName, stop.code, ...(stop.aliases || [])]
+      .map(normalizeStopLabel)
+      .filter(Boolean);
+    const agencies = [stop.agency, ...(stop.agencies || [])]
+      .map(normalizeStopLabel)
+      .filter(Boolean);
+    const location = { lat, lng };
+    labels.forEach(label => {
+      add(`*:${label}`, location);
+      agencies.forEach(agency => add(`${agency}:${label}`, location));
+    });
+  }
+  return index;
+}
+
+function resolveTripLocation(location, stopName, agency, stopIndex) {
+  const savedLat = Number(location?.lat);
+  const savedLng = Number(location?.lng ?? location?.lon);
+  if (Number.isFinite(savedLat) && Number.isFinite(savedLng) && savedLat !== 0 && savedLng !== 0) {
+    return { lat: savedLat, lng: savedLng };
+  }
+
+  const label = normalizeStopLabel(stopName);
+  if (!label) return null;
+  return stopIndex.get(`${normalizeStopLabel(agency)}:${label}`)
+    || stopIndex.get(`*:${label}`)
+    || null;
+}
 
 async function handlePublicProfile(req, res) {
   res.set('Access-Control-Allow-Origin', '*');
@@ -71,9 +119,11 @@ async function handlePublicProfile(req, res) {
     // The public profile switch is the permission boundary. Once the profile
     // is public, expose the same history as the signed-in map through the
     // aggregate-only response below. Individual trip documents remain private.
-    const tripsSnap = await db.collection('trips')
-      .where('userId', '==', userId)
-      .get();
+    const [tripsSnap, stopsLibrary] = await Promise.all([
+      db.collection('trips').where('userId', '==', userId).get(),
+      getStopsLibrary(),
+    ]);
+    const stopIndex = buildStopLocationIndex(stopsLibrary);
     const historyTrips = [];
     const nowMs = Date.now();
     tripsSnap.forEach((doc) => {
@@ -128,12 +178,22 @@ async function handlePublicProfile(req, res) {
         if (country) countries.add(country);
       }
       addPoint(
-        trip.boardingLocation || trip.boardLocation,
+        resolveTripLocation(
+          trip.boardingLocation || trip.boardLocation,
+          trip.startStopName || trip.startStop,
+          trip.agency,
+          stopIndex,
+        ),
         'start',
         trip.startStopName || trip.startStop || trip.boardingLocation?.name,
       );
       addPoint(
-        trip.exitLocation,
+        resolveTripLocation(
+          trip.exitLocation,
+          trip.endStopName || trip.endStop,
+          trip.agency,
+          stopIndex,
+        ),
         'end',
         trip.endStopName || trip.endStop || trip.exitLocation?.name,
       );
