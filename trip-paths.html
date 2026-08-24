@@ -9,13 +9,13 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha256-tXCrvaljxgtN5LT/Syb5Mm9T+yzPFGH98JVcoJT7JTk=" crossorigin="anonymous">
     <link rel="stylesheet" href="styles/main.css">
-    <link rel="stylesheet" href="styles/pages/beta-map.css">
+    <link rel="stylesheet" href="styles/pages/trip-paths.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <main id="app-root">
-        <section class="view beta-map-view active">
-            <div id="beta-map" class="beta-full-map"></div>
+        <section class="view trip-paths-view active">
+            <div id="trip-paths-map" class="beta-full-map"></div>
             <div class="beta-map-controls">
                 <div class="beta-map-control-groups">
                     <div class="beta-map-heading">
@@ -34,7 +34,7 @@
                 </div>
                 <span class="beta-map-label">GTFS matched</span>
             </div>
-            <div id="beta-map-diagnostics" class="beta-map-diagnostics" aria-live="polite">
+            <div id="trip-paths-diagnostics" class="beta-map-diagnostics" aria-live="polite">
                 <strong>Stop locations</strong>
                 <span>Loading Atlas matches…</span>
             </div>
@@ -42,6 +42,6 @@
     </main>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
-    <script type="module" src="js/pages/beta-map.js"></script>
+    <script type="module" src="js/pages/trip-paths.js"></script>
 </body>
 </html>

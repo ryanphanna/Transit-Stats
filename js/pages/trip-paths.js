@@ -63,7 +63,7 @@ function buildPointData() {
 }
 
 function renderDiagnostics({ boarding, exiting, unmatchedByAgency, tripCount, capped }) {
-    const container = document.getElementById('beta-map-diagnostics');
+    const container = document.getElementById('trip-paths-diagnostics');
     if (!container) return;
 
     const totals = ['atlas', 'unresolved'].reduce((result, source) => {
@@ -173,7 +173,7 @@ function render() {
     const rendered = state.view === 'paths' ? renderPaths() : { coordinates: renderPoints(pointData.points) };
     if (state.view === 'paths') {
         const { pathData } = rendered;
-        const container = document.getElementById('beta-map-diagnostics');
+        const container = document.getElementById('trip-paths-diagnostics');
         if (container) {
             const pathNote = pathData.capped ? ` · showing first ${pathData.tripCount} trips` : '';
             container.querySelector('small').textContent += ` · Paths ${pathData.segments.length}/${pathData.tripCount} clipped${pathData.unresolved ? ` · ${pathData.unresolved} without a verified segment` : ''}${pathNote}`;
@@ -230,7 +230,7 @@ function setupControls() {
 async function init() {
     const { user, isAdmin } = await requireAuth();
     initHeader({ isAdmin, currentPage: 'map' });
-    state.map = L.map('beta-map', { zoomControl: true, attributionControl: true }).setView([43.6532, -79.3832], 12);
+    state.map = L.map('trip-paths-map', { zoomControl: true, attributionControl: true }).setView([43.6532, -79.3832], 12);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(state.map);
     state.layers.paths = L.layerGroup().addTo(state.map);
     state.layers.points = L.layerGroup().addTo(state.map);
