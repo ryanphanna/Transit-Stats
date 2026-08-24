@@ -98,7 +98,7 @@ function createOtpHandlers({ db, adminAuth, sendSmsReply, logger }) {
         return;
       }
 
-      const message = `Your TransitStats login verification code is: ${code}`;
+      const message = `Your TransitStats login verification code is: ${code}.\n\n@transitstats.fyi #${code}`;
       const smsSent = await sendSmsReply(phoneNumber, message);
       if (!smsSent) {
         await verificationRef.delete();
