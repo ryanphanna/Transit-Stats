@@ -13,6 +13,14 @@ const { db, getUserProfile, getStopsLibrary } = require('./db');
 const logger = require('./logger');
 const { isPublicProfileBetaOwner, getMapStopMode } = require('./profile-fields');
 
+const ACTIVE_TRIP_WINDOW_MS = 6 * 60 * 60 * 1000;
+
+function isDashboardHistoryTrip(trip, now = Date.now()) {
+  if (trip.endTime || trip.discarded) return true;
+  const startTime = trip.startTime?.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
+  return Number.isFinite(startTime.getTime()) && now - startTime.getTime() >= ACTIVE_TRIP_WINDOW_MS;
+}
+
 const AGENCY_COUNTRIES = new Map([
   ...['TTC', 'GO', 'GO Transit', 'MiWay', 'YRT', 'Brampton Transit', 'Durham Transit', 'HSR', 'GRT', 'Grand River Transit', 'OC Transpo', 'STM', 'TransLink', 'Oakville Transit', 'GTAA Terminal Link', 'Flagship Cruises & Events', 'Exo', 'CDPQ Infra', 'Niagara Region Transit'].map(agency => [agency.toLowerCase(), 'Canada']),
   ...['NYC MTA', 'New York City Transit', 'LA Metro', 'LADOT', 'Los Angeles Department of Transportation', 'Big Blue Bus', 'BART', 'Muni', 'Caltrain', 'VTA', 'AC Transit', 'SamTrans', 'MTS', 'Amtrak', 'Golden Gate Transit', 'SMART', 'Santa Rosa CityBus', 'CDTA', 'NFTA Metro', 'TriMet', 'C-Tran', 'Sound Transit', 'King County Metro', 'Utah Transit Authority', 'Sacramento Regional Transit', 'GCRTA'].map(agency => [agency.toLowerCase(), 'United States']),
@@ -116,6 +124,12 @@ async function handlePublicProfile(req, res) {
       getStopsLibrary(),
     ]);
     const stopIndex = buildStopLocationIndex(stopsLibrary);
+    const historyTrips = [];
+    const nowMs = Date.now();
+    tripsSnap.forEach((doc) => {
+      const trip = doc.data();
+      if (isDashboardHistoryTrip(trip, nowMs)) historyTrips.push(trip);
+    });
 
     let totalMinutes = 0;
     let last30Days = 0;
@@ -149,8 +163,7 @@ async function handlePublicProfile(req, res) {
         names: new Set(fallbackName ? [fallbackName] : []),
       });
     };
-    tripsSnap.forEach((doc) => {
-      const trip = doc.data();
+    historyTrips.forEach((trip) => {
       totalMinutes += trip.duration || 0;
       const tripDate = trip.startTime?.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
       if (!Number.isNaN(tripDate.getTime())) {
@@ -193,7 +206,7 @@ async function handlePublicProfile(req, res) {
       emoji: profile.emoji || null,
       defaultAgency: profile.defaultAgency || null,
       mapStopMode: getMapStopMode(profile),
-      totalTrips: tripsSnap.size,
+      totalTrips: historyTrips.length,
       totalHours: Math.round((totalMinutes / 60) * 10) / 10,
       // Keep the existing response keys for clients that have not refreshed yet.
       thisMonth: last30Days,

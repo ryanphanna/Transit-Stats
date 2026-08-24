@@ -6,6 +6,7 @@ import { createMapSurface, DEFAULT_MAP_CENTER, DEFAULT_MAP_OVERVIEW_ZOOM } from 
 import {
     addMapPointMarkers,
     fitMapToDensePoints,
+    getAtlasMapFitOptions,
 } from './map-presentation.js';
 
 function buildMapPointKey(trip, side, resolution, location, fallbackLabel) {
@@ -418,11 +419,7 @@ export const MapEngine = {
         // density instead of fitting every continent into one unusable view.
         if (this._isFirstLoad && !this._deferInitialView) {
             try {
-                const identityCard = document.querySelector('.atlas-identity-card');
-                const panelPadding = identityCard && window.matchMedia('(min-width: 781px)').matches
-                    ? [Math.round(identityCard.getBoundingClientRect().width + 84), 60]
-                    : null;
-                const fitOptions = panelPadding ? { maxZoom: 13, paddingTopLeft: panelPadding } : { maxZoom: 13 };
+                const fitOptions = getAtlasMapFitOptions();
                 if (fitMapToDensePoints(this.map, points, fitOptions)) this._isFirstLoad = false;
             } catch (err) {
                 console.warn("MapEngine: Fit bounds failed", err);

@@ -47,7 +47,7 @@ describe('shared Atlas card', () => {
 
     it('keeps the public mobile card compact enough to leave the map visible', () => {
         expect(dashboardAtlasCss).toContain('max-height: 52dvh');
-        expect(dashboardAtlasCss).toContain('.public-view .atlas-card-period');
+        expect(dashboardAtlasCss).toContain('.atlas-card-period');
         expect(dashboardAtlasCss).toContain('grid-template-columns: repeat(5, minmax(0, 1fr))');
         expect(dashboardAtlasCss).toContain('overflow: hidden');
     });

@@ -6,6 +6,13 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+- **Public profile totals now use the same history-trip rules as the signed-in dashboard**, so active or malformed records no longer inflate logged-out ride counts.
+- **Logged-in and logged-out maps now open with the same overview and card-aware framing**, so the initial location does not shift between views.
+- **Logged-in and logged-out map cards now use the same compact mobile sizing**, so the stats panel does not change shape between views.
+- **Signed-in map branding now sits in the same position as logged-out map branding**, keeping the two map views visually consistent.
+
 ## [1.49.2] — 2026-08-22
 
 - **Maps now show nearby stop dots first and fill in the rest progressively**, making large ride histories feel faster without hiding the full footprint.
@@ -19,8 +26,6 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Experimental prediction paths now receive the same previous-route, agency, and learned-network context** after stop disambiguation, keeping fallback inference aligned with normal trip starts.
 - **Weekly model retraining now stops before deployment when validation accuracy drops materially**, preventing an automatic refresh from silently replacing a stronger model.
 - **Firebase compatibility calls now use the modular Auth and Firestore APIs without changing stored data.**
-
-## [Unreleased]
 
 - **Missing stop coordinates can now be backfilled from local GTFS without changing trip history, names, or aliases.**
 - **Public profile maps now refit after cached data refreshes**, so repeat visits do not stay centered on an incomplete or stale city footprint.

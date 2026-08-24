@@ -317,3 +317,14 @@ export function fitMapToDensePoints(map, points = [], {
     map.invalidateSize({ animate: false });
     return true;
 }
+
+export function getAtlasMapFitOptions(maxZoom = 13) {
+    const identityCard = document.querySelector('.atlas-identity-card');
+    const hasSideCard = identityCard && window.matchMedia('(min-width: 781px)').matches;
+    return hasSideCard
+        ? {
+            maxZoom,
+            paddingTopLeft: [Math.round(identityCard.getBoundingClientRect().width + 84), 60],
+        }
+        : { maxZoom };
+}
