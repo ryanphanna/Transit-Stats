@@ -1,4 +1,4 @@
-import { auth, db } from './firebase.js';
+import { auth, authPersistenceReady, db } from './firebase.js';
 
 /**
  * TransitStats V2 Authentication Module
@@ -78,6 +78,7 @@ export const Auth = {
         if (this.isRateLimited()) throw new Error('Too many attempts. Try again in 15m.');
         
         try {
+            await authPersistenceReady;
             // First check whitelist before even trying to auth? 
             // Better to auth first then check, but for invite-only we can pre-check or post-check.
             // Legacy did it post-auth in onAuthStateChanged. Let's keep that for consistency but
@@ -138,6 +139,7 @@ export const Auth = {
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || 'That code could not be verified.');
         if (!data.token) throw new Error('Verification succeeded but sign-in could not be completed.');
+        await authPersistenceReady;
         await auth.signInWithCustomToken(data.token);
         await this.syncSharedSession(auth.currentUser);
         return data;
