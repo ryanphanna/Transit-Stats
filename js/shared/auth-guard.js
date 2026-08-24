@@ -1,8 +1,9 @@
 import { auth, authPersistenceReady } from '../firebase.js';
 import { Auth } from '../auth.js';
 
-const AUTH_RESTORE_GRACE_MS = 3000;
+const AUTH_RESTORE_GRACE_MS = 15000;
 const AUTH_SHARED_SESSION_DELAY_MS = 750;
+const AUTH_SHARED_SESSION_RETRY_DELAYS_MS = [1500, 3000];
 const AUTH_RESTORE_POLL_MS = 250;
 
 function wait(ms) {
@@ -24,18 +25,23 @@ async function waitForRestoredUser(initialUser) {
 
     const startedAt = Date.now();
     const deadline = startedAt + AUTH_RESTORE_GRACE_MS;
-    let sharedSessionAttempted = false;
+    let sharedSessionAttempts = 0;
+    let nextSharedSessionAttemptAt = startedAt + AUTH_SHARED_SESSION_DELAY_MS;
 
     while (Date.now() < deadline) {
         if (auth.currentUser) return auth.currentUser;
 
         // The shared cookie is a fallback for pages opened on another
-        // TransitStats surface. Try it once while Firebase finishes restoring
-        // its own LOCAL session, rather than repeatedly hitting the endpoint.
-        if (!sharedSessionAttempted && Date.now() - startedAt >= AUTH_SHARED_SESSION_DELAY_MS) {
-            sharedSessionAttempted = true;
+        // TransitStats surface. Retry it if token refresh or the first request
+        // is temporarily slow, rather than treating that transient failure as
+        // a real sign-out.
+        if (sharedSessionAttempts < 1 + AUTH_SHARED_SESSION_RETRY_DELAYS_MS.length
+            && Date.now() >= nextSharedSessionAttemptAt) {
+            sharedSessionAttempts += 1;
             const sharedUser = await Auth.restoreSharedSession();
             if (sharedUser) return sharedUser;
+            const retryDelay = AUTH_SHARED_SESSION_RETRY_DELAYS_MS[sharedSessionAttempts - 1];
+            nextSharedSessionAttemptAt = Date.now() + (retryDelay || AUTH_RESTORE_POLL_MS);
         }
 
         await wait(AUTH_RESTORE_POLL_MS);
