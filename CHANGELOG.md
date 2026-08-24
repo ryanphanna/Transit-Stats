@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Logged-in and logged-out map cards now use the same compact mobile sizing**, so the stats panel does not change shape between views.
 - **Signed-in map branding now sits in the same position as logged-out map branding**, keeping the two map views visually consistent.
 - **Maps now show nearby stop dots first and fill in the rest progressively**, making large ride histories feel faster without hiding the full footprint.
 - **Public profiles now reuse a short-lived local cache**, making repeat visits appear immediately while refreshing their stats in the background.
