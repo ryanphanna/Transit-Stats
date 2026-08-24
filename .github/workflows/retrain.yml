@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   retrain:
@@ -101,10 +102,15 @@ jobs:
           print(f"Appended retrain entry for {date} to MODEL_LOG.md")
           EOF
 
-      - name: Commit and push updated models
+      - name: Prepare model update branch
+        id: model_changes
+        env:
+          MODEL_BRANCH: automation/weekly-model-retrain-${{ github.run_id }}
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git switch --create "$MODEL_BRANCH"
           git add \
             functions/lib/model_v4_endstop.json \
             functions/lib/model_v4_endstop_meta.json \
@@ -123,14 +129,23 @@ jobs:
             ml/model_v5.onnx \
             ml/model_v5_meta.json \
             ml/MODEL_LOG.md
-          git diff --cached --quiet || git commit -m "chore: weekly model retrain [skip ci]"
-          git push origin main
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No model changes to publish."
+            exit 0
+          fi
+          git commit -m "chore: weekly model retrain"
+          git push origin "$MODEL_BRANCH"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
 
-      - name: Install Firebase CLI
-        run: npm install -g firebase-tools
-
-      - name: Install function dependencies
-        run: npm install --prefix functions
-
-      - name: Deploy functions to Firebase
-        run: firebase deploy --only functions --token "${{ secrets.FIREBASE_TOKEN }}"
+      - name: Open model update pull request
+        if: steps.model_changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MODEL_BRANCH: automation/weekly-model-retrain-${{ github.run_id }}
+        run: |
+          gh pr create \
+            --base main \
+            --head "$MODEL_BRANCH" \
+            --title "chore: weekly model retrain" \
+            --body "Automated model refresh passed the regression gate. Merge this PR to publish the updated models; the main-branch deployment workflow will deploy the functions after merge."
