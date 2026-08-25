@@ -88,13 +88,16 @@ export function requireAuth(options = {}) {
                 window.location.href = loginUrl;
                 return;
             }
-            const verification = await verifyWithRetry(sessionUser);
+            let verification = await verifyWithRetry(sessionUser);
+            // A temporary Firestore outage must not become a fake logout. Keep
+            // the Firebase session and retry the verification in the
+            // background until the whitelist can be read again.
+            while (verification.retryable && auth.currentUser) {
+                console.warn('Auth verification is temporarily unavailable; keeping the Firebase session.');
+                await wait(3000);
+                verification = await verifyWithRetry(auth.currentUser);
+            }
             if (!verification.allowed) {
-                if (verification.retryable) {
-                    console.warn('Auth verification is temporarily unavailable; keeping the Firebase session.');
-                    checking = false;
-                    return;
-                }
                 console.warn('[auth-guard] Whitelist rejected the session.', {
                     path: window.location.pathname,
                     reason: verification.error,

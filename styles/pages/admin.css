@@ -1,7 +1,7 @@
 /* --- Admin Views --- */
 .admin-grid {
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.85fr);
   gap: 24px;
   align-items: start;
 }
@@ -245,7 +245,7 @@
 }
 
 .admin-surface .admin-page-intro {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .admin-surface .admin-page-intro h1,
@@ -275,8 +275,8 @@
 }
 
 .admin-overview {
-  margin-bottom: 28px;
-  padding: 24px;
+  margin-bottom: 24px;
+  padding: 20px;
   background: var(--bg-card);
   border: 1px solid var(--border-outer);
   border-radius: var(--radius-xl);
@@ -288,7 +288,7 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 20px;
-  margin-bottom: 22px;
+  margin-bottom: 16px;
 }
 
 .admin-overview-header h2 {
@@ -307,31 +307,11 @@
   gap: 12px;
 }
 
-.admin-metric-group {
-  min-width: 0;
-  padding: 16px;
-  background: var(--bg-muted);
-  border-radius: var(--radius);
-}
-
-.admin-metric-group-label {
-  display: block;
-  margin-bottom: 12px;
-  color: var(--text-secondary);
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.admin-metric-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
 .admin-metric {
   min-width: 0;
+  padding: 14px 16px;
+  background: var(--bg-muted);
+  border-radius: var(--radius);
 }
 
 .admin-metric-label,
@@ -346,9 +326,20 @@
   display: block;
   margin: 3px 0;
   color: var(--text-primary);
-  font-size: 1.3rem;
+  font-size: 1.55rem;
   letter-spacing: -0.04em;
 }
+
+.admin-load-error {
+  padding: 18px;
+  color: var(--text-secondary);
+  background: var(--bg-muted);
+  border: 1px dashed var(--border-outer);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+}
+
+.admin-load-error .btn { margin-left: 8px; }
 
 .admin-metrics-footnote,
 .admin-metrics-empty {
@@ -407,7 +398,7 @@
   .admin-overview-header { display: block; }
   .admin-metrics-updated { display: block; margin-top: 12px; }
   .admin-metrics { grid-template-columns: 1fr; }
-  .admin-metric-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .admin-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .admin-surface .card { padding: 16px; }
 }
 

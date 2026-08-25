@@ -14,40 +14,12 @@ function metric(label, value, detail = '') {
 }
 
 function renderMetrics(container, metrics) {
-    const { accounts, rides, stops, intelligence } = metrics;
+    const { rides, stops } = metrics;
     container.innerHTML = `
-        <div class="admin-metric-group">
-            <span class="admin-metric-group-label">Accounts</span>
-            <div class="admin-metric-grid">
-                ${metric('Users', accounts.total, `${number(accounts.admins)} admin`)}
-                ${metric('Logins', accounts.totalLogins, `${number(accounts.activeLogins30d)} in 30 days`)}
-                ${metric('Experimental models', accounts.experimentalIntelligence, 'users enabled')}
-            </div>
-        </div>
-        <div class="admin-metric-group">
-            <span class="admin-metric-group-label">Processing</span>
-            <div class="admin-metric-grid">
-                ${metric('Rides', rides.total, `${number(rides.completed)} completed`)}
-                ${metric('Awaiting finalization', rides.awaitingFinalization, 'completed rides')}
-                ${metric('Questions', intelligence.questions, 'AI queries')}
-            </div>
-        </div>
-        <div class="admin-metric-group">
-            <span class="admin-metric-group-label">Stop quality</span>
-            <div class="admin-metric-grid">
-                ${metric('Stops in library', stops.library, `${number(stops.verified)} verified`)}
-                ${metric('Matched rides', stops.matchedTrips, 'both ends recognized')}
-                ${metric('Needs matching', stops.unmatchedTrips, 'at least one end unresolved')}
-            </div>
-        </div>
-        <div class="admin-metric-group">
-            <span class="admin-metric-group-label">Prediction grading</span>
-            <div class="admin-metric-grid">
-                ${metric('Graded predictions', intelligence.predictionRows, `${number(intelligence.v3Rows)} V3`)}
-                ${metric('V4 rows', intelligence.v4Rows, 'experimental')}
-                ${metric('V5 rows', intelligence.v5Rows, 'experimental')}
-            </div>
-        </div>
+        ${metric('Needs matching', stops.unmatchedTrips, 'completed rides')}
+        ${metric('Stops in library', stops.library, `${number(stops.verified)} verified`)}
+        ${metric('Matched rides', stops.matchedTrips, 'both ends recognized')}
+        ${metric('Total rides', rides.total, `${number(rides.completed)} completed`)}
         <p class="admin-metrics-footnote">
             Matched and unresolved counts refer to completed rides, because the stored match flag is finalized when a ride ends.
             ${number(stops.unknownMatchTrips)} completed rides have no recorded match status.

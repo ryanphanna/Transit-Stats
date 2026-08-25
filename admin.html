@@ -16,15 +16,15 @@
             <div class="container admin-container">
                 <div class="admin-page-intro">
                     <p class="page-kicker">Operations</p>
-                    <h1>Stop library</h1>
-                    <p>Resolve, consolidate, and maintain the canonical stops used by TransitStats.</p>
+                    <h1>Review queue</h1>
+                    <p>Quickly see what needs a decision. The app handles the routine work; this is where you review the exceptions.</p>
                 </div>
                 <section class="admin-overview" aria-labelledby="admin-overview-title">
                     <div class="admin-overview-header">
                         <div>
-                            <p class="page-kicker">System health</p>
-                            <h2 id="admin-overview-title">Processing overview</h2>
-                            <p>Quick checks for automated ride processing, stop matching, and model activity.</p>
+                            <p class="page-kicker">At a glance</p>
+                            <h2 id="admin-overview-title">What needs attention</h2>
+                            <p>Matching and processing signals from your account.</p>
                         </div>
                         <span class="admin-metrics-updated" data-admin-metrics-updated>Loading…</span>
                     </div>
@@ -33,37 +33,16 @@
                     </div>
                 </section>
                 <div class="admin-grid">
-                    <div class="col-library">
+                    <div class="col-triage">
                         <div class="card">
                             <div class="card-header">
-                                <h3><i data-lucide="library" class="icon-inline"></i> Stops</h3>
-                                <button id="btn-new-stop" class="btn btn-primary btn-sm">+ New Stop</button>
-                            </div>
-                            <div class="admin-filters mb-4">
-                                <input type="text" id="lib-search" placeholder="Search stops...">
-                                <select id="lib-agency">
-                                    <option value="All">All Agencies</option>
-                                    <option value="TTC">TTC</option>
-                                    <option value="GO Transit">GO Transit</option>
-                                    <option value="MiWay">MiWay</option>
-                                    <option value="YRT">YRT</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                            <div id="lib-list" class="lib-list">
-                                <div class="loading-state">Loading stops...</div>
-                            </div>
-
-                        </div>
-                    </div>
-
-                    <aside class="col-triage">
-                        <div class="card mb-4">
-                            <div class="card-header">
-                                <h3><i data-lucide="inbox" class="icon-inline"></i> Unrecognized Stops</h3>
+                                <div>
+                                    <p class="page-kicker">Needs a decision</p>
+                                    <h3><i data-lucide="inbox" class="icon-inline"></i> Unrecognized stops</h3>
+                                </div>
                                 <span id="inbox-count" class="badge">0</span>
                             </div>
-                            <p class="text-secondary mb-3" style="font-size: 0.8rem;">Stop names from your trips that aren't in your stops list yet.</p>
+                            <p class="text-secondary mb-3">Trip stop names that are not linked to a canonical stop yet.</p>
                             <input type="text" id="inbox-search" placeholder="Search..." class="mb-3">
                             <div id="inbox-list" class="inbox-list">
                                 <div class="loading-state">Loading...</div>
@@ -78,6 +57,33 @@
                             <p class="text-secondary mb-3" style="font-size: 0.8rem;">The same stop logged under slightly different names. Merge them into one.</p>
                             <div id="consolidation-list" class="inbox-list">
                                 <div class="loading-state">Loading...</div>
+                            </div>
+                        </div>
+                    </aside>
+
+                    <aside class="col-library">
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="page-kicker">Maintenance</p>
+                                    <h3><i data-lucide="library" class="icon-inline"></i> Stop library</h3>
+                                </div>
+                                <button id="btn-new-stop" class="btn btn-outline btn-sm">+ New stop</button>
+                            </div>
+                            <p class="text-secondary mb-3">Canonical stops and aliases. Open this when a review needs a library change.</p>
+                            <div class="admin-filters mb-4">
+                                <input type="text" id="lib-search" placeholder="Search stops...">
+                                <select id="lib-agency">
+                                    <option value="All">All Agencies</option>
+                                    <option value="TTC">TTC</option>
+                                    <option value="GO Transit">GO Transit</option>
+                                    <option value="MiWay">MiWay</option>
+                                    <option value="YRT">YRT</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div id="lib-list" class="lib-list">
+                                <div class="loading-state">Loading stops...</div>
                             </div>
                         </div>
                     </aside>

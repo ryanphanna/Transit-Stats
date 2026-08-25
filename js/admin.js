@@ -18,6 +18,7 @@ export const Admin = {
         inboxSearch: ''
     },
     deleteStopTimer: null,
+    loadErrors: {},
 
     async init() {
         console.log('Admin: Initializing...');
@@ -37,6 +38,10 @@ export const Admin = {
         bind('lib-search', 'libSearch');
         bind('lib-agency', 'libAgency');
         bind('inbox-search', 'inboxSearch');
+
+        document.addEventListener('click', (event) => {
+            if (event.target.closest('[data-admin-retry]')) this.loadAll();
+        });
 
         // Stop Form
         document.getElementById('btn-new-stop')?.addEventListener('click', () => this.openStopForm('create'));
@@ -188,12 +193,27 @@ export const Admin = {
     },
 
     async loadAll() {
+        this.loadErrors = {};
+
+        const load = async (key, callback) => {
+            try {
+                await callback();
+            } catch (error) {
+                this.loadErrors[key] = error;
+                console.error(`Admin ${key} load failed:`, error);
+            }
+        };
+
         await Promise.all([
-            AdminLibrary.loadStops(),
-            AdminTriage.loadConsolidation(),
-            this.loadRouteLibrary()
+            load('stops', () => AdminLibrary.loadStops()),
+            load('duplicates', () => AdminTriage.loadConsolidation()),
+            // The route maintenance controls are not on the review page. Do
+            // not make an invisible legacy query block the visible inbox.
+            document.getElementById('gtfsAgencySelect')
+                ? load('routes', () => this.loadRouteLibrary())
+                : Promise.resolve(),
         ]);
-        await AdminTriage.loadInbox(AdminLibrary.stops);
+        await load('inbox', () => AdminTriage.loadInbox(AdminLibrary.stops));
         this.render();
     },
 
@@ -213,6 +233,11 @@ export const Admin = {
     renderLibrary() {
         const list = document.getElementById('lib-list');
         if (!list) return;
+
+        if (this.loadErrors.stops) {
+            list.innerHTML = '<div class="admin-load-error">Could not load the stop library. <button class="btn btn-outline btn-sm" data-admin-retry>Retry</button></div>';
+            return;
+        }
 
         const filtered = AdminLibrary.stops.filter(s => {
             const matchesSearch = s.name.toLowerCase().includes(this.filters.libSearch.toLowerCase()) || (s.code && s.code.includes(this.filters.libSearch));
@@ -240,6 +265,12 @@ export const Admin = {
         const list = document.getElementById('inbox-list');
         const countEl = document.getElementById('inbox-count');
         if (!list) return;
+
+        if (this.loadErrors.inbox) {
+            if (countEl) countEl.textContent = '—';
+            list.innerHTML = '<div class="admin-load-error">Could not load the review queue. <button class="btn btn-outline btn-sm" data-admin-retry>Retry</button></div>';
+            return;
+        }
 
         const q = this.filters.inboxSearch.toLowerCase();
         const filtered = AdminTriage.inbox.filter(i =>

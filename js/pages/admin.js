@@ -25,23 +25,31 @@ function setupModalListeners() {
 }
 
 async function init() {
-    const { user, isAdmin } = await requireAuth({ adminOnly: true });
-    await Profile.load(user);
-    initHeader({ isAdmin, currentPage: 'admin' });
+    try {
+        const { user, isAdmin } = await requireAuth({ adminOnly: true });
+        await Profile.load(user);
+        initHeader({ isAdmin, currentPage: 'admin' });
 
-    loadAdminMetrics(document.querySelector('[data-admin-metrics]'));
+        loadAdminMetrics(document.querySelector('[data-admin-metrics]'));
 
-    setupModalListeners();
+        setupModalListeners();
 
-    await Admin.init();
+        await Admin.init();
 
-    await Trips.init();
-    await Trips._readyPromise;
-    
-    // Now that trips are loaded, reload admin data
-    await Admin.loadAll();
+        await Trips.init();
+        await Trips._readyPromise;
 
-    refreshIcons();
+        // Now that trips are loaded, reload admin data
+        await Admin.loadAll();
+
+        refreshIcons();
+    } catch (error) {
+        console.error('Admin page failed to initialize:', error);
+        document.querySelectorAll('.loading-state').forEach(element => {
+            element.textContent = 'This section could not load. Refresh to try again.';
+            element.classList.add('admin-load-error');
+        });
+    }
 }
 
 if (document.readyState === 'loading') {
