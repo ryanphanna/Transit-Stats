@@ -26,7 +26,20 @@ Do not conflate these signals.
 
 - Preserve the rider-entered stop wording on the trip where possible.
 - Use `startStopCode` / `endStopCode` to map back to canonical stop records in `stops`.
-- Do not overwrite trip stop text with the official stop name unless that is explicitly the intended correction.
+- Do not overwrite trip stop text during normal verification.
+- A user-approved typo correction is the exception: preserve the original value in correction metadata, record the corrected wording, and apply the required reprocessing exclusions.
+
+## Stop Verification Order
+
+For an unmatched trip endpoint, use this order:
+
+1. Search the `stops` library by agency, stop code, canonical name, or alias.
+2. If no library match exists, search the agency's GTFS inventory for the rider's stop wording.
+3. Restrict GTFS candidates by route first.
+4. Use the trip direction only to disambiguate the remaining route candidates.
+5. When exactly one candidate remains, add its canonical GTFS name, code, coordinates, agency, and route metadata to `stops`, and add the rider's submitted wording as an alias.
+6. Link the trip through its stop-code field and set `stop_matched` only when both endpoints are linked.
+7. Leave ambiguous or unresolved candidates flagged for review. Never guess.
 
 ## ML / History Filters
 

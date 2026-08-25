@@ -50,13 +50,18 @@ export const AdminTriage = {
 
     /**
      * Link a single trip's stop to a canonical stop in the library.
-     * - Updates the trip's stop fields to the canonical name + code
+     * - Updates only the trip's canonical stop linkage fields
      * - Adds the raw string as an alias on the stop
      * - Adds the trip's route + direction to the stop
      */
     async linkTrip(item, stopId, stopsLibrary) {
         const stop = stopsLibrary.find(s => s.id === stopId);
         if (!stop) return;
+
+        const tripRef = db.collection('trips').doc(item.tripId);
+        const tripSnap = await tripRef.get();
+        if (!tripSnap.exists) throw new Error('Trip no longer exists');
+        const trip = tripSnap.data();
 
         // 2. Add raw string as alias (if not already there)
         const aliases = stop.aliases || [];
@@ -77,9 +82,32 @@ export const AdminTriage = {
             updates.direction = item.direction;
         }
 
-        if (Object.keys(updates).length > 0) {
-            await db.collection('stops').doc(stopId).update(updates);
-        }
+        const tripUpdates = {
+            [item.role === 'start' ? 'startStopCode' : 'endStopCode']: stop.code || null,
+            stop_matched: this._tripHasLinkedStops(trip, item, stop, stopsLibrary),
+            updatedAt: new Date(),
+        };
+        const batch = db.batch();
+        if (Object.keys(updates).length > 0) batch.update(db.collection('stops').doc(stopId), updates);
+        batch.update(tripRef, tripUpdates);
+        await batch.commit();
+    },
+
+    _tripHasLinkedStops(trip, item, selectedStop, library) {
+        const otherRole = item.role === 'start' ? 'end' : 'start';
+        const selectedLinked = Boolean(selectedStop?.code || selectedStop?.name);
+        const otherName = otherRole === 'start'
+            ? (trip.startStopName || trip.startStop)
+            : (trip.endStopName || trip.endStop);
+        const otherCode = otherRole === 'start' ? trip.startStopCode : trip.endStopCode;
+        const otherLinked = !otherName && !otherCode
+            ? false
+            : library.some(stop => isStopLinked({
+                agency: trip.agency,
+                stopName: otherName,
+                stopCode: otherCode,
+            }, stop));
+        return selectedLinked && otherLinked;
     },
 
     async loadConsolidation() {

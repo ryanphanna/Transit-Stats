@@ -10,6 +10,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Added
 
+- **Admin stop linking now records canonical stop codes on trips without rewriting rider-entered stop text**, keeping verification separate from raw trip history.
 - **Map stop labels are temporarily hidden**, preventing raw or unreliable names from appearing until canonical stop labels are ready.
 - **Public profile maps no longer expose raw stop labels**, keeping inconsistent names and stop codes private while preserving the aggregate footprint.
 - **Settings now shows both custom and emoji profile URLs when available**, so admins can share either public identity.

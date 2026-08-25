@@ -23,7 +23,7 @@ This approach has two goals:
 - Preserve realistic examples of imperfect user input so future models (especially V6) can learn to handle real-world phrasing and mistakes.
 - Still maintain strong data hygiene for training and accuracy by applying proper correction metadata and exclusion flags.
 
-In practice, this often means correcting the raw input field toward what the user meant to type (e.g. "College" instead of "Collegea"), while ensuring the canonical `startStopName` is correct and the trip is properly flagged.
+In practice, normal stop verification does not rewrite raw trip text. A user-approved typo correction may correct the raw input (e.g. "College" instead of "Collegea"), but it must preserve the original value in metadata, ensure the canonical stop linkage is correct, and flag the trip properly.
 
 ## Current Practical Rule
 
