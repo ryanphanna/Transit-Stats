@@ -19,6 +19,7 @@ const { api } = require('./api');
 const { authSession } = require('./auth-session');
 const { createAdminMetricsHandler } = require('./lib/admin-metrics');
 const { atlasStops } = require('./atlas-stops');
+const { atlasStopsMeta } = require('./atlas-stops-meta');
 const { atlasRoutes } = require('./atlas-routes');
 const { publicProfile } = require('./lib/public-profile');
 const { onDocumentWritten, onDocumentCreated } = require('firebase-functions/v2/firestore');
@@ -42,6 +43,7 @@ exports.adminMetrics = createAdminMetricsHandler();
 
 // Public Atlas proxies used by the isolated trip-paths and heatmap betas.
 exports.atlasStops = atlasStops;
+exports.atlasStopsMeta = atlasStopsMeta;
 exports.atlasRoutes = atlasRoutes;
 
 // Public profile stats — the only sanctioned way to read another user's trip

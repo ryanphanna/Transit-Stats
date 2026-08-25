@@ -81,6 +81,20 @@ export const Admin = {
                     await AdminTriage.linkTrip(item, el.dataset.stopId, AdminLibrary.stops);
                     await this.loadAll();
                 }
+            } else if (action === 'link-to-gtfs') {
+                const item = this._pendingLinkItem;
+                const candidate = this._pendingGtfsCandidates?.[Number(el.dataset.candidateIndex)];
+                if (item && candidate) {
+                    try {
+                        await AdminTriage.addGtfsStopAndLink(item, candidate, AdminLibrary.stops);
+                        this._pendingLinkItem = null;
+                        this._pendingGtfsCandidates = [];
+                        ModalManager.closeAll();
+                        await this.loadAll();
+                    } catch (error) {
+                        UI.showNotification(`GTFS link failed: ${error.message}`);
+                    }
+                }
             } else if (action === 'accept-all-group') {
                 const groupKey = el.dataset.groupKey;
                 const stopId = el.dataset.stopId;
@@ -497,22 +511,41 @@ export const Admin = {
         input.value = '';
         results.classList.add('hidden');
 
-        input.oninput = (e) => {
-            const q = e.target.value.toLowerCase();
-            if (q.length < 2) return results.classList.add('hidden');
-            const matches = AdminLibrary.stops.filter(s =>
-                s.name.toLowerCase().includes(q) || (s.code && s.code.includes(q))
+        const renderResults = async query => {
+            const libraryMatches = AdminLibrary.stops.filter(s =>
+                s.name.toLowerCase().includes(query) || (s.code && s.code.includes(query))
             ).slice(0, 6);
-            results.innerHTML = matches.length ? matches.map(m => `
+            let gtfsMatches = [];
+            try {
+                gtfsMatches = await AdminTriage.findGtfsCandidates(item, query || item.rawName);
+            } catch (error) {
+                console.warn('GTFS stop search unavailable:', error.message);
+            }
+            this._pendingGtfsCandidates = gtfsMatches;
+            const libraryHtml = libraryMatches.map(m => `
                 <div class="compact-row" style="cursor:pointer;" data-action="link-to-stop" data-stop-id="${UI.escapeHtml(m.id)}">
                     <span class="row-label">${Utils.hide(m.name)}</span>
-                    <span class="row-value text-muted">${Utils.hide(m.agency)}${m.code ? ' #' + Utils.hide(m.code) : ''}</span>
+                    <span class="row-value text-muted">Library · ${Utils.hide(m.agency)}${m.code ? ' #' + Utils.hide(m.code) : ''}</span>
                 </div>
-            `).join('') : '<div class="loading-state">No matching stops</div>';
+            `).join('');
+            const gtfsHtml = gtfsMatches.map((m, index) => `
+                <div class="compact-row" style="cursor:pointer;" data-action="link-to-gtfs" data-candidate-index="${index}">
+                    <span class="row-label">${Utils.hide(m.name)}</span>
+                    <span class="row-value text-muted">GTFS · ${Utils.hide(item.agency)} #${Utils.hide(m.code)}</span>
+                </div>
+            `).join('');
+            results.innerHTML = libraryHtml + gtfsHtml || '<div class="loading-state">No matching stops</div>';
             results.classList.remove('hidden');
         };
 
+        input.oninput = (e) => {
+            const q = e.target.value.toLowerCase();
+            if (q.length < 2) return results.classList.add('hidden');
+            void renderResults(q);
+        };
+
         ModalManager.open('modal-link-stop');
+        void renderResults(item.rawName.toLowerCase());
     }
 };
 

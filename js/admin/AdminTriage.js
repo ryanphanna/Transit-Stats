@@ -10,6 +10,7 @@ import { isStopLinked, stopBelongsToAgency } from '../stop-library-match.js';
 export const AdminTriage = {
     inbox: [],
     consolidation: [],
+    gtfsMetaCache: new Map(),
 
     async loadInbox(stopsLibrary) {
         const trips = TripController.allTrips || [];
@@ -91,6 +92,76 @@ export const AdminTriage = {
         if (Object.keys(updates).length > 0) batch.update(db.collection('stops').doc(stopId), updates);
         batch.update(tripRef, tripUpdates);
         await batch.commit();
+    },
+
+    async loadGtfsStopMeta(agency) {
+        if (!agency) return [];
+        if (this.gtfsMetaCache.has(agency)) return this.gtfsMetaCache.get(agency);
+        const response = await fetch(`https://us-central1-transitstats-21ba4.cloudfunctions.net/atlasStopsMeta?agency=${encodeURIComponent(agency)}`);
+        if (!response.ok) throw new Error('GTFS stop metadata unavailable');
+        const data = await response.json();
+        const stops = Array.isArray(data.stops) ? data.stops : [];
+        this.gtfsMetaCache.set(agency, stops);
+        return stops;
+    },
+
+    async findGtfsCandidates(item, query = item.rawName) {
+        const stops = await this.loadGtfsStopMeta(item.agency);
+        const normalize = value => String(value || '')
+            .normalize('NFKD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '');
+        const target = normalize(query);
+        const route = normalize(item.route);
+        const routeMatches = stops.filter(stop => (stop.routes || []).some(candidate => normalize(candidate) === route));
+        const directionMatches = item.direction
+            ? routeMatches.filter(stop => normalize(stop.direction) === normalize(item.direction))
+            : routeMatches;
+        const candidates = item.direction && directionMatches.length > 0 ? directionMatches : routeMatches;
+
+        return candidates
+            .map(stop => {
+                const name = normalize(stop.name);
+                const code = normalize(stop.code);
+                const score = target && (name === target || code === target)
+                    ? 100
+                    : target && (name.includes(target) || target.includes(name)) ? 75 : 0;
+                return { ...stop, score };
+            })
+            .filter(stop => stop.score > 0)
+            .sort((a, b) => b.score - a.score || String(a.name).localeCompare(String(b.name)))
+            .slice(0, 8);
+    },
+
+    async addGtfsStopAndLink(item, candidate, stopsLibrary) {
+        if (!candidate?.name || !candidate?.code) throw new Error('GTFS candidate is incomplete');
+        const existing = stopsLibrary.find(stop =>
+            stop.agency === item.agency && String(stop.code || '') === String(candidate.code),
+        );
+        if (existing) {
+            await this.linkTrip(item, existing.id, stopsLibrary);
+            return;
+        }
+
+        const stopRef = await db.collection('stops').add({
+            name: candidate.name,
+            code: candidate.code,
+            agency: item.agency,
+            agencies: [item.agency],
+            aliases: item.rawName ? [item.rawName] : [],
+            routes: item.route ? [item.route] : [],
+            ...(candidate.direction ? { direction: candidate.direction } : {}),
+            lat: candidate.lat,
+            lng: candidate.lon,
+            source: 'gtfs',
+            gtfsVerified: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        });
+        const added = { id: stopRef.id, ...candidate, agency: item.agency };
+        stopsLibrary.push(added);
+        await this.linkTrip(item, stopRef.id, stopsLibrary);
     },
 
     _tripHasLinkedStops(trip, item, selectedStop, library) {

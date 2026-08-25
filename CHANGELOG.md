@@ -10,6 +10,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Added
 
+- **Admin stop review can now search route- and direction-scoped GTFS metadata and add a verified canonical stop with the rider’s text as an alias**, reducing guesses for stops missing from the library.
 - **Admin stop linking now records canonical stop codes on trips without rewriting rider-entered stop text**, keeping verification separate from raw trip history.
 - **Map stop labels are temporarily hidden**, preventing raw or unreliable names from appearing until canonical stop labels are ready.
 - **Public profile maps no longer expose raw stop labels**, keeping inconsistent names and stop codes private while preserving the aggregate footprint.
