@@ -1,6 +1,6 @@
 # Transit Stats
 
-A premium transit trip tracker for enthusiasts to analyze and visualize personal ridership.
+A transit trip tracker for enthusiasts to analyze and visualize personal ridership.
 
 ## Problem
 
@@ -12,7 +12,7 @@ Transit riders have almost no personal tracking tools built for transit. There i
 - **History + AI Queries**: Build a personal trip history over time, visualize ridership patterns, and ask natural-language questions about your rides.
 - **Predictions + Journey Intelligence**: Get route-aware destination guesses and automatic journey linking that use learned trip patterns without ignoring the physical transit network.
 - **Transit-Specific Learning**: Each completed trip teaches the system stop sequences, travel times, route-stop service, and transfer connections, improving the app over time.
-- **Public Profiles**: Share ridership stats, streaks, and personal transit records through a public-facing profile page.
+- **Public Profiles**: Share aggregate ridership stats and streaks through a public-facing profile page.
 
 ## Stack
 
