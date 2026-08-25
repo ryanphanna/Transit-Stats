@@ -46,8 +46,10 @@ export const Auth = {
             }
 
             if (!userId) return { allowed: false, error: 'Access denied. This app is invite-only.' };
-            const phoneSnap = await db.collection('phoneNumbers').where('userId', '==', userId).limit(1).get();
-            if (phoneSnap.empty) return { allowed: false, error: 'Access denied. This app is invite-only.' };
+            // Phone-authenticated users arrive with a Firebase custom token and
+            // no email. The phoneNumbers collection is intentionally not
+            // readable by regular users, so use the signed-in user's profile
+            // for the client-side admin flag instead of querying that mapping.
             const profile = await db.collection('profiles').doc(userId).get();
             return { allowed: true, isAdmin: profile.exists && profile.data().isAdmin === true };
         } catch (err) {
@@ -62,8 +64,6 @@ export const Auth = {
                 }
 
                 if (!userId) return { allowed: false, error: 'Access denied. This app is invite-only.' };
-                const phoneSnap = await db.collection('phoneNumbers').where('userId', '==', userId).limit(1).get();
-                if (phoneSnap.empty) return { allowed: false, error: 'Access denied. This app is invite-only.' };
                 const profile = await db.collection('profiles').doc(userId).get();
                 return { allowed: true, isAdmin: profile.exists && profile.data().isAdmin === true };
             } catch (retryErr) {

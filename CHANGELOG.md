@@ -22,6 +22,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Fixed
 
+- **Phone-authenticated dashboard sessions no longer query a client-blocked phone-number collection**, preventing the map and trip history from getting stuck during auth recovery.
 - **Public-profile navigation now returns signed-in users to their dashboard**, while signed-out visitors still go to the home/sign-in page.
 - **Weekly model retraining now targets the Transit Stats Firestore project explicitly**, preventing CI credentials from resolving the wrong database.
 - **Weekly model retraining pins its Firestore client version**, preventing a dependency update from breaking trip export before training starts.
