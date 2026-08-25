@@ -132,6 +132,7 @@ export function clusterMapPoints(points = [], map, { zoom = map?.getZoom?.() } =
             existing.lat += point.lat * usage;
             existing.lng += point.lng * usage;
             existing.usage += usage;
+            existing.peakUsage = Math.max(existing.peakUsage, usage);
             point.labels?.forEach(label => existing.labels.add(label));
             return;
         }
@@ -141,6 +142,7 @@ export function clusterMapPoints(points = [], map, { zoom = map?.getZoom?.() } =
             lng: point.lng * usage,
             type: point.type,
             usage,
+            peakUsage: usage,
             labels: new Set(point.labels || []),
         });
     });
@@ -153,9 +155,10 @@ export function clusterMapPoints(points = [], map, { zoom = map?.getZoom?.() } =
 }
 
 export function getUsageMarkerStyle(point, maxUsage, { baseRadius = 4 } = {}) {
+    const intensityUsage = Math.max(1, Number(point.intensityUsage ?? point.usage) || 1);
     const usageRatio = maxUsage <= 1
         ? 0
-        : Math.log(Math.max(1, point.usage)) / Math.log(maxUsage);
+        : Math.log(intensityUsage) / Math.log(maxUsage);
     const usageIntensity = Math.pow(Math.max(0, Math.min(1, usageRatio)), 0.65);
     const baseColor = MAP_PIN_COLOR;
 
@@ -185,12 +188,19 @@ export function addMapPointMarkers({
         if (map) map._transitStatsMarkerBatchGeneration = (map._transitStatsMarkerBatchGeneration || 0) + 1;
         const renderGeneration = map?._transitStatsMarkerBatchGeneration;
         const visibleGroups = clusterMapPoints(grouped, map);
-        const maxUsage = Math.max(...visibleGroups.map(point => point.usage), 1);
+        // Keep marker meaning stable as the map zooms. Cluster totals are used
+        // for their weighted position, but darkness represents the busiest
+        // stop in the cluster rather than the arbitrary number of stops that
+        // happened to fit in one screen cell.
+        const maxUsage = Math.max(...grouped.map(point => point.usage), 1);
         const prioritizedGroups = prioritizeVisiblePoints(visibleGroups, map);
         markers.clearLayers();
 
         const addMarker = point => {
-            const style = getUsageMarkerStyle(point, maxUsage, { baseRadius });
+            const style = getUsageMarkerStyle({
+                ...point,
+                intensityUsage: point.peakUsage ?? point.usage,
+            }, maxUsage, { baseRadius });
             const marker = L.circleMarker([point.lat, point.lng], {
                 renderer,
                 ...style,

@@ -70,7 +70,7 @@ function resolveTripLocation(location, stopName, agency, stopIndex) {
   }
 
   const label = normalizeStopLabel(stopName);
-  if (!label) return null;
+  if (!label || !stopIndex) return null;
   return stopIndex.get(`${normalizeStopLabel(agency)}:${label}`)
     || stopIndex.get(`*:${label}`)
     || null;
@@ -78,6 +78,9 @@ function resolveTripLocation(location, stopName, agency, stopIndex) {
 
 async function handlePublicProfile(req, res) {
   res.set('Access-Control-Allow-Origin', '*');
+  // Public profile data can be briefly stale; allowing intermediary caching
+  // avoids repeating the Firestore aggregation for every new device.
+  res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=300');
   if (req.method === 'OPTIONS') {
     res.set('Access-Control-Allow-Methods', 'GET');
     res.status(204).send('');
@@ -119,11 +122,7 @@ async function handlePublicProfile(req, res) {
     // The public profile switch is the permission boundary. Once the profile
     // is public, expose the same history as the signed-in map through the
     // aggregate-only response below. Individual trip documents remain private.
-    const [tripsSnap, stopsLibrary] = await Promise.all([
-      db.collection('trips').where('userId', '==', userId).get(),
-      getStopsLibrary(),
-    ]);
-    const stopIndex = buildStopLocationIndex(stopsLibrary);
+    const tripsSnap = await db.collection('trips').where('userId', '==', userId).get();
     const historyTrips = [];
     const nowMs = Date.now();
     tripsSnap.forEach((doc) => {
@@ -138,6 +137,15 @@ async function handlePublicProfile(req, res) {
     const agencies = new Set();
     const countries = new Set();
     const pointsByStop = new Map();
+    let stopIndex = null;
+    let stopIndexPromise = null;
+    const getStopIndex = async () => {
+      if (!stopIndexPromise) {
+        stopIndexPromise = getStopsLibrary().then(buildStopLocationIndex);
+      }
+      stopIndex = await stopIndexPromise;
+      return stopIndex;
+    };
     const now = new Date();
     const thirtyDaysAgo = new Date(now);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -163,7 +171,7 @@ async function handlePublicProfile(req, res) {
         names: new Set(fallbackName ? [fallbackName] : []),
       });
     };
-    historyTrips.forEach((trip) => {
+    for (const trip of historyTrips) {
       totalMinutes += trip.duration || 0;
       const tripDate = trip.startTime?.toDate ? trip.startTime.toDate() : new Date(trip.startTime);
       if (!Number.isNaN(tripDate.getTime())) {
@@ -177,27 +185,39 @@ async function handlePublicProfile(req, res) {
         const country = AGENCY_COUNTRIES.get(agency.toLowerCase());
         if (country) countries.add(country);
       }
+      const boardingLocation = resolveTripLocation(
+        trip.boardingLocation || trip.boardLocation,
+        trip.startStopName || trip.startStop,
+        trip.agency,
+        stopIndex,
+      ) || await resolveTripLocation(
+        trip.boardingLocation || trip.boardLocation,
+        trip.startStopName || trip.startStop,
+        trip.agency,
+        await getStopIndex(),
+      );
+      const exitLocation = resolveTripLocation(
+        trip.exitLocation,
+        trip.endStopName || trip.endStop,
+        trip.agency,
+        stopIndex,
+      ) || await resolveTripLocation(
+        trip.exitLocation,
+        trip.endStopName || trip.endStop,
+        trip.agency,
+        await getStopIndex(),
+      );
       addPoint(
-        resolveTripLocation(
-          trip.boardingLocation || trip.boardLocation,
-          trip.startStopName || trip.startStop,
-          trip.agency,
-          stopIndex,
-        ),
+        boardingLocation,
         'start',
         trip.startStopName || trip.startStop || trip.boardingLocation?.name,
       );
       addPoint(
-        resolveTripLocation(
-          trip.exitLocation,
-          trip.endStopName || trip.endStop,
-          trip.agency,
-          stopIndex,
-        ),
+        exitLocation,
         'end',
         trip.endStopName || trip.endStop || trip.exitLocation?.name,
       );
-    });
+    }
 
     res.status(200).json({
       displayName: profile.displayName || profile.name || null,
