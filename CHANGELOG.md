@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Historical trips with unambiguous stop-library matches are now repairable**, increasing the trustworthy training pool without guessing missing stops.
 - **Weekly model retraining now targets the Transit Stats Firestore project explicitly**, preventing CI credentials from resolving the wrong database.
 - **Weekly model retraining pins its Firestore client version**, preventing a dependency update from breaking trip export before training starts.
 - **Dashboard refreshes now allow more time for auth recovery**, preventing a slow token refresh from sending a still-valid user back to the sign-in screen.
