@@ -279,6 +279,24 @@ html[data-theme="dark"] body.settings-surface .header {
   flex: 1 1 auto;
 }
 
+.settings-profile-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-profile-links .public-link-box {
+  margin-top: 0;
+}
+
+.settings-profile-url-label {
+  flex: 0 0 42px;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 .settings-public-profile-group .settings-identity-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
