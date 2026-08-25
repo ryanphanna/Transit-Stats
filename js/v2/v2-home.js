@@ -27,13 +27,7 @@ const V2Home = {
     checkExistingAuth() {
         auth.onAuthStateChanged(async (user) => {
             if (user) {
-                // Find their phone number to show a personalized welcome
-                const phoneSnap = await db.collection('phoneNumbers')
-                    .where('userId', '==', user.uid)
-                    .limit(1)
-                    .get();
-
-                const phoneLabel = !phoneSnap.empty ? phoneSnap.docs[0].id : user.email;
+                const phoneLabel = user.phoneNumber || user.email || 'your account';
                 this.showSuccessState(`Welcome back!`, `Signed in as ${phoneLabel}`, user.uid);
             }
         });

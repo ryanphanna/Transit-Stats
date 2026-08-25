@@ -54,10 +54,7 @@ export const Profile = {
                 return;
             }
 
-            const [profileDoc, phoneSnap] = await Promise.all([
-                db.collection('profiles').doc(user.uid).get(),
-                db.collection('phoneNumbers').where('userId', '==', user.uid).limit(1).get()
-            ]);
+            const profileDoc = await db.collection('profiles').doc(user.uid).get();
 
             if (profileDoc.exists) {
                 this.data = profileDoc.data();
@@ -66,10 +63,10 @@ export const Profile = {
                 this.data = await this.ensureProfile(user);
             }
 
-            this.phone = !phoneSnap.empty ? phoneSnap.docs[0].id : null;
+            this.phone = user.phoneNumber || null;
 
-            // Fallback: search by email if userId lookup failed (legacy or email-primary accounts)
-            if (!this.phone && user.email) {
+            // Admins can read the legacy phone mapping; regular users cannot.
+            if (!this.phone && window.isAdmin && user.email) {
                 const emailPhoneSnap = await db.collection('phoneNumbers')
                     .where('email', '==', user.email)
                     .limit(1)
