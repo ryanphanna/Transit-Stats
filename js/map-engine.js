@@ -1,4 +1,3 @@
-import { UI } from './ui-utils.js';
 import { PredictionEngine } from './predict.js';
 import { buildStopIndex, resolveStopLocation } from './atlas-stop-resolver.js';
 import { getTripStopLabel } from './trip-display.js';
@@ -141,8 +140,8 @@ export const MapEngine = {
                 markers: this.layers.markers,
                 renderer: this._canvasRenderer,
                 points: cached.points,
+                getLabel: () => null,
                 baseRadius: document.body.classList.contains('v2-clean') ? 4 : 4.5,
-                formatPopup: label => UI.escapeHtml(label),
             });
             console.log(`MapEngine: Loaded ${cached.points.length} cached markers`);
             return true;
@@ -206,8 +205,8 @@ export const MapEngine = {
             markers: this.layers.markers,
             renderer: this._canvasRenderer,
             points,
+            getLabel: () => null,
             baseRadius: 4.5,
-            formatPopup: label => UI.escapeHtml(label),
         });
     },
 
@@ -407,8 +406,8 @@ export const MapEngine = {
             markers: this.layers.markers,
             renderer: this._canvasRenderer,
             points,
+            getLabel: () => null,
             baseRadius,
-            formatPopup: label => UI.escapeHtml(label),
         });
         this._cachePoints(points);
 
