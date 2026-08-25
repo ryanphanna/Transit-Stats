@@ -58,6 +58,12 @@ describe('shared Atlas card', () => {
         expect(publicJs).toContain('refreshIcons();');
     });
 
+    it('routes public-profile navigation based on auth state', () => {
+        expect(publicJs).toContain("branding.href = signedIn ? '/dashboard' : '/';");
+        expect(publicJs).toContain("cardAction.href = signedIn ? '/dashboard' : '/';");
+        expect(publicJs).toContain("'Dashboard <span aria-hidden=\"true\">→</span>'");
+    });
+
     it('keeps the public card visible with neutral placeholders while profile data loads', () => {
         document.body.innerHTML = '<div data-atlas-card></div>';
         const card = renderAtlasCard({ publicProfile: true, loading: true });

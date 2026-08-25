@@ -3,6 +3,7 @@ import {
     fitMapToDensePoints,
     getAtlasMapFitOptions,
 } from './map-presentation.js';
+import { auth, authPersistenceReady } from './firebase.js';
 import { createMapSurface, DEFAULT_MAP_CENTER, DEFAULT_MAP_OVERVIEW_ZOOM } from './map-surface.js';
 import { refreshIcons } from './shared/icons.js';
 import {
@@ -16,6 +17,32 @@ const PUBLIC_PROFILE_CACHE_PREFIX = 'transitstats-public-profile:';
 const PUBLIC_PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
 let publicMapState = null;
 let publicMapRefitFrame = null;
+
+function updatePublicNavigation(user) {
+    const signedIn = Boolean(user);
+    const branding = document.querySelector('.public-branding');
+    const cardAction = document.querySelector('.atlas-card-cta');
+
+    if (branding) branding.href = signedIn ? '/dashboard' : '/';
+    if (!cardAction) return;
+
+    cardAction.href = signedIn ? '/dashboard' : '/';
+    cardAction.innerHTML = signedIn
+        ? 'Dashboard <span aria-hidden="true">→</span>'
+        : 'Make your own map <span aria-hidden="true">→</span>';
+}
+
+async function initializePublicNavigation() {
+    auth.onAuthStateChanged(updatePublicNavigation);
+    try {
+        await authPersistenceReady;
+        await auth.authStateReady();
+        updatePublicNavigation(auth.currentUser);
+    } catch (error) {
+        console.warn('Public profile auth state unavailable:', error.message);
+        updatePublicNavigation(null);
+    }
+}
 
 function getPublicProfileCacheKey(username) {
     return `${PUBLIC_PROFILE_CACHE_PREFIX}${username.trim().toLowerCase()}`;
@@ -58,6 +85,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.documentElement.dataset.theme = 'light';
     document.body.classList.remove('dark');
     renderAtlasCard({ publicProfile: true, loading: true });
+    void initializePublicNavigation();
     refreshIcons();
     const pathMatch = window.location.pathname.match(/^\/user\/([^/]+)\/?$/i);
     const params = new URLSearchParams(window.location.search);
