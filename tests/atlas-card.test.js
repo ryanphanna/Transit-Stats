@@ -16,6 +16,8 @@ const dashboardHtml = fs.readFileSync(path.join(root, 'dashboard.html'), 'utf8')
 const publicHtml = fs.readFileSync(path.join(root, 'public.html'), 'utf8');
 const mainCss = fs.readFileSync(path.join(root, 'styles/main.css'), 'utf8');
 const publicJs = fs.readFileSync(path.join(root, 'js/public.js'), 'utf8');
+const profileJs = fs.readFileSync(path.join(root, 'js/profile.js'), 'utf8');
+const settingsHtml = fs.readFileSync(path.join(root, 'settings.html'), 'utf8');
 const dashboardAtlasCss = fs.readFileSync(path.join(root, 'styles/pages/dashboard-atlas.css'), 'utf8');
 
 describe('shared Atlas card', () => {
@@ -62,6 +64,13 @@ describe('shared Atlas card', () => {
         expect(publicJs).toContain("branding.href = signedIn ? '/dashboard' : '/';");
         expect(publicJs).toContain("cardAction.href = signedIn ? '/dashboard' : '/';");
         expect(publicJs).toContain("'Dashboard <span aria-hidden=\"true\">→</span>'");
+    });
+
+    it('shows both custom and emoji profile links when both exist', () => {
+        expect(settingsHtml).toContain('Profile URLs');
+        expect(settingsHtml).not.toContain('Admins only');
+        expect(profileJs).toContain('const profileUsernames = [...new Set([username, emojiUsername].filter(Boolean))];');
+        expect(profileJs).toContain("label: value === customUsername ? 'Custom' : 'Emoji'");
     });
 
     it('keeps the public card visible with neutral placeholders while profile data loads', () => {

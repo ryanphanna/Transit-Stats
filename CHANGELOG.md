@@ -8,6 +8,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Settings now shows both custom and emoji profile URLs when available**, so admins can share either public identity.
 - **Public-profile navigation now returns signed-in users to their dashboard**, while signed-out visitors still go to the home/sign-in page.
 - **Historical trips with unambiguous stop-library matches are now repairable**, increasing the trustworthy training pool without guessing missing stops.
 - **Weekly model retraining now targets the Transit Stats Firestore project explicitly**, preventing CI credentials from resolving the wrong database.

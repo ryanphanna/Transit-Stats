@@ -285,47 +285,56 @@ export const Profile = {
         if (publicLinkEl) {
             const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
             const baseUrl = isLocal ? 'https://transitstats.fyi' : window.location.origin;
-            const url = username ? `${baseUrl}/user/${encodeURIComponent(username)}` : '';
+            const profileUsernames = [...new Set([username, emojiUsername].filter(Boolean))];
+            const profileLinks = profileUsernames.map(value => ({
+                label: value === customUsername ? 'Custom' : 'Emoji',
+                url: `${baseUrl}/user/${encodeURIComponent(value)}`,
+            }));
             
-            if (url) {
+            if (profileLinks.length > 0) {
                 publicLinkEl.innerHTML = '';
-                const linkBox = document.createElement('div');
-                linkBox.className = 'public-link-box';
+                profileLinks.forEach(({ label, url }) => {
+                    const linkBox = document.createElement('div');
+                    linkBox.className = 'public-link-box';
 
-                const link = document.createElement('a');
-                link.className = 'public-url settings-profile-url';
-                link.href = url;
-                link.target = '_blank';
-                link.rel = 'noopener';
-                link.textContent = url;
+                    const linkLabel = document.createElement('span');
+                    linkLabel.className = 'settings-profile-url-label';
+                    linkLabel.textContent = label;
 
-                const shareButton = document.createElement('button');
-                shareButton.id = 'btn-share-public-link';
-                shareButton.className = 'btn btn-link settings-text-action';
-                shareButton.textContent = navigator.share ? 'Share' : 'Copy';
-                linkBox.append(link, shareButton);
-                publicLinkEl.append(linkBox);
+                    const link = document.createElement('a');
+                    link.className = 'public-url settings-profile-url';
+                    link.href = url;
+                    link.target = '_blank';
+                    link.rel = 'noopener';
+                    link.textContent = url;
 
-                shareButton.addEventListener('click', async () => {
-                    if (navigator.share) {
-                        try {
-                            await navigator.share({
-                                title: `${this.getDisplayName() || 'My'} TransitStats`,
-                                url,
-                            });
-                            return;
-                        } catch (error) {
-                            if (error?.name === 'AbortError') return;
+                    const shareButton = document.createElement('button');
+                    shareButton.className = 'btn btn-link settings-text-action';
+                    shareButton.textContent = navigator.share ? 'Share' : 'Copy';
+                    linkBox.append(linkLabel, link, shareButton);
+                    publicLinkEl.append(linkBox);
+
+                    shareButton.addEventListener('click', async () => {
+                        if (navigator.share) {
+                            try {
+                                await navigator.share({
+                                    title: `${this.getDisplayName() || 'My'} TransitStats`,
+                                    url,
+                                });
+                                return;
+                            } catch (error) {
+                                if (error?.name === 'AbortError') return;
+                            }
                         }
-                    }
 
-                    try {
-                        if (!navigator.clipboard?.writeText) return;
-                        await navigator.clipboard.writeText(url);
-                        UI.showNotification('Link copied.', 'success');
-                    } catch {
-                        // Sharing is optional; avoid surfacing a generic failure toast.
-                    }
+                        try {
+                            if (!navigator.clipboard?.writeText) return;
+                            await navigator.clipboard.writeText(url);
+                            UI.showNotification('Link copied.', 'success');
+                        } catch {
+                            // Sharing is optional; avoid surfacing a generic failure toast.
+                        }
+                    });
                 });
             } else {
                 publicLinkEl.textContent = 'Pick your identity to enable sharing.';
