@@ -10,6 +10,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Added
 
+- **Public profile maps no longer expose raw stop labels**, keeping inconsistent names and stop codes private while preserving the aggregate footprint.
 - **Settings now shows both custom and emoji profile URLs when available**, so admins can share either public identity.
 - **Historical trips with unambiguous stop-library matches are now repairable**, increasing the trustworthy training pool without guessing missing stops.
 - **Clicking a map stop now smoothly zooms toward it and highlights the selected pin**, making dense areas easier to explore.

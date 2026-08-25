@@ -206,16 +206,6 @@ function showError(title, message) {
     error.hidden = false;
 }
 
-function escapeHtml(value) {
-    return String(value || '').replace(/[&<>'"]/g, character => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        "'": '&#39;',
-        '"': '&quot;',
-    }[character]));
-}
-
 function initPublicMap(points, mapStopMode = 'boarding') {
     if (!publicMapState) {
         publicMapState = {
@@ -246,11 +236,6 @@ function initPublicMap(points, mapStopMode = 'boarding') {
             markers,
             renderer,
             points: visiblePoints,
-            getLabel: point => {
-                const names = Array.isArray(point.names) ? point.names : [point.name];
-                return names.filter(Boolean).map(escapeHtml).join('<br>');
-            },
-            formatPopup: value => value,
         });
 
         if (!publicMapState.hasUserInteracted && visiblePoints.length > 0) {

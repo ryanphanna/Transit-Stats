@@ -4,8 +4,8 @@
  * The `trips` collection is never publicly readable (see firestore.rules) because
  * each document carries userId, route, and exact timestamps that a public
  * profile page has no business exposing. This endpoint reads trips with the
- * Admin SDK and returns only aggregate stats plus public transit stop names,
- * coordinates, and usage counts for the map.
+ * Admin SDK and returns only aggregate stats plus coordinates and usage counts
+ * for the map.
  */
 
 const { onRequest } = require('firebase-functions/v2/https');
@@ -151,7 +151,7 @@ async function handlePublicProfile(req, res) {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const sevenDaysAgo = new Date(now);
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const addPoint = (location, type, fallbackName) => {
+    const addPoint = (location, type) => {
       if (location?.lat == null || location?.lng == null) return;
       const lat = Number(location.lat);
       const lng = Number(location.lng);
@@ -160,7 +160,6 @@ async function handlePublicProfile(req, res) {
       const existing = pointsByStop.get(key);
       if (existing) {
         existing.usage += 1;
-        if (fallbackName) existing.names.add(fallbackName);
         return;
       }
       pointsByStop.set(key, {
@@ -168,7 +167,6 @@ async function handlePublicProfile(req, res) {
         lng,
         type,
         usage: 1,
-        names: new Set(fallbackName ? [fallbackName] : []),
       });
     };
     for (const trip of historyTrips) {
@@ -210,12 +208,10 @@ async function handlePublicProfile(req, res) {
       addPoint(
         boardingLocation,
         'start',
-        trip.startStopName || trip.startStop || trip.boardingLocation?.name,
       );
       addPoint(
         exitLocation,
         'end',
-        trip.endStopName || trip.endStop || trip.exitLocation?.name,
       );
     }
 
@@ -234,10 +230,7 @@ async function handlePublicProfile(req, res) {
       daysRidden: riddenDays.size,
       agencies: agencies.size,
       countries: countries.size,
-      points: [...pointsByStop.values()].map(point => ({
-        ...point,
-        names: [...point.names],
-      })),
+      points: [...pointsByStop.values()],
     });
   } catch (err) {
     logger.error('Public profile lookup failed', { error: err.message, username: requestedUsername });

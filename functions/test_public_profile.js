@@ -130,7 +130,7 @@ test('publicProfile returns 200 with aggregated stats for a public profile', asy
   assert.equal(res.body.thisMonth, 1);
   assert.equal(res.body.thisWeek, 1);
   assert.equal(res.body.points.length, 2);
-  assert.deepEqual(res.body.points[0].names, ['Start']);
+  assert.equal('names' in res.body.points[0], false);
   assert.equal(res.body.displayName, 'Alice');
   assert.equal(res.body.canonicalUsername, 'r');
   assert.equal(res.body.mapStopMode, 'exiting');
