@@ -6,21 +6,31 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
-## [Unreleased]
+## [1.49.3] — 2026-08-24
+
+### Added
 
 - **Settings now shows both custom and emoji profile URLs when available**, so admins can share either public identity.
-- **Public-profile navigation now returns signed-in users to their dashboard**, while signed-out visitors still go to the home/sign-in page.
 - **Historical trips with unambiguous stop-library matches are now repairable**, increasing the trustworthy training pool without guessing missing stops.
+- **Clicking a map stop now smoothly zooms toward it and highlights the selected pin**, making dense areas easier to explore.
+
+### Changed
+
+- **Logged-in and logged-out maps now open with the same overview and card-aware framing**, so the initial location does not shift between views.
+- **Logged-in and logged-out map cards now use the same compact mobile sizing**, so the stats panel does not change shape between views.
+- **Signed-in map branding now sits in the same position as logged-out map branding**, keeping the two map views visually consistent.
+
+### Fixed
+
+- **Public-profile navigation now returns signed-in users to their dashboard**, while signed-out visitors still go to the home/sign-in page.
 - **Weekly model retraining now targets the Transit Stats Firestore project explicitly**, preventing CI credentials from resolving the wrong database.
 - **Weekly model retraining pins its Firestore client version**, preventing a dependency update from breaking trip export before training starts.
 - **Dashboard refreshes now allow more time for auth recovery**, preventing a slow token refresh from sending a still-valid user back to the sign-in screen.
 - **Login texts now use Apple’s domain-bound one-time-code format**, making iPhone code AutoFill more reliable.
-- **Clicking a map stop now smoothly zooms toward it and highlights the selected pin**, making dense areas easier to explore.
 - **Sign-in now waits for persistent storage before creating a session**, preventing refreshes from appearing to sign users out.
 - **Public profile totals now use the same history-trip rules as the signed-in dashboard**, so active or malformed records no longer inflate logged-out ride counts.
-- **Logged-in and logged-out maps now open with the same overview and card-aware framing**, so the initial location does not shift between views.
-- **Logged-in and logged-out map cards now use the same compact mobile sizing**, so the stats panel does not change shape between views.
-- **Signed-in map branding now sits in the same position as logged-out map branding**, keeping the two map views visually consistent.
+
+## [Unreleased]
 
 ## [1.49.2] — 2026-08-22
 
