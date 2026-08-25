@@ -34,6 +34,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 ## [Unreleased]
 
 - **Public profiles now skip the full stops database when rides already include coordinates and defer optional auth startup**, reducing first-load time on new devices.
+- **Map dots now keep the same darkness meaning when zooming**, so clusters no longer make cities look busier or quieter just because of screen grouping.
 
 ## [1.49.2] — 2026-08-22
 

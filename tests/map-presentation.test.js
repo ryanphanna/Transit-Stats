@@ -32,6 +32,13 @@ describe('getUsageMarkerStyle', () => {
         expect(lowUsage.fillOpacity).toBeLessThan(highUsage.fillOpacity);
         expect(highUsage.fillColor).toBe('#066b4b');
     });
+
+    it('uses a cluster peak rather than its arbitrary total for darkness', () => {
+        const cluster = getUsageMarkerStyle({ usage: 200, intensityUsage: 6 }, 204);
+        const stop = getUsageMarkerStyle({ usage: 6 }, 204);
+
+        expect(cluster.fillColor).toBe(stop.fillColor);
+    });
 });
 
 describe('clusterMapPoints', () => {
@@ -55,6 +62,18 @@ describe('clusterMapPoints', () => {
         ];
 
         expect(clusterMapPoints(points, map, { zoom: 9 })).toHaveLength(1);
+    });
+
+    it('preserves the busiest stop usage when combining nearby stops', () => {
+        const points = [
+            { lat: 1, lng: 1, type: 'boarding', usage: 2 },
+            { lat: 1.01, lng: 1.01, type: 'boarding', usage: 6 },
+        ];
+
+        const [cluster] = clusterMapPoints(points, map, { zoom: 9 });
+
+        expect(cluster.usage).toBe(8);
+        expect(cluster.peakUsage).toBe(6);
     });
 
     it('keeps more distinct locations visible in the wide view', () => {
