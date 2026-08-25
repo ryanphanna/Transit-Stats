@@ -3,7 +3,6 @@ import {
     fitMapToDensePoints,
     getAtlasMapFitOptions,
 } from './map-presentation.js';
-import { auth, authPersistenceReady } from './firebase.js';
 import { createMapSurface, DEFAULT_MAP_CENTER, DEFAULT_MAP_OVERVIEW_ZOOM } from './map-surface.js';
 import { refreshIcons } from './shared/icons.js';
 import {
@@ -33,6 +32,9 @@ function updatePublicNavigation(user) {
 }
 
 async function initializePublicNavigation() {
+    // Public profiles do not need Firestore or auth to render. Keep this
+    // optional navigation enhancement off the critical loading path.
+    const { auth, authPersistenceReady } = await import('./firebase.js');
     auth.onAuthStateChanged(updatePublicNavigation);
     try {
         await authPersistenceReady;
@@ -85,7 +87,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.documentElement.dataset.theme = 'light';
     document.body.classList.remove('dark');
     renderAtlasCard({ publicProfile: true, loading: true });
-    void initializePublicNavigation();
+    const scheduleNavigation = window.requestIdleCallback || ((callback) => setTimeout(callback, 1000));
+    scheduleNavigation(() => void initializePublicNavigation());
     refreshIcons();
     const pathMatch = window.location.pathname.match(/^\/user\/([^/]+)\/?$/i);
     const params = new URLSearchParams(window.location.search);
@@ -105,7 +108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // this endpoint reads them server-side with the Admin SDK and returns only
         // aggregate/anonymized fields (totals + lat/lng points, no route/stop/userId).
         const res = await fetch(`https://us-central1-transitstats-21ba4.cloudfunctions.net/publicProfile?user=${encodeURIComponent(normalizedUsername)}`, {
-            cache: 'no-store',
+            cache: 'default',
         });
         const errorData = res.ok ? null : await res.json().catch(() => ({}));
         if (errorData?.code === 'COMING_SOON') {

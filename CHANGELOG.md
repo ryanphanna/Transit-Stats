@@ -33,6 +33,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Public profiles now skip the full stops database when rides already include coordinates and defer optional auth startup**, reducing first-load time on new devices.
+
 ## [1.49.2] — 2026-08-22
 
 - **Maps now show nearby stop dots first and fill in the rest progressively**, making large ride histories feel faster without hiding the full footprint.
