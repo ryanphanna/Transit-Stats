@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransitStats — Public Profile</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles/main.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script defer src="https://unpkg.com/lucide@latest"></script>
+    <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body class="dashboard-surface">
+    <main id="app-root">
+        <section class="view active public-view dashboard-atlas-hero is-loading" aria-label="Public transit atlas">
+            <div id="publicMap" class="full-map dashboard-map"></div>
+            <div class="dashboard-map-wash" aria-hidden="true"></div>
+            <div class="dashboard-map-loading" id="public-map-loading" role="status">Mapping their rides…</div>
+            <a class="public-branding" href="/" aria-label="TransitStats home"><span class="logo-icon"><i data-lucide="zap"></i></span><span class="logo-text">TransitStats</span></a>
+            <div class="dashboard-atlas-hero-inner"><div class="atlas-identity-card" data-atlas-card></div></div>
+            <div class="public-error" id="public-error" hidden role="alert">
+                <div class="public-error-card">
+                    <span class="public-error-kicker">TransitStats</span>
+                    <h1 id="public-error-title">Profile not found</h1>
+                    <p id="public-error-message"></p>
+                    <a class="public-error-cta" href="/">Make your own map <span aria-hidden="true">→</span></a>
+                </div>
+            </div>
+        </section>
+    </main>
+    <script type="module" src="/js/public.js"></script>
+</body>
+</html>

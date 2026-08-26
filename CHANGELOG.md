@@ -33,6 +33,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Public profile links now generate social preview cards with a clipped trip heatmap**, so shared profiles show the rider’s transit footprint before the link is opened.
 - **Trip Paths now includes a clipped-route heatmap**, making the corridors used most often stand out without drawing full routes.
 - **The retired standalone `/map` page is no longer linked or deployed**, leaving the dashboard as the main personal map and keeping trip-path exploration available separately.
 - **Login now retries the shared session handoff**, so a transient request failure does not make the next page look signed out.

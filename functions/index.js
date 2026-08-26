@@ -22,6 +22,8 @@ const { atlasStops } = require('./atlas-stops');
 const { atlasStopsMeta } = require('./atlas-stops-meta');
 const { atlasRoutes } = require('./atlas-routes');
 const { publicProfile } = require('./lib/public-profile');
+const { publicProfileOg } = require('./lib/public-profile-og');
+const { publicProfilePage } = require('./lib/public-profile-page');
 const { onDocumentWritten, onDocumentCreated } = require('firebase-functions/v2/firestore');
 const finalization = require('./lib/finalization');
 const { enrichStopDoc } = require('./lib/atlas-enrich');
@@ -50,6 +52,8 @@ exports.atlasRoutes = atlasRoutes;
 // data. Trips are not publicly readable via Firestore rules; this endpoint
 // reads them with the Admin SDK and returns only aggregate/anonymized fields.
 exports.publicProfile = publicProfile;
+exports.publicProfileOg = publicProfileOg;
+exports.publicProfilePage = publicProfilePage;
 
 // Background trigger: fill Layer-2 facts (direction, routes, official-name alias)
 // on newly created stop docs from Atlas R2 stops-meta. No-ops gracefully while

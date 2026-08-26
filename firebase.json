@@ -95,8 +95,18 @@
           "destination": "/public.html"
         },
         {
+          "source": "/public-profile-og",
+          "function": {
+            "functionId": "publicProfileOg",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/user/**",
-          "destination": "/public.html"
+          "function": {
+            "functionId": "publicProfilePage",
+            "region": "us-central1"
+          }
         },
         {
           "source": "/trip-paths",
