@@ -26,8 +26,12 @@ function updatePublicNavigation(user) {
 
     if (branding) branding.href = signedIn ? '/dashboard' : '/';
     if (signedIn && cardAction && cardAction.tagName === 'A') {
-        cardAction.outerHTML = '<button id="atlas-share-map" class="atlas-card-cta" type="button">Share your map <span aria-hidden="true">→</span></button>';
-        document.getElementById('atlas-share-map')?.addEventListener('click', async () => {
+        cardAction.remove();
+    }
+    if (signedIn && !publicHeaderRendered) {
+        publicHeaderRendered = true;
+        initHeader({ currentPage: 'dashboard', shareAction: true });
+        document.getElementById('btn-header-share')?.addEventListener('click', async () => {
             const url = window.location.href;
             if (navigator.share) {
                 try {
@@ -44,10 +48,6 @@ function updatePublicNavigation(user) {
                 // Sharing is optional; avoid surfacing a generic failure toast.
             }
         });
-    }
-    if (signedIn && !publicHeaderRendered) {
-        publicHeaderRendered = true;
-        initHeader({ currentPage: 'dashboard' });
     }
     if (!cardAction) return;
 

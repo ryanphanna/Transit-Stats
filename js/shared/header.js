@@ -4,11 +4,11 @@ import { Auth } from '../auth.js';
  * Shared Header Component
  * Injects navigation into the page.
  */
-export function initHeader({ isAdmin = false, currentPage = '', profileHref = '' } = {}) {
-    _render(isAdmin, currentPage, profileHref);
+export function initHeader({ isAdmin = false, currentPage = '', profileHref = '', shareAction = false } = {}) {
+    _render(isAdmin, currentPage, profileHref, shareAction);
 }
 
-function _render(isAdmin, currentPage, profileHref) {
+function _render(isAdmin, currentPage, profileHref, shareAction) {
     const root = document.getElementById('app-root');
     if (!root) return;
 
@@ -34,6 +34,10 @@ function _render(isAdmin, currentPage, profileHref) {
                 </nav>
 
                 <div class="header-actions">
+                    ${shareAction ? `
+                        <button id="btn-header-share" class="header-action-link" title="Share your map" type="button">
+                            <span>Share</span>
+                        </button>` : ''}
                     ${profileHref ? `
                         <a href="${profileHref}" class="header-action-link ${currentPage === 'profile' ? 'active' : ''}" title="Profile">
                             <span>Profile</span>
