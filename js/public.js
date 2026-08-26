@@ -25,6 +25,26 @@ function updatePublicNavigation(user) {
     const cardAction = document.querySelector('.atlas-card-cta');
 
     if (branding) branding.href = signedIn ? '/dashboard' : '/';
+    if (signedIn && cardAction && cardAction.tagName === 'A') {
+        cardAction.outerHTML = '<button id="atlas-share-map" class="atlas-card-cta" type="button">Share your map <span aria-hidden="true">→</span></button>';
+        document.getElementById('atlas-share-map')?.addEventListener('click', async () => {
+            const url = window.location.href;
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title: document.title, url });
+                    return;
+                } catch (error) {
+                    if (error?.name === 'AbortError') return;
+                }
+            }
+            try {
+                if (!navigator.clipboard?.writeText) return;
+                await navigator.clipboard.writeText(url);
+            } catch {
+                // Sharing is optional; avoid surfacing a generic failure toast.
+            }
+        });
+    }
     if (signedIn && !publicHeaderRendered) {
         publicHeaderRendered = true;
         initHeader({ currentPage: 'dashboard' });
