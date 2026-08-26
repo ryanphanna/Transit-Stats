@@ -43,13 +43,13 @@ function _render(isAdmin, currentPage, profileHref) {
                 </nav>
 
                 <div class="header-actions">
-                    ${isAdmin ? `
-                        <a href="/admin" class="header-action-link header-admin-link ${adminSurface ? 'active' : ''}" title="Admin">
-                            <span>Admin</span>
-                        </a>` : ''}
                     ${profileHref ? `
                         <a href="${profileHref}" class="header-action-link ${currentPage === 'profile' ? 'active' : ''}" title="Profile">
                             <span>Profile</span>
+                        </a>` : ''}
+                    ${isAdmin ? `
+                        <a href="/admin" class="header-action-link header-admin-link ${adminSurface ? 'active' : ''}" title="Admin">
+                            <span>Admin</span>
                         </a>` : ''}
                     <a href="/settings" class="header-action-link ${currentPage === 'settings' ? 'active' : ''}" title="Settings">
                         <span>Settings</span>
