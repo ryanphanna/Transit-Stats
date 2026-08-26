@@ -12,19 +12,10 @@ function _render(isAdmin, currentPage, profileHref) {
     const root = document.getElementById('app-root');
     if (!root) return;
 
-    const adminHost = window.location.hostname === 'admin.transitstats.fyi';
-    const adminSurface = adminHost || ['admin', 'stops', 'users', 'insights', 'rocket'].includes(currentPage);
-    const betaSurface = ['localhost', '127.0.0.1', 'beta.transitstats.fyi'].includes(window.location.hostname);
-    const navItems = adminSurface
-        ? [
-            { id: 'stops', label: 'Stops', icon: 'database', href: '/stops' },
-            { id: 'users', label: 'Users', icon: 'users', href: '/users' },
-            { id: 'insights', label: 'Insights', icon: 'line-chart', href: '/insights' },
-        ]
-        : ['dashboard', 'settings'].includes(currentPage) ? [] : [
+    const navItems = ['dashboard', 'settings'].includes(currentPage) ? [] : [
             { id: 'routes', label: 'Routes', icon: 'route', href: '/routes' },
         ];
-    const logoHref = adminHost ? '/admin' : '/dashboard';
+    const logoHref = '/dashboard';
 
     const headerHtml = `
         <header class="header">
@@ -46,10 +37,6 @@ function _render(isAdmin, currentPage, profileHref) {
                     ${profileHref ? `
                         <a href="${profileHref}" class="header-action-link ${currentPage === 'profile' ? 'active' : ''}" title="Profile">
                             <span>Profile</span>
-                        </a>` : ''}
-                    ${isAdmin ? `
-                        <a href="/admin" class="header-action-link header-admin-link ${adminSurface ? 'active' : ''}" title="Admin">
-                            <span>Admin</span>
                         </a>` : ''}
                     <a href="/settings" class="header-action-link ${currentPage === 'settings' ? 'active' : ''}" title="Settings">
                         <span>Settings</span>

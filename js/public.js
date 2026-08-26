@@ -6,7 +6,6 @@ import {
 import { createMapSurface, DEFAULT_MAP_CENTER, DEFAULT_MAP_OVERVIEW_ZOOM } from './map-surface.js';
 import { refreshIcons } from './shared/icons.js';
 import { initHeader } from './shared/header.js';
-import { Auth } from './auth.js';
 import {
     formatAtlasNumber,
     getAtlasPageTitle,
@@ -28,12 +27,7 @@ function updatePublicNavigation(user) {
     if (branding) branding.href = signedIn ? '/dashboard' : '/';
     if (signedIn && !publicHeaderRendered) {
         publicHeaderRendered = true;
-        void Auth.checkWhitelist(user.email, user.uid).then(({ isAdmin }) => {
-            initHeader({ isAdmin, currentPage: 'dashboard' });
-        }).catch(error => {
-            console.warn('Public profile admin status unavailable:', error.message);
-            initHeader({ currentPage: 'dashboard' });
-        });
+        initHeader({ currentPage: 'dashboard' });
     }
     if (!cardAction) return;
 

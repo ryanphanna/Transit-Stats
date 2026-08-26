@@ -4,6 +4,11 @@
   overflow: hidden;
 }
 
+/* Do not expose the signed-in dashboard shell while auth is still resolving. */
+.dashboard-surface.dashboard-auth-pending .dashboard-atlas-hero {
+  visibility: hidden;
+}
+
 .dashboard-surface .header {
   position: absolute;
   background: transparent;

@@ -10,12 +10,9 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Changed
 
-- **Admin navigation now separates the overview from Stops, Users, and Insights**, keeping Profile, Admin, Settings, and Log out in a consistent order.
-- **The Admin overview now uses one clear heading**, removing duplicated section copy from the metrics page.
-- **The Admin overview now summarizes users, rides, stops, review backlog, and AI activity**, making the landing page useful at a glance.
-- **Signed-in public profiles now show Dashboard, Settings, Log out, and Admin when applicable**, so public maps remain connected to the account controls.
+- **The browser admin area has been retired**, leaving operational maintenance in protected backend tools instead of an unfinished UI.
+- **Unauthenticated dashboard visits no longer show a fake empty dashboard while redirecting**, keeping sign-in visitors out of the signed-in shell.
 - **Dashboards now link to the owner’s public Profile when sharing is enabled**, making the shared map easy to open from the account home.
-- **Admin navigation now floats over the page like the dashboard controls**, removing the separate full-width menu bar treatment.
 
 ### Fixed
 

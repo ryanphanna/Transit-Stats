@@ -5,7 +5,6 @@ import { ModalManager } from '../shared/modal-engine.js';
 import { Trips } from '../trips.js';
 import { Stats } from '../stats.js';
 import { RouteTracker } from '../route-tracker.js';
-import { Admin } from '../admin.js';
 import { Profile } from '../profile.js';
 import { PredictionEngine } from '../predict.js';
 import { Utils } from '../utils.js';
