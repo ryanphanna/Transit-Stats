@@ -39,6 +39,14 @@ export default defineConfig(({ mode, command }) => {
                     'v2-home': './v2-home.html',
                     rocket: './Tools/Rocket/index.html',
                 },
+                output: {
+                    entryFileNames: (chunkInfo) => chunkInfo.name === 'public'
+                        ? 'assets/public.js'
+                        : 'assets/[name]-[hash].js',
+                    assetFileNames: (assetInfo) => assetInfo.name === 'main.css'
+                        ? 'assets/main.css'
+                        : 'assets/[name]-[hash][extname]',
+                },
             },
         },
         server: {
