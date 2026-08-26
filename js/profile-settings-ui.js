@@ -16,7 +16,6 @@ export function setupProfileListeners(profile) {
     const customUsernameEditor = document.getElementById('settings-custom-username-editor');
     const betaPredictions = document.getElementById('settings-beta-predictions');
     const publicProfile = document.getElementById('settings-public-profile');
-    const themeSelect = document.getElementById('settings-theme');
     const mapStopModeSelect = document.getElementById('settings-map-stop-mode');
 
     if (agencySelect) {
@@ -111,11 +110,6 @@ export function setupProfileListeners(profile) {
             console.error('Trip sync failed:', error);
             UI.showNotification('Failed to sync trips: ' + error.message);
         }
-    });
-
-    themeSelect?.addEventListener('change', event => {
-        window.TransitTheme?.apply(event.target.value);
-        profile.updateSetting('theme', event.target.value);
     });
 
     mapStopModeSelect?.addEventListener('change', event => {

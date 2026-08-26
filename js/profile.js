@@ -188,7 +188,6 @@ export const Profile = {
         const sharingContentEl = document.getElementById('settings-sharing-content');
         const sharingComingSoonEl = document.getElementById('settings-sharing-coming-soon');
         const publicLinkEl = document.getElementById('settings-public-link');
-        const themeEl = document.getElementById('settings-theme');
         const mapStopModeEl = document.getElementById('settings-map-stop-mode');
 
         if (emailEl) emailEl.textContent = email || auth.currentUser?.email || '—';
@@ -220,11 +219,7 @@ export const Profile = {
             publicProfileEl.checked = !!this.data?.isPublic;
         }
 
-        if (themeEl) {
-            const theme = this.data?.theme || window.TransitTheme?.getPreference() || 'system';
-            themeEl.value = theme;
-            window.TransitTheme?.apply(theme);
-        }
+        window.TransitTheme?.apply();
 
         if (mapStopModeEl) {
             const mode = getMapStopMode(this.data || {}, localStorage.getItem('transitstats-map-stop-mode'));

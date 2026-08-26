@@ -19,7 +19,7 @@ TransitStats is built with privacy and security as its foundation.
 - **SMS Validation**: Incoming webhooks from Twilio are validated to prevent spoofing.
 - **Rate Limiting**: Applied to all SMS processing to prevent abuse.
 - **Secret Management**: API keys (Gemini, Twilio) are stored in Google Cloud Secret Manager via `defineSecret`.
-- **API Key Restriction**: All frontend keys (Firebase, Google Maps) are strictly restricted in the Google Cloud Console to prevent unauthorized usage of costly APIs.
+- **Frontend Configuration**: The browser uses Firebase's public client configuration for authentication and Firestore access, with authorization enforced by Firebase rules and server-side checks. Maps use keyless Leaflet tiles from CARTO/OpenStreetMap; no Google Maps key is used.
 
 ### Repository Security (GitHub)
 

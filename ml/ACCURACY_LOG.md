@@ -3,6 +3,8 @@
 Live and candidate accuracy snapshots from the `predictionAccuracy` Firestore collection.
 Each entry is recorded before a counter reset. Complements [MODEL_LOG.md](./MODEL_LOG.md) (training accuracy).
 
+The latest snapshot below is historical; run a fresh scoped audit before making a model-promotion decision.
+
 **V3 counters are never reset** — V3 has no known accuracy bugs and its running total is a reliable cumulative record.
 
 **Current evaluation rule:** Do not use raw lifetime candidate counters by themselves to decide whether V4/V5 should replace V3. Historical dirty labels and non-TTC rows can pollute the broad totals. Promotion decisions should use a scoped candidate slice first:

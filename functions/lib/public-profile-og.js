@@ -91,5 +91,5 @@ async function handlePublicProfileOg(req, res) {
   }
 }
 
-exports.publicProfileOg = onRequest({ concurrency: 40, maxInstances: 4 }, handlePublicProfileOg);
+exports.publicProfileOg = onRequest({ memory: '512MiB', concurrency: 8, maxInstances: 4 }, handlePublicProfileOg);
 exports.buildSvg = buildSvg;

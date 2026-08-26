@@ -1,36 +1,22 @@
-/* Apply the saved theme before the page paints. This file intentionally has no imports. */
+/* Keep the product on its single light visual system before the page paints. */
 (function applySavedTheme() {
-    const preference = localStorage.getItem('ts_theme') || 'system';
-
-    function resolvedTheme(value) {
-        if (value === 'dark' || value === 'light') return value;
-        return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-
-    function apply(value = preference) {
-        const theme = resolvedTheme(value);
-        document.documentElement.dataset.theme = theme;
-        document.documentElement.dataset.themePreference = value;
-        document.body?.classList.toggle('dark', theme === 'dark');
-        return theme;
+    function apply() {
+        document.documentElement.dataset.theme = 'light';
+        document.documentElement.dataset.themePreference = 'light';
+        document.body?.classList.remove('dark');
+        return 'light';
     }
 
     window.TransitTheme = {
-        getPreference: () => localStorage.getItem('ts_theme') || 'system',
-        apply(value) {
-            const next = value || 'system';
-            localStorage.setItem('ts_theme', next);
-            return apply(next);
+        getPreference: () => 'light',
+        apply() {
+            return apply();
         },
-        resolve: resolvedTheme,
+        resolve: () => 'light',
     };
 
-    document.documentElement.dataset.theme = resolvedTheme(preference);
-    document.documentElement.dataset.themePreference = preference;
-    if (document.body) apply(preference);
-    else document.addEventListener('DOMContentLoaded', () => apply(preference), { once: true });
-
-    window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change', () => {
-        if (window.TransitTheme.getPreference() === 'system') apply('system');
-    });
+    document.documentElement.dataset.theme = 'light';
+    document.documentElement.dataset.themePreference = 'light';
+    if (document.body) apply();
+    else document.addEventListener('DOMContentLoaded', () => apply(), { once: true });
 })();
