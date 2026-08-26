@@ -21,6 +21,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Fixed
 
+- **Dashboard refreshes now show a loading state while a signed-in session is restored**, instead of appearing blank during a slow auth startup.
 - **Local and deployed maps no longer request Carto tiles that require an API key**, preventing the map from showing a configuration error.
 - **Public profile pages now load their production CSS and JavaScript**, preventing refreshed profiles from appearing as unstyled browser-default HTML.
 - **TransitStats now uses the light theme consistently**, so browser or Incognito dark-mode settings cannot unexpectedly restyle the app.

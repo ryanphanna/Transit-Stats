@@ -183,7 +183,9 @@ async function loadDashboardAtlasStops() {
 }
 
 async function init() {
-    renderAtlasCard({ signedIn: true });
+    // Keep the page visibly active while Firebase restores a persisted session.
+    // The card is replaced with the signed-in content after auth resolves.
+    renderAtlasCard({ loading: true });
     if (window.L) {
         MapEngine.init([], null, { deferInitialView: true });
     }
@@ -193,6 +195,7 @@ async function init() {
 
     await Profile.load(user);
     await Profile.loadAgencies(user);
+    renderAtlasCard({ signedIn: true });
     const profileHref = Profile.data?.isPublic && Profile.data?.username
         ? `/user/${encodeURIComponent(Profile.data.username)}`
         : '';
