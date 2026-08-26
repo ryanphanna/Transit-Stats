@@ -22,7 +22,7 @@ const atlasFacts = [
     ['countries', 'stat-countries-ridden', ATLAS_COPY.countriesLabel],
 ];
 
-export function renderAtlasCard({ publicProfile = false, loading = false } = {}) {
+export function renderAtlasCard({ publicProfile = false, signedIn = false, loading = false } = {}) {
     const container = document.querySelector('[data-atlas-card]');
     if (!container) return null;
 
@@ -32,11 +32,11 @@ export function renderAtlasCard({ publicProfile = false, loading = false } = {})
     const action = publicProfile
         ? '<a class="atlas-card-cta" href="/">Make your own map <span aria-hidden="true">→</span></a>'
         : '<button id="atlas-share-map" class="atlas-card-cta" type="button">Share your map <span aria-hidden="true">→</span></button>';
-    const initialName = loading ? '' : 'Traveler';
+    const initialName = loading ? '' : signedIn ? 'Your' : 'Traveler';
     const initialValue = loading ? '' : '0';
 
     container.innerHTML = `
-        <h1><span id="profile-name">${initialName}</span><span class="atlas-title-tail">’s</span><span class="atlas-title-product">TransitStats</span></h1>
+        <h1><span id="profile-name">${initialName}</span><span class="atlas-title-tail">${signedIn ? '' : '’s'}</span><span class="atlas-title-product">TransitStats</span></h1>
         <p id="profile-status" class="atlas-profile-status" hidden></p>
         <div class="atlas-hero-count">
             <strong id="stat-trips-lifetime">${initialValue}</strong>

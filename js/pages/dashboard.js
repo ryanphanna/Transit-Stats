@@ -15,7 +15,7 @@ import { displayAgencyName, getConfiguredAgency } from '../profile-fields.js';
 import { MapEngine } from '../map-engine.js';
 import { TripController } from '../trips/TripController.js';
 import { loadAtlasStops } from '../atlas-stops.js';
-import { renderAtlasCard, setAtlasDisplayName } from '../shared/atlas-card.js';
+import { renderAtlasCard } from '../shared/atlas-card.js';
 
 window.Trips = Trips;
 window.Utils = Utils;
@@ -183,7 +183,7 @@ async function loadDashboardAtlasStops() {
 }
 
 async function init() {
-    renderAtlasCard();
+    renderAtlasCard({ signedIn: true });
     if (window.L) {
         MapEngine.init([], null, { deferInitialView: true });
     }
@@ -198,9 +198,6 @@ async function init() {
         : '';
     initHeader({ isAdmin, currentPage: 'dashboard', profileHref });
     setupShareMap();
-
-    const displayName = Profile.getDisplayName(user)?.trim() || 'Traveler';
-    setAtlasDisplayName(displayName);
 
     setupTripAgencyAutocomplete();
     setupTripEditListeners();

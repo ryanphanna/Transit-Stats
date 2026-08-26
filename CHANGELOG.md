@@ -14,6 +14,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Dashboard maps now load saved dots before the full trip history finishes**, making returning visits feel immediate while fresh data loads.
 - **Unauthenticated dashboard visits no longer show a fake empty dashboard while redirecting**, keeping sign-in visitors out of the signed-in shell.
 - **Dashboards now link to the owner’s public Profile when sharing is enabled**, making the shared map easy to open from the account home.
+- **Signed-in dashboards now identify the card as Your TransitStats**, making the account view distinct from a public profile.
 - **Signed-in public profiles now put Share in the top-right account controls**, matching the dashboard’s Profile placement.
 
 ### Fixed
