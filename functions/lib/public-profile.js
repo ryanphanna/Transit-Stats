@@ -12,8 +12,41 @@ const { onRequest } = require('firebase-functions/v2/https');
 const { db, getUserProfile, getStopsLibrary } = require('./db');
 const logger = require('./logger');
 const { isPublicProfileBetaOwner, getMapStopMode } = require('./profile-fields');
+const { resolveAtlasAgency } = require('../atlas-agency');
+const { buildHeatmapBands } = require('./public-profile-heatmap');
 
 const ACTIVE_TRIP_WINDOW_MS = 6 * 60 * 60 * 1000;
+const ATLAS_R2_BASE = process.env.ATLAS_R2_BASE || 'https://data.transitatlas.fyi';
+const atlasRouteCache = new Map();
+const ATLAS_ROUTE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+
+async function getAtlasRoutes(agency) {
+  const cached = atlasRouteCache.get(agency);
+  if (cached && Date.now() - cached.fetchedAt < ATLAS_ROUTE_CACHE_TTL_MS) return cached.data;
+  const slug = await resolveAtlasAgency(agency);
+  if (!slug) return [];
+  const response = await fetch(`${ATLAS_R2_BASE}/atlas/${slug}.json`, {
+    signal: AbortSignal.timeout(30000),
+  });
+  if (!response.ok) throw new Error(`Atlas route data unavailable for ${agency}`);
+  const data = await response.json();
+  const features = (data.features || []).map(feature => ({ ...feature, __agency: agency }));
+  atlasRouteCache.set(agency, { fetchedAt: Date.now(), data: features });
+  return features;
+}
+
+async function buildPublicHeatmap(trips) {
+  const agencies = [...new Set(trips.map(trip => trip.agency || 'TTC'))];
+  const routeFeatures = [];
+  for (const agency of agencies) {
+    try {
+      routeFeatures.push(...await getAtlasRoutes(agency));
+    } catch (error) {
+      logger.warn('Public profile heatmap route lookup failed', { agency, error: error.message });
+    }
+  }
+  return buildHeatmapBands(trips, routeFeatures);
+}
 
 function isDashboardHistoryTrip(trip, now = Date.now()) {
   if (trip.endTime || trip.discarded) return true;
@@ -88,6 +121,7 @@ async function handlePublicProfile(req, res) {
   }
 
   const requestedUsername = String(req.query.user || '').trim().toLowerCase();
+  const includeHeatmap = String(req.query.includeHeatmap || '') === '1';
   if (!requestedUsername) {
     res.status(400).json({ error: 'Missing user parameter' });
     return;
@@ -135,6 +169,7 @@ async function handlePublicProfile(req, res) {
     let last7Days = 0;
     const riddenDays = new Set();
     const agencies = new Set();
+    const routes = new Set();
     const countries = new Set();
     const pointsByStop = new Map();
     let stopIndex = null;
@@ -178,6 +213,8 @@ async function handlePublicProfile(req, res) {
         if (tripDate >= sevenDaysAgo) last7Days += 1;
       }
       const agency = String(trip.agency || '').trim();
+      const route = String(trip.route || '').trim();
+      if (route) routes.add(route.toLowerCase());
       if (agency) {
         agencies.add(agency.toLowerCase());
         const country = AGENCY_COUNTRIES.get(agency.toLowerCase());
@@ -215,6 +252,8 @@ async function handlePublicProfile(req, res) {
       );
     }
 
+    const heatmapBands = includeHeatmap ? await buildPublicHeatmap(historyTrips) : undefined;
+
     res.status(200).json({
       displayName: profile.displayName || profile.name || null,
       username: profile.username || null,
@@ -229,8 +268,10 @@ async function handlePublicProfile(req, res) {
       thisWeek: last7Days,
       daysRidden: riddenDays.size,
       agencies: agencies.size,
+      routes: routes.size,
       countries: countries.size,
       points: [...pointsByStop.values()],
+      ...(includeHeatmap ? { heatmapBands } : {}),
     });
   } catch (err) {
     logger.error('Public profile lookup failed', { error: err.message, username: requestedUsername });
@@ -238,4 +279,29 @@ async function handlePublicProfile(req, res) {
   }
 }
 
+async function getPublicProfilePayload(username, { includeHeatmap = false } = {}) {
+  const result = { statusCode: 200, body: null };
+  const response = {
+    set: () => response,
+    status: code => {
+      result.statusCode = code;
+      return response;
+    },
+    json: body => {
+      result.body = body;
+      return response;
+    },
+    send: body => {
+      result.body = body;
+      return response;
+    },
+  };
+  await handlePublicProfile({
+    method: 'GET',
+    query: { user: username, ...(includeHeatmap ? { includeHeatmap: '1' } : {}) },
+  }, response);
+  return result;
+}
+
 exports.publicProfile = onRequest({ concurrency: 80, maxInstances: 10 }, handlePublicProfile);
+exports.getPublicProfilePayload = getPublicProfilePayload;

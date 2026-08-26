@@ -126,6 +126,7 @@ test('publicProfile returns 200 with aggregated stats for a public profile', asy
   await handler({ method: 'GET', query: { user: 'subway-subway-subway' } }, res);
   assert.equal(res.statusCode, 200);
   assert.equal(res.body.totalTrips, 1);
+  assert.equal(res.body.routes, 0);
   assert.equal(res.body.totalHours, Math.round((10 / 60) * 10) / 10);
   assert.equal(res.body.thisMonth, 1);
   assert.equal(res.body.thisWeek, 1);
