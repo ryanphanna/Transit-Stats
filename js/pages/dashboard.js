@@ -186,7 +186,6 @@ async function loadDashboardAtlasStops() {
 async function init() {
     renderAtlasCard();
     const { user, isAdmin } = await requireAuth();
-    initHeader({ isAdmin, currentPage: 'dashboard' });
     ModalManager.init();
 
     if (window.L) {
@@ -195,6 +194,10 @@ async function init() {
 
     await Profile.load(user);
     await Profile.loadAgencies(user);
+    const profileHref = Profile.data?.isPublic && Profile.data?.username
+        ? `/user/${encodeURIComponent(Profile.data.username)}`
+        : '';
+    initHeader({ isAdmin, currentPage: 'dashboard', profileHref });
     setupShareMap();
 
     const displayName = Profile.getDisplayName(user)?.trim() || 'Traveler';

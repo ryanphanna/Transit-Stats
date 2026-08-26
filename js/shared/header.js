@@ -4,11 +4,11 @@ import { Auth } from '../auth.js';
  * Shared Header Component
  * Injects navigation into the page.
  */
-export function initHeader({ isAdmin = false, currentPage = '' } = {}) {
-    _render(isAdmin, currentPage);
+export function initHeader({ isAdmin = false, currentPage = '', profileHref = '' } = {}) {
+    _render(isAdmin, currentPage, profileHref);
 }
 
-function _render(isAdmin, currentPage) {
+function _render(isAdmin, currentPage, profileHref) {
     const root = document.getElementById('app-root');
     if (!root) return;
 
@@ -48,6 +48,10 @@ function _render(isAdmin, currentPage) {
                 </nav>
 
                 <div class="header-actions">
+                    ${profileHref ? `
+                        <a href="${profileHref}" class="header-action-link ${currentPage === 'profile' ? 'active' : ''}" title="Profile">
+                            <span>Profile</span>
+                        </a>` : ''}
                     <a href="/settings" class="header-action-link ${currentPage === 'settings' ? 'active' : ''}" title="Settings">
                         <span>Settings</span>
                     </a>
