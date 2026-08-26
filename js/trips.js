@@ -6,7 +6,6 @@ import { MapEngine } from './map-engine.js';
 import { PredictionEngine } from './predict.js';
 import { ModalManager } from './shared/modal-engine.js';
 import { UI } from './ui-utils.js';
-import { getTripRouteLabel } from './trip-display.js';
 
 /**
  * TransitStats Trips Orchestrator
@@ -92,9 +91,6 @@ export const Trips = {
         // Update Global Map
         MapEngine.updateTrips(trips);
 
-        // Update Profile Status
-        this.updateProfileStatus(active, trips);
-
         // Keep Route Tracker in sync after Firestore sends a new trip snapshot.
         if (window.RouteTracker?.currentAgency) window.RouteTracker.refresh();
     },
@@ -136,28 +132,6 @@ export const Trips = {
         }
 
         ModalManager.open('modal-edit-trip');
-    },
-
-    updateProfileStatus(active, trips = []) {
-        const el = document.getElementById('profile-status');
-        if (!el) return;
-
-        if (!active) {
-            el.hidden = true;
-            el.textContent = '';
-            return;
-        }
-        
-        // Use textContent for user data, innerHTML only for the fixed indicator span
-        el.hidden = false;
-        el.innerHTML = '<span class="status-indicator"></span><span class="status-text"></span>';
-        const indicator = el.querySelector('.status-indicator');
-        const text = el.querySelector('.status-text');
-        
-        if (active) {
-            indicator.classList.add('active');
-            text.textContent = `Riding ${getTripRouteLabel(active)}`;
-        }
     },
 
     // Bridge methods for dashboard.js (legacy-ish support)

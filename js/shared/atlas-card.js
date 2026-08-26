@@ -37,7 +37,6 @@ export function renderAtlasCard({ publicProfile = false, signedIn = false, loadi
 
     container.innerHTML = `
         <h1><span id="profile-name">${initialName}</span><span class="atlas-title-tail">${signedIn ? '' : '’s'}</span><span class="atlas-title-product">TransitStats</span></h1>
-        <p id="profile-status" class="atlas-profile-status" hidden></p>
         <div class="atlas-hero-count">
             <strong id="stat-trips-lifetime">${initialValue}</strong>
             <span>${ATLAS_COPY.totalRides}</span>

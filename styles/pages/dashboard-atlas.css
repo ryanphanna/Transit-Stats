@@ -360,13 +360,6 @@ body.dark .dashboard-map-wash {
   50% { opacity: 1; }
 }
 
-.atlas-profile-status {
-  margin: 14px 0 0;
-  color: var(--accent);
-  font-size: 0.75rem;
-  font-weight: 800;
-}
-
 .atlas-hero-count {
   display: flex;
   align-items: baseline;

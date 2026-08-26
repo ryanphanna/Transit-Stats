@@ -26,26 +26,6 @@ body {
   gap: 6px;
 }
 
-.status-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--text-muted);
-  display: inline-block;
-}
-
-.status-indicator.active {
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% { transform: scale(0.95); opacity: 0.8; }
-  50% { transform: scale(1.1); opacity: 1; }
-  100% { transform: scale(0.95); opacity: 0.8; }
-}
-
 .profile-header {
   display: flex;
   align-items: center;
@@ -79,4 +59,3 @@ select:focus-visible {
 .mb-4 { margin-bottom: 1rem; }
 .full-width { width: 100%; }
 .text-accent { color: var(--accent); }
-
