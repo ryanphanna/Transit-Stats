@@ -4,6 +4,8 @@ const { getPublicProfilePayload } = require('./public-profile');
 
 const WIDTH = 1200;
 const HEIGHT = 630;
+const imageCache = new Map();
+const IMAGE_CACHE_TTL_MS = 5 * 60 * 1000;
 
 function escapeXml(value) {
   return String(value ?? '')
@@ -81,7 +83,10 @@ function buildSvg(data) {
     : '<text x="455" y="310" text-anchor="middle" fill="#aaa6c4" font-family="Arial, sans-serif" font-size="20">No matched route segments yet</text>';
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
-    <rect width="1200" height="630" fill="#11101b"/>
+    <rect width="1200" height="630" fill="#eef4f1"/>
+    <path d="M 0 510 C 190 450 310 570 510 500 S 890 430 1200 505 L 1200 630 L 0 630 Z" fill="#dcebe5"/>
+    <path d="M 0 180 C 230 240 320 120 540 190 S 900 260 1200 150" fill="none" stroke="#d5e4df" stroke-width="3"/>
+    <path d="M 80 0 C 190 130 170 270 280 360 S 390 520 430 630" fill="none" stroke="#d5e4df" stroke-width="3"/>
     <g>${mapContent}</g>
   </svg>`;
 }
@@ -92,13 +97,20 @@ async function handlePublicProfileOg(req, res) {
     res.status(400).send('Missing user parameter');
     return;
   }
-  // Social crawlers have short fetch timeouts. Use only saved locations here;
-  // loading the full stop library and route geometry is appropriate for the
-  // interactive profile, but too slow for an OG image request.
+  const cached = imageCache.get(username);
+  if (cached && Date.now() - cached.createdAt < IMAGE_CACHE_TTL_MS) {
+    res.set('Content-Type', 'image/png');
+    res.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=300');
+    res.status(200).send(cached.image);
+    return;
+  }
+
+  // Match the interactive profile's coordinate resolution so the share image
+  // contains all known stops, while caching the rendered PNG for crawlers.
   const result = await getPublicProfilePayload(username, {
     includeHeatmap: false,
     includePoints: true,
-    resolveStops: false,
+    resolveStops: true,
   });
   if (result.statusCode !== 200) {
     res.status(result.statusCode).send(result.body?.error || 'Profile unavailable');
@@ -106,8 +118,9 @@ async function handlePublicProfileOg(req, res) {
   }
   try {
     const image = await sharp(Buffer.from(buildSvg(result.body))).png().toBuffer();
+    imageCache.set(username, { createdAt: Date.now(), image });
     res.set('Content-Type', 'image/png');
-    res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=300');
+    res.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=300');
     res.status(200).send(image);
   } catch (error) {
     console.error('Public profile OG image failed:', error.message);
