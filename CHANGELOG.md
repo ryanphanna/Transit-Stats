@@ -12,6 +12,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 - **Public profile pages now load their production CSS and JavaScript**, preventing refreshed profiles from appearing as unstyled browser-default HTML.
 - **TransitStats now uses the light theme consistently**, so browser or Incognito dark-mode settings cannot unexpectedly restyle the app.
+- **Public profile share images now have enough renderer capacity for larger ride histories**, so Twitter and other social sites can load the preview image.
+- **Profile maps now use a faded, low-detail basemap**, keeping the ride dots and heatmap as the visual focus.
 
 ## [1.49.4] — 2026-08-26
 

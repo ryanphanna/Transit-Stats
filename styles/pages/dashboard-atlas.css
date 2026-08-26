@@ -107,6 +107,10 @@
   background: #dce6e2;
 }
 
+.minimal-basemap {
+  filter: grayscale(1) saturate(0.2) brightness(1.08);
+}
+
 .dashboard-map-wash {
   position: absolute;
   inset: 0;
