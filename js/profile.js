@@ -200,15 +200,6 @@ export const Profile = {
             nameDisplayEl.textContent = this.getDisplayName() || 'Not set';
         }
 
-        // Update Global Header/Dashboard Name
-        const profileName = document.getElementById('profile-name');
-        if (profileName) {
-            const displayName = this.getDisplayName()?.trim() || 'Traveler';
-            profileName.textContent = displayName;
-            const titleTail = document.querySelector('.atlas-title-tail');
-            if (titleTail) titleTail.textContent = /s$/i.test(displayName) ? '’' : '’s';
-        }
-        
         this.syncAgencyOptions();
 
         if (betaEl && this.data?.betaFeatures) {
