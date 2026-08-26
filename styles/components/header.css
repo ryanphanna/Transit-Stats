@@ -159,6 +159,58 @@ html[data-theme="dark"] .header {
     color: var(--accent);
 }
 
+/* Admin pages use the same floating controls as the map-first dashboard. */
+.admin-surface .header {
+    position: absolute;
+    background: transparent;
+    border-bottom: 0;
+    pointer-events: none;
+}
+
+.admin-surface .header-container {
+    max-width: none;
+    padding: 22px 24px 4px;
+    align-items: flex-start;
+    pointer-events: none;
+}
+
+.admin-surface .header-container > * {
+    pointer-events: auto;
+}
+
+.admin-surface .header .logo {
+    min-height: 38px;
+    padding: 4px 12px 4px 5px;
+    border: 1px solid rgb(255 255 255 / 88%);
+    border-radius: 999px;
+    background: rgb(255 255 255 / 82%);
+    box-shadow: 0 8px 22px rgb(16 42 42 / 8%);
+    backdrop-filter: blur(14px);
+}
+
+.admin-surface .header .logo-text {
+    display: inline;
+    font-size: 0.92rem;
+}
+
+.admin-surface .header-actions {
+    gap: 8px;
+    margin-left: auto;
+}
+
+.admin-surface .header .header-action-link {
+    min-height: 36px;
+    padding: 0 12px;
+    border-color: rgb(255 255 255 / 88%);
+    background: rgb(255 255 255 / 82%);
+    box-shadow: 0 8px 22px rgb(16 42 42 / 8%);
+    backdrop-filter: blur(14px);
+}
+
+.admin-surface .header ~ .view {
+    padding-top: 0;
+}
+
 .logo-icon {
     width: 29px;
     height: 29px;
