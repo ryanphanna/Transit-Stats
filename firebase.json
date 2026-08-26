@@ -102,6 +102,13 @@
           }
         },
         {
+          "source": "/public-profile-og-v4",
+          "function": {
+            "functionId": "publicProfileOg",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/user/**",
           "function": {
             "functionId": "publicProfilePage",

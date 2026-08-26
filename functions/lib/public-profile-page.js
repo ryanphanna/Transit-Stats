@@ -39,10 +39,9 @@ async function handlePublicProfilePage(req, res) {
   const canonicalUrl = `${PUBLIC_ORIGIN}/user/${encodeURIComponent(data.canonicalUsername || decodedUsername)}`;
   const title = `${data.displayName || 'Traveler'}’s TransitStats`;
   const description = `${data.totalTrips || 0} trips · ${data.routes || 0} routes · ${data.agencies || 0} agencies`;
-  // X caches the image URL independently from the profile URL. Keep the
-  // version on the image URL so a new preview can be fetched after a fix.
-  const imageVersion = String(req.query.v || '3').trim() || '3';
-  const imageUrl = `${PUBLIC_ORIGIN}/public-profile-og?user=${encodeURIComponent(data.canonicalUsername || decodedUsername)}&v=${encodeURIComponent(imageVersion)}`;
+  // Use a versioned path because X can cache or mishandle query-string image
+  // URLs independently from the profile URL.
+  const imageUrl = `${PUBLIC_ORIGIN}/public-profile-og-v4?user=${encodeURIComponent(data.canonicalUsername || decodedUsername)}`;
   const metadata = `
     <meta name="description" content="${escapeHtml(description)}">
     <meta property="og:type" content="profile">
