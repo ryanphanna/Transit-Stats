@@ -23,7 +23,7 @@ function projectBands(bands) {
   const maxLat = Math.max(...lats);
   const minLng = Math.min(...lngs);
   const maxLng = Math.max(...lngs);
-  const map = { left: 60, top: 70, width: 790, height: 500 };
+  const map = { left: 50, top: 55, width: 1100, height: 520 };
   const latSpan = Math.max(0.0001, maxLat - minLat);
   const lngSpan = Math.max(0.0001, maxLng - minLng);
   const scale = Math.min(map.width / lngSpan, map.height / latSpan);
@@ -55,7 +55,7 @@ function projectPoints(points) {
   const maxLat = Math.max(...lats);
   const minLng = Math.min(...lngs);
   const maxLng = Math.max(...lngs);
-  const map = { left: 60, top: 70, width: 790, height: 500 };
+  const map = { left: 50, top: 55, width: 1100, height: 520 };
   const latSpan = Math.max(0.0001, maxLat - minLat);
   const lngSpan = Math.max(0.0001, maxLng - minLng);
   const scale = Math.min(map.width / lngSpan, map.height / latSpan);
@@ -74,8 +74,6 @@ function projectPoints(points) {
 function buildSvg(data) {
   const { paths } = projectBands(data.heatmapBands || []);
   const points = projectPoints(data.points || []);
-  const name = escapeXml(data.displayName || 'Traveler');
-  const stat = (value, label, x) => `<text x="${x}" y="${label === 'TRIPS' ? 245 : label === 'ROUTES' ? 355 : 465}" fill="#ffffff" font-family="Arial, sans-serif"><tspan font-size="54" font-weight="700">${escapeXml(value)}</tspan><tspan x="${x}" dy="30" font-size="16" letter-spacing="2" fill="#aaa6c4">${label}</tspan></text>`;
   const mapContent = paths.length
     ? paths.join('')
     : points.length
@@ -84,16 +82,7 @@ function buildSvg(data) {
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
     <rect width="1200" height="630" fill="#11101b"/>
-    <rect x="884" width="316" height="630" fill="#19172a"/>
-    <text x="60" y="48" fill="#aaa6c4" font-family="Arial, sans-serif" font-size="15" font-weight="700" letter-spacing="3">TRANSITSTATS</text>
-    <text x="60" y="610" fill="#aaa6c4" font-family="Arial, sans-serif" font-size="14">Darker lines = more recorded trips</text>
     <g>${mapContent}</g>
-    <text x="930" y="92" fill="#ffffff" font-family="Arial, sans-serif" font-size="26" font-weight="700">${name}&apos;s map</text>
-    <text x="930" y="125" fill="#aaa6c4" font-family="Arial, sans-serif" font-size="15">Public transit history</text>
-    ${stat(data.totalTrips ?? 0, 'TRIPS', 930)}
-    ${stat(data.routes ?? 0, 'ROUTES', 930)}
-    ${stat(data.agencies ?? 0, 'AGENCIES', 930)}
-    <text x="930" y="575" fill="#6d6885" font-family="Arial, sans-serif" font-size="13">transitstats.fyi</text>
   </svg>`;
 }
 
