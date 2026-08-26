@@ -37,6 +37,8 @@ async function handlePublicProfilePage(req, res) {
 
   const data = result.body;
   const canonicalUrl = `${PUBLIC_ORIGIN}/user/${encodeURIComponent(data.canonicalUsername || decodedUsername)}`;
+  const previewVersion = String(req.query.v || '').trim();
+  const previewUrl = previewVersion ? `${canonicalUrl}?v=${encodeURIComponent(previewVersion)}` : canonicalUrl;
   const title = `${data.displayName || 'Traveler'}’s TransitStats`;
   const description = `${data.totalTrips || 0} trips · ${data.routes || 0} routes · ${data.agencies || 0} agencies`;
   // Use a versioned path because X can cache or mishandle query-string image
@@ -47,14 +49,15 @@ async function handlePublicProfilePage(req, res) {
     <meta property="og:type" content="profile">
     <meta property="og:title" content="${escapeHtml(title)}">
     <meta property="og:description" content="${escapeHtml(description)}">
-    <meta property="og:url" content="${escapeHtml(canonicalUrl)}">
+    <meta property="og:url" content="${escapeHtml(previewUrl)}">
     <meta property="og:image" content="${escapeHtml(imageUrl)}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="${escapeHtml(title)}">
     <meta name="twitter:description" content="${escapeHtml(description)}">
-    <meta name="twitter:image" content="${escapeHtml(imageUrl)}">`;
+    <meta name="twitter:image" content="${escapeHtml(imageUrl)}">
+    <meta name="twitter:image:alt" content="${escapeHtml(title)} map">`;
 
   res.set('Content-Type', 'text/html; charset=utf-8');
   res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=300');
