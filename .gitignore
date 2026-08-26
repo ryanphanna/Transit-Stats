@@ -65,3 +65,8 @@ Tools/scratch/
 /PROJECT.md
 /SESSION_CONTEXT.md
 /.agents/
+
+# Generated ML/LLM reports and raw evaluation output
+/ml/artifacts/
+/ml/reports/
+/language-models/evaluations/raw/

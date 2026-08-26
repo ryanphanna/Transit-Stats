@@ -27,8 +27,19 @@ Exhaustive index of the project’s Markdown documentation.
 
 ## ML
 
+- [ML Status](./ml/STATUS.md) — current production and candidate model state
 - [Accuracy Log](./ml/ACCURACY_LOG.md) — candidate/live accuracy notes
 - [Model Log](./ml/MODEL_LOG.md) — model-version training log
+- [ML Evaluations](./ml/evaluations/README.md) and [Experiments](./ml/experiments/README.md) — dated investigations and hypotheses
+
+## Language Models
+
+- [Language-model status](./language-models/STATUS.md) — current model and prompt responsibilities
+- [Language-model evaluations](./language-models/evaluations/README.md) and [Decisions](./language-models/decisions/README.md) — output-quality findings and accepted changes
+
+## Decisions
+
+- [Architecture and product decisions](./docs/decisions/README.md) — durable decisions that span ML, LLM, and the app
 
 ## Security & Incidents
 
