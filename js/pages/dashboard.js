@@ -184,12 +184,12 @@ async function loadDashboardAtlasStops() {
 
 async function init() {
     renderAtlasCard();
-    const { user, isAdmin } = await requireAuth();
-    ModalManager.init();
-
     if (window.L) {
         MapEngine.init([], null, { deferInitialView: true });
     }
+
+    const { user, isAdmin } = await requireAuth();
+    ModalManager.init();
 
     await Profile.load(user);
     await Profile.loadAgencies(user);

@@ -1,4 +1,5 @@
 import { PredictionEngine } from './predict.js';
+import { auth } from './firebase.js';
 import { buildStopIndex, resolveStopLocation } from './atlas-stop-resolver.js';
 import { getTripStopLabel } from './trip-display.js';
 import { createMapSurface, DEFAULT_MAP_CENTER, DEFAULT_MAP_OVERVIEW_ZOOM } from './map-surface.js';
@@ -122,7 +123,7 @@ export const MapEngine = {
     },
 
     _getPointsCacheKey() {
-        const userId = window.currentUser?.uid;
+        const userId = window.currentUser?.uid || auth.currentUser?.uid;
         return userId ? `${MAP_POINTS_CACHE_PREFIX}${userId}:${this.filter}` : null;
     },
 
