@@ -33,6 +33,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Login now retries the shared session handoff**, so a transient request failure does not make the next page look signed out.
 - **Dashboard auth recovery now shows an explicit session-restoration state instead of a white screen**, making slow or missing sessions understandable before sign-in.
 - **Admin now opens on a compact review queue with clearer failure states**, keeping stop-library maintenance secondary and avoiding a blank page when one data source is unavailable.
 - **Admin stop review can now search route- and direction-scoped GTFS metadata and add a verified canonical stop with the rider’s text as an alias**, reducing guesses for stops missing from the library.

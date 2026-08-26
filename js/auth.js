@@ -147,21 +147,27 @@ export const Auth = {
 
     async syncSharedSession(user = auth.currentUser) {
         if (!user) return false;
-        try {
-            const idToken = await user.getIdToken();
-            const response = await fetch(this.sharedSessionUrl, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { Authorization: `Bearer ${idToken}` }
-            });
-            if (!response.ok) throw new Error(`Shared session request failed (${response.status})`);
-            return true;
-        } catch (error) {
-            // SSO is additive: a surface can still use its local Firebase session
-            // while a not-yet-deployed or unavailable handoff endpoint recovers.
-            console.warn('Shared session unavailable:', error.message);
-            return false;
+        let lastError;
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+            try {
+                const idToken = await user.getIdToken(attempt > 0);
+                const response = await fetch(this.sharedSessionUrl, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { Authorization: `Bearer ${idToken}` }
+                });
+                if (!response.ok) throw new Error(`Shared session request failed (${response.status})`);
+                return true;
+            } catch (error) {
+                lastError = error;
+                if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+            }
         }
+
+        // SSO is additive: a surface can still use its local Firebase session
+        // while a not-yet-deployed or unavailable handoff endpoint recovers.
+        console.warn('Shared session unavailable:', lastError?.message || 'unknown error');
+        return false;
     },
 
     async restoreSharedSession() {
