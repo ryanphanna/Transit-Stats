@@ -59,3 +59,9 @@ trips.csv
 # Local scratch scripts
 functions/scratch/
 Tools/scratch/
+
+# Local session and audit artifacts
+/handoff.md
+/PROJECT.md
+/SESSION_CONTEXT.md
+/.agents/
