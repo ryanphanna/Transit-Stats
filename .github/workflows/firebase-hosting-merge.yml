@@ -62,7 +62,7 @@ jobs:
           EXPECTED_BUILD: ${{ github.sha }}
         run: |
           set -euo pipefail
-          for URL in "https://transitstats.fyi/"; do
+          for URL in "https://transitstats.fyi/?build=$EXPECTED_BUILD"; do
             echo "Checking $URL"
             curl --fail --silent --show-error --location "$URL" -o /tmp/main.html
             grep -Fq "name=\"transitstats-build\" content=\"$EXPECTED_BUILD\"" /tmp/main.html
