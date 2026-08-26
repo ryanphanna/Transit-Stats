@@ -47,7 +47,12 @@ function projectBands(bands) {
 }
 
 function projectPoints(points) {
-  const valid = points.filter(point => Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lng)));
+  const valid = points.filter(point => {
+    const lat = Number(point.lat);
+    const lng = Number(point.lng);
+    return Number.isFinite(lat) && Number.isFinite(lng)
+      && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+  });
   if (valid.length === 0) return [];
   const lats = valid.map(point => Number(point.lat));
   const lngs = valid.map(point => Number(point.lng));
