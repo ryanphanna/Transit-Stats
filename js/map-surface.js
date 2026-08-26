@@ -14,12 +14,11 @@ export function createMapSurface({ containerId, center = DEFAULT_MAP_CENTER, zoo
     addMapZoomControl(map);
     installPopupZoomGuard(map);
 
-    const base = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-        subdomains: 'abc',
+    const base = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         opacity: 0.58,
         className: 'minimal-basemap',
-        attribution: '© <a href="https://carto.com/attributions">CARTO</a> · © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
     const renderer = L.canvas({ padding: 0.5 });
     const markers = L.layerGroup().addTo(map);
