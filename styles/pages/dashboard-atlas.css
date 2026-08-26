@@ -4,8 +4,33 @@
   overflow: hidden;
 }
 
-.dashboard-surface.dashboard-auth-pending .dashboard-atlas-hero {
-  visibility: hidden;
+.dashboard-auth-pending-state {
+  position: fixed;
+  z-index: 20;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  width: min(360px, calc(100vw - 32px));
+  transform: translate(-50%, -50%);
+  flex-direction: column;
+  gap: 6px;
+  padding: 22px 24px;
+  border: 1px solid var(--border-outer);
+  border-radius: var(--radius-xl);
+  background: rgb(255 255 255 / 88%);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(16px);
+  text-align: center;
+}
+
+.dashboard-auth-pending-state span {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.dashboard-surface:not(.dashboard-auth-pending) .dashboard-auth-pending-state {
+  display: none;
 }
 
 .dashboard-surface .header {

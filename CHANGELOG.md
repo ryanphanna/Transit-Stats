@@ -33,6 +33,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Dashboard auth recovery now shows an explicit session-restoration state instead of a white screen**, making slow or missing sessions understandable before sign-in.
 - **Admin now opens on a compact review queue with clearer failure states**, keeping stop-library maintenance secondary and avoiding a blank page when one data source is unavailable.
 - **Admin stop review can now search route- and direction-scoped GTFS metadata and add a verified canonical stop with the rider’s text as an alias**, reducing guesses for stops missing from the library.
 - **Admin stop linking now records canonical stop codes on trips without rewriting rider-entered stop text**, keeping verification separate from raw trip history.
