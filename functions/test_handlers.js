@@ -302,7 +302,7 @@ test('handleTripLog: refuses to start without a boarding stop', async () => {
   assert.match(calls.sendSmsReply[0]?.message || '', /boarding stop/i);
 });
 
-test('handleTripLog: ambiguous stop starts without requiring a choice', async () => {
+test('handleTripLog: ambiguous stop starts and offers the existing stop choice flow', async () => {
   const startTime = 1778770440000;
   const { handlers, calls, restore } = loadHandlers({
     dbModule: {
@@ -329,10 +329,15 @@ test('handleTripLog: ambiguous stop starts without requiring a choice', async ()
 
   assert.equal(calls.createTrip.length, 1);
   assert.equal(calls.createTrip[0].startTime, startTime);
-  assert.equal(calls.setPendingState.length, 0);
+  assert.equal(calls.setPendingState.length, 1);
+  assert.equal(calls.setPendingState[0].type, 'confirm_stop');
+  assert.deepEqual(calls.setPendingState[0].stopCandidates, [
+    { stopCode: '2069', stopName: 'Dufferin / Lawrence' },
+    { stopCode: '2070', stopName: 'Dufferin / Lawrence' },
+  ]);
   const msg = calls.sendSmsReply[0]?.message || '';
-  assert.match(msg, /left the boarding stop unverified/i);
-  assert.doesNotMatch(msg, /Reply with a number/);
+  assert.match(msg, /multiple possible boarding stops/i);
+  assert.match(msg, /Reply with a number/);
 });
 
 test('handleTripLog: 506 College Westbound auto-resolves to one surface stop', async () => {
@@ -382,13 +387,12 @@ test('handleTripLog: 506 College with no direction leaves the stop unverified', 
   }
 
   assert.equal(calls.createTrip.length, 1);
-  assert.equal(calls.setPendingState.length, 0);
+  assert.equal(calls.setPendingState.length, 1);
   const msg = calls.sendSmsReply[0]?.message || '';
-  assert.match(msg, /left the boarding stop unverified/i);
-  assert.doesNotMatch(msg, /Multiple stops match/);
+  assert.match(msg, /multiple possible boarding stops/i);
 });
 
-test('handleTripLog: identical names with no direction data do not prompt (unanswerable)', async () => {
+test('handleTripLog: identical names with no direction data offer the stop choice flow', async () => {
   const { handlers, calls, restore } = loadHandlers({
     dbModule: {
       findMatchingStops: async () => [
@@ -406,11 +410,11 @@ test('handleTripLog: identical names with no direction data do not prompt (unans
     restore();
   }
 
-  assert.equal(calls.setPendingState.length, 0, 'should not prompt — codes are the only differentiator');
+  assert.equal(calls.setPendingState.length, 1, 'should offer the existing stop choice flow');
   assert.equal(calls.createTrip.length, 1, 'trip should still start');
   assert.equal(calls.createTrip[0].startStopName, 'Spadina/Dundas');
   const msg = calls.sendSmsReply[0]?.message || '';
-  assert.doesNotMatch(msg, /Multiple stops match/);
+  assert.match(msg, /multiple possible boarding stops/i);
 });
 
 test('handleTripLog: 506 Dufferin / College Eastbound uses stopRoutes before prompting', async () => {

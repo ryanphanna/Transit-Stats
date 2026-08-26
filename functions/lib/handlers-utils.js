@@ -224,8 +224,9 @@ async function maybeHandleStopDisambiguation({
   const stopDisplay = getStopDisplay(parsedStop.stopCode, parsedStop.stopName);
 
   if (!activeTrip) {
+    let tripId;
     try {
-      await createTrip({
+      tripId = await createTrip({
         userId: user.userId,
         route,
         direction: direction || null,
@@ -254,10 +255,24 @@ async function maybeHandleStopDisambiguation({
       await sendSmsReply(phoneNumber, 'Could not start your trip. Please try again.');
       return true;
     }
+    await setPendingState(phoneNumber, {
+      type: 'confirm_stop',
+      tripId,
+      stopCandidates: candidates.map(candidate => ({
+        stopCode: candidate.stopCode || null,
+        stopName: candidate.stopName || candidate.name || stopDisplay,
+      })),
+      route,
+      direction: direction || null,
+      agency: resolvedAgency,
+    });
     const routeDisplay = getRouteDisplay(route, direction);
+    const candidateList = candidates
+      .map((candidate, index) => `${index + 1}. ${candidate.stopName || candidate.name}${candidate.stopCode ? ` (${candidate.stopCode})` : ''}`)
+      .join('\n');
     await sendSmsReply(
       phoneNumber,
-      `${routeDisplay} started from ${stopDisplay}. I found multiple matching stops, so I left the boarding stop unverified.`
+      `${routeDisplay} started from ${stopDisplay}, but I found multiple possible boarding stops:\n${candidateList}\n\nReply with a number to set the stop, SKIP to leave it unverified, or DISCARD to cancel the trip.`
     );
     return true;
   }

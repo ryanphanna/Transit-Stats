@@ -1,9 +1,13 @@
 import { auth, authPersistenceReady } from '../firebase.js';
 import { Auth } from '../auth.js';
 
-const AUTH_RESTORE_GRACE_MS = 15000;
+// Mobile browsers can suspend a tab while Firebase is restoring IndexedDB,
+// and the shared-session request can then take longer than a normal page load.
+// Keep the page in its restoring state long enough to recover before treating
+// the missing initial user as a real sign-out.
+const AUTH_RESTORE_GRACE_MS = 60000;
 const AUTH_SHARED_SESSION_DELAY_MS = 750;
-const AUTH_SHARED_SESSION_RETRY_DELAYS_MS = [1500, 3000];
+const AUTH_SHARED_SESSION_RETRY_DELAYS_MS = [1500, 3000, 7500, 15000, 30000];
 const AUTH_RESTORE_POLL_MS = 250;
 
 function wait(ms) {
@@ -78,7 +82,7 @@ export function requireAuth(options = {}) {
             // short grace period instead of treating the transient null as a
             // real sign-out.
             if (!user) setAuthRestoring(true);
-            const sessionUser = await waitForRestoredUser(user);
+            let sessionUser = await waitForRestoredUser(user);
             if (!sessionUser) {
                 console.warn('[auth-guard] Redirecting without a restored session.', {
                     path: window.location.pathname,
@@ -92,10 +96,13 @@ export function requireAuth(options = {}) {
             // A temporary Firestore outage must not become a fake logout. Keep
             // the Firebase session and retry the verification in the
             // background until the whitelist can be read again.
-            while (verification.retryable && auth.currentUser) {
+            const verificationDeadline = Date.now() + AUTH_RESTORE_GRACE_MS;
+            while (verification.retryable && Date.now() < verificationDeadline) {
                 console.warn('Auth verification is temporarily unavailable; keeping the Firebase session.');
                 await wait(3000);
-                verification = await verifyWithRetry(auth.currentUser);
+                sessionUser = await waitForRestoredUser(auth.currentUser);
+                if (!sessionUser) continue;
+                verification = await verifyWithRetry(sessionUser);
             }
             if (!verification.allowed) {
                 console.warn('[auth-guard] Whitelist rejected the session.', {

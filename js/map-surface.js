@@ -14,9 +14,10 @@ export function createMapSurface({ containerId, center = DEFAULT_MAP_CENTER, zoo
     addMapZoomControl(map);
     installPopupZoomGuard(map);
 
-    const base = L.tileLayer(`https://{s}.basemaps.cartocdn.com/${tileTheme}/{z}/{x}/{y}{r}.png`, {
+    const base = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        subdomains: 'abc',
         maxZoom: 19,
-        attribution: '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
     const renderer = L.canvas({ padding: 0.5 });
     const markers = L.layerGroup().addTo(map);
