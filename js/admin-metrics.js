@@ -14,12 +14,13 @@ function metric(label, value, detail = '') {
 }
 
 function renderMetrics(container, metrics) {
-    const { rides, stops } = metrics;
+    const { accounts, rides, stops, intelligence } = metrics;
     container.innerHTML = `
+        ${metric('Users', accounts.total, `${number(accounts.activeLogins30d)} active in 30 days`)}
+        ${metric('Rides', rides.total, `${number(rides.completed)} completed`)}
+        ${metric('Stops', stops.library, `${number(stops.verified)} verified`)}
         ${metric('Needs matching', stops.unmatchedTrips, 'completed rides')}
-        ${metric('Stops in library', stops.library, `${number(stops.verified)} verified`)}
-        ${metric('Matched rides', stops.matchedTrips, 'both ends recognized')}
-        ${metric('Total rides', rides.total, `${number(rides.completed)} completed`)}
+        ${metric('AI questions', intelligence.questions, `${number(intelligence.predictionRows)} prediction records`)}
         <p class="admin-metrics-footnote">
             Matched and unresolved counts refer to completed rides, because the stored match flag is finalized when a ride ends.
             ${number(stops.unknownMatchTrips)} completed rides have no recorded match status.
