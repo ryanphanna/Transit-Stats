@@ -33,6 +33,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- Remove the intrusive session-restoration notice while the dashboard is loading.
 - Keep mobile sessions restoring longer on slow wake-ups so temporary Firebase delays do not look like logouts.
 
 - **The retired standalone `/map` page is no longer linked or deployed**, leaving the dashboard as the main personal map and keeping trip-path exploration available separately.
