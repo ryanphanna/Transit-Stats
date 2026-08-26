@@ -122,6 +122,8 @@ async function handlePublicProfile(req, res) {
 
   const requestedUsername = String(req.query.user || '').trim().toLowerCase();
   const includeHeatmap = String(req.query.includeHeatmap || '') === '1';
+  const includePoints = String(req.query.includePoints || '1') !== '0';
+  const resolveStops = String(req.query.resolveStops || '1') !== '0';
   if (!requestedUsername) {
     res.status(400).json({ error: 'Missing user parameter' });
     return;
@@ -175,6 +177,7 @@ async function handlePublicProfile(req, res) {
     let stopIndex = null;
     let stopIndexPromise = null;
     const getStopIndex = async () => {
+      if (!resolveStops) return null;
       if (!stopIndexPromise) {
         stopIndexPromise = getStopsLibrary().then(buildStopLocationIndex);
       }
@@ -220,36 +223,32 @@ async function handlePublicProfile(req, res) {
         const country = AGENCY_COUNTRIES.get(agency.toLowerCase());
         if (country) countries.add(country);
       }
-      const boardingLocation = resolveTripLocation(
-        trip.boardingLocation || trip.boardLocation,
-        trip.startStopName || trip.startStop,
-        trip.agency,
-        stopIndex,
-      ) || await resolveTripLocation(
-        trip.boardingLocation || trip.boardLocation,
-        trip.startStopName || trip.startStop,
-        trip.agency,
-        await getStopIndex(),
-      );
-      const exitLocation = resolveTripLocation(
-        trip.exitLocation,
-        trip.endStopName || trip.endStop,
-        trip.agency,
-        stopIndex,
-      ) || await resolveTripLocation(
-        trip.exitLocation,
-        trip.endStopName || trip.endStop,
-        trip.agency,
-        await getStopIndex(),
-      );
-      addPoint(
-        boardingLocation,
-        'start',
-      );
-      addPoint(
-        exitLocation,
-        'end',
-      );
+      if (includePoints) {
+        const boardingLocation = resolveTripLocation(
+          trip.boardingLocation || trip.boardLocation,
+          trip.startStopName || trip.startStop,
+          trip.agency,
+          stopIndex,
+        ) || await resolveTripLocation(
+          trip.boardingLocation || trip.boardLocation,
+          trip.startStopName || trip.startStop,
+          trip.agency,
+          await getStopIndex(),
+        );
+        const exitLocation = resolveTripLocation(
+          trip.exitLocation,
+          trip.endStopName || trip.endStop,
+          trip.agency,
+          stopIndex,
+        ) || await resolveTripLocation(
+          trip.exitLocation,
+          trip.endStopName || trip.endStop,
+          trip.agency,
+          await getStopIndex(),
+        );
+        addPoint(boardingLocation, 'start');
+        addPoint(exitLocation, 'end');
+      }
     }
 
     const heatmapBands = includeHeatmap ? await buildPublicHeatmap(historyTrips) : undefined;
@@ -270,7 +269,7 @@ async function handlePublicProfile(req, res) {
       agencies: agencies.size,
       routes: routes.size,
       countries: countries.size,
-      points: [...pointsByStop.values()],
+      points: includePoints ? [...pointsByStop.values()] : [],
       ...(includeHeatmap ? { heatmapBands } : {}),
     });
   } catch (err) {
@@ -279,7 +278,11 @@ async function handlePublicProfile(req, res) {
   }
 }
 
-async function getPublicProfilePayload(username, { includeHeatmap = false } = {}) {
+async function getPublicProfilePayload(username, {
+  includeHeatmap = false,
+  includePoints = true,
+  resolveStops = true,
+} = {}) {
   const result = { statusCode: 200, body: null };
   const response = {
     set: () => response,
@@ -298,7 +301,12 @@ async function getPublicProfilePayload(username, { includeHeatmap = false } = {}
   };
   await handlePublicProfile({
     method: 'GET',
-    query: { user: username, ...(includeHeatmap ? { includeHeatmap: '1' } : {}) },
+    query: {
+      user: username,
+      ...(includeHeatmap ? { includeHeatmap: '1' } : {}),
+      ...(includePoints ? {} : { includePoints: '0' }),
+      ...(resolveStops ? {} : { resolveStops: '0' }),
+    },
   }, response);
   return result;
 }
