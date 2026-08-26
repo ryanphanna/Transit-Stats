@@ -10,11 +10,6 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Added
 
-- **Admin now opens on a compact review queue with clearer failure states**, keeping stop-library maintenance secondary and avoiding a blank page when one data source is unavailable.
-- **Admin stop review can now search route- and direction-scoped GTFS metadata and add a verified canonical stop with the rider’s text as an alias**, reducing guesses for stops missing from the library.
-- **Admin stop linking now records canonical stop codes on trips without rewriting rider-entered stop text**, keeping verification separate from raw trip history.
-- **Map stop labels are temporarily hidden**, preventing raw or unreliable names from appearing until canonical stop labels are ready.
-- **Public profile maps no longer expose raw stop labels**, keeping inconsistent names and stop codes private while preserving the aggregate footprint.
 - **Settings now shows both custom and emoji profile URLs when available**, so admins can share either public identity.
 - **Historical trips with unambiguous stop-library matches are now repairable**, increasing the trustworthy training pool without guessing missing stops.
 - **Clicking a map stop now smoothly zooms toward it and highlights the selected pin**, making dense areas easier to explore.
@@ -38,6 +33,11 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- **Admin now opens on a compact review queue with clearer failure states**, keeping stop-library maintenance secondary and avoiding a blank page when one data source is unavailable.
+- **Admin stop review can now search route- and direction-scoped GTFS metadata and add a verified canonical stop with the rider’s text as an alias**, reducing guesses for stops missing from the library.
+- **Admin stop linking now records canonical stop codes on trips without rewriting rider-entered stop text**, keeping verification separate from raw trip history.
+- **Map stop labels are temporarily hidden**, preventing raw or unreliable names from appearing until canonical stop labels are ready.
+- **Public profile maps no longer expose raw stop labels**, keeping inconsistent names and stop codes private while preserving the aggregate footprint.
 - **Public profiles now skip the full stops database when rides already include coordinates and defer optional auth startup**, reducing first-load time on new devices.
 - **Map dots now keep the same darkness meaning when zooming**, so clusters no longer make cities look busier or quieter just because of screen grouping.
 
