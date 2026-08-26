@@ -97,7 +97,8 @@ async function handlePublicProfileOg(req, res) {
     res.status(400).send('Missing user parameter');
     return;
   }
-  const cacheKey = `${req.path || '/public-profile-og'}:${username}`;
+  const requestPath = String(req.originalUrl || req.url || req.path || '/public-profile-og').split('?')[0];
+  const cacheKey = `${requestPath}:${username}`;
   const cached = imageCache.get(cacheKey);
   if (cached && Date.now() - cached.createdAt < IMAGE_CACHE_TTL_MS) {
     res.set('Content-Type', 'image/png');

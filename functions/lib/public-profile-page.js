@@ -41,7 +41,7 @@ async function handlePublicProfilePage(req, res) {
   const description = `${data.totalTrips || 0} trips · ${data.routes || 0} routes · ${data.agencies || 0} agencies`;
   // Use a versioned path because X can cache or mishandle query-string image
   // URLs independently from the profile URL.
-  const imageUrl = `${PUBLIC_ORIGIN}/public-profile-og-v7?user=${encodeURIComponent(data.canonicalUsername || decodedUsername)}`;
+  const imageUrl = `${PUBLIC_ORIGIN}/public-profile-og-v8?user=${encodeURIComponent(data.canonicalUsername || decodedUsername)}`;
   const metadata = `
     <meta name="description" content="${escapeHtml(description)}">
     <meta property="og:type" content="profile">
