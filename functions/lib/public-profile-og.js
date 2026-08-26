@@ -97,7 +97,8 @@ async function handlePublicProfileOg(req, res) {
     res.status(400).send('Missing user parameter');
     return;
   }
-  const cached = imageCache.get(username);
+  const cacheKey = `${req.path || '/public-profile-og'}:${username}`;
+  const cached = imageCache.get(cacheKey);
   if (cached && Date.now() - cached.createdAt < IMAGE_CACHE_TTL_MS) {
     res.set('Content-Type', 'image/png');
     res.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=300');
@@ -118,7 +119,7 @@ async function handlePublicProfileOg(req, res) {
   }
   try {
     const image = await sharp(Buffer.from(buildSvg(result.body))).png().toBuffer();
-    imageCache.set(username, { createdAt: Date.now(), image });
+    imageCache.set(cacheKey, { createdAt: Date.now(), image });
     res.set('Content-Type', 'image/png');
     res.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=300');
     res.status(200).send(image);
