@@ -34,11 +34,6 @@ function _render(isAdmin, currentPage, profileHref) {
                      <span class="logo-text">TransitStats</span>
                 </a>
 
-                ${isAdmin && !adminSurface ? `
-                    <a href="/admin" class="header-action-link header-admin-link" title="Admin">
-                        <span>Admin</span>
-                    </a>` : ''}
-
                 <nav class="nav-desktop">
                     ${navItems.map(item => `
                         <a href="${item.href}" class="nav-item ${currentPage === item.id ? 'active' : ''}">
@@ -48,7 +43,7 @@ function _render(isAdmin, currentPage, profileHref) {
                 </nav>
 
                 <div class="header-actions">
-                    ${isAdmin && adminSurface ? `
+                    ${isAdmin ? `
                         <a href="/admin" class="header-action-link header-admin-link ${adminSurface ? 'active' : ''}" title="Admin">
                             <span>Admin</span>
                         </a>` : ''}

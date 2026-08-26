@@ -10,7 +10,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Changed
 
-- **Admin navigation now separates the overview from Stops, Users, and Insights**, keeping each operational area focused while preserving the dashboard header layout.
+- **Admin navigation now separates the overview from Stops, Users, and Insights**, keeping the Admin control with the account actions on every surface.
 - **Signed-in public profiles now show Dashboard, Settings, Log out, and Admin when applicable**, so public maps remain connected to the account controls.
 - **Dashboards now link to the owner’s public Profile when sharing is enabled**, making the shared map easy to open from the account home.
 - **Admin navigation now floats over the page like the dashboard controls**, removing the separate full-width menu bar treatment.
