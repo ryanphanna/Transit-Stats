@@ -6,6 +6,12 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [Unreleased]
+
+### Fixed
+
+- **Public profile pages now load their production CSS and JavaScript**, preventing refreshed profiles from appearing as unstyled browser-default HTML.
+
 ## [1.49.4] — 2026-08-26
 
 ### Added
