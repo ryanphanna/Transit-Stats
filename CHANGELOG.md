@@ -33,6 +33,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- Keep mobile sessions restoring longer on slow wake-ups so temporary Firebase delays do not look like logouts.
+
 - **The retired standalone `/map` page is no longer linked or deployed**, leaving the dashboard as the main personal map and keeping trip-path exploration available separately.
 - **Login now retries the shared session handoff**, so a transient request failure does not make the next page look signed out.
 - **Dashboard auth recovery now shows an explicit session-restoration state instead of a white screen**, making slow or missing sessions understandable before sign-in.
