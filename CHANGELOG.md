@@ -12,6 +12,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 - **Social preview images now focus on the full-width map**, leaving trip totals and other stats in the post text where they are easier to read.
 - **Profile preview images now use a versioned path**, so repaired X previews can be fetched instead of reusing a failed image URL.
+- **Profile preview image URLs now advance past cached responses**, so social platforms can fetch the corrected dot map.
 - **The dashboard no longer shows a live-trip indicator**, keeping the map card focused on trip history and totals.
 - **The browser admin area has been retired**, leaving operational maintenance in protected backend tools instead of an unfinished UI.
 - **Dashboard maps now load saved dots before the full trip history finishes**, making returning visits feel immediate while fresh data loads.
