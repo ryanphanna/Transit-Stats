@@ -13,11 +13,11 @@ function _render(isAdmin, currentPage) {
     if (!root) return;
 
     const adminHost = window.location.hostname === 'admin.transitstats.fyi';
-    const adminSurface = adminHost || ['admin', 'users', 'insights', 'rocket'].includes(currentPage);
+    const adminSurface = adminHost || ['admin', 'stops', 'users', 'insights', 'rocket'].includes(currentPage);
     const betaSurface = ['localhost', '127.0.0.1', 'beta.transitstats.fyi'].includes(window.location.hostname);
     const navItems = adminSurface
         ? [
-            { id: 'admin', label: 'Stops', icon: 'database', href: '/admin' },
+            { id: 'stops', label: 'Stops', icon: 'database', href: '/stops' },
             { id: 'users', label: 'Users', icon: 'users', href: '/users' },
             { id: 'insights', label: 'Insights', icon: 'line-chart', href: '/insights' },
         ]
@@ -33,6 +33,11 @@ function _render(isAdmin, currentPage) {
                      <div class="logo-icon"><i data-lucide="zap"></i></div>
                      <span class="logo-text">TransitStats</span>
                 </a>
+
+                ${isAdmin ? `
+                    <a href="/admin" class="header-action-link header-admin-link ${adminSurface ? 'active' : ''}" title="Admin">
+                        <span>Admin</span>
+                    </a>` : ''}
                 
                 <nav class="nav-desktop">
                     ${navItems.map(item => `
@@ -43,10 +48,6 @@ function _render(isAdmin, currentPage) {
                 </nav>
 
                 <div class="header-actions">
-                    ${isAdmin && !adminSurface ? `
-                        <a href="/admin" class="header-action-link header-admin-link" title="Admin">
-                            <span>Admin</span>
-                        </a>` : ''}
                     <a href="/settings" class="header-action-link ${currentPage === 'settings' ? 'active' : ''}" title="Settings">
                         <span>Settings</span>
                     </a>

@@ -8,6 +8,11 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+### Changed
+
+- **Admin navigation now separates the overview from Stops, Users, and Insights**, keeping each operational area focused.
+- **Signed-in public profiles now show Dashboard, Settings, Log out, and Admin when applicable**, so public maps remain connected to the account controls.
+
 ### Fixed
 
 - **Public profile pages now load their production CSS and JavaScript**, preventing refreshed profiles from appearing as unstyled browser-default HTML.

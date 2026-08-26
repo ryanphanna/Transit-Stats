@@ -5,6 +5,8 @@ import {
 } from './map-presentation.js';
 import { createMapSurface, DEFAULT_MAP_CENTER, DEFAULT_MAP_OVERVIEW_ZOOM } from './map-surface.js';
 import { refreshIcons } from './shared/icons.js';
+import { initHeader } from './shared/header.js';
+import { Auth } from './auth.js';
 import {
     formatAtlasNumber,
     getAtlasPageTitle,
@@ -16,6 +18,7 @@ const PUBLIC_PROFILE_CACHE_PREFIX = 'transitstats-public-profile:';
 const PUBLIC_PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
 let publicMapState = null;
 let publicMapRefitFrame = null;
+let publicHeaderRendered = false;
 
 function updatePublicNavigation(user) {
     const signedIn = Boolean(user);
@@ -23,6 +26,15 @@ function updatePublicNavigation(user) {
     const cardAction = document.querySelector('.atlas-card-cta');
 
     if (branding) branding.href = signedIn ? '/dashboard' : '/';
+    if (signedIn && !publicHeaderRendered) {
+        publicHeaderRendered = true;
+        void Auth.checkWhitelist(user.email, user.uid).then(({ isAdmin }) => {
+            initHeader({ isAdmin, currentPage: 'dashboard' });
+        }).catch(error => {
+            console.warn('Public profile admin status unavailable:', error.message);
+            initHeader({ currentPage: 'dashboard' });
+        });
+    }
     if (!cardAction) return;
 
     cardAction.href = signedIn ? '/dashboard' : '/';

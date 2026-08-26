@@ -1,28 +1,7 @@
 import { requireAuth } from '../shared/auth-guard.js';
 import { initHeader } from '../shared/header.js';
-import { refreshIcons } from '../shared/icons.js';
-import { Admin } from '../admin.js';
-import { Trips } from '../trips.js';
-import { Utils } from '../utils.js';
-import { UI } from '../ui-utils.js';
 import { Profile } from '../profile.js';
 import { loadAdminMetrics } from '../admin-metrics.js';
-
-window.Admin = Admin;
-window.Utils = Utils;
-window.Trips = Trips;
-
-function closeAllModals() {
-    document.getElementById('modal-backdrop')?.classList.add('hidden');
-    document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
-}
-
-function setupModalListeners() {
-    document.getElementById('modal-backdrop')?.addEventListener('click', closeAllModals);
-    document.querySelectorAll('[data-close-modal]').forEach(btn => {
-        btn.addEventListener('click', closeAllModals);
-    });
-}
 
 async function init() {
     try {
@@ -30,19 +9,7 @@ async function init() {
         await Profile.load(user);
         initHeader({ isAdmin, currentPage: 'admin' });
 
-        loadAdminMetrics(document.querySelector('[data-admin-metrics]'));
-
-        setupModalListeners();
-
-        await Admin.init();
-
-        await Trips.init();
-        await Trips._readyPromise;
-
-        // Now that trips are loaded, reload admin data
-        await Admin.loadAll();
-
-        refreshIcons();
+        await loadAdminMetrics(document.querySelector('[data-admin-metrics]'));
     } catch (error) {
         console.error('Admin page failed to initialize:', error);
         document.querySelectorAll('.loading-state').forEach(element => {

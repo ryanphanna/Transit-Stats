@@ -139,6 +139,26 @@ html[data-theme="dark"] .header {
     gap: 12px;
 }
 
+.header-action-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 34px;
+    padding: 0 11px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.header-action-link.active {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
 .logo-icon {
     width: 29px;
     height: 29px;
