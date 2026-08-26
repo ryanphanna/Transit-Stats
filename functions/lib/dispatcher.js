@@ -271,7 +271,7 @@ async function handleConfirmStopState(phoneNumber, body, upperBody, state, trace
   // Stop clarification is optional. If the rider sends another command or
   // starts another trip instead, discard the old prompt and process the new
   // message normally.
-  if (PENDING_PASSTHROUGH.has(upperBody) || upperBody.startsWith('ASK ')) {
+  if (PENDING_PASSTHROUGH.has(upperBody) || upperBody === 'NOTES' || upperBody.startsWith('NOTES ') || upperBody.startsWith('ASK ')) {
     await clearPendingState(phoneNumber);
     return false;
   }
@@ -353,7 +353,7 @@ async function handleConfirmMmsRouteState(phoneNumber, body, upperBody, state, t
     return true;
   }
 
-  if (PENDING_PASSTHROUGH.has(upperBody) || upperBody.startsWith('ASK ')) return false;
+  if (PENDING_PASSTHROUGH.has(upperBody) || upperBody === 'NOTES' || upperBody.startsWith('NOTES ') || upperBody.startsWith('ASK ')) return false;
 
   const count = (state.routeCandidates || []).length;
   await sendSmsReply(phoneNumber, `Reply with a number (1–${count}) to select a route, or DISCARD to cancel.`);

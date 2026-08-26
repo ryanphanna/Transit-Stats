@@ -51,9 +51,10 @@ const V2Home = {
             keyboard: false
         }).setView([43.672, -79.41], 11.5);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            subdomains: 'abcd'
+            subdomains: 'abc',
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         }).addTo(map);
 
         // TTC GTFS shapes — extracted from official shapes.txt

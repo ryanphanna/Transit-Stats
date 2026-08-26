@@ -6,6 +6,34 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 **See also:** [Intelligence notes](docs/INTELLIGENCE.md) · [Transfer Engine notes](docs/TRANSFER_ENGINE.md) · [Network Engine notes](docs/NETWORK_ENGINE.md)
 
+## [1.49.4] — 2026-08-26
+
+### Added
+
+- **Admin stop review can search route- and direction-scoped GTFS metadata and add verified canonical stops with the rider’s text as an alias**, reducing guesses for stops missing from the library.
+
+### Changed
+
+- **The retired standalone `/map` page is no longer linked or deployed**, leaving the dashboard as the main personal map and keeping trip-path exploration available separately.
+- **Admin now opens on a compact review queue with clearer failure states**, keeping stop-library maintenance secondary and avoiding a blank page when one data source is unavailable.
+- **Admin stop linking records canonical stop codes on trips without rewriting rider-entered stop text**, keeping verification separate from raw trip history.
+- **Map stop labels are temporarily hidden**, preventing raw or unreliable names from appearing until canonical stop labels are ready.
+- **Public profile maps no longer expose raw stop labels**, keeping inconsistent names and stop codes private while preserving the aggregate footprint.
+- **Public profiles skip the full stops database when rides already include coordinates and defer optional auth startup**, reducing first-load time on new devices.
+- **Map dots keep the same darkness meaning when zooming**, so clusters no longer make cities look busier or quieter just because of screen grouping.
+
+### Fixed
+
+- **Carto map tiles are replaced with keyless OpenStreetMap tiles**, preventing map failures caused by Carto key requirements.
+- **Ambiguous SMS boarding stops now offer the existing stop-choice flow**, instead of silently leaving the trip unverified.
+- **Mobile dashboard sessions now retry longer through slow Firebase wake-ups**, preventing temporary restore delays from sending a valid user to sign-in.
+- **Phone-authenticated dashboard sessions no longer query a client-blocked phone-number collection**, preventing the map and trip history from getting stuck during auth recovery.
+- **Public-profile navigation now returns signed-in users to their dashboard**, while signed-out visitors still go to the home/sign-in page.
+- **Weekly model retraining now targets the Transit Stats Firestore project explicitly and pins its Firestore client version**, preventing CI credentials or dependency updates from breaking training.
+- **Login texts now use Apple’s domain-bound one-time-code format**, making iPhone code AutoFill more reliable.
+- **Sign-in now waits for persistent storage before creating a session**, preventing refreshes from appearing to sign users out.
+- **Public profile totals now use the same history-trip rules as the signed-in dashboard**, so active or malformed records no longer inflate logged-out ride counts.
+
 ## [1.49.3] — 2026-08-24
 
 ### Added
@@ -30,20 +58,6 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Login texts now use Apple’s domain-bound one-time-code format**, making iPhone code AutoFill more reliable.
 - **Sign-in now waits for persistent storage before creating a session**, preventing refreshes from appearing to sign users out.
 - **Public profile totals now use the same history-trip rules as the signed-in dashboard**, so active or malformed records no longer inflate logged-out ride counts.
-
-## [Unreleased]
-
-- **Trip Paths now includes a clipped-route heatmap**, making the corridors used most often stand out without drawing full routes.
-- **The retired standalone `/map` page is no longer linked or deployed**, leaving the dashboard as the main personal map and keeping trip-path exploration available separately.
-- **Login now retries the shared session handoff**, so a transient request failure does not make the next page look signed out.
-- **Dashboard auth recovery now shows an explicit session-restoration state instead of a white screen**, making slow or missing sessions understandable before sign-in.
-- **Admin now opens on a compact review queue with clearer failure states**, keeping stop-library maintenance secondary and avoiding a blank page when one data source is unavailable.
-- **Admin stop review can now search route- and direction-scoped GTFS metadata and add a verified canonical stop with the rider’s text as an alias**, reducing guesses for stops missing from the library.
-- **Admin stop linking now records canonical stop codes on trips without rewriting rider-entered stop text**, keeping verification separate from raw trip history.
-- **Map stop labels are temporarily hidden**, preventing raw or unreliable names from appearing until canonical stop labels are ready.
-- **Public profile maps no longer expose raw stop labels**, keeping inconsistent names and stop codes private while preserving the aggregate footprint.
-- **Public profiles now skip the full stops database when rides already include coordinates and defer optional auth startup**, reducing first-load time on new devices.
-- **Map dots now keep the same darkness meaning when zooming**, so clusters no longer make cities look busier or quieter just because of screen grouping.
 
 ## [1.49.2] — 2026-08-22
 
