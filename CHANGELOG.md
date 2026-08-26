@@ -11,6 +11,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 ### Fixed
 
 - **Public profile pages now load their production CSS and JavaScript**, preventing refreshed profiles from appearing as unstyled browser-default HTML.
+- **TransitStats now uses the light theme consistently**, so browser or Incognito dark-mode settings cannot unexpectedly restyle the app.
 
 ## [1.49.4] — 2026-08-26
 

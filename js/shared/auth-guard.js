@@ -60,9 +60,8 @@ function setAuthRestoring(isRestoring) {
 }
 
 // Apply theme immediately to prevent flash of unstyled content
-const _theme = localStorage.getItem('ts_theme') || 'system';
-if (window.TransitTheme) window.TransitTheme.apply(_theme);
-else document.body.classList.toggle('dark', _theme === 'dark');
+if (window.TransitTheme) window.TransitTheme.apply();
+else document.body.classList.remove('dark');
 
 /**
  * Resolves when auth is confirmed. Redirects to / if not authed or not whitelisted.
