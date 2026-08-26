@@ -4,7 +4,7 @@ import { db } from '../firebase.js';
 import { loadAtlasStops } from '../atlas-stops.js';
 import { loadAtlasRoutes } from '../atlas-routes.js';
 import { buildStopIndex, resolveStopLocation } from '../atlas-stop-resolver.js';
-import { clipFeatureToTrip, routeMatches } from '../route-segment.js';
+import { aggregateRouteHeatmapSegments, clipFeatureToTrip, getTripCoverageFractions, routeMatches } from '../route-segment.js';
 import { getTripStopLabel } from '../trip-display.js';
 
 const state = {
@@ -114,11 +114,21 @@ function buildPathData() {
         const candidates = state.routeFeatures.filter(feature => {
             const route = feature.properties?.routeShortName || feature.properties?.routeId;
             return feature.__agencySlug === agencySlug && routeMatches(route, trip.route);
-        });
+        }).map(feature => ({ feature, featureIndex: state.routeFeatures.indexOf(feature) }));
         const match = candidates
-            .map(feature => ({ feature, line: clipFeatureToTrip(feature, trip, start.location, end.location) }))
+            .map(candidate => {
+                const fractions = getTripCoverageFractions(candidate.feature, trip, start.location, end.location);
+                return { ...candidate, fractions, line: fractions ? clipFeatureToTrip(candidate.feature, trip, start.location, end.location) : null };
+            })
             .find(candidate => candidate.line);
-        if (match) segments.push({ ...match, trip, startResolution: start, endResolution: end });
+        if (match) {
+            const properties = match.feature.properties || {};
+            const route = String(properties.routeShortName || properties.routeId || trip.route || '').trim();
+            const groupKey = [agencySlug, route, properties.routeId, properties.directionId, properties.day, properties.routeBranch, properties.headsign, match.featureIndex]
+                .map(value => String(value ?? ''))
+                .join('::');
+            segments.push({ ...match, groupKey, trip, startResolution: start, endResolution: end });
+        }
         else unresolved += 1;
     });
 
@@ -128,6 +138,35 @@ function buildPathData() {
         unresolved,
         capped: false,
     };
+}
+
+function renderHeatmap() {
+    const pathData = buildPathData();
+    const bands = aggregateRouteHeatmapSegments(pathData.segments.map(segment => ({
+        feature: segment.feature,
+        startFraction: segment.fractions.start,
+        endFraction: segment.fractions.end,
+        groupKey: segment.groupKey,
+    })));
+    const maxCount = Math.max(1, ...bands.map(band => band.count));
+    const coordinates = [];
+
+    bands.forEach(({ line, count }) => {
+        const intensity = count / maxCount;
+        const low = [199, 210, 254];
+        const high = [49, 46, 129];
+        const color = `#${low.map((value, index) => Math.round(value + (high[index] - value) * intensity).toString(16).padStart(2, '0')).join('')}`;
+        L.polyline(line, {
+            color,
+            weight: 3 + intensity * 5,
+            opacity: 0.35 + intensity * 0.6,
+            lineCap: 'round',
+            lineJoin: 'round',
+        }).addTo(state.layers.paths);
+        coordinates.push(...line);
+    });
+
+    return { coordinates, pathData, maxCount };
 }
 
 function renderPaths() {
@@ -170,13 +209,19 @@ function render() {
     clearLayers();
     const pointData = buildPointData();
     renderDiagnostics({ ...pointData.diagnostics, tripCount: pointData.tripCount, capped: pointData.capped });
-    const rendered = state.view === 'paths' ? renderPaths() : { coordinates: renderPoints(pointData.points) };
-    if (state.view === 'paths') {
+    const rendered = state.view === 'paths'
+        ? renderPaths()
+        : state.view === 'heatmap'
+            ? renderHeatmap()
+            : { coordinates: renderPoints(pointData.points) };
+    if (state.view === 'paths' || state.view === 'heatmap') {
         const { pathData } = rendered;
         const container = document.getElementById('trip-paths-diagnostics');
         if (container) {
             const pathNote = pathData.capped ? ` · showing first ${pathData.tripCount} trips` : '';
-            container.querySelector('small').textContent += ` · Paths ${pathData.segments.length}/${pathData.tripCount} clipped${pathData.unresolved ? ` · ${pathData.unresolved} without a verified segment` : ''}${pathNote}`;
+            const label = state.view === 'heatmap' ? 'Heatmap' : 'Paths';
+            const maxNote = state.view === 'heatmap' ? ` · max section ${rendered.maxCount} trips` : '';
+            container.querySelector('small').textContent += ` · ${label} ${pathData.segments.length}/${pathData.tripCount} clipped${pathData.unresolved ? ` · ${pathData.unresolved} without a verified segment` : ''}${maxNote}${pathNote}`;
         }
     }
     const coordinates = rendered.coordinates;
