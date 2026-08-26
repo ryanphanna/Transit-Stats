@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clipFeatureToTrip, routeMatches, sliceLineByFractions } from '../js/route-segment.js';
+import { aggregateRouteHeatmapSegments, clipFeatureToTrip, routeMatches, sliceLineByFractions } from '../js/route-segment.js';
 
 describe('route segment clipping', () => {
     const line = [[0, 0], [10, 0], [20, 0]];
@@ -47,5 +47,34 @@ describe('route segment clipping', () => {
             startStopCode: 'end',
             endStopCode: 'start',
         }, { lat: 0, lng: 19 }, { lat: 0, lng: 1 })).toBeNull();
+    });
+
+    it('aggregates overlapping trips into higher-count route bands', () => {
+        const feature = { geometry: { type: 'LineString', coordinates: line } };
+        const bands = aggregateRouteHeatmapSegments([
+            { feature, startFraction: 0, endFraction: 0.75, groupKey: '510' },
+            { feature, startFraction: 0.25, endFraction: 1, groupKey: '510' },
+        ], 4);
+
+        expect(bands.map(band => band.count)).toEqual([1, 2, 2, 1]);
+        expect(bands).toHaveLength(4);
+    });
+
+    it('keeps separate route groups separate', () => {
+        const feature = { geometry: { type: 'LineString', coordinates: line } };
+        const bands = aggregateRouteHeatmapSegments([
+            { feature, startFraction: 0, endFraction: 0.5, groupKey: '510A' },
+            { feature, startFraction: 0, endFraction: 0.5, groupKey: '510B' },
+        ], 2);
+
+        expect(bands.map(band => band.count)).toEqual([1, 1]);
+    });
+
+    it('ignores invalid segments', () => {
+        const feature = { geometry: { type: 'LineString', coordinates: line } };
+        expect(aggregateRouteHeatmapSegments([
+            { feature, startFraction: 0.5, endFraction: 0.5, groupKey: 'bad' },
+            { feature, startFraction: 'nope', endFraction: 1, groupKey: 'bad' },
+        ])).toEqual([]);
     });
 });

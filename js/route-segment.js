@@ -116,7 +116,7 @@ export function sliceLineByFractions(coordinates, startFraction, endFraction) {
     return result.map(([lng, lat]) => [lat, lng]);
 }
 
-export function clipFeatureToTrip(feature, trip, startLocation, endLocation) {
+export function getTripCoverageFractions(feature, trip, startLocation, endLocation) {
     const coordinates = feature?.geometry?.type === 'LineString'
         ? feature.geometry.coordinates
         : null;
@@ -128,7 +128,9 @@ export function clipFeatureToTrip(feature, trip, startLocation, endLocation) {
     const endPosition = stopPosition(feature, endCode);
 
     if (startPosition !== null && endPosition !== null) {
-        return sliceLineByFractions(coordinates, startPosition, endPosition);
+        return endPosition > startPosition
+            ? { start: startPosition, end: endPosition }
+            : null;
     }
 
     const projectedStart = projectionForPoint(startLocation, coordinates);
@@ -137,5 +139,52 @@ export function clipFeatureToTrip(feature, trip, startLocation, endLocation) {
 
     // A point far from the scheduled shape is not enough evidence to draw a path.
     if (projectedStart.distance > 0.01 || projectedEnd.distance > 0.01) return null;
-    return sliceLineByFractions(coordinates, projectedStart.fraction, projectedEnd.fraction);
+    return { start: projectedStart.fraction, end: projectedEnd.fraction };
+}
+
+export function clipFeatureToTrip(feature, trip, startLocation, endLocation) {
+    const coordinates = feature?.geometry?.type === 'LineString'
+        ? feature.geometry.coordinates
+        : null;
+    const fractions = getTripCoverageFractions(feature, trip, startLocation, endLocation);
+    if (!coordinates || !fractions) return null;
+    return sliceLineByFractions(coordinates, fractions.start, fractions.end);
+}
+
+/** Aggregate clipped trips into fixed route-relative bands for a line heatmap. */
+export function aggregateRouteHeatmapSegments(segments, binCount = 24) {
+    if (!Array.isArray(segments) || !Number.isInteger(binCount) || binCount < 1) return [];
+
+    const groups = new Map();
+    segments.forEach(segment => {
+        const coordinates = segment?.feature?.geometry?.type === 'LineString'
+            ? segment.feature.geometry.coordinates
+            : null;
+        const start = Number(segment?.startFraction);
+        const end = Number(segment?.endFraction);
+        if (!coordinates || coordinates.length < 2 || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) return;
+
+        const key = String(segment.groupKey || 'default');
+        let group = groups.get(key);
+        if (!group) {
+            group = { coordinates, counts: new Array(binCount).fill(0), metadata: segment.metadata || {} };
+            groups.set(key, group);
+        }
+
+        const firstBin = Math.max(0, Math.floor(Math.max(0, start) * binCount));
+        const lastBin = Math.min(binCount - 1, Math.ceil(Math.min(1, end) * binCount) - 1);
+        for (let bin = firstBin; bin <= lastBin; bin += 1) group.counts[bin] += 1;
+    });
+
+    const result = [];
+    groups.forEach(group => {
+        group.counts.forEach((count, bin) => {
+            if (count === 0) return;
+            const start = bin / binCount;
+            const end = (bin + 1) / binCount;
+            const line = sliceLineByFractions(group.coordinates, start, end);
+            if (line) result.push({ line, count, ...group.metadata });
+        });
+    });
+    return result;
 }
