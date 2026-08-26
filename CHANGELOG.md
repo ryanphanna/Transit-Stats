@@ -33,6 +33,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ## [Unreleased]
 
+- Replace Carto map tiles with keyless OpenStreetMap tiles and clarify ambiguous SMS boarding stops.
 - Remove the intrusive session-restoration notice while the dashboard is loading.
 - Keep mobile sessions restoring longer on slow wake-ups so temporary Firebase delays do not look like logouts.
 
