@@ -31,7 +31,6 @@ export default defineConfig(({ mode, command }) => {
                     dashboard: './dashboard.html',
                     routes: './routes.html',
                     insights: './insights.html',
-                    map: './map.html',
                     'trip-paths': './trip-paths.html',
                     admin: './admin.html',
                     users: './users.html',
@@ -94,7 +93,7 @@ export default defineConfig(({ mode, command }) => {
 
                 server.middlewares.use((req, res, next) => {
                     const url = req.url.split('?')[0];
-                    const targets = ['/dashboard', '/routes', '/map', '/trip-paths', '/v2', '/v2-home', '/admin', '/users', '/settings', '/insights', '/public'];
+                    const targets = ['/dashboard', '/routes', '/trip-paths', '/v2', '/v2-home', '/admin', '/users', '/settings', '/insights', '/public'];
                     const isUserProfilePath = url === '/user' || url.startsWith('/user/');
                     if (targets.includes(url)) {
                         req.url = url + '.html' + (req.url.includes('?') ? '?' + req.url.split('?')[1] : '');

@@ -229,7 +229,7 @@ function setupControls() {
 
 async function init() {
     const { user, isAdmin } = await requireAuth();
-    initHeader({ isAdmin, currentPage: 'map' });
+    initHeader({ isAdmin, currentPage: 'trip-paths' });
     state.map = L.map('trip-paths-map', { zoomControl: true, attributionControl: true }).setView([43.6532, -79.3832], 12);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(state.map);
     state.layers.paths = L.layerGroup().addTo(state.map);

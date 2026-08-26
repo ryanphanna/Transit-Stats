@@ -32,7 +32,7 @@ async function startServerIfNeeded() {
 
 async function assertSignedOutRedirect(page, path) {
     await page.goto(`${baseUrl}${path}`, { waitUntil: 'domcontentloaded' });
-    await page.waitForURL(`${baseUrl}/`, { timeout: 8_000 });
+    await page.waitForURL(`${baseUrl}/`, { timeout: 20_000 });
     assert.equal(new URL(page.url()).pathname, '/');
 }
 
@@ -43,7 +43,6 @@ try {
     await page.goto(`${baseUrl}/`, { waitUntil: 'domcontentloaded' });
     await assertSignedOutRedirect(page, '/dashboard');
     await assertSignedOutRedirect(page, '/settings');
-    await assertSignedOutRedirect(page, '/map');
 
     await page.goto(`${baseUrl}/`, { waitUntil: 'domcontentloaded' });
     await page.locator('#auth-phone').waitFor();

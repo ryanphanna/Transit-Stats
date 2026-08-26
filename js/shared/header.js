@@ -22,7 +22,6 @@ function _render(isAdmin, currentPage) {
             { id: 'insights', label: 'Insights', icon: 'line-chart', href: '/insights' },
         ]
         : ['dashboard', 'settings'].includes(currentPage) ? [] : [
-            { id: 'map', label: 'Stops', icon: 'map-pin', href: '/map' },
             { id: 'routes', label: 'Routes', icon: 'route', href: '/routes' },
         ];
     const logoHref = adminHost ? '/admin' : '/dashboard';
