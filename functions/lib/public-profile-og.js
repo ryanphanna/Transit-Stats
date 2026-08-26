@@ -4,8 +4,6 @@ const { getPublicProfilePayload } = require('./public-profile');
 
 const WIDTH = 1200;
 const HEIGHT = 630;
-const imageCache = new Map();
-const IMAGE_CACHE_TTL_MS = 5 * 60 * 1000;
 
 function escapeXml(value) {
   return String(value ?? '')
@@ -97,16 +95,6 @@ async function handlePublicProfileOg(req, res) {
     res.status(400).send('Missing user parameter');
     return;
   }
-  const requestPath = String(req.originalUrl || req.url || req.path || '/public-profile-og').split('?')[0];
-  const cacheKey = `${requestPath}:${username}`;
-  const cached = imageCache.get(cacheKey);
-  if (cached && Date.now() - cached.createdAt < IMAGE_CACHE_TTL_MS) {
-    res.set('Content-Type', 'image/png');
-    res.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=300');
-    res.status(200).send(cached.image);
-    return;
-  }
-
   // Match the interactive profile's coordinate resolution so the share image
   // contains all known stops, while caching the rendered PNG for crawlers.
   const result = await getPublicProfilePayload(username, {
@@ -120,7 +108,6 @@ async function handlePublicProfileOg(req, res) {
   }
   try {
     const image = await sharp(Buffer.from(buildSvg(result.body))).png().toBuffer();
-    imageCache.set(cacheKey, { createdAt: Date.now(), image });
     res.set('Content-Type', 'image/png');
     res.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=300');
     res.status(200).send(image);

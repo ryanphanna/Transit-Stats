@@ -144,6 +144,13 @@
           }
         },
         {
+          "source": "/public-profile-og-v10",
+          "function": {
+            "functionId": "publicProfileOg",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/user/**",
           "function": {
             "functionId": "publicProfilePage",
