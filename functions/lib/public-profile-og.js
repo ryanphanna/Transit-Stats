@@ -167,13 +167,13 @@ function projectBands(bands, project) {
   return { paths, coords };
 }
 
+function isValidLatLng(lat, lng) {
+  return Number.isFinite(lat) && Number.isFinite(lng)
+    && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+}
+
 function projectPoints(points, project) {
-  const valid = points.filter(point => {
-    const lat = Number(point.lat);
-    const lng = Number(point.lng);
-    return Number.isFinite(lat) && Number.isFinite(lng)
-      && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
-  });
+  const valid = points.filter(point => isValidLatLng(Number(point.lat), Number(point.lng)));
   const svg = valid.map(point => {
     const { x, y } = project(Number(point.lng), Number(point.lat));
     const radius = Math.min(13, 5 + Math.sqrt(Number(point.usage) || 1));
@@ -192,7 +192,7 @@ async function buildSvg(data, { fetchTile = defaultFetchTile } = {}) {
   const bandCoords = boundsFromCoords((data.heatmapBands || []).flatMap(band => band.line || []));
   const hasBandLines = (data.heatmapBands || []).some(band => (band.line || []).length > 0);
   const pointCoords = boundsFromCoords((data.points || [])
-    .filter(point => Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lng)))
+    .filter(point => isValidLatLng(Number(point.lat), Number(point.lng)))
     .map(point => [Number(point.lat), Number(point.lng)]));
 
   const bounds = hasBandLines ? bandCoords : pointCoords;
