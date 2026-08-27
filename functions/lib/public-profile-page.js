@@ -39,7 +39,7 @@ async function handlePublicProfilePage(req, res) {
   const canonicalUrl = `${PUBLIC_ORIGIN}/user/${encodeURIComponent(data.canonicalUsername || decodedUsername)}`;
   const displayName = data.displayName || 'Traveler';
   const title = `${displayName}’s TransitStats — every ride, mapped`;
-  const description = `${data.totalTrips || 0} trips · ${data.routes || 0} routes · ${data.agencies || 0} agencies — every ride tracked on TransitStats.`;
+  const description = `${data.totalTrips || 0} trips across ${data.routes || 0} routes and ${data.agencies || 0} transit agencies — every ride mapped, from daily commutes to trips across the world.`;
   const imageAlt = `${displayName}’s ride map`;
   // Use a versioned path because X can cache or mishandle query-string image
   // URLs independently from the profile URL.
