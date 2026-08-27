@@ -14,6 +14,35 @@ function wait(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+const AUTH_BREADCRUMB_KEY = 'transitstats_auth_breadcrumb';
+
+// Console output from the tab that hit this doesn't survive the redirect that
+// follows, so a session-loss incident leaves no evidence to diagnose it from.
+// This writes one JSON breadcrumb to localStorage (which does survive) right
+// before each redirect/signout branch, so the next occurrence can be read
+// back later instead of requiring a live repro.
+async function recordAuthBreadcrumb(reason, extra = {}) {
+    let sharedSessionStatus = 'unknown';
+    try {
+        const response = await fetch(Auth.sharedSessionUrl, { credentials: 'include' });
+        sharedSessionStatus = response.status;
+    } catch (error) {
+        sharedSessionStatus = `fetch-failed: ${error.message}`;
+    }
+    try {
+        localStorage.setItem(AUTH_BREADCRUMB_KEY, JSON.stringify({
+            reason,
+            timestamp: new Date().toISOString(),
+            path: window.location.pathname,
+            hasCurrentUser: Boolean(auth.currentUser),
+            sharedSessionStatus,
+            ...extra,
+        }));
+    } catch (error) {
+        console.warn('[auth-guard] Could not record auth breadcrumb:', error.message);
+    }
+}
+
 async function verifyWithRetry(user) {
     let verification;
     for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -88,6 +117,7 @@ export function requireAuth(options = {}) {
                     initialUser: Boolean(user),
                     currentUser: Boolean(auth.currentUser),
                 });
+                await recordAuthBreadcrumb('no-restored-session', { initialUser: Boolean(user) });
                 window.location.href = loginUrl;
                 return;
             }
@@ -108,6 +138,7 @@ export function requireAuth(options = {}) {
                     path: window.location.pathname,
                     reason: verification.error,
                 });
+                await recordAuthBreadcrumb('whitelist-rejected', { verificationError: verification.error || null });
                 await Auth.signOut();
                 window.location.href = loginUrl;
                 return;
