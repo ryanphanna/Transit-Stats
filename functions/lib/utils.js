@@ -330,6 +330,15 @@ function normalizeRouteForGrading(route, agency) {
   return /^[a-zA-Z]$/.test(r) ? r.toUpperCase() : r;
 }
 
+/**
+ * Admins get every premium perk without needing isPremium set — this is the
+ * one place that rule lives, so a new premium-gated feature can't ship
+ * admin-locked-out by accident the way ASK and STATS trends both did.
+ */
+function hasPremiumAccess(profile, isAdmin) {
+  return !!profile?.isPremium || !!isAdmin;
+}
+
 module.exports = {
   toTitleCase,
   escapeXml,
@@ -345,4 +354,5 @@ module.exports = {
   getStopDisplay,
   getRouteDisplay,
   determineReliability,
+  hasPremiumAccess,
 };

@@ -24,6 +24,7 @@ const {
   getRouteDisplay,
   generateVerificationCode,
   normalizeAgency,
+  hasPremiumAccess,
 } = require('./utils');
 const { getConfiguredPrimaryAgency } = require('./primary-agency');
 const { KNOWN_AGENCIES } = require('./constants');
@@ -37,7 +38,6 @@ const {
 async function handleHelp(phoneNumber, traceId = null) {
   const user = await getUserByPhone(phoneNumber);
   const profile = user ? await getUserProfile(user.userId) : null;
-  const isPremium = !!profile?.isPremium;
   const isAdmin = user ? await isEmailAdmin(user.email) : false;
 
   const commands = [
@@ -48,7 +48,7 @@ async function handleHelp(phoneNumber, traceId = null) {
     'UNLINK - separate a linked journey',
     'SETTINGS - view/change settings',
   ];
-  if (isPremium || isAdmin) commands.push('ASK [question] - AI stats');
+  if (hasPremiumAccess(profile, isAdmin)) commands.push('ASK [question] - AI stats');
 
   await sendSmsReply(phoneNumber,
     `TransitStats

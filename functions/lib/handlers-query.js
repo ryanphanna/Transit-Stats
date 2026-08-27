@@ -19,6 +19,7 @@ const {
 } = require('./db');
 const {
   getRouteDisplay,
+  hasPremiumAccess,
 } = require('./utils');
 const {
   aggregateTripStats,
@@ -32,7 +33,7 @@ const {
 async function handleQuery(phoneNumber, user, question, traceId = null) {
   const profile = await getUserProfile(user.userId);
   const isAdmin = await isEmailAdmin(user.email);
-  if (!profile?.isPremium && !isAdmin) {
+  if (!hasPremiumAccess(profile, isAdmin)) {
     await sendSmsReply(phoneNumber,
       'AI Stats is a premium feature. Text STATS for your 30-day summary.',
     );
@@ -130,10 +131,11 @@ async function handleStatsCommand(phoneNumber, user, traceId = null) {
   }
 
   const profile = await getUserProfile(user.userId);
-  const isPremium = !!profile?.isPremium;
+  const isAdmin = await isEmailAdmin(user.email);
+  const canSeeTrends = hasPremiumAccess(profile, isAdmin);
 
   const getTrend = (current, previous, label) => {
-    if (!isPremium || previous === 0) return '';
+    if (!canSeeTrends || previous === 0) return '';
     const pct = Math.round(((current - previous) / previous) * 100);
     const arrow = pct >= 0 ? '↑' : '↓';
     return ` (${arrow}${Math.abs(pct)}% vs ${label})`;

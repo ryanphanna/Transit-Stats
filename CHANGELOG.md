@@ -21,7 +21,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Signed-in dashboards now identify the card as Your TransitStats**, making the account view distinct from a public profile.
 - **Signed-in dashboard titles no longer briefly switch back to the profile name**, keeping the account view consistently labeled Your TransitStats.
 - **Signed-in public profiles now put Share in the top-right account controls**, matching the dashboard’s Profile placement.
-- **Admins can now use ASK (AI Stats) over SMS without needing a premium flag**, matching how every other admin tool already bypasses premium gating.
+- **Admins now automatically get every premium perk over SMS**, including the STATS trend arrows that previously required a premium flag same as ASK did — one shared rule instead of a per-feature check.
 
 ### Fixed
 
