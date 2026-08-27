@@ -32,6 +32,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Social preview images now resolve the full dot map on a light geographic canvas and cache the result**, so X cards are both readable and fast to load.
 - **Social preview maps now ignore malformed coordinates**, keeping one bad stop from collapsing the entire dot map.
 - **Social preview images now render real street map tiles behind the ride dots**, replacing the decorative placeholder background that made cards look generic and unrecognizable. Tile fetching is capped at a 2-second budget so a slow map server falls back to the plain background instead of stalling the card.
+- **Profile share links now include a site name and fuller description**, and declare the image's type and secure URL so LinkedIn renders the large card instead of falling back to a small one.
 
 ## [1.49.4] — 2026-08-26
 

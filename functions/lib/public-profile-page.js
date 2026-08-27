@@ -37,18 +37,21 @@ async function handlePublicProfilePage(req, res) {
 
   const data = result.body;
   const canonicalUrl = `${PUBLIC_ORIGIN}/user/${encodeURIComponent(data.canonicalUsername || decodedUsername)}`;
-  const title = `${data.displayName || 'Traveler'}’s TransitStats`;
-  const description = `${data.totalTrips || 0} trips · ${data.routes || 0} routes · ${data.agencies || 0} agencies`;
+  const title = `${data.displayName || 'Traveler'}’s TransitStats — every ride, mapped`;
+  const description = `${data.totalTrips || 0} trips · ${data.routes || 0} routes · ${data.agencies || 0} agencies — every ride tracked on TransitStats.`;
   // Use a versioned path because X can cache or mishandle query-string image
   // URLs independently from the profile URL.
   const imageUrl = `${PUBLIC_ORIGIN}/public-profile-og-v11?user=${encodeURIComponent(data.canonicalUsername || decodedUsername)}`;
   const metadata = `
     <meta name="description" content="${escapeHtml(description)}">
     <meta property="og:type" content="profile">
+    <meta property="og:site_name" content="TransitStats">
     <meta property="og:title" content="${escapeHtml(title)}">
     <meta property="og:description" content="${escapeHtml(description)}">
     <meta property="og:url" content="${escapeHtml(canonicalUrl)}">
     <meta property="og:image" content="${escapeHtml(imageUrl)}">
+    <meta property="og:image:secure_url" content="${escapeHtml(imageUrl)}">
+    <meta property="og:image:type" content="image/png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
