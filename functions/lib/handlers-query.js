@@ -32,7 +32,7 @@ const {
 async function handleQuery(phoneNumber, user, question, traceId = null) {
   const profile = await getUserProfile(user.userId);
   const isAdmin = await isEmailAdmin(user.email);
-  if (!profile?.isPremium) {
+  if (!profile?.isPremium && !isAdmin) {
     await sendSmsReply(phoneNumber,
       'AI Stats is a premium feature. Text STATS for your 30-day summary.',
     );

@@ -14,6 +14,7 @@ const {
   isEmailAllowed,
   getUserByPhone,
   getUserProfile,
+  isEmailAdmin,
   db,
   FieldValue,
   Timestamp,
@@ -37,6 +38,7 @@ async function handleHelp(phoneNumber, traceId = null) {
   const user = await getUserByPhone(phoneNumber);
   const profile = user ? await getUserProfile(user.userId) : null;
   const isPremium = !!profile?.isPremium;
+  const isAdmin = user ? await isEmailAdmin(user.email) : false;
 
   const commands = [
     'STATUS - view active trip',
@@ -46,7 +48,7 @@ async function handleHelp(phoneNumber, traceId = null) {
     'UNLINK - separate a linked journey',
     'SETTINGS - view/change settings',
   ];
-  if (isPremium) commands.push('ASK [question] - AI stats');
+  if (isPremium || isAdmin) commands.push('ASK [question] - AI stats');
 
   await sendSmsReply(phoneNumber,
     `TransitStats
