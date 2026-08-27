@@ -37,8 +37,10 @@ async function handlePublicProfilePage(req, res) {
 
   const data = result.body;
   const canonicalUrl = `${PUBLIC_ORIGIN}/user/${encodeURIComponent(data.canonicalUsername || decodedUsername)}`;
-  const title = `${data.displayName || 'Traveler'}’s TransitStats — every ride, mapped`;
+  const displayName = data.displayName || 'Traveler';
+  const title = `${displayName}’s TransitStats — every ride, mapped`;
   const description = `${data.totalTrips || 0} trips · ${data.routes || 0} routes · ${data.agencies || 0} agencies — every ride tracked on TransitStats.`;
+  const imageAlt = `${displayName}’s ride map`;
   // Use a versioned path because X can cache or mishandle query-string image
   // URLs independently from the profile URL.
   const imageUrl = `${PUBLIC_ORIGIN}/public-profile-og-v11?user=${encodeURIComponent(data.canonicalUsername || decodedUsername)}`;
@@ -58,7 +60,7 @@ async function handlePublicProfilePage(req, res) {
     <meta name="twitter:title" content="${escapeHtml(title)}">
     <meta name="twitter:description" content="${escapeHtml(description)}">
     <meta name="twitter:image" content="${escapeHtml(imageUrl)}">
-    <meta name="twitter:image:alt" content="${escapeHtml(title)} map">`;
+    <meta name="twitter:image:alt" content="${escapeHtml(imageAlt)}">`;
 
   res.set('Content-Type', 'text/html; charset=utf-8');
   res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=300');
