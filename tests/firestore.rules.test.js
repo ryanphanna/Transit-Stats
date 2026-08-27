@@ -119,6 +119,35 @@ describe('firestore.rules: profile privilege boundaries', () => {
         expect(snap.data().isAdmin).toBe(true);
     });
 
+    // isAdmin() in these rules is keyed entirely on request.auth.token.email, which is
+    // populated for this app's real admin account but is not guaranteed for every sign-in
+    // path (e.g. a phone-only Auth user with no email ever attached). Pin the deny-by-default
+    // behavior for that case so a future rules change can't silently assume email is always set.
+    test('an authenticated user with no email claim cannot exercise admin rules privileges', async () => {
+        await testEnv.withSecurityRulesDisabled(async (context) => {
+            const db = context.firestore();
+            await setDoc(doc(db, 'allowedUsers/admin@example.com'), {
+                email: 'admin@example.com',
+                isAdmin: true,
+            });
+            await setDoc(doc(db, 'profiles/user_1'), {
+                displayName: 'User',
+                defaultAgency: 'TTC',
+                isPublic: false,
+                isPremium: false,
+                isAdmin: false,
+            });
+        });
+
+        // Same uid an admin might have, but no email on the auth token - e.g. a bare
+        // phone-only Auth user record that was never linked to an email account.
+        const db = authedDb('admin_1', undefined);
+        await assertFails(updateDoc(doc(db, 'profiles/user_1'), {
+            isPremium: true,
+            isAdmin: true,
+        }));
+    });
+
     test('owner can update legitimate profile fields together', async () => {
         await testEnv.withSecurityRulesDisabled(async (context) => {
             await setDoc(doc(context.firestore(), 'profiles/user_1'), {

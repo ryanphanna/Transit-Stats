@@ -47,6 +47,10 @@ Keep reusable scripts here. Do not create a second top-level scripts folder unle
 - `migrate-hubs-to-firestore.js` — migrate hardcoded CONNECTION_GROUPS into Firestore stop `hubId` fields
 - `rollback-trip-hubs.js` — remove denormalized hubId fields from trip records
 
+## Account Admin
+
+- `set-admin.js` — grant or revoke admin in one command across both places it's checked (`allowedUsers/{email}` and `profiles/{userId}`), instead of two manual Firestore edits that are easy to get out of sync
+
 ## Standalone Utility
 
 - `Rocket/` — Rocket research instrument static files
