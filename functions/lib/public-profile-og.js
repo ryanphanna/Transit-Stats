@@ -10,6 +10,8 @@ const MAX_TILE_ZOOM = 14;
 const MIN_TILE_ZOOM = 3;
 const MERCATOR_LAT_LIMIT = 85.05112878;
 const TILE_USER_AGENT = 'TransitStats/1.0 (+https://transitstats.fyi; social preview image)';
+const TILE_FETCH_TIMEOUT_MS = 1500;
+const BASEMAP_BUDGET_MS = 2000;
 
 function escapeXml(value) {
   return String(value ?? '')
@@ -79,9 +81,23 @@ async function defaultFetchTile(zoom, x, y) {
   const wrappedX = ((x % size) + size) % size;
   const server = ['a', 'b', 'c'][Math.abs(x + y) % 3];
   const url = `https://${server}.tile.openstreetmap.org/${zoom}/${wrappedX}/${y}.png`;
-  const response = await fetch(url, { headers: { 'User-Agent': TILE_USER_AGENT } });
-  if (!response.ok) return null;
-  return Buffer.from(await response.arrayBuffer());
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TILE_FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, { headers: { 'User-Agent': TILE_USER_AGENT }, signal: controller.signal });
+    if (!response.ok) return null;
+    return Buffer.from(await response.arrayBuffer());
+  } catch {
+    return null; // Slow/unreachable tile server: skip it, the caller falls back gracefully.
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Waits for `promise` but never longer than `ms` — a slow or hanging fetchTile
+// must not be able to stall the whole social-card response past this budget.
+function withBudget(promise, ms) {
+  return Promise.race([promise, new Promise(resolve => setTimeout(resolve, ms))]);
 }
 
 // Stitches the OSM tiles under the map viewport into one faded, grayscale basemap
@@ -94,26 +110,24 @@ async function buildBasemapImage(projection, fetchTile) {
   const lastTileY = Math.floor((originY + MAP_AREA.height) / TILE_SIZE);
 
   const composites = [];
-  await Promise.all(
-    (() => {
-      const tasks = [];
-      for (let tx = firstTileX; tx <= lastTileX; tx += 1) {
-        for (let ty = firstTileY; ty <= lastTileY; ty += 1) {
-          tasks.push(
-            fetchTile(zoom, tx, ty).then(buffer => {
-              if (!buffer) return;
-              composites.push({
-                input: buffer,
-                left: Math.round(tx * TILE_SIZE - firstTileX * TILE_SIZE),
-                top: Math.round(ty * TILE_SIZE - firstTileY * TILE_SIZE),
-              });
-            }).catch(() => {}),
-          );
-        }
-      }
-      return tasks;
-    })(),
-  );
+  const tasks = [];
+  for (let tx = firstTileX; tx <= lastTileX; tx += 1) {
+    for (let ty = firstTileY; ty <= lastTileY; ty += 1) {
+      tasks.push(
+        fetchTile(zoom, tx, ty).then(buffer => {
+          if (!buffer) return;
+          composites.push({
+            input: buffer,
+            left: Math.round(tx * TILE_SIZE - firstTileX * TILE_SIZE),
+            top: Math.round(ty * TILE_SIZE - firstTileY * TILE_SIZE),
+          });
+        }).catch(() => {}),
+      );
+    }
+  }
+  // Tiles that land within the budget get used; anything still outstanding
+  // after that is abandoned in place (fire-and-forget) rather than awaited.
+  await withBudget(Promise.all(tasks), BASEMAP_BUDGET_MS);
   if (composites.length === 0) return null;
 
   const canvasWidth = (lastTileX - firstTileX + 1) * TILE_SIZE;
