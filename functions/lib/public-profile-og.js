@@ -4,6 +4,12 @@ const { getPublicProfilePayload } = require('./public-profile');
 
 const WIDTH = 1200;
 const HEIGHT = 630;
+const MAP_AREA = { left: 50, top: 55, width: 1100, height: 520 };
+const TILE_SIZE = 256;
+const MAX_TILE_ZOOM = 14;
+const MIN_TILE_ZOOM = 3;
+const MERCATOR_LAT_LIMIT = 85.05112878;
+const TILE_USER_AGENT = 'TransitStats/1.0 (+https://transitstats.fyi; social preview image)';
 
 function escapeXml(value) {
   return String(value ?? '')
@@ -14,82 +20,188 @@ function escapeXml(value) {
     .replace(/'/g, '&apos;');
 }
 
-function projectBands(bands) {
-  const points = bands.flatMap(band => band.line || []);
-  if (points.length === 0) return { paths: [], maxCount: 0 };
-  const lats = points.map(point => Number(point[0]));
-  const lngs = points.map(point => Number(point[1]));
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs);
-  const maxLng = Math.max(...lngs);
-  const map = { left: 50, top: 55, width: 1100, height: 520 };
-  const latSpan = Math.max(0.0001, maxLat - minLat);
-  const lngSpan = Math.max(0.0001, maxLng - minLng);
-  const scale = Math.min(map.width / lngSpan, map.height / latSpan);
-  const usedWidth = lngSpan * scale;
-  const usedHeight = latSpan * scale;
-  const left = map.left + (map.width - usedWidth) / 2;
-  const top = map.top + (map.height - usedHeight) / 2;
-  const maxCount = Math.max(...bands.map(band => Number(band.count) || 0), 1);
+function clampLat(lat) {
+  return Math.max(-MERCATOR_LAT_LIMIT, Math.min(MERCATOR_LAT_LIMIT, lat));
+}
 
+// Standard Web Mercator projection (matches the OpenStreetMap raster tile grid),
+// so dots/paths land on the exact same pixels as the basemap tiles beneath them.
+function lngLatToWorldPixel(lng, lat, zoom) {
+  const scale = TILE_SIZE * 2 ** zoom;
+  const x = ((lng + 180) / 360) * scale;
+  const sinLat = Math.sin((clampLat(lat) * Math.PI) / 180);
+  const y = (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * scale;
+  return { x, y };
+}
+
+function boundsFromCoords(coords) {
+  if (coords.length === 0) return null;
+  const lats = coords.map(([lat]) => lat);
+  const lngs = coords.map(([, lng]) => lng);
+  return {
+    minLat: Math.min(...lats),
+    maxLat: Math.max(...lats),
+    minLng: Math.min(...lngs),
+    maxLng: Math.max(...lngs),
+  };
+}
+
+// Picks the highest zoom whose bounding box still fits inside the map viewport,
+// so the basemap and the projected geometry share one zoom/origin pair.
+function chooseZoom(bounds, viewportWidth, viewportHeight) {
+  for (let zoom = MAX_TILE_ZOOM; zoom >= MIN_TILE_ZOOM; zoom -= 1) {
+    const topLeft = lngLatToWorldPixel(bounds.minLng, bounds.maxLat, zoom);
+    const bottomRight = lngLatToWorldPixel(bounds.maxLng, bounds.minLat, zoom);
+    if (bottomRight.x - topLeft.x <= viewportWidth && bottomRight.y - topLeft.y <= viewportHeight) {
+      return zoom;
+    }
+  }
+  return MIN_TILE_ZOOM;
+}
+
+function buildProjection(bounds) {
+  const zoom = chooseZoom(bounds, MAP_AREA.width, MAP_AREA.height);
+  const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+  const centerLng = (bounds.minLng + bounds.maxLng) / 2;
+  const center = lngLatToWorldPixel(centerLng, centerLat, zoom);
+  const originX = center.x - MAP_AREA.width / 2;
+  const originY = center.y - MAP_AREA.height / 2;
+  const project = (lng, lat) => {
+    const pixel = lngLatToWorldPixel(lng, lat, zoom);
+    return { x: MAP_AREA.left + (pixel.x - originX), y: MAP_AREA.top + (pixel.y - originY) };
+  };
+  return { zoom, originX, originY, project };
+}
+
+async function defaultFetchTile(zoom, x, y) {
+  const size = 2 ** zoom;
+  if (y < 0 || y >= size) return null;
+  const wrappedX = ((x % size) + size) % size;
+  const server = ['a', 'b', 'c'][Math.abs(x + y) % 3];
+  const url = `https://${server}.tile.openstreetmap.org/${zoom}/${wrappedX}/${y}.png`;
+  const response = await fetch(url, { headers: { 'User-Agent': TILE_USER_AGENT } });
+  if (!response.ok) return null;
+  return Buffer.from(await response.arrayBuffer());
+}
+
+// Stitches the OSM tiles under the map viewport into one faded, grayscale basemap
+// image, positioned so it lines up pixel-for-pixel with points/paths from `project`.
+async function buildBasemapImage(projection, fetchTile) {
+  const { zoom, originX, originY } = projection;
+  const firstTileX = Math.floor(originX / TILE_SIZE);
+  const firstTileY = Math.floor(originY / TILE_SIZE);
+  const lastTileX = Math.floor((originX + MAP_AREA.width) / TILE_SIZE);
+  const lastTileY = Math.floor((originY + MAP_AREA.height) / TILE_SIZE);
+
+  const composites = [];
+  await Promise.all(
+    (() => {
+      const tasks = [];
+      for (let tx = firstTileX; tx <= lastTileX; tx += 1) {
+        for (let ty = firstTileY; ty <= lastTileY; ty += 1) {
+          tasks.push(
+            fetchTile(zoom, tx, ty).then(buffer => {
+              if (!buffer) return;
+              composites.push({
+                input: buffer,
+                left: Math.round(tx * TILE_SIZE - firstTileX * TILE_SIZE),
+                top: Math.round(ty * TILE_SIZE - firstTileY * TILE_SIZE),
+              });
+            }).catch(() => {}),
+          );
+        }
+      }
+      return tasks;
+    })(),
+  );
+  if (composites.length === 0) return null;
+
+  const canvasWidth = (lastTileX - firstTileX + 1) * TILE_SIZE;
+  const canvasHeight = (lastTileY - firstTileY + 1) * TILE_SIZE;
+  const stitched = await sharp({
+    create: { width: canvasWidth, height: canvasHeight, channels: 4, background: { r: 238, g: 244, b: 241, alpha: 1 } },
+  }).composite(composites).png().toBuffer();
+
+  const cropLeft = Math.min(Math.max(0, Math.round(originX - firstTileX * TILE_SIZE)), Math.max(0, canvasWidth - 1));
+  const cropTop = Math.min(Math.max(0, Math.round(originY - firstTileY * TILE_SIZE)), Math.max(0, canvasHeight - 1));
+  const cropWidth = Math.min(MAP_AREA.width, canvasWidth - cropLeft);
+  const cropHeight = Math.min(MAP_AREA.height, canvasHeight - cropTop);
+
+  const faded = await sharp(stitched)
+    .extract({ left: cropLeft, top: cropTop, width: cropWidth, height: cropHeight })
+    .resize(MAP_AREA.width, MAP_AREA.height, { fit: 'fill' })
+    .grayscale()
+    .modulate({ brightness: 1.12, saturation: 0 })
+    .png()
+    .toBuffer();
+
+  return faded.toString('base64');
+}
+
+function projectBands(bands, project) {
+  const coords = bands.flatMap(band => band.line || []);
+  const maxCount = Math.max(...bands.map(band => Number(band.count) || 0), 1);
   const paths = bands.map(band => {
     const pointsString = (band.line || []).map(([lat, lng]) => {
-      const x = left + (Number(lng) - minLng) * scale;
-      const y = top + (maxLat - Number(lat)) * scale;
+      const { x, y } = project(Number(lng), Number(lat));
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     }).join(' L ');
     const intensity = Math.max(0, Math.min(1, Number(band.count) / maxCount));
     const lightness = Math.round(78 - intensity * 48);
     return `<path d="M ${pointsString}" fill="none" stroke="hsl(252 75% ${lightness}%)" stroke-width="${(2 + intensity * 7).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round" opacity="${(0.35 + intensity * 0.6).toFixed(2)}"/>`;
   });
-  return { paths, maxCount };
+  return { paths, coords };
 }
 
-function projectPoints(points) {
+function projectPoints(points, project) {
   const valid = points.filter(point => {
     const lat = Number(point.lat);
     const lng = Number(point.lng);
     return Number.isFinite(lat) && Number.isFinite(lng)
       && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
   });
-  if (valid.length === 0) return [];
-  const lats = valid.map(point => Number(point.lat));
-  const lngs = valid.map(point => Number(point.lng));
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs);
-  const maxLng = Math.max(...lngs);
-  const map = { left: 50, top: 55, width: 1100, height: 520 };
-  const latSpan = Math.max(0.0001, maxLat - minLat);
-  const lngSpan = Math.max(0.0001, maxLng - minLng);
-  const scale = Math.min(map.width / lngSpan, map.height / latSpan);
-  const usedWidth = lngSpan * scale;
-  const usedHeight = latSpan * scale;
-  const left = map.left + (map.width - usedWidth) / 2;
-  const top = map.top + (map.height - usedHeight) / 2;
-  return valid.map(point => {
-    const x = left + (Number(point.lng) - minLng) * scale;
-    const y = top + (maxLat - Number(point.lat)) * scale;
+  const svg = valid.map(point => {
+    const { x, y } = project(Number(point.lng), Number(point.lat));
     const radius = Math.min(13, 5 + Math.sqrt(Number(point.usage) || 1));
     return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${radius.toFixed(1)}" fill="#39d39f" fill-opacity="0.72" stroke="#ffffff" stroke-opacity="0.35" stroke-width="1.5"/>`;
   });
+  const coords = valid.map(point => [Number(point.lat), Number(point.lng)]);
+  return { svg, coords };
 }
 
-function buildSvg(data) {
-  const { paths } = projectBands(data.heatmapBands || []);
-  const points = projectPoints(data.points || []);
-  const mapContent = paths.length
+const FALLBACK_BACKDROP = `
+    <path d="M 0 510 C 190 450 310 570 510 500 S 890 430 1200 505 L 1200 630 L 0 630 Z" fill="#dcebe5"/>
+    <path d="M 0 180 C 230 240 320 120 540 190 S 900 260 1200 150" fill="none" stroke="#d5e4df" stroke-width="3"/>
+    <path d="M 80 0 C 190 130 170 270 280 360 S 390 520 430 630" fill="none" stroke="#d5e4df" stroke-width="3"/>`;
+
+async function buildSvg(data, { fetchTile = defaultFetchTile } = {}) {
+  const bandCoords = boundsFromCoords((data.heatmapBands || []).flatMap(band => band.line || []));
+  const hasBandLines = (data.heatmapBands || []).some(band => (band.line || []).length > 0);
+  const pointCoords = boundsFromCoords((data.points || [])
+    .filter(point => Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lng)))
+    .map(point => [Number(point.lat), Number(point.lng)]));
+
+  const bounds = hasBandLines ? bandCoords : pointCoords;
+  const projection = bounds ? buildProjection(bounds) : null;
+  const project = projection ? projection.project : () => ({ x: 0, y: 0 });
+
+  const { paths } = projectBands(data.heatmapBands || [], project);
+  const { svg: pointDots } = projectPoints(data.points || [], project);
+  const hasPaths = hasBandLines && paths.length > 0;
+  const mapContent = hasPaths
     ? paths.join('')
-    : points.length
-      ? points.join('')
-    : '<text x="455" y="310" text-anchor="middle" fill="#aaa6c4" font-family="Arial, sans-serif" font-size="20">No matched route segments yet</text>';
+    : pointDots.length
+      ? pointDots.join('')
+      : '<text x="455" y="310" text-anchor="middle" fill="#aaa6c4" font-family="Arial, sans-serif" font-size="20">No matched route segments yet</text>';
+
+  const basemap = projection ? await buildBasemapImage(projection, fetchTile) : null;
+  const backdrop = basemap
+    ? `<image x="${MAP_AREA.left}" y="${MAP_AREA.top}" width="${MAP_AREA.width}" height="${MAP_AREA.height}" href="data:image/png;base64,${basemap}" opacity="0.6"/>`
+    : FALLBACK_BACKDROP;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${HEIGHT}" viewBox="0 0 ${WIDTH} ${HEIGHT}">
     <rect width="1200" height="630" fill="#eef4f1"/>
-    <path d="M 0 510 C 190 450 310 570 510 500 S 890 430 1200 505 L 1200 630 L 0 630 Z" fill="#dcebe5"/>
-    <path d="M 0 180 C 230 240 320 120 540 190 S 900 260 1200 150" fill="none" stroke="#d5e4df" stroke-width="3"/>
-    <path d="M 80 0 C 190 130 170 270 280 360 S 390 520 430 630" fill="none" stroke="#d5e4df" stroke-width="3"/>
+    ${backdrop}
     <g>${mapContent}</g>
   </svg>`;
 }
@@ -112,7 +224,7 @@ async function handlePublicProfileOg(req, res) {
     return;
   }
   try {
-    const image = await sharp(Buffer.from(buildSvg(result.body))).png().toBuffer();
+    const image = await sharp(Buffer.from(await buildSvg(result.body))).png().toBuffer();
     res.set('Content-Type', 'image/png');
     res.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=300');
     res.status(200).send(image);

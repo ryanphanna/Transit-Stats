@@ -31,7 +31,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Public profile share images now have enough renderer capacity for larger ride histories**, so Twitter and other social sites can load the preview image.
 - **Social preview images now resolve the full dot map on a light geographic canvas and cache the result**, so X cards are both readable and fast to load.
 - **Social preview maps now ignore malformed coordinates**, keeping one bad stop from collapsing the entire dot map.
-- **Profile maps now use a faded, low-detail basemap**, keeping the ride dots and heatmap as the visual focus.
+- **Social preview images now render real street map tiles behind the ride dots**, replacing the decorative placeholder background that made cards look generic and unrecognizable.
 
 ## [1.49.4] — 2026-08-26
 
