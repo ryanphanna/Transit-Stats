@@ -1,4 +1,4 @@
-import firebase, { db } from './firebase.js';
+import { db, serverTimestamp } from './firebase.js';
 
 const AGENCY_ALIASES = new Map([
     ['Toronto Transit Commission', 'TTC'],
@@ -219,7 +219,7 @@ export function initPrestoImporter({ user }) {
                 ...record,
                 fingerprint: await fingerprint(record),
                 userId: user.uid,
-                importedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                importedAt: serverTimestamp(),
             })));
             const batchCount = Math.ceil(records.length / 400);
             for (let start = 0; start < records.length; start += 400) {

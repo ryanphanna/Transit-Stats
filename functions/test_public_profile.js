@@ -170,9 +170,9 @@ test('publicProfile includes uniquely matched PRESTO activity for beta pilots', 
     docs: { usernames: { 'train-taco-panda': { exists: true, data: () => ({ uid: 'u1' }) } } },
     profile: {
       isPublic: true,
-      publicProfileBeta: true,
       displayName: 'Test',
       username: 'train-taco-panda',
+      emojiUsername: 'subway-subway-subway',
     },
     tripsSnap: { size: 0, forEach: () => {} },
     prestoTransactionsSnap: {

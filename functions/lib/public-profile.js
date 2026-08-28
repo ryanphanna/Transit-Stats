@@ -261,7 +261,7 @@ async function handlePublicProfile(req, res) {
       const existing = pointsByStop.get(key);
       if (existing) {
         existing.usage += 1;
-        if (name && !existing.names.includes(name)) existing.names.push(name);
+        if (name) existing.names = existing.names ? [...new Set([...existing.names, name])] : [name];
         return;
       }
       pointsByStop.set(key, {
@@ -269,7 +269,7 @@ async function handlePublicProfile(req, res) {
         lng,
         type,
         usage: 1,
-        names: name ? [name] : [],
+        ...(name ? { names: [name] } : {}),
       });
     };
     for (const trip of historyTrips) {
