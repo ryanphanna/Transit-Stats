@@ -1,8 +1,10 @@
 import { getApps, initializeApp } from 'firebase/app';
 import {
     browserLocalPersistence,
+    EmailAuthProvider,
     getAuth,
     isSignInWithEmailLink,
+    linkWithCredential,
     onAuthStateChanged,
     sendPasswordResetEmail,
     sendSignInLinkToEmail,
@@ -166,6 +168,10 @@ export const auth = {
     },
     signOut() {
         return signOut(authClient);
+    },
+    linkEmailPassword(email, password) {
+        const credential = EmailAuthProvider.credential(email, password);
+        return linkWithCredential(authClient.currentUser, credential);
     },
 };
 

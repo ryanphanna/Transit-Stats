@@ -293,6 +293,18 @@ html[data-theme="dark"] body.settings-surface .header {
   font-size: 0.86rem;
 }
 
+.settings-link-email-editor .settings-label-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.settings-link-email-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .settings-custom-username-value-row,
 .settings-custom-username-editor {
   display: flex;

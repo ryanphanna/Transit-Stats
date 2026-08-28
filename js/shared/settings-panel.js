@@ -36,7 +36,21 @@ function panelMarkup() {
                             <div class="settings-row">
                                 <div class="settings-label-group">
                                     <span class="settings-main-label">Email</span>
-                                    <span id="settings-email" class="settings-main-label settings-account-value text-xs">—</span>
+                                    <div class="settings-name-value-row">
+                                        <span id="settings-email" class="settings-main-label settings-account-value text-xs">—</span>
+                                        <button id="btn-link-email" class="btn btn-link settings-text-action hidden" title="Link an email to this account">Link email</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="link-email-editor" class="settings-row settings-link-email-editor hidden">
+                                <div class="settings-label-group">
+                                    <span class="settings-sub-label">Adding an email lets you sign in with it later (e.g. on the Import page) as the same account, instead of a separate one.</span>
+                                    <input type="email" id="link-email-address" class="minimal-input" placeholder="Email address" autocomplete="email">
+                                    <input type="password" id="link-email-password" class="minimal-input" placeholder="Choose a password" autocomplete="new-password">
+                                    <div class="settings-link-email-actions">
+                                        <button id="btn-save-link-email" class="btn btn-sm btn-primary">Link account</button>
+                                        <button id="btn-cancel-link-email" class="btn btn-sm btn-ghost" type="button">Cancel</button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="settings-row settings-password-row">
@@ -249,6 +263,62 @@ async function initPanelData() {
     } else {
         document.querySelector('.settings-panel-tab[data-settings-tab="import"]')?.classList.add('hidden');
     }
+
+    // Phone-only accounts have no email in Firebase at all, so the password
+    // row (which only makes sense once there's an email/password to reset)
+    // stays hidden until one is linked. Linking uses the same Firebase
+    // 'password' provider as email-link sign-in, so the account is then
+    // reachable — as the same account — from either the homepage phone flow
+    // or an email sign-in (e.g. on /import) instead of creating a second,
+    // disconnected one.
+    const emailEl = document.getElementById('settings-email');
+    const passwordRow = document.querySelector('.settings-password-row');
+    const linkButton = document.getElementById('btn-link-email');
+    const linkEditor = document.getElementById('link-email-editor');
+    const linkEmailInput = document.getElementById('link-email-address');
+    const linkPasswordInput = document.getElementById('link-email-password');
+    const saveLinkButton = document.getElementById('btn-save-link-email');
+
+    if (!user.email) {
+        passwordRow?.classList.add('hidden');
+        linkButton?.classList.remove('hidden');
+    }
+
+    linkButton?.addEventListener('click', () => {
+        linkButton.classList.add('hidden');
+        linkEditor?.classList.remove('hidden');
+        linkEmailInput?.focus();
+    });
+
+    document.getElementById('btn-cancel-link-email')?.addEventListener('click', () => {
+        linkEditor?.classList.add('hidden');
+        linkButton?.classList.remove('hidden');
+        if (linkEmailInput) linkEmailInput.value = '';
+        if (linkPasswordInput) linkPasswordInput.value = '';
+    });
+
+    saveLinkButton?.addEventListener('click', async () => {
+        const email = linkEmailInput?.value.trim();
+        const password = linkPasswordInput?.value || '';
+        if (!email || !password) {
+            UI.showNotification('Enter an email and password.');
+            return;
+        }
+        saveLinkButton.disabled = true;
+        saveLinkButton.textContent = 'Linking…';
+        try {
+            await Auth.linkEmail(email, password);
+            if (emailEl) emailEl.textContent = email;
+            linkEditor?.classList.add('hidden');
+            passwordRow?.classList.remove('hidden');
+            UI.showNotification('Email linked to your account.', 'success');
+        } catch (error) {
+            UI.showNotification(Auth.getErrorMessage(error.code));
+        } finally {
+            saveLinkButton.disabled = false;
+            saveLinkButton.textContent = 'Link account';
+        }
+    });
 
     document.getElementById('btn-reset-password')?.addEventListener('click', async () => {
         const button = document.getElementById('btn-reset-password');

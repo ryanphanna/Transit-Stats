@@ -127,6 +127,16 @@ export const Auth = {
         await auth.sendPasswordResetEmail(email.toLowerCase());
     },
 
+    // Attaches an email/password credential to the currently signed-in
+    // account (used for phone-only accounts, which have no email in Firebase
+    // at all). Firebase enforces one account per email address, so once
+    // linked, signing in later with that email - by password or by magic
+    // link, both use the same underlying 'password' provider - resolves to
+    // this same account instead of creating a separate, disconnected one.
+    async linkEmail(email, password) {
+        await auth.linkEmailPassword(email.toLowerCase(), password);
+    },
+
     async requestPhoneCode(phoneNumber) {
         const response = await fetch(this.phoneApiUrl, {
             method: 'POST',
@@ -222,6 +232,10 @@ export const Auth = {
             case 'auth/user-not-found': return 'Incorrect email or password.';
             case 'auth/invalid-email': return 'Invalid email address.';
             case 'auth/user-disabled': return 'Account disabled.';
+            case 'auth/email-already-in-use':
+            case 'auth/credential-already-in-use': return 'That email is already linked to a different account.';
+            case 'auth/weak-password': return 'Choose a stronger password (at least 6 characters).';
+            case 'auth/requires-recent-login': return 'Please sign in again before linking an email.';
             default: return 'Authentication failed. Please try again.';
         }
     }
