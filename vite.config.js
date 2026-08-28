@@ -35,6 +35,7 @@ export default defineConfig(({ mode, command }) => {
                     rocket: './Tools/Rocket/index.html',
                     terms: './terms.html',
                     privacy: './privacy.html',
+                    import: './import.html',
                 },
                 output: {
                     entryFileNames: (chunkInfo) => chunkInfo.name === 'public'
@@ -98,7 +99,7 @@ export default defineConfig(({ mode, command }) => {
 
                 server.middlewares.use((req, res, next) => {
                     const url = req.url.split('?')[0];
-                    const targets = ['/dashboard', '/trip-paths', '/v2', '/v2-home', '/public', '/terms', '/privacy'];
+                    const targets = ['/dashboard', '/trip-paths', '/v2', '/v2-home', '/public', '/terms', '/privacy', '/import'];
                     const isUserProfilePath = url === '/user' || url.startsWith('/user/');
                     if (targets.includes(url)) {
                         req.url = url + '.html' + (req.url.includes('?') ? '?' + req.url.split('?')[1] : '');

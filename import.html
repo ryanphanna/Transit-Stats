@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import your rides — TransitStats</title>
+    <meta name="description" content="Import your PRESTO transit history into TransitStats.">
+    <meta name="robots" content="noindex">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/main.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <main id="app-root">
+        <section id="view-auth" class="view auth-view active">
+            <div class="auth-content">
+                <header class="auth-brand" aria-label="TransitStats">
+                    <span class="auth-brand-mark"><i data-lucide="zap"></i></span>
+                    <span class="logo-text">TransitStats</span>
+                </header>
+
+                <div class="auth-copy">
+                    <h1 class="auth-title">Import your ride <em>history.</em></h1>
+                    <p class="auth-subtitle">Upload your transit history and see it mapped.</p>
+                </div>
+
+                <div class="auth-card card">
+                    <div class="auth-card-heading">
+                        <div>
+                            <h2 id="import-heading">Sign in to import</h2>
+                        </div>
+                        <i data-lucide="upload" aria-hidden="true"></i>
+                    </div>
+
+                    <div id="import-phone-step" class="hidden">
+                        <label class="sr-only" for="import-phone">Phone number</label>
+                        <div class="auth-input-wrap" id="import-phone-wrap">
+                            <i data-lucide="smartphone" aria-hidden="true"></i>
+                            <input type="tel" id="import-phone" inputmode="tel" autocomplete="off" placeholder="Phone number">
+                        </div>
+                        <button id="btn-import-request-code" class="btn btn-primary full-width" type="button">Text me a code <i data-lucide="arrow-right" aria-hidden="true"></i></button>
+                        <button id="btn-import-use-email" class="btn btn-link full-width" type="button">Use email instead</button>
+                    </div>
+
+                    <div id="import-code-step" class="hidden">
+                        <label class="sr-only" for="import-code">Verification code</label>
+                        <div class="auth-code-wrap">
+                            <input type="text" id="import-code" class="auth-code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+                        </div>
+                        <button id="btn-import-verify-code" class="btn btn-primary full-width" type="button" disabled>Continue <i data-lucide="arrow-right" aria-hidden="true"></i></button>
+                    </div>
+
+                    <div id="import-email-step">
+                        <label class="sr-only" for="import-email">Email address</label>
+                        <div class="auth-input-wrap">
+                            <i data-lucide="mail" aria-hidden="true"></i>
+                            <input type="email" id="import-email" autocomplete="email" placeholder="Email address">
+                        </div>
+                        <button id="btn-import-send-link" class="btn btn-primary full-width" type="button">Email me a sign-in link <i data-lucide="arrow-right" aria-hidden="true"></i></button>
+                        <button id="btn-import-use-phone" class="btn btn-link full-width" type="button">Use phone instead</button>
+                    </div>
+
+                    <div id="import-check-email-step" class="hidden">
+                        <p class="auth-help">Check <strong id="import-sent-to"></strong> for a sign-in link. It'll bring you right back here.</p>
+                    </div>
+
+                    <div id="import-denied-step" class="hidden">
+                        <p class="auth-help" id="import-denied-message">This account isn't set up for importing yet.</p>
+                    </div>
+
+                    <div id="import-loading-step" class="hidden">
+                        <p class="loading-state">Checking your account…</p>
+                    </div>
+
+                    <div id="import-active" class="hidden">
+                        <div id="presto-import-group">
+                            <div class="settings-row settings-presto-import-row">
+                                <div class="settings-label-group">
+                                    <span class="settings-main-label">Import PRESTO activity</span>
+                                    <span class="settings-sub-label">Upload PRESTO Transit Usage Reports. Unclear locations are matched later.</span>
+                                </div>
+                                <input id="presto-file-input" type="file" accept=".csv,text/csv" multiple>
+                                <button id="presto-preview-button" class="btn btn-sm btn-primary" type="button" disabled>Preview</button>
+                            </div>
+                            <div id="presto-import-status" class="settings-row hidden" role="status" aria-live="polite"></div>
+                            <div id="presto-import-preview" class="settings-row hidden"></div>
+                            <div id="presto-import-actions" class="settings-row hidden">
+                                <button id="presto-import-button" class="btn btn-primary" type="button">Import activity</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="import-status" class="status-msg hidden" role="status" aria-live="polite"></div>
+                </div>
+
+                <p class="auth-invite-note"><i data-lucide="lock-keyhole" aria-hidden="true"></i> Invite-only for now.</p>
+            </div>
+
+            <div class="auth-legal-links">
+                <a href="/terms">Terms</a>
+                <span aria-hidden="true">·</span>
+                <a href="/privacy">Privacy</a>
+            </div>
+
+            <div class="auth-visual" aria-hidden="true">
+                <div class="auth-visual-grid"></div>
+                <svg class="auth-route-map" viewBox="0 0 760 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path class="auth-route auth-route-gold" pathLength="1" d="M-80 640C95 600 110 405 270 415C410 424 382 690 560 655C695 629 625 380 840 290" stroke="#f8c84b" stroke-width="14" stroke-linecap="round"/>
+                    <path class="auth-route auth-route-blue" pathLength="1" d="M40 120C178 214 176 350 310 350C462 350 485 166 720 116" stroke="#4a6cf7" stroke-width="11" stroke-linecap="round"/>
+                    <path class="auth-route auth-route-red" pathLength="1" d="M158 940C228 815 338 785 342 618C347 456 527 465 616 352C679 272 637 170 790 38" stroke="#ee6a52" stroke-width="10" stroke-linecap="round"/>
+                    <path class="auth-route auth-route-green" pathLength="1" d="M-40 270C120 260 164 510 316 514C469 518 472 767 808 760" stroke="#3bb58a" stroke-width="9" stroke-linecap="round"/>
+                    <g class="auth-station" fill="#fff" stroke="#17213d" stroke-width="5">
+                        <circle cx="270" cy="415" r="13"/><circle cx="342" cy="618" r="13"/><circle cx="485" cy="166" r="13"/>
+                        <circle cx="560" cy="655" r="13"/><circle cx="316" cy="514" r="13"/>
+                    </g>
+                    <g class="auth-route-dots" fill="#17213d">
+                        <circle cx="119" cy="610" r="4"/><circle cx="205" cy="406" r="4"/><circle cx="430" cy="353" r="4"/><circle cx="636" cy="352" r="4"/><circle cx="530" cy="760" r="4"/>
+                    </g>
+                </svg>
+                <div class="auth-visual-caption">
+                    <span class="auth-live-dot"></span>
+                    <span>Your city, in motion.</span>
+                </div>
+                <div class="auth-stat-card auth-stat-card-top"><strong>Every ride</strong><span>mapped here</span></div>
+            </div>
+        </section>
+    </main>
+
+    <script type="module" src="js/pages/import.js"></script>
+</body>
+</html>

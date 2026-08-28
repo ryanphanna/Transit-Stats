@@ -67,7 +67,7 @@
 .auth-code-wrap .auth-code-input:focus { background: transparent; border: 0; box-shadow: none; }
 .auth-code-wrap .btn-link { flex: 0 0 auto; padding: 4px 2px; background: transparent; border: 0; border-radius: 0; color: var(--text-secondary); font-size: 0.74rem; white-space: nowrap; }
 .auth-code-wrap .btn-link:hover:not(:disabled) { background: transparent; color: var(--accent); }
-.auth-card .btn-link { color: var(--text-secondary); font-size: 0.78rem; }
+.auth-card .btn-link { background: transparent; border: 0; color: var(--text-secondary); font-size: 0.78rem; }
 .auth-card .btn-link:hover { color: var(--accent); }
 .auth-card .btn-link:disabled { opacity: 0.5; cursor: wait; }
 .auth-card .auth-status { margin-top: 14px; padding: 11px 13px; border-radius: 11px; font-size: 0.78rem; line-height: 1.4; }

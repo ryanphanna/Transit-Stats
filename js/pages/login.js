@@ -1,6 +1,7 @@
 import { auth } from '../firebase.js';
 import { Auth } from '../auth.js';
 import { normalizePhone } from '../phone-fields.js';
+import { getPhoneCooldownSeconds, persistPhoneCooldown, clearPhoneCooldown } from '../shared/phone-cooldown.js';
 
 const DOM = {
     phoneStep: document.getElementById('auth-phone-step'),
@@ -91,41 +92,9 @@ function syncButtons() {
     DOM.codeWrap?.classList.toggle('ready', !DOM.verifyCode.disabled);
 }
 
-function phoneCooldownKey(phone) {
-    let hash = 2166136261;
-    for (const character of phone) {
-        hash ^= character.charCodeAt(0);
-        hash = Math.imul(hash, 16777619);
-    }
-    return `auth_otp_cooldown_${(hash >>> 0).toString(36)}`;
-}
-
-function getPhoneCooldownSeconds(phone) {
-    if (adminSession) return 0;
-    try {
-        const until = Number(localStorage.getItem(phoneCooldownKey(phone)) || 0);
-        const seconds = Math.ceil((until - Date.now()) / 1000);
-        if (seconds > 0) return seconds;
-        if (until) localStorage.removeItem(phoneCooldownKey(phone));
-    } catch { /* Continue without persisted cooldown if storage is unavailable. */ }
-    return 0;
-}
-
-function persistPhoneCooldown(phone) {
-    try {
-        localStorage.setItem(phoneCooldownKey(phone), String(Date.now() + RESEND_COOLDOWN_SECONDS * 1000));
-    } catch { /* The server still enforces the cooldown. */ }
-}
-
-function clearPhoneCooldown(phone) {
-    try {
-        localStorage.removeItem(phoneCooldownKey(phone));
-    } catch { /* Ignore unavailable storage. */ }
-}
-
 function updateRequestButton() {
     const phone = normalizePhone(DOM.phoneInput.value);
-    const cooldownSeconds = hasValidPhone() ? getPhoneCooldownSeconds(phone) : 0;
+    const cooldownSeconds = hasValidPhone() ? (adminSession ? 0 : getPhoneCooldownSeconds(phone)) : 0;
     if (cooldownSeconds > 0) {
         DOM.requestCode.disabled = true;
         DOM.requestCode.textContent = `Try again in ${cooldownSeconds}s`;

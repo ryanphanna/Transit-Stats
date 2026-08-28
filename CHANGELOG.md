@@ -10,6 +10,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Changed
 
+- **Added a dedicated /import page** for PRESTO pilot accounts: sign in by phone or email (magic link), then upload and import directly — no dashboard detour. Gated the same way as everywhere else (invite-only whitelist, plus the `pilot`/admin check that already gated the Settings import tab).
+- **Fixed the "Use email/phone instead" link buttons rendering as solid gray boxes** instead of plain text links, on the login and import pages.
 - **Added real Terms of Service and Privacy Policy pages**, linked from the login screen — Terms previously existed only as a repo file with no page to link to, and there was no Privacy page at all.
 - **Hid the "Use email instead" login option**, since email-only accounts can't do manual SMS trip logging — it stood next to the phone option looking like an equal alternative when it isn't. It'll come back once there's a dedicated import-signup flow that makes that limitation clear upfront.
 - **Settings is now a panel you open from wherever you are, instead of a separate page.** It matches the rest of the app's visual style, opens over the map without losing your place, and organizes sections into sidebar tabs (Account, Map, Profile, Sharing) instead of one long scroll.

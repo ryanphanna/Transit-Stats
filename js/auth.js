@@ -100,9 +100,9 @@ export const Auth = {
         }
     },
 
-    async sendMagicLink(email) {
+    async sendMagicLink(email, redirectPath = '/') {
         const settings = {
-            url: window.location.origin + '/',
+            url: window.location.origin + redirectPath,
             handleCodeInApp: true
         };
         await auth.sendSignInLinkToEmail(email.toLowerCase(), settings);
