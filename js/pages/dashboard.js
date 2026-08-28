@@ -4,7 +4,6 @@ import { refreshIcons } from '../shared/icons.js';
 import { ModalManager } from '../shared/modal-engine.js';
 import { Trips } from '../trips.js';
 import { Stats } from '../stats.js';
-import { RouteTracker } from '../route-tracker.js';
 import { Profile } from '../profile.js';
 import { PredictionEngine } from '../predict.js';
 import { Utils } from '../utils.js';
@@ -16,10 +15,10 @@ import { MapEngine } from '../map-engine.js';
 import { TripController } from '../trips/TripController.js';
 import { loadAtlasStops } from '../atlas-stops.js';
 import { renderAtlasCard } from '../shared/atlas-card.js';
+import { openSettingsPanel } from '../shared/settings-panel.js';
 
 window.Trips = Trips;
 window.Utils = Utils;
-window.RouteTracker = RouteTracker;
 window.refreshIcons = refreshIcons;
 
 // --- Trip Edit Modal ---
@@ -127,7 +126,7 @@ function setupShareMap() {
         const username = Profile.data?.username;
         if (!username || !Profile.data?.isPublic) {
             UI.showNotification(username ? 'Turn on your public profile first.' : 'Set up your public identity first.');
-            window.location.href = '/settings#public-profile-settings';
+            openSettingsPanel({ tab: 'sharing' });
             return;
         }
 

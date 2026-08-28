@@ -73,7 +73,7 @@
           ]
         },
         {
-          "source": "/{dashboard,routes,settings,trip-paths,public,rocket}",
+          "source": "/{dashboard,trip-paths,public,rocket}",
           "headers": [
             {
               "key": "Cache-Control",
@@ -167,14 +167,6 @@
         {
           "source": "/trip-paths",
           "destination": "/trip-paths.html"
-        },
-        {
-          "source": "/settings",
-          "destination": "/settings.html"
-        },
-        {
-          "source": "/routes",
-          "destination": "/routes.html"
         },
         {
           "source": "**",

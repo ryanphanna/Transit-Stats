@@ -6,6 +6,7 @@ import { MapEngine } from './map-engine.js';
 import { PredictionEngine } from './predict.js';
 import { ModalManager } from './shared/modal-engine.js';
 import { UI } from './ui-utils.js';
+import { buildPrestoTrips } from './presto-stop-matcher.js';
 
 /**
  * TransitStats Trips Orchestrator
@@ -13,6 +14,7 @@ import { UI } from './ui-utils.js';
 export const Trips = {
     _readyPromise: null,
     _resolveReady: null,
+    _prestoTrips: [],
 
     async init() {
         this._readyPromise = new Promise(resolve => { this._resolveReady = resolve; });
@@ -25,17 +27,34 @@ export const Trips = {
         if (window.currentUser) {
             TripController.listen(window.currentUser.uid, (trips, active) => {
                 this.sync(trips, active);
-                if (this._resolveReady) { 
+                if (this._resolveReady) {
                     this._resolveReady();
                     this._resolveReady = null;
                 }
             });
+            this._listenPrestoTrips(window.currentUser.uid);
         }
 
         // Stop metadata is enrichment, not a prerequisite for showing the
         // rider's trips. Let the map render saved coordinates first and load
         // the larger fallback library in the background.
         void this.loadStopsLibrary();
+    },
+
+    // Imported PRESTO activity lives in its own collection and has no
+    // duration/route/stop shape, so it's kept out of TripController's stream
+    // (which the trip feed and richer metrics assume is logged trips) and
+    // fed separately into the map and the summary counts in sync().
+    _listenPrestoTrips(userId) {
+        db.collection('prestoTransactions').where('userId', '==', userId).onSnapshot(
+            snap => {
+                const records = snap.docs.map(doc => doc.data());
+                this._prestoTrips = buildPrestoTrips(records);
+                MapEngine.updatePrestoTrips(this._prestoTrips);
+                this.sync(TripController.allTrips, TripController.activeTrip);
+            },
+            err => console.error('PRESTO trips sync failed:', err),
+        );
     },
 
     async loadStopsLibrary() {
@@ -86,13 +105,10 @@ export const Trips = {
         TripFeed.render(feedContainer, trips, (trip) => this.openEditModal(trip));
 
         // Render Analytics
-        TripStatsView.render(trips);
+        TripStatsView.render(trips, this._prestoTrips);
 
         // Update Global Map
         MapEngine.updateTrips(trips);
-
-        // Keep Route Tracker in sync after Firestore sends a new trip snapshot.
-        if (window.RouteTracker?.currentAgency) window.RouteTracker.refresh();
     },
 
     openEditModal(trip) {

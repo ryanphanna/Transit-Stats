@@ -1,4 +1,5 @@
 import { Auth } from '../auth.js';
+import { openSettingsPanel } from './settings-panel.js';
 
 /**
  * Shared Header Component
@@ -12,9 +13,6 @@ function _render(isAdmin, currentPage, profileHref, shareAction) {
     const root = document.getElementById('app-root');
     if (!root) return;
 
-    const navItems = ['dashboard', 'settings'].includes(currentPage) ? [] : [
-            { id: 'routes', label: 'Routes', icon: 'route', href: '/routes' },
-        ];
     const logoHref = '/dashboard';
 
     const headerHtml = `
@@ -25,14 +23,6 @@ function _render(isAdmin, currentPage, profileHref, shareAction) {
                      <span class="logo-text">TransitStats</span>
                 </a>
 
-                <nav class="nav-desktop">
-                    ${navItems.map(item => `
-                        <a href="${item.href}" class="nav-item ${currentPage === item.id ? 'active' : ''}">
-                            <span>${item.label}</span>
-                        </a>
-                    `).join('')}
-                </nav>
-
                 <div class="header-actions">
                     ${shareAction ? `
                         <button id="btn-header-share" class="header-action-link" title="Share your map" type="button">
@@ -42,9 +32,9 @@ function _render(isAdmin, currentPage, profileHref, shareAction) {
                         <a href="${profileHref}" class="header-action-link ${currentPage === 'profile' ? 'active' : ''}" title="Profile">
                             <span>Profile</span>
                         </a>` : ''}
-                    <a href="/settings" class="header-action-link ${currentPage === 'settings' ? 'active' : ''}" title="Settings">
+                    <button id="btn-header-settings" class="header-action-link" title="Settings" type="button">
                         <span>Settings</span>
-                    </a>
+                    </button>
                     <button id="btn-header-logout" class="header-action-link header-logout" title="Log out" aria-label="Log out">
                         <span>Log out</span>
                     </button>
@@ -55,6 +45,8 @@ function _render(isAdmin, currentPage, profileHref, shareAction) {
 
     root.insertAdjacentHTML('afterbegin', headerHtml);
     if (window.lucide) lucide.createIcons();
+
+    document.getElementById('btn-header-settings')?.addEventListener('click', () => openSettingsPanel());
 
     const logout = document.getElementById('btn-header-logout');
     let armed = false;

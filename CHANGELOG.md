@@ -10,6 +10,17 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Changed
 
+- **Settings is now a panel you open from wherever you are, instead of a separate page.** It matches the rest of the app's visual style, opens over the map without losing your place, and organizes sections into sidebar tabs (Account, Map, Profile, Sharing) instead of one long scroll.
+- **Settings now shows your plan (Free, Premium, or Admin)** on the Account tab, so it's clear why premium-gated features do or don't work.
+- **Settings hides the Map tab until a phone number is linked**, since the primary-agency setting there only affects text-in trip logging.
+- **Settings panel polish**: stays a consistent size across tabs instead of resizing per tab, text-link buttons (Reset password, Change, Save, Share) now carry a small arrow so they read clearly as actions, and the Profile URL's Share button lines up with the other action buttons instead of sitting off to the side.
+- **Removed the Routes page and its route-completion tracker**, a leftover from an earlier design. The map is the app's main draw, not a separate route-checklist page.
+- **Admins can now import PRESTO activity from Settings**, previewing and importing PRESTO Transit Usage Reports without a separate pilot page.
+- **Imported PRESTO activity shows on the dashboard map and, for flagged pilot profiles, the public map, once its stop is uniquely known**, leaving ambiguous or unresolved locations for later matching instead of guessing.
+- **Imported PRESTO activity stays visible while stop matching is deferred**, so an unclear location doesn't block the rest of the import.
+- **PRESTO pilot uploads now preview multiple reports and import activity in user-scoped batches.**
+- **PRESTO trials can sign in with email only**, so trying the pilot doesn't require a second phone number.
+- **PRESTO fare exports can now be previewed in an isolated report**, keeping imported fare transactions separate from canonical trip history until matched.
 - **Social preview images now focus on the full-width map**, leaving trip totals and other stats in the post text where they are easier to read.
 - **Profile preview images now use a versioned path**, so repaired X previews can be fetched instead of reusing a failed image URL.
 - **Profile preview image URLs now advance past cached responses**, so social platforms can fetch the corrected dot map.
@@ -22,9 +33,16 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Signed-in dashboard titles no longer briefly switch back to the profile name**, keeping the account view consistently labeled Your TransitStats.
 - **Signed-in public profiles now put Share in the top-right account controls**, matching the dashboard’s Profile placement.
 - **Admins now automatically get every premium perk over SMS**, including the STATS trend arrows that previously required a premium flag same as ASK did — one shared rule instead of a per-feature check.
+- **Signed-in dashboard trip counts, agencies, days ridden, and countries now include imported PRESTO activity**, not just text-logged trips.
+- **PRESTO's import preview now separates fares from card funding**, splitting "loaded" into reloadable-balance top-ups and pass purchases instead of one combined total that made it look like a large, nonexistent balance was unaccounted for.
+- **PRESTO imports now only store fare payments**, not card loads — nothing reads load rows back out of storage once imported, and the preview already summarizes them from the file before saving.
 
 ### Fixed
 
+- **Settings no longer crashes for a brand-new account with no agency chosen yet**, a state every new signup starts in.
+- **Imported PRESTO activity now actually appears on the signed-in dashboard map**, not just the public profile — the dashboard was never wired up to read it.
+- **GO Transit's tap-in and tap-out are now combined into one trip**, fixing a double-counted trip and a duplicate map dot for every GO ride (GO is the only PRESTO agency that taps twice per trip).
+- **Two different riders can no longer collide on the same imported PRESTO record**, which previously could fail one rider's entire import batch if a coincidental match occurred.
 - **Dashboard refreshes now show a loading state while a signed-in session is restored**, instead of appearing blank during a slow auth startup.
 - **Local and deployed maps no longer request Carto tiles that require an API key**, preventing the map from showing a configuration error.
 - **Public profile pages now load their production CSS and JavaScript**, preventing refreshed profiles from appearing as unstyled browser-default HTML.

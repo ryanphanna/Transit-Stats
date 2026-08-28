@@ -17,7 +17,7 @@ const publicHtml = fs.readFileSync(path.join(root, 'public.html'), 'utf8');
 const mainCss = fs.readFileSync(path.join(root, 'styles/main.css'), 'utf8');
 const publicJs = fs.readFileSync(path.join(root, 'js/public.js'), 'utf8');
 const profileJs = fs.readFileSync(path.join(root, 'js/profile.js'), 'utf8');
-const settingsHtml = fs.readFileSync(path.join(root, 'settings.html'), 'utf8');
+const settingsPanelJs = fs.readFileSync(path.join(root, 'js/shared/settings-panel.js'), 'utf8');
 const dashboardAtlasCss = fs.readFileSync(path.join(root, 'styles/pages/dashboard-atlas.css'), 'utf8');
 
 describe('shared Atlas card', () => {
@@ -67,8 +67,8 @@ describe('shared Atlas card', () => {
     });
 
     it('shows both custom and emoji profile links when both exist', () => {
-        expect(settingsHtml).toContain('Profile URLs');
-        expect(settingsHtml).not.toContain('Admins only');
+        expect(settingsPanelJs).toContain('Profile URLs');
+        expect(settingsPanelJs).not.toContain('Admins only');
         expect(profileJs).toContain('const profileUsernames = [...new Set([username, emojiUsername].filter(Boolean))];');
         expect(profileJs).toContain("label: value === customUsername ? 'Custom' : 'Emoji'");
     });

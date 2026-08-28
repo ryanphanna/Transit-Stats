@@ -4,6 +4,7 @@ import { normalizePhone } from '../phone-fields.js';
 
 const DOM = {
     phoneStep: document.getElementById('auth-phone-step'),
+    emailStep: document.getElementById('auth-email-step'),
     codeStep: document.getElementById('auth-code-step'),
     stepFrame: document.querySelector('.auth-step-frame'),
     heading: document.getElementById('auth-heading'),
@@ -12,6 +13,12 @@ const DOM = {
     codeInput: document.getElementById('auth-code'),
     codeWrap: document.querySelector('.auth-code-wrap'),
     requestCode: document.getElementById('btn-auth-request-code'),
+    emailMode: document.getElementById('btn-auth-email-mode'),
+    phoneMode: document.getElementById('btn-auth-phone-mode'),
+    emailInput: document.getElementById('auth-email'),
+    passwordInput: document.getElementById('auth-password'),
+    emailLogin: document.getElementById('btn-auth-email-login'),
+    resetPassword: document.getElementById('btn-auth-reset-password'),
     verifyCode: document.getElementById('btn-auth-verify-code'),
     resendCode: document.getElementById('btn-auth-resend-code'),
     status: document.getElementById('auth-status')
@@ -160,6 +167,62 @@ function wait(milliseconds) {
     return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
+function showEmailStep() {
+    DOM.phoneStep.classList.add('hidden');
+    DOM.codeStep.classList.add('hidden');
+    DOM.emailStep.classList.remove('hidden');
+    DOM.heading.textContent = 'Log in with email';
+    DOM.emailInput.focus();
+}
+
+function showPhoneStep() {
+    DOM.emailStep.classList.add('hidden');
+    DOM.codeStep.classList.add('hidden');
+    DOM.phoneStep.classList.remove('hidden');
+    DOM.heading.textContent = 'Get started or log in';
+    DOM.phoneInput.focus();
+}
+
+async function signInWithEmail() {
+    const email = DOM.emailInput.value.trim();
+    const password = DOM.passwordInput.value;
+    if (!email || !password) {
+        setStatus('Enter your email and password.');
+        return;
+    }
+
+    clearStatus();
+    setBusy(DOM.emailLogin, true, 'Opening…', 'Log in with email');
+    try {
+        await Auth.signInWithPassword(email, password);
+        await Auth.syncSharedSession(auth.currentUser);
+    } catch (error) {
+        setStatus(Auth.getErrorMessage(error.code));
+    } finally {
+        setBusy(DOM.emailLogin, false, 'Opening…', 'Log in with email');
+    }
+}
+
+async function sendPasswordReset() {
+    const email = DOM.emailInput.value.trim();
+    if (!email) {
+        setStatus('Enter your email address first.');
+        DOM.emailInput.focus();
+        return;
+    }
+
+    clearStatus();
+    DOM.resetPassword.disabled = true;
+    try {
+        await Auth.sendPasswordReset(email);
+        setStatus('Password reset email sent.', 'success');
+    } catch (error) {
+        setStatus(Auth.getErrorMessage(error.code));
+    } finally {
+        DOM.resetPassword.disabled = false;
+    }
+}
+
 async function transitionAuthStep(fromStep, toStep) {
     const frame = DOM.stepFrame;
     const startHeight = frame.offsetHeight;
@@ -259,6 +322,13 @@ function setupListeners() {
         if (event.key === 'Enter' && !DOM.verifyCode.disabled) verifyCode();
     });
     DOM.requestCode.addEventListener('click', requestCode);
+    DOM.emailMode.addEventListener('click', showEmailStep);
+    DOM.phoneMode.addEventListener('click', showPhoneStep);
+    DOM.emailLogin.addEventListener('click', signInWithEmail);
+    DOM.resetPassword.addEventListener('click', sendPasswordReset);
+    DOM.passwordInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') signInWithEmail();
+    });
     DOM.verifyCode.addEventListener('click', verifyCode);
     DOM.resendCode.addEventListener('click', requestCode);
 }
