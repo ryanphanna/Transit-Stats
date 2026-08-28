@@ -169,10 +169,22 @@ export const auth = {
     },
 };
 
+// Tracked separately from the *Ready promises (which always resolve, never
+// reject, so a caller awaiting them can't tell success from swallowed
+// failure) so the auth breadcrumb can report whether local storage actually
+// came up, instead of just assuming it did.
+export const authPersistenceStatus = { ok: null, error: null };
+export const firestorePersistenceStatus = { ok: null, error: null };
+
 // Finish configuring persistence before any page guard decides that a page
 // reload means the user is signed out.
 export const authPersistenceReady = setPersistence(authClient, browserLocalPersistence)
+    .then(() => {
+        authPersistenceStatus.ok = true;
+    })
     .catch(error => {
+        authPersistenceStatus.ok = false;
+        authPersistenceStatus.error = error.code || error.message;
         console.warn('Firebase local persistence unavailable:', error.message);
     });
 
@@ -180,7 +192,12 @@ export const authPersistenceReady = setPersistence(authClient, browserLocalPersi
 // Firestore refreshes it from the server. This remains best-effort because
 // some browsers or multi-tab configurations do not support persistent storage.
 export const firestorePersistenceReady = enableMultiTabIndexedDbPersistence(firestoreClient)
+    .then(() => {
+        firestorePersistenceStatus.ok = true;
+    })
     .catch(error => {
+        firestorePersistenceStatus.ok = false;
+        firestorePersistenceStatus.error = error.code || error.message;
         console.warn('Firebase offline cache unavailable:', error.code || error.message);
     });
 
