@@ -245,6 +245,26 @@ html[data-theme="dark"] body.settings-surface .header {
   max-width: 100%;
   color: var(--text-secondary);
   font-size: 0.74rem;
+  font-family: inherit;
+}
+
+#presto-file-input::file-selector-button {
+  margin-right: 10px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-muted);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+#presto-file-input::file-selector-button:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent);
 }
 
 #presto-import-preview,

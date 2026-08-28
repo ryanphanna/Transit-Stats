@@ -10,7 +10,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Changed
 
-- **The login page map now shows the real shape of the TTC network** (Lines 1, 2, 4, 5) for visitors detected in Toronto, instead of the generic abstract squiggle every other city still gets.
+- **The login page map now shows the real shape of the TTC network** (Lines 1, 2, 4, 5) for visitors detected in Toronto, instead of the generic abstract squiggle every other city still gets. Station dots are smaller and filled now, matching the signed-in map's trip dots instead of the old bold hollow-ring look, on both the abstract and real versions.
+- **The PRESTO import file picker now matches the app's styling** instead of showing the raw browser file-input control.
 - **Added a dedicated /import page** for PRESTO pilot accounts: sign in by phone or email (magic link), then upload and import directly — no dashboard detour. Gated the same way as everywhere else (invite-only whitelist, plus the `pilot`/admin check that already gated the Settings import tab).
 - **Fixed the "Use email/phone instead" link buttons rendering as solid gray boxes** instead of plain text links, on the login and import pages.
 - **Added real Terms of Service and Privacy Policy pages**, linked from the login screen — Terms previously existed only as a repo file with no page to link to, and there was no Privacy page at all.

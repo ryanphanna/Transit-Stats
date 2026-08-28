@@ -51,6 +51,8 @@ const TORONTO_REAL_MAP = {
         [341.4, 288.9], // Sheppard-Yonge
         [448.2, 810.3], // Union
         [-60.0, 847.6], // Kipling
+        [385.8, 546.0], // Eglinton
+        [263.0, 567.9], // Cedarvale
     ],
 };
 
@@ -58,13 +60,30 @@ function applyRealTorontoMap(view) {
     Object.entries(TORONTO_REAL_MAP.paths).forEach(([slot, d]) => {
         view.querySelector(`.auth-route-${slot}`)?.setAttribute('d', d);
     });
-    const stationCircles = view.querySelectorAll('.auth-station circle');
-    TORONTO_REAL_MAP.stations.forEach(([cx, cy], index) => {
-        const circle = stationCircles[index];
-        if (!circle) return;
-        circle.setAttribute('cx', cx);
-        circle.setAttribute('cy', cy);
+
+    // Real lines vary a lot in length (Line 4 is ~200px, Line 2 ~800px), but
+    // the shared flowing-dash animation is a fixed fraction of each path's
+    // own length, so the same dash/gap ratio reads as smooth on long lines
+    // and as a chunky dotted line on short ones. Set an absolute dash size
+    // on each path instead, so they all look like the same kind of line.
+    view.querySelectorAll('.auth-route').forEach(path => {
+        const length = path.getTotalLength();
+        if (!length) return;
+        path.style.strokeDasharray = `${(46 / length).toFixed(4)} ${(23 / length).toFixed(4)}`;
     });
+
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const stationGroup = view.querySelector('.auth-station');
+    if (stationGroup) {
+        stationGroup.textContent = '';
+        TORONTO_REAL_MAP.stations.forEach(([cx, cy]) => {
+            const circle = document.createElementNS(svgNS, 'circle');
+            circle.setAttribute('cx', cx);
+            circle.setAttribute('cy', cy);
+            circle.setAttribute('r', 7);
+            stationGroup.appendChild(circle);
+        });
+    }
     // The small dots along each route were placed to match the abstract
     // curves; they don't line up with real geometry, so hide them here.
     view.querySelector('.auth-route-dots')?.classList.add('hidden');

@@ -85,7 +85,10 @@
 .auth-route-blue { stroke: var(--auth-route-blue); }
 .auth-route-red { stroke: var(--auth-route-red); }
 .auth-route-green { stroke: var(--auth-route-green); }
-.auth-station { fill: var(--bg-card); stroke: var(--text-primary); }
+/* Matches the small filled trip dots on the signed-in map (MAP_PIN_COLOR in
+   map-presentation.js), instead of the bolder hollow-ring look, so this
+   preview reads as the same visual language as the real product. */
+.auth-station circle { fill: #066b4b; stroke: #eaf8f2; stroke-width: 1.5; }
 .auth-route-dots { fill: var(--text-primary); }
 .auth-visual::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 45% 44%, transparent 0 28%, rgb(16 42 42 / 10%) 72%), linear-gradient(90deg, rgb(16 42 42 / 10%), transparent 35%); pointer-events: none; }
 .auth-visual-caption, .auth-stat-card { position: absolute; z-index: 1; color: var(--text-primary); }
