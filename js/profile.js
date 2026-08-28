@@ -194,7 +194,12 @@ export const Profile = {
 
         if (emailEl) emailEl.textContent = email || auth.currentUser?.email || '—';
         if (phoneEl) phoneEl.textContent = formatPhoneNumber(this.phone);
-        
+
+        // Primary agency only affects text-in trip logging, so it's only
+        // relevant once a phone number is actually linked.
+        document.getElementById('settings-agency-row')?.classList.toggle('hidden', !this.phone);
+        document.getElementById('settings-agency-no-phone')?.classList.toggle('hidden', !!this.phone);
+
         const nameEl = document.getElementById('settings-name');
         if (nameEl) nameEl.value = this.getDisplayName();
         const nameDisplayEl = document.getElementById('settings-name-display');

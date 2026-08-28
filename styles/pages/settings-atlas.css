@@ -161,6 +161,12 @@ html[data-theme="dark"] body.settings-surface .header {
   color: var(--accent);
 }
 
+.settings-text-action:not(:disabled)::after {
+  content: '→';
+  margin-left: 4px;
+  font-size: 0.85em;
+}
+
 #settings-theme,
 #settings-map-stop-mode {
   width: 124px !important;
@@ -390,6 +396,7 @@ html[data-theme="dark"] body.settings-surface .header {
 
 .settings-public-profile-group .settings-profile-url {
   display: block;
+  flex: 1 1 auto;
   min-width: 0;
   color: var(--text-secondary);
   font-size: 0.78rem;

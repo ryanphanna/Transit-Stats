@@ -12,6 +12,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 - **Settings is now a panel you open from wherever you are, instead of a separate page.** It matches the rest of the app's visual style, opens over the map without losing your place, and organizes sections into sidebar tabs (Account, Map, Profile, Sharing) instead of one long scroll.
 - **Settings now shows your plan (Free, Premium, or Admin)** on the Account tab, so it's clear why premium-gated features do or don't work.
+- **Settings hides the Map tab until a phone number is linked**, since the primary-agency setting there only affects text-in trip logging.
+- **Settings panel polish**: stays a consistent size across tabs instead of resizing per tab, text-link buttons (Reset password, Change, Save, Share) now carry a small arrow so they read clearly as actions, and the Profile URL's Share button lines up with the other action buttons instead of sitting off to the side.
 - **Removed the Routes page and its route-completion tracker**, a leftover from an earlier design. The map is the app's main draw, not a separate route-checklist page.
 - **Social preview images now focus on the full-width map**, leaving trip totals and other stats in the post text where they are easier to read.
 - **Profile preview images now use a versioned path**, so repaired X previews can be fetched instead of reusing a failed image URL.

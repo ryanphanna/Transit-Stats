@@ -63,7 +63,10 @@ function panelMarkup() {
 
                     <div class="settings-panel-pane" data-settings-pane="map">
                         <div class="settings-card premium-card">
-                            <div class="settings-row">
+                            <div id="settings-agency-no-phone" class="settings-coming-soon hidden">
+                                Available once your phone number is linked for text trip logging.
+                            </div>
+                            <div id="settings-agency-row" class="settings-row">
                                 <div class="settings-label-group">
                                     <span class="settings-main-label">Primary agency</span>
                                     <div class="settings-agency-value-row">
@@ -79,7 +82,7 @@ function panelMarkup() {
                         </div>
                     </div>
 
-                    <div id="public-profile-settings" class="settings-panel-pane" data-settings-pane="profile">
+                    <div id="public-profile-settings" class="settings-panel-pane settings-public-profile-group" data-settings-pane="profile">
                         <div class="settings-card premium-card">
                             <div class="settings-row">
                                 <div class="settings-label-group">
@@ -105,7 +108,7 @@ function panelMarkup() {
                         </div>
                     </div>
 
-                    <div id="sharing-settings" class="settings-panel-pane" data-settings-pane="sharing">
+                    <div id="sharing-settings" class="settings-panel-pane settings-public-profile-group" data-settings-pane="sharing">
                         <div class="settings-card premium-card">
                             <div id="settings-admin-username" class="settings-row settings-admin-username-row hidden">
                                 <div class="settings-label-group">
@@ -211,6 +214,12 @@ async function initPanelData() {
     // gets, not just the raw isPremium flag.
     const planEl = document.getElementById('settings-plan');
     if (planEl) planEl.textContent = isAdmin ? 'Admin' : (Profile.data?.isPremium ? 'Premium' : 'Free');
+
+    // Map only holds the primary-agency setting, which only affects text-in
+    // trip logging — pointless to show at all without a linked phone.
+    if (!Profile.phone) {
+        document.querySelector('.settings-panel-tab[data-settings-tab="map"]')?.classList.add('hidden');
+    }
 
     document.getElementById('btn-reset-password')?.addEventListener('click', async () => {
         const button = document.getElementById('btn-reset-password');
