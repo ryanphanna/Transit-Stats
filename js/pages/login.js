@@ -33,8 +33,45 @@ let resendTimer = null;
 let phoneCooldownTimer = null;
 const RESEND_COOLDOWN_SECONDS = 60;
 
+// The real shape of the TTC subway/LRT network (Lines 1, 2, 4, 5), simplified
+// from Atlas route geometry and fitted to the same viewBox/paths the abstract
+// map uses, so Toronto visitors see their own network instead of a generic
+// squiggle. Every other city keeps the abstract shape — sourcing and fitting
+// real geometry per city is its own project, not a quick swap.
+const TORONTO_REAL_MAP = {
+    paths: {
+        gold: 'M328.9 204.2C338.8 265.9 367.8 475.2 388.5 574.4C409.2 673.6 444.7 759.9 452.9 799.4C461.1 838.9 446.5 826.7 437.5 811.5C428.5 796.3 410.6 724.8 398.8 708.1C387.0 691.4 375.3 721.4 366.6 711.1C357.9 700.8 363.3 668.2 346.6 646.3C329.9 624.4 288.2 620.1 266.3 579.5C244.4 538.9 230.8 444.6 215.2 402.6C199.6 360.6 192.4 341.1 172.7 327.6C153.0 314.1 113.2 335.0 97.2 321.5C81.2 308.0 95.0 266.1 76.8 246.6C58.6 227.2 6.6 223.8 -12.0 204.8C-30.6 185.8 -30.9 144.5 -34.7 132.4',
+        blue: 'M-58.3 845.5C-54.1 840.4 -52.8 824.4 -33.4 814.8C-14.0 805.2 36.3 790.5 58.1 787.7C79.9 784.9 -10.8 827.0 97.3 797.8C205.4 768.6 595.5 649.9 706.5 612.7C817.5 575.5 750.0 599.4 763.4 574.4C776.8 549.4 777.4 488.0 786.8 462.6C796.2 437.2 814.5 428.7 820.0 421.9',
+        green: 'M344.7 290.9C367.7 283.8 456.0 256.1 482.9 248.2C509.8 240.3 494.8 246.8 506.3 243.7C517.8 240.6 544.2 232.2 551.8 229.9',
+        red: 'M100.3 622.3C171.4 601.3 436.6 525.2 526.8 496.5C617.0 467.8 613.1 457.1 641.7 450.3C670.3 443.5 669.1 460.9 698.6 455.6C728.1 450.3 798.9 424.8 819.0 418.6',
+    },
+    stations: [
+        [423.1, 699.1], // Bloor-Yonge
+        [387.1, 707.2], // St George
+        [341.4, 288.9], // Sheppard-Yonge
+        [448.2, 810.3], // Union
+        [-60.0, 847.6], // Kipling
+    ],
+};
+
+function applyRealTorontoMap(view) {
+    Object.entries(TORONTO_REAL_MAP.paths).forEach(([slot, d]) => {
+        view.querySelector(`.auth-route-${slot}`)?.setAttribute('d', d);
+    });
+    const stationCircles = view.querySelectorAll('.auth-station circle');
+    TORONTO_REAL_MAP.stations.forEach(([cx, cy], index) => {
+        const circle = stationCircles[index];
+        if (!circle) return;
+        circle.setAttribute('cx', cx);
+        circle.setAttribute('cy', cy);
+    });
+    // The small dots along each route were placed to match the abstract
+    // curves; they don't line up with real geometry, so hide them here.
+    view.querySelector('.auth-route-dots')?.classList.add('hidden');
+}
+
 const TRANSIT_THEMES = [
-    { match: ['toronto'], label: 'Toronto transit colours', featuredLine: 'Line 2 · Bloor–Danforth', colors: ['#f8c84b', '#009b4e', '#8b4a9c', '#e87511'] },
+    { match: ['toronto'], label: 'Toronto transit colours', featuredLine: 'Line 2 · Bloor–Danforth', colors: ['#f8c84b', '#009b4e', '#8b4a9c', '#e87511'], realMap: true },
     { match: ['mississauga'], label: 'MiWay colours', featuredLine: 'MiWay · Route 10', colors: ['#f58220', '#0072bc', '#00a99d', '#f8c84b'] },
     { match: ['vaughan', 'markham', 'richmond hill', 'york region'], label: 'YRT colours', featuredLine: 'Viva Blue', colors: ['#0072bc', '#f8c84b', '#ee6a52', '#3bb58a'] },
     { match: ['montreal'], label: 'Montréal transit colours', featuredLine: 'Orange line', colors: ['#0072bc', '#ee6a52', '#f8c84b', '#3bb58a'] },
@@ -66,6 +103,7 @@ async function applyLocalTransitTheme() {
             view.style.setProperty(`--auth-route-${name}`, theme.colors[index]);
         });
         if (featuredLine) featuredLine.textContent = theme.featuredLine;
+        if (theme.realMap) applyRealTorontoMap(view);
     } catch { /* Default colours remain in place. */ }
 }
 
