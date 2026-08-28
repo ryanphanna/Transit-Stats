@@ -11,6 +11,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 ### Changed
 
 - **Settings is now a panel you open from wherever you are, instead of a separate page.** It matches the rest of the app's visual style, opens over the map without losing your place, and organizes sections into sidebar tabs (Account, Map preferences, Profile, Sharing) instead of one long scroll.
+- **Removed the Routes page and its route-completion tracker**, a leftover from an earlier design. The map is the app's main draw, not a separate route-checklist page.
 - **Social preview images now focus on the full-width map**, leaving trip totals and other stats in the post text where they are easier to read.
 - **Profile preview images now use a versioned path**, so repaired X previews can be fetched instead of reusing a failed image URL.
 - **Profile preview image URLs now advance past cached responses**, so social platforms can fetch the corrected dot map.

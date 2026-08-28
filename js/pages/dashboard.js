@@ -4,7 +4,6 @@ import { refreshIcons } from '../shared/icons.js';
 import { ModalManager } from '../shared/modal-engine.js';
 import { Trips } from '../trips.js';
 import { Stats } from '../stats.js';
-import { RouteTracker } from '../route-tracker.js';
 import { Profile } from '../profile.js';
 import { PredictionEngine } from '../predict.js';
 import { Utils } from '../utils.js';
@@ -20,7 +19,6 @@ import { openSettingsPanel } from '../shared/settings-panel.js';
 
 window.Trips = Trips;
 window.Utils = Utils;
-window.RouteTracker = RouteTracker;
 window.refreshIcons = refreshIcons;
 
 // --- Trip Edit Modal ---

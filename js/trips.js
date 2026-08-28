@@ -90,9 +90,6 @@ export const Trips = {
 
         // Update Global Map
         MapEngine.updateTrips(trips);
-
-        // Keep Route Tracker in sync after Firestore sends a new trip snapshot.
-        if (window.RouteTracker?.currentAgency) window.RouteTracker.refresh();
     },
 
     openEditModal(trip) {

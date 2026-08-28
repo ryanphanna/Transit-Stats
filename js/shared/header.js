@@ -13,9 +13,6 @@ function _render(isAdmin, currentPage, profileHref, shareAction) {
     const root = document.getElementById('app-root');
     if (!root) return;
 
-    const navItems = currentPage === 'dashboard' ? [] : [
-            { id: 'routes', label: 'Routes', icon: 'route', href: '/routes' },
-        ];
     const logoHref = '/dashboard';
 
     const headerHtml = `
@@ -25,14 +22,6 @@ function _render(isAdmin, currentPage, profileHref, shareAction) {
                      <div class="logo-icon"><i data-lucide="zap"></i></div>
                      <span class="logo-text">TransitStats</span>
                 </a>
-
-                <nav class="nav-desktop">
-                    ${navItems.map(item => `
-                        <a href="${item.href}" class="nav-item ${currentPage === item.id ? 'active' : ''}">
-                            <span>${item.label}</span>
-                        </a>
-                    `).join('')}
-                </nav>
 
                 <div class="header-actions">
                     ${shareAction ? `
