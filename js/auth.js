@@ -54,7 +54,7 @@ export const Auth = {
             return {
                 allowed: true,
                 isAdmin: profile.exists && profile.data().isAdmin === true,
-                pilot: (profile.exists && profile.data().pilot) || null,
+                pilot: (profile.exists() && profile.data().pilot) || null,
             };
         } catch (err) {
             console.error('Whitelist check failed, retrying:', err);
@@ -72,7 +72,7 @@ export const Auth = {
                 return {
                     allowed: true,
                     isAdmin: profile.exists && profile.data().isAdmin === true,
-                    pilot: (profile.exists && profile.data().pilot) || null,
+                    pilot: (profile.exists() && profile.data().pilot) || null,
                 };
             } catch (retryErr) {
                 console.error('Whitelist check failed after retry:', retryErr);

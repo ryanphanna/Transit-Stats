@@ -117,3 +117,57 @@ export function preparePrestoStops({ atlasStops = [], firestoreStops = [] } = {}
         ...atlasStops.map(stop => ({ ...stop, __prestoSource: 'atlas' })),
     ];
 }
+
+function isGoTransitRecord(record) {
+    const agency = String(record?.agency || record?.agencySource || '').trim().toLowerCase();
+    return agency === 'go' || agency === 'go transit';
+}
+
+/**
+ * PRESTO's export lists every tap as its own row. GO is the only tap-in/
+ * tap-out agency in the network: each GO trip produces two consecutive
+ * `fare_payment` rows (boarding, then exit). Everything else taps once per
+ * trip. Pairing GO's rows, in timestamp order, turns those two rows back
+ * into one trip instead of double-counting it. A trailing unpaired GO row
+ * (a missed tap-out) stays a boarding-only trip rather than being dropped.
+ */
+export function buildPrestoTrips(records = []) {
+    const trips = [];
+    const goRecords = [];
+
+    for (const record of records) {
+        if (record?.type !== 'fare_payment') continue;
+        if (isGoTransitRecord(record)) {
+            goRecords.push(record);
+        } else {
+            trips.push({ source: 'presto', agency: record.agency, startRecord: record, endRecord: null });
+        }
+    }
+
+    goRecords.sort((a, b) => (Number(a.occurredAtSortKey) || 0) - (Number(b.occurredAtSortKey) || 0));
+    for (let index = 0; index < goRecords.length; index += 2) {
+        const startRecord = goRecords[index];
+        const endRecord = goRecords[index + 1] || null;
+        trips.push({ source: 'presto', agency: startRecord.agency, startRecord, endRecord });
+    }
+
+    return trips;
+}
+
+/**
+ * A lightweight `{ agency, startTime }` projection of PRESTO trips, shaped to
+ * match what Stats.computeTripPeriodCounts/getCountriesRidden already expect
+ * from logged trips. This only covers the summary counts (trip counts,
+ * agencies, days ridden, countries) that don't depend on duration, route, or
+ * stop names — PRESTO trips have none of those, so they stay out of the
+ * richer metrics (top routes/stops, peak times, streaks, highlights).
+ */
+export function projectPrestoTripsForStats(prestoTrips = []) {
+    return prestoTrips
+        .filter(trip => trip.startRecord?.occurredAtSortKey != null
+            && Number.isFinite(Number(trip.startRecord.occurredAtSortKey)))
+        .map(trip => ({
+            agency: trip.agency,
+            startTime: new Date(Number(trip.startRecord.occurredAtSortKey)),
+        }));
+}

@@ -121,7 +121,14 @@ async function fingerprint(record) {
 
 function summarize(records) {
     const farePayments = records.filter(record => record.type === 'fare_payment');
-    const loads = records.filter(record => record.type !== 'fare_payment');
+    // Epurse loads fund the reloadable balance that fares are paid from, so
+    // they're comparable to fareChargedCents. Period pass loads pay for a
+    // separate all-you-can-ride subscription and have no per-fare relationship
+    // at all. Combining them into one "loaded" total invites comparing it
+    // against fares charged and concluding there's a large stray balance that
+    // doesn't actually exist.
+    const epurseLoads = records.filter(record => record.type === 'epurse_load');
+    const passLoads = records.filter(record => record.type === 'period_pass_load');
     const dates = records
         .filter(record => Number.isFinite(record.occurredAtSortKey))
         .sort((left, right) => left.occurredAtSortKey - right.occurredAtSortKey);
@@ -132,9 +139,13 @@ function summarize(records) {
     return {
         rows: records.length,
         farePayments: farePayments.length,
-        loads: loads.length,
+        epurseLoads: epurseLoads.length,
+        passLoads: passLoads.length,
+        // GO's tap-in/tap-out pairs can include a small positive adjustment at
+        // exit, so this is the net amount actually charged, not a sum of charges.
         fareChargedCents: -farePayments.reduce((total, record) => total + (record.amountCents || 0), 0),
-        loadedCents: loads.reduce((total, record) => total + (record.amountCents || 0), 0),
+        epurseLoadedCents: epurseLoads.reduce((total, record) => total + (record.amountCents || 0), 0),
+        passLoadedCents: passLoads.reduce((total, record) => total + (record.amountCents || 0), 0),
         first: dates[0]?.occurredAtLocal || null,
         last: dates.at(-1)?.occurredAtLocal || null,
         agencies,
@@ -193,8 +204,9 @@ export function initPrestoImporter({ user }) {
                 .join(', ');
             preview.textContent = [
                 `${summary.rows} rows ready`,
-                `${summary.farePayments} fare payments · ${summary.loads} loads`,
-                `${money(summary.fareChargedCents)} charged · ${money(summary.loadedCents)} loaded`,
+                `${summary.farePayments} fare payments · ${summary.epurseLoads} balance top-ups · ${summary.passLoads} pass purchases`,
+                `${money(summary.fareChargedCents)} net fares charged (GO tap-in/tap-out pairs are combined into one trip)`,
+                `${money(summary.epurseLoadedCents)} added to reloadable balance · ${money(summary.passLoadedCents)} spent on passes`,
                 `${summary.first || 'Unknown'} to ${summary.last || 'unknown'}`,
                 `Agencies: ${agencySummary || 'none'}`,
                 summary.invalidRows ? `${summary.invalidRows} rows need review and will not be imported.` : 'All rows passed basic validation.',
@@ -227,7 +239,15 @@ export function initPrestoImporter({ user }) {
                 status(statusElement, `Importing batch ${batchNumber} of ${batchCount}…`);
                 const batch = db.batch();
                 records.slice(start, start + 400).forEach(record => {
-                    const ref = db.collection('prestoTransactions').doc(record.fingerprint);
+                    // The fingerprint alone is content-only (date, agency, location,
+                    // type, amount) and does not include the user. Two different
+                    // riders could in principle produce the same fingerprint, which
+                    // would otherwise collide on the same document and fail the
+                    // whole batch (Firestore rules deny writing over another user's
+                    // doc, and a denied op fails the entire batch atomically).
+                    // Prefixing with the uid keeps documents unique per user while
+                    // still deduping a single user's repeat imports.
+                    const ref = db.collection('prestoTransactions').doc(`${user.uid}_${record.fingerprint}`);
                     batch.set(ref, record, { merge: true });
                 });
                 await batch.commit();

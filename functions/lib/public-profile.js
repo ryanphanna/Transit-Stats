@@ -109,6 +109,39 @@ function uniquePrestoStopCandidates(record, stops) {
   return [...candidates.values()];
 }
 
+function isGoTransitRecord(record) {
+  const agency = String(record?.agency || record?.agencySource || '').trim().toLowerCase();
+  return agency === 'go' || agency === 'go transit';
+}
+
+// PRESTO's export lists every tap as its own row. GO is the only tap-in/
+// tap-out agency: each GO trip produces two consecutive `fare_payment` rows
+// (boarding, then exit). Everything else taps once per trip. Pairing GO's
+// rows, in timestamp order, turns those two rows back into one trip instead
+// of double-counting it. A trailing unpaired GO row (a missed tap-out) stays
+// a boarding-only trip rather than being dropped.
+function buildPrestoTrips(records) {
+  const trips = [];
+  const goRecords = [];
+
+  for (const record of records) {
+    if (isGoTransitRecord(record)) {
+      goRecords.push(record);
+    } else {
+      trips.push({ agency: record.agency, startRecord: record, endRecord: null });
+    }
+  }
+
+  goRecords.sort((a, b) => (Number(a.occurredAtSortKey) || 0) - (Number(b.occurredAtSortKey) || 0));
+  for (let index = 0; index < goRecords.length; index += 2) {
+    const startRecord = goRecords[index];
+    const endRecord = goRecords[index + 1] || null;
+    trips.push({ agency: startRecord.agency, startRecord, endRecord });
+  }
+
+  return trips;
+}
+
 const AGENCY_COUNTRIES = new Map([
   ...['TTC', 'GO', 'GO Transit', 'MiWay', 'YRT', 'Brampton Transit', 'Durham Transit', 'HSR', 'GRT', 'Grand River Transit', 'OC Transpo', 'STM', 'TransLink', 'Oakville Transit', 'GTAA Terminal Link', 'Flagship Cruises & Events', 'Exo', 'CDPQ Infra', 'Niagara Region Transit'].map(agency => [agency.toLowerCase(), 'Canada']),
   ...['NYC MTA', 'New York City Transit', 'LA Metro', 'LADOT', 'Los Angeles Department of Transportation', 'Big Blue Bus', 'BART', 'Muni', 'Caltrain', 'VTA', 'AC Transit', 'SamTrans', 'MTS', 'Amtrak', 'Golden Gate Transit', 'SMART', 'Santa Rosa CityBus', 'CDTA', 'NFTA Metro', 'TriMet', 'C-Tran', 'Sound Transit', 'King County Metro', 'Utah Transit Authority', 'Sacramento Regional Transit', 'GCRTA'].map(agency => [agency.toLowerCase(), 'United States']),
@@ -318,17 +351,20 @@ async function handlePublicProfile(req, res) {
 
     const heatmapBands = includeHeatmap ? await buildPublicHeatmap(historyTrips) : undefined;
 
-    prestoRecords.forEach((record) => {
-      const tripDate = Number.isFinite(Number(record.occurredAtSortKey))
-        ? new Date(Number(record.occurredAtSortKey))
-        : new Date(record.occurredAtLocal);
+    const prestoTrips = buildPrestoTrips(prestoRecords);
+
+    prestoTrips.forEach((trip) => {
+      const { startRecord, endRecord } = trip;
+      const tripDate = Number.isFinite(Number(startRecord.occurredAtSortKey))
+        ? new Date(Number(startRecord.occurredAtSortKey))
+        : new Date(startRecord.occurredAtLocal);
       if (!Number.isNaN(tripDate.getTime())) {
         riddenDays.add(`${tripDate.getFullYear()}-${tripDate.getMonth()}-${tripDate.getDate()}`);
         if (tripDate >= thirtyDaysAgo) last30Days += 1;
         if (tripDate >= sevenDaysAgo) last7Days += 1;
       }
 
-      const agency = String(record.agency || '').trim();
+      const agency = String(trip.agency || '').trim();
       if (agency) {
         agencies.add(agency.toLowerCase());
         const country = AGENCY_COUNTRIES.get(agency.toLowerCase());
@@ -337,9 +373,15 @@ async function handlePublicProfile(req, res) {
 
       // Only uniquely resolved PRESTO locations are exposed. Ambiguous
       // directional candidates remain stored but do not get guessed publicly.
-      const candidates = uniquePrestoStopCandidates(record, stops);
-      if (candidates.length === 1) {
-        addPoint(candidates[0].location, 'start', candidates[0].name);
+      const startCandidates = uniquePrestoStopCandidates(startRecord, stops);
+      if (startCandidates.length === 1) {
+        addPoint(startCandidates[0].location, 'start', startCandidates[0].name);
+      }
+      if (endRecord) {
+        const endCandidates = uniquePrestoStopCandidates(endRecord, stops);
+        if (endCandidates.length === 1) {
+          addPoint(endCandidates[0].location, 'end', endCandidates[0].name);
+        }
       }
     });
 
@@ -350,7 +392,7 @@ async function handlePublicProfile(req, res) {
       emoji: profile.emoji || null,
       defaultAgency: profile.defaultAgency || null,
       mapStopMode: getMapStopMode(profile),
-      totalTrips: historyTrips.length + prestoRecords.length,
+      totalTrips: historyTrips.length + prestoTrips.length,
       totalHours: Math.round((totalMinutes / 60) * 10) / 10,
       // Keep the existing response keys for clients that have not refreshed yet.
       thisMonth: last30Days,

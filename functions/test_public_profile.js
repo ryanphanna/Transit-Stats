@@ -204,6 +204,50 @@ test('publicProfile includes uniquely matched PRESTO activity for beta pilots', 
   assert.deepEqual(res.body.points[0].names, ['Union Station Bus Terminal']);
 });
 
+test('publicProfile pairs GO tap-in/tap-out rows into one trip with boarding and exit points', async () => {
+  const handler = loadPublicProfile({
+    docs: { usernames: { 'train-taco-panda': { exists: true, data: () => ({ uid: 'u1' }) } } },
+    profile: {
+      isPublic: true,
+      displayName: 'Test',
+      username: 'train-taco-panda',
+      emojiUsername: 'subway-subway-subway',
+    },
+    tripsSnap: { size: 0, forEach: () => {} },
+    prestoTransactionsSnap: {
+      size: 2,
+      docs: [
+        { data: () => ({
+          type: 'fare_payment',
+          agency: 'GO',
+          locationLabel: 'Union Station Bus Terminal',
+          occurredAtSortKey: Date.now() - 7 * 60 * 60 * 1000,
+        }) },
+        { data: () => ({
+          type: 'fare_payment',
+          agency: 'GO',
+          locationLabel: 'Oakville GO Station Rail',
+          occurredAtSortKey: Date.now() - 6 * 60 * 60 * 1000,
+        }) },
+      ],
+    },
+    stopsSnap: {
+      size: 2,
+      docs: [
+        { data: () => ({ agency: 'GO Transit', name: 'Union Station Bus Terminal', code: '102300', lat: 43.644, lng: -79.377 }) },
+        { data: () => ({ agency: 'GO Transit', name: 'Oakville GO Station Rail', code: '102400', lat: 43.451, lng: -79.688 }) },
+      ],
+    },
+  });
+  const res = mockRes();
+  await handler({ method: 'GET', query: { user: 'train-taco-panda' } }, res);
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.body.totalTrips, 1);
+  assert.equal(res.body.thisMonth, 1);
+  assert.equal(res.body.points.length, 2);
+  assert.deepEqual(res.body.points.map(point => point.type).sort(), ['end', 'start']);
+});
+
 test('publicProfile returns 500 and does not leak internal error detail on unexpected failure', async () => {
   const handler = loadPublicProfile({
     dbModule: { db: { collection: () => { throw new Error('db down'); } } },

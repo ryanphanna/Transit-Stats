@@ -27,8 +27,14 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Signed-in dashboard titles no longer briefly switch back to the profile name**, keeping the account view consistently labeled Your TransitStats.
 - **Signed-in public profiles now put Share in the top-right account controls**, matching the dashboard’s Profile placement.
 - **Admins now automatically get every premium perk over SMS**, including the STATS trend arrows that previously required a premium flag same as ASK did — one shared rule instead of a per-feature check.
+- **Signed-in dashboard trip counts, agencies, days ridden, and countries now include imported PRESTO activity**, not just text-logged trips.
+- **PRESTO's import preview now separates fares from card funding**, splitting "loaded" into reloadable-balance top-ups and pass purchases instead of one combined total that made it look like a large, nonexistent balance was unaccounted for.
 
 ### Fixed
+
+- **Imported PRESTO activity now actually appears on the signed-in dashboard map**, not just the public profile — the dashboard was never wired up to read it.
+- **GO Transit's tap-in and tap-out are now combined into one trip**, fixing a double-counted trip and a duplicate map dot for every GO ride (GO is the only PRESTO agency that taps twice per trip).
+- **Two different riders can no longer collide on the same imported PRESTO record**, which previously could fail one rider's entire import batch if a coincidental match occurred.
 
 - **Dashboard refreshes now show a loading state while a signed-in session is restored**, instead of appearing blank during a slow auth startup.
 - **Local and deployed maps no longer request Carto tiles that require an API key**, preventing the map from showing a configuration error.
