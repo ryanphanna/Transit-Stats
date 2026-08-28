@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy — TransitStats</title>
+    <meta name="robots" content="noindex">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <main class="legal-page">
+        <a class="legal-back" href="/">← TransitStats</a>
+        <h1>Privacy Policy</h1>
+        <p class="legal-updated">Last updated: August 2026.</p>
+
+        <h2>What we collect</h2>
+        <p>To operate the service, Transit Stats collects:</p>
+        <ul>
+            <li><strong>Trip data</strong> — routes, stops, timestamps, and your phone's GPS reading at trip start and end, tied to your account</li>
+            <li><strong>Contact info</strong> — your phone number and/or email address, used for authentication and to send trip-related SMS/MMS</li>
+            <li><strong>Imported activity</strong> — if you import a PRESTO Transit Usage Report or similar, the fare, date, agency, and location fields from that file</li>
+            <li><strong>Stop-sign photos</strong> — sent via MMS to log a trip. These are processed in memory and immediately discarded; they are never written to storage or disk, and photo metadata (which can carry a phone's own GPS location) is never read</li>
+        </ul>
+        <p>We do not read image EXIF metadata, and the only location data we store is your phone's GPS reading at trip start/end — never a location pulled from a photo.</p>
+
+        <h2>Who we share it with</h2>
+        <p>Transit Stats runs on a small set of third-party services, and doesn't sell or share your data beyond what's needed to operate on them:</p>
+        <ul>
+            <li><strong>Twilio</strong> — sends and receives your SMS/MMS trip messages</li>
+            <li><strong>Google Gemini</strong> — parses stop-sign photos and answers natural-language stats questions (premium feature). Your data is never used to train Google's models, and is processed in an isolated session that isn't shared with other users</li>
+            <li><strong>Google Firebase</strong> — authentication, database, hosting, and backend functions</li>
+            <li><strong>Atlas</strong> — a public, read-only transit data source we use to enrich stop and route metadata. No user data is ever sent to it</li>
+        </ul>
+
+        <h2>What other users can see</h2>
+        <p>Your trips are private by default and are never publicly readable, even when a Public Profile is enabled — Firestore access rules restrict trip documents to your own account. If you opt into a Public Profile, it exposes only aggregate stats (trip/hour totals, an anonymized location heatmap) — never individual trip details, routes, or exact timestamps.</p>
+        <p>Trips also contribute to shared, aggregate predictions (for example, confirming a stop serves a given route) that make the service smarter for everyone. Those shared records never carry your account ID — only the anonymous fact. Your personal prediction data is tied to your account but isn't exposed to other users or readable from the browser at all.</p>
+
+        <h2>How long we keep it</h2>
+        <p>Trip and account data is kept for as long as your account is active. You can request deletion of your account and all associated trip data at any time — see Contact below.</p>
+
+        <h2>Your choices</h2>
+        <ul>
+            <li>Reply <strong>STOP</strong> to any Transit Stats text to stop receiving messages and unregister your number</li>
+            <li>Request a copy or deletion of your data at any time</li>
+            <li>Turn Public Profile sharing on or off from Settings whenever you like</li>
+        </ul>
+
+        <h2>Changes</h2>
+        <p>This policy may change as the service changes. Continued use after an update means you accept the revised policy. See our <a href="/terms">Terms of Service</a> for the rest of the rules around using the service.</p>
+
+        <h2>Contact</h2>
+        <p>Questions, data requests, or concerns: <a href="https://github.com/ryanphanna/Transit-Stats/issues">GitHub Issues</a> or the contact method the operator has given you directly.</p>
+    </main>
+</body>
+</html>

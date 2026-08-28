@@ -33,6 +33,8 @@ export default defineConfig(({ mode, command }) => {
                     v2: './v2.html',
                     'v2-home': './v2-home.html',
                     rocket: './Tools/Rocket/index.html',
+                    terms: './terms.html',
+                    privacy: './privacy.html',
                 },
                 output: {
                     entryFileNames: (chunkInfo) => chunkInfo.name === 'public'
@@ -96,7 +98,7 @@ export default defineConfig(({ mode, command }) => {
 
                 server.middlewares.use((req, res, next) => {
                     const url = req.url.split('?')[0];
-                    const targets = ['/dashboard', '/trip-paths', '/v2', '/v2-home', '/public'];
+                    const targets = ['/dashboard', '/trip-paths', '/v2', '/v2-home', '/public', '/terms', '/privacy'];
                     const isUserProfilePath = url === '/user' || url.startsWith('/user/');
                     if (targets.includes(url)) {
                         req.url = url + '.html' + (req.url.includes('?') ? '?' + req.url.split('?')[1] : '');

@@ -10,6 +10,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Changed
 
+- **Added real Terms of Service and Privacy Policy pages**, linked from the login screen — Terms previously existed only as a repo file with no page to link to, and there was no Privacy page at all.
 - **Settings is now a panel you open from wherever you are, instead of a separate page.** It matches the rest of the app's visual style, opens over the map without losing your place, and organizes sections into sidebar tabs (Account, Map, Profile, Sharing) instead of one long scroll.
 - **Settings now shows your plan (Free, Premium, or Admin)** on the Account tab, so it's clear why premium-gated features do or don't work.
 - **Settings hides the Map tab until a phone number is linked**, since the primary-agency setting there only affects text-in trip logging.
