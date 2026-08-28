@@ -227,7 +227,12 @@ export function initPrestoImporter({ user }) {
         if (!pendingRecords.length || importButton.disabled) return;
         importButton.disabled = true;
         try {
-            const records = await Promise.all(pendingRecords.map(async record => ({
+            // Card loads (pass purchases, balance top-ups) aren't rides, and
+            // nothing reads them back out of storage once imported — the
+            // preview above already summarized them from the file in memory.
+            // Only fare payments are worth persisting.
+            const fareRecords = pendingRecords.filter(record => record.type === 'fare_payment');
+            const records = await Promise.all(fareRecords.map(async record => ({
                 ...record,
                 fingerprint: await fingerprint(record),
                 userId: user.uid,
@@ -253,7 +258,7 @@ export function initPrestoImporter({ user }) {
                 await batch.commit();
             }
             const imported = await db.collection('prestoTransactions').where('userId', '==', user.uid).get();
-            status(statusElement, `${records.length} rows processed; ${imported.size} unique PRESTO records now stored. Stop matching will continue later, and re-imports will not create duplicates.`, 'success');
+            status(statusElement, `${pendingRecords.length} rows processed; ${imported.size} fare payments now stored. Stop matching will continue later, and re-imports will not create duplicates.`, 'success');
             show(actions, false);
         } catch (error) {
             status(statusElement, error.message || 'Could not import PRESTO activity.');

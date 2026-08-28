@@ -29,6 +29,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Admins now automatically get every premium perk over SMS**, including the STATS trend arrows that previously required a premium flag same as ASK did — one shared rule instead of a per-feature check.
 - **Signed-in dashboard trip counts, agencies, days ridden, and countries now include imported PRESTO activity**, not just text-logged trips.
 - **PRESTO's import preview now separates fares from card funding**, splitting "loaded" into reloadable-balance top-ups and pass purchases instead of one combined total that made it look like a large, nonexistent balance was unaccounted for.
+- **PRESTO imports now only store fare payments**, not card loads — nothing reads load rows back out of storage once imported, and the preview already summarizes them from the file before saving.
 
 ### Fixed
 
