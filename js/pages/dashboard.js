@@ -16,6 +16,7 @@ import { MapEngine } from '../map-engine.js';
 import { TripController } from '../trips/TripController.js';
 import { loadAtlasStops } from '../atlas-stops.js';
 import { renderAtlasCard } from '../shared/atlas-card.js';
+import { openSettingsPanel } from '../shared/settings-panel.js';
 
 window.Trips = Trips;
 window.Utils = Utils;
@@ -127,7 +128,7 @@ function setupShareMap() {
         const username = Profile.data?.username;
         if (!username || !Profile.data?.isPublic) {
             UI.showNotification(username ? 'Turn on your public profile first.' : 'Set up your public identity first.');
-            window.location.href = '/settings#public-profile-settings';
+            openSettingsPanel({ tab: 'sharing' });
             return;
         }
 

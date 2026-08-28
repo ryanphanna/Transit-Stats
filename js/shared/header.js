@@ -1,4 +1,5 @@
 import { Auth } from '../auth.js';
+import { openSettingsPanel } from './settings-panel.js';
 
 /**
  * Shared Header Component
@@ -12,7 +13,7 @@ function _render(isAdmin, currentPage, profileHref, shareAction) {
     const root = document.getElementById('app-root');
     if (!root) return;
 
-    const navItems = ['dashboard', 'settings'].includes(currentPage) ? [] : [
+    const navItems = currentPage === 'dashboard' ? [] : [
             { id: 'routes', label: 'Routes', icon: 'route', href: '/routes' },
         ];
     const logoHref = '/dashboard';
@@ -42,9 +43,9 @@ function _render(isAdmin, currentPage, profileHref, shareAction) {
                         <a href="${profileHref}" class="header-action-link ${currentPage === 'profile' ? 'active' : ''}" title="Profile">
                             <span>Profile</span>
                         </a>` : ''}
-                    <a href="/settings" class="header-action-link ${currentPage === 'settings' ? 'active' : ''}" title="Settings">
+                    <button id="btn-header-settings" class="header-action-link" title="Settings" type="button">
                         <span>Settings</span>
-                    </a>
+                    </button>
                     <button id="btn-header-logout" class="header-action-link header-logout" title="Log out" aria-label="Log out">
                         <span>Log out</span>
                     </button>
@@ -55,6 +56,8 @@ function _render(isAdmin, currentPage, profileHref, shareAction) {
 
     root.insertAdjacentHTML('afterbegin', headerHtml);
     if (window.lucide) lucide.createIcons();
+
+    document.getElementById('btn-header-settings')?.addEventListener('click', () => openSettingsPanel());
 
     const logout = document.getElementById('btn-header-logout');
     let armed = false;

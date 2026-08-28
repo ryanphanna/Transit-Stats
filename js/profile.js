@@ -127,7 +127,9 @@ export const Profile = {
         const options = [...optionsByValue.values()].sort((a, b) => a.label.localeCompare(b.label));
         const automatic = this.data?.defaultAgencyMode === 'automatic' || !defaultValue;
         const agencyDisplay = document.getElementById('settings-agency-display');
-        const selectedAgency = options.find(option => option.value.toLowerCase() === defaultValue.toLowerCase());
+        const selectedAgency = defaultValue
+            ? options.find(option => option.value.toLowerCase() === defaultValue.toLowerCase())
+            : null;
         const effectiveAutomatic = automatic || !selectedAgency;
 
         agencyEl.disabled = false;

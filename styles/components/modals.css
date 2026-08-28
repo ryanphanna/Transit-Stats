@@ -147,3 +147,109 @@
 .btn-danger-outline:hover { background: var(--danger); color: white; }
 .btn-danger { background: var(--danger); border-color: var(--danger); color: white; }
 
+/* --- Settings panel (tabbed modal, replaces the old /settings page) --- */
+.modal-settings {
+  width: 92%;
+  max-width: 820px;
+  max-height: 85vh;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-settings .modal-header {
+  margin-bottom: 0;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+
+.settings-panel-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.settings-panel-nav {
+  flex: 0 0 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 12px;
+  border-right: 1px solid var(--border);
+  background: var(--bg-app);
+  overflow-y: auto;
+}
+
+.settings-panel-tab {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.settings-panel-tab:hover {
+  background: var(--bg-muted);
+  color: var(--text-primary);
+}
+
+.settings-panel-tab.active {
+  background: var(--accent);
+  color: white;
+}
+
+.settings-panel-content {
+  flex: 1;
+  min-width: 0;
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+
+.settings-panel-pane {
+  display: none;
+}
+
+.settings-panel-pane.active {
+  display: block;
+}
+
+@media (max-width: 640px) {
+  .modal-settings {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: 100%;
+    top: 0;
+    left: 0;
+    transform: none;
+    border-radius: 0;
+  }
+
+  .settings-panel-body {
+    flex-direction: column;
+  }
+
+  .settings-panel-nav {
+    flex: none;
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .settings-panel-tab {
+    flex: none;
+    white-space: nowrap;
+  }
+}
+

@@ -31,7 +31,6 @@ export default defineConfig(({ mode, command }) => {
                     dashboard: './dashboard.html',
                     routes: './routes.html',
                     'trip-paths': './trip-paths.html',
-                    settings: './settings.html',
                     v2: './v2.html',
                     'v2-home': './v2-home.html',
                     rocket: './Tools/Rocket/index.html',
@@ -98,7 +97,7 @@ export default defineConfig(({ mode, command }) => {
 
                 server.middlewares.use((req, res, next) => {
                     const url = req.url.split('?')[0];
-                    const targets = ['/dashboard', '/routes', '/trip-paths', '/v2', '/v2-home', '/settings', '/public'];
+                    const targets = ['/dashboard', '/routes', '/trip-paths', '/v2', '/v2-home', '/public'];
                     const isUserProfilePath = url === '/user' || url.startsWith('/user/');
                     if (targets.includes(url)) {
                         req.url = url + '.html' + (req.url.includes('?') ? '?' + req.url.split('?')[1] : '');

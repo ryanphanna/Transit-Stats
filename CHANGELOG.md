@@ -10,6 +10,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Changed
 
+- **Settings is now a panel you open from wherever you are, instead of a separate page.** It matches the rest of the app's visual style, opens over the map without losing your place, and organizes sections into sidebar tabs (Account, Map preferences, Profile, Sharing) instead of one long scroll.
 - **Social preview images now focus on the full-width map**, leaving trip totals and other stats in the post text where they are easier to read.
 - **Profile preview images now use a versioned path**, so repaired X previews can be fetched instead of reusing a failed image URL.
 - **Profile preview image URLs now advance past cached responses**, so social platforms can fetch the corrected dot map.
@@ -25,6 +26,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Fixed
 
+- **Settings no longer crashes for a brand-new account with no agency chosen yet**, a state every new signup starts in.
 - **Dashboard refreshes now show a loading state while a signed-in session is restored**, instead of appearing blank during a slow auth startup.
 - **Local and deployed maps no longer request Carto tiles that require an API key**, preventing the map from showing a configuration error.
 - **Public profile pages now load their production CSS and JavaScript**, preventing refreshed profiles from appearing as unstyled browser-default HTML.
