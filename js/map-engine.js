@@ -1,6 +1,7 @@
 import { PredictionEngine } from './predict.js';
 import { auth } from './firebase.js';
 import { buildStopIndex, resolveStopLocation } from './atlas-stop-resolver.js';
+import { preparePrestoStops, resolvePrestoStopLocation } from './presto-stop-matcher.js';
 import { getTripStopLabel } from './trip-display.js';
 import { createMapSurface, DEFAULT_MAP_CENTER, DEFAULT_MAP_OVERVIEW_ZOOM } from './map-surface.js';
 import {
@@ -46,6 +47,8 @@ export const MapEngine = {
     _renderTimer: null,
     _lastLibSize: 0,
     _stopIndex: new Map(),
+    _prestoStops: [],
+    _prestoTrips: [],
     _stopSourcesReady: false,
     _canvasRenderer: null,
     _renderGeneration: 0,
@@ -172,7 +175,21 @@ export const MapEngine = {
         if (this._deferInitialView && this._isFirstLoad) {
             this._renderQuickSavedMarkers(newTrips);
         }
-        
+
+        if (this._renderTimer) cancelAnimationFrame(this._renderTimer);
+        this._renderTimer = requestAnimationFrame(() => {
+            this.renderMarkers();
+            this._renderTimer = null;
+        });
+    },
+
+    // Imported PRESTO activity is map-only: it has no duration/route/stats
+    // shape, so it stays out of `this.trips` (which feeds the trip feed and
+    // stats view) and is rendered as an additional set of points instead.
+    updatePrestoTrips(prestoTrips) {
+        this._prestoTrips = prestoTrips;
+        if (!this.map) return;
+
         if (this._renderTimer) cancelAnimationFrame(this._renderTimer);
         this._renderTimer = requestAnimationFrame(() => {
             this.renderMarkers();
@@ -214,6 +231,7 @@ export const MapEngine = {
     setStopSources({ atlasStops = [], firestoreStops = [] } = {}) {
         PredictionEngine.stopsLibrary = firestoreStops;
         this._stopIndex = buildStopIndex({ atlasStops, normalizedStops: firestoreStops });
+        this._prestoStops = preparePrestoStops({ atlasStops, firestoreStops });
         this._stopSourcesReady = true;
         this._skipLookup.clear();
         return this.map ? this.renderMarkers() : Promise.resolve();
@@ -288,6 +306,13 @@ export const MapEngine = {
     },
 
     _resolveStop(trip, side) {
+        if (trip.source === 'presto') {
+            const record = side === 'boarding' ? trip.startRecord : trip.endRecord;
+            return record
+                ? resolvePrestoStopLocation(record, this._prestoStops)
+                : { source: 'unresolved', location: null, matchStatus: 'not_applicable', candidates: [] };
+        }
+
         if (this._stopSourcesReady) return resolveStopLocation(trip, side, this._stopIndex);
 
         const saved = side === 'boarding'
@@ -354,8 +379,9 @@ export const MapEngine = {
         const showExiting = this.filter === 'exiting' || isBoth;
 
         // The map represents the complete trip history. Repeated trips at the
-        // same GTFS stop are collapsed into one point below.
-        const limitedTrips = this.trips;
+        // same GTFS stop are collapsed into one point below. Imported PRESTO
+        // activity renders alongside logged trips but isn't part of `this.trips`.
+        const limitedTrips = [...this.trips, ...this._prestoTrips];
 
         for (let index = 0; index < limitedTrips.length; index += 1) {
             const trip = limitedTrips[index];

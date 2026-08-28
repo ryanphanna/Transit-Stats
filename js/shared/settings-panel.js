@@ -4,12 +4,14 @@ import { Profile } from '../profile.js';
 import { UI } from '../ui-utils.js';
 import { ModalManager } from './modal-engine.js';
 import { refreshIcons } from './icons.js';
+import { initPrestoImporter } from '../presto-importer.js';
 
 const TABS = [
     { id: 'account', label: 'Account' },
     { id: 'map', label: 'Map' },
     { id: 'profile', label: 'Profile' },
     { id: 'sharing', label: 'Sharing' },
+    { id: 'import', label: 'Import' },
 ];
 
 let injected = false;
@@ -158,6 +160,24 @@ function panelMarkup() {
                             </div>
                         </div>
                     </div>
+
+                    <div class="settings-panel-pane" data-settings-pane="import">
+                        <div id="presto-import-group" class="settings-card premium-card">
+                            <div class="settings-row settings-presto-import-row">
+                                <div class="settings-label-group">
+                                    <span class="settings-main-label">Import PRESTO activity</span>
+                                    <span class="settings-sub-label">Upload PRESTO Transit Usage Reports. This stays separate from text-logged trips; unclear locations are matched later.</span>
+                                </div>
+                                <input id="presto-file-input" type="file" accept=".csv,text/csv" multiple>
+                                <button id="presto-preview-button" class="btn btn-sm btn-primary" type="button" disabled>Preview</button>
+                            </div>
+                            <div id="presto-import-status" class="settings-row hidden" role="status" aria-live="polite"></div>
+                            <div id="presto-import-preview" class="settings-row hidden"></div>
+                            <div id="presto-import-actions" class="settings-row hidden">
+                                <button id="presto-import-button" class="btn btn-primary" type="button">Import activity</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -219,6 +239,15 @@ async function initPanelData() {
     // trip logging — pointless to show at all without a linked phone.
     if (!Profile.phone) {
         document.querySelector('.settings-panel-tab[data-settings-tab="map"]')?.classList.add('hidden');
+    }
+
+    // PRESTO import writes directly into shared collections without the
+    // trip-review pipeline other imports go through, so it stays an admin
+    // tool until there's a real pilot-onboarding flow for it.
+    if (isAdmin) {
+        initPrestoImporter({ user });
+    } else {
+        document.querySelector('.settings-panel-tab[data-settings-tab="import"]')?.classList.add('hidden');
     }
 
     document.getElementById('btn-reset-password')?.addEventListener('click', async () => {

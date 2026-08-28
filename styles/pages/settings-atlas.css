@@ -236,6 +236,37 @@ html[data-theme="dark"] body.settings-surface .header {
   padding: 12px 16px;
 }
 
+.settings-presto-import-row {
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+#presto-file-input {
+  max-width: 100%;
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+}
+
+#presto-import-preview,
+#presto-import-status {
+  white-space: pre-line;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+#presto-import-preview strong {
+  color: var(--text-primary);
+}
+
+#presto-import-actions {
+  justify-content: flex-end;
+}
+
+.presto-import-status.success {
+  color: var(--success);
+}
+
 .settings-coming-soon {
   padding: 24px 20px;
   color: var(--text-secondary);

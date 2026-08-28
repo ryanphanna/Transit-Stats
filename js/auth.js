@@ -42,7 +42,7 @@ export const Auth = {
             if (email) {
                 const doc = await db.collection('allowedUsers').doc(email.toLowerCase()).get();
                 if (!doc.exists) return { allowed: false, error: 'Access denied. This app is invite-only.' };
-                return { allowed: true, isAdmin: doc.data().isAdmin === true };
+                return { allowed: true, isAdmin: doc.data().isAdmin === true, pilot: doc.data().pilot || null };
             }
 
             if (!userId) return { allowed: false, error: 'Access denied. This app is invite-only.' };
@@ -51,7 +51,11 @@ export const Auth = {
             // readable by regular users, so use the signed-in user's profile
             // for the client-side admin flag instead of querying that mapping.
             const profile = await db.collection('profiles').doc(userId).get();
-            return { allowed: true, isAdmin: profile.exists && profile.data().isAdmin === true };
+            return {
+                allowed: true,
+                isAdmin: profile.exists && profile.data().isAdmin === true,
+                pilot: (profile.exists() && profile.data().pilot) || null,
+            };
         } catch (err) {
             console.error('Whitelist check failed, retrying:', err);
             // Retry once before giving up — guards against transient network errors
@@ -60,12 +64,16 @@ export const Auth = {
                 if (email) {
                     const doc = await db.collection('allowedUsers').doc(email.toLowerCase()).get();
                     if (!doc.exists) return { allowed: false, error: 'Access denied. This app is invite-only.' };
-                    return { allowed: true, isAdmin: doc.data().isAdmin === true };
+                    return { allowed: true, isAdmin: doc.data().isAdmin === true, pilot: doc.data().pilot || null };
                 }
 
                 if (!userId) return { allowed: false, error: 'Access denied. This app is invite-only.' };
                 const profile = await db.collection('profiles').doc(userId).get();
-                return { allowed: true, isAdmin: profile.exists && profile.data().isAdmin === true };
+                return {
+                    allowed: true,
+                    isAdmin: profile.exists && profile.data().isAdmin === true,
+                    pilot: (profile.exists() && profile.data().pilot) || null,
+                };
             } catch (retryErr) {
                 console.error('Whitelist check failed after retry:', retryErr);
                 return { allowed: false, retryable: true, error: 'Verification failed. Try again.' };

@@ -1,21 +1,27 @@
 import { Stats } from '../stats.js';
 import { Utils } from '../utils.js';
 import { formatAtlasNumber } from '../shared/atlas-card.js';
+import { projectPrestoTripsForStats } from '../presto-stop-matcher.js';
 
 /**
  * TripStatsView - Manages the visualization of transit metrics and analytics.
  */
 export const TripStatsView = {
-    render(trips, range = 30) {
-        const periodCounts = Stats.computeTripPeriodCounts(trips);
+    render(trips, prestoTrips = [], range = 30) {
+        // Trip counts, agencies, days ridden, and countries also count
+        // imported PRESTO activity. The richer metrics below (routes, stops,
+        // peak times, streaks, highlights) stay scoped to logged trips, which
+        // is the only source with duration/route/stop data.
+        const summaryTrips = [...trips, ...projectPrestoTripsForStats(prestoTrips)];
+        const periodCounts = Stats.computeTripPeriodCounts(summaryTrips);
         this._updateBox('stat-trips-lifetime', periodCounts.lifetime);
         this._updateBox('stat-trips-month', periodCounts.thisMonth);
         this._updateBox('stat-trips-week', periodCounts.thisWeek);
         this._updateBox('stat-days-ridden', periodCounts.daysRidden);
         this._updateBox('stat-agencies-ridden', new Set(
-            (trips || []).map(trip => String(trip.agency || '').trim()).filter(Boolean)
+            summaryTrips.map(trip => String(trip.agency || '').trim()).filter(Boolean)
         ).size);
-        this._updateBox('stat-countries-ridden', Stats.getCountriesRidden(trips));
+        this._updateBox('stat-countries-ridden', Stats.getCountriesRidden(summaryTrips));
 
         const metrics = Stats.computeMetrics(trips, range);
 
