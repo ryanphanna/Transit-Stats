@@ -7,7 +7,7 @@ import { refreshIcons } from './icons.js';
 
 const TABS = [
     { id: 'account', label: 'Account' },
-    { id: 'map', label: 'Map preferences' },
+    { id: 'map', label: 'Map' },
     { id: 'profile', label: 'Profile' },
     { id: 'sharing', label: 'Sharing' },
 ];
@@ -50,6 +50,12 @@ function panelMarkup() {
                                 <div class="settings-label-group">
                                     <span class="settings-main-label">Phone</span>
                                     <span id="settings-phone" class="settings-main-label settings-account-value text-xs">Loading...</span>
+                                </div>
+                            </div>
+                            <div class="settings-row">
+                                <div class="settings-label-group">
+                                    <span class="settings-main-label">Plan</span>
+                                    <span id="settings-plan" class="settings-main-label settings-account-value text-xs">—</span>
                                 </div>
                             </div>
                         </div>
@@ -195,10 +201,16 @@ async function initPanelData() {
     if (!context) return;
     initialized = true;
 
-    const { user } = context;
+    const { user, isAdmin } = context;
     await Profile.load(user);
     await Profile.loadAgencies(user);
     await Profile.init();
+
+    // Admins already get every premium perk (see hasPremiumAccess on the
+    // backend), so the plan shown here reflects what the account actually
+    // gets, not just the raw isPremium flag.
+    const planEl = document.getElementById('settings-plan');
+    if (planEl) planEl.textContent = isAdmin ? 'Admin' : (Profile.data?.isPremium ? 'Premium' : 'Free');
 
     document.getElementById('btn-reset-password')?.addEventListener('click', async () => {
         const button = document.getElementById('btn-reset-password');
