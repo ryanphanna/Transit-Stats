@@ -1,4 +1,6 @@
 import { db, serverTimestamp } from './firebase.js';
+import { loadAtlasStops } from './atlas-stops.js';
+import { buildStopIndex, resolveStopLocation } from './atlas-stop-resolver.js';
 
 const AGENCY_ALIASES = new Map([
     ['Toronto Transit Commission', 'TTC'],
@@ -168,6 +170,39 @@ function status(element, message, type = '') {
     show(element, true);
 }
 
+// Every imported record starts as stopMatchStatus: 'pending' - matching
+// happens after import, not synchronously here. This runs the same
+// resolution the rest of the app uses (Atlas stop data + the shared
+// resolver) against the fare records at preview time only to tell the
+// rider how many will likely resolve immediately versus need the later
+// matching pass, without blocking or changing what actually gets saved.
+async function checkLocationMatches(records) {
+    const fareRecords = records.filter(record => record.type === 'fare_payment' && record.location);
+    if (fareRecords.length === 0) return { checked: 0, matched: 0, pending: 0 };
+
+    const agencies = [...new Set(fareRecords.map(record => record.agency).filter(Boolean))];
+    let index;
+    try {
+        const atlasStops = await loadAtlasStops(agencies);
+        index = buildStopIndex({ atlasStops, normalizedStops: [] });
+    } catch {
+        // Can't reach Atlas right now - don't block the preview over a
+        // count that's advisory anyway.
+        return { checked: 0, matched: 0, pending: 0 };
+    }
+
+    let matched = 0;
+    fareRecords.forEach(record => {
+        const resolution = resolveStopLocation(
+            { agency: record.agency, startStopName: record.locationLabel },
+            'boarding',
+            index,
+        );
+        if (resolution.location) matched += 1;
+    });
+    return { checked: fareRecords.length, matched, pending: fareRecords.length - matched };
+}
+
 export function initPrestoImporter({ user }) {
     const group = document.getElementById('presto-import-group');
     const input = document.getElementById('presto-file-input');
@@ -202,6 +237,12 @@ export function initPrestoImporter({ user }) {
             const agencySummary = Object.entries(summary.agencies)
                 .map(([agency, count]) => `${agency} (${count})`)
                 .join(', ');
+            const locationCheck = await checkLocationMatches(pendingRecords);
+            const locationLine = locationCheck.checked === 0
+                ? 'Locations will be matched after import.'
+                : locationCheck.pending === 0
+                    ? `All ${locationCheck.matched} ride locations already recognized.`
+                    : `${locationCheck.matched} of ${locationCheck.checked} ride locations recognized now; ${locationCheck.pending} will be matched after import.`;
             preview.textContent = [
                 `${summary.rows} rows ready`,
                 `${summary.farePayments} fare payments · ${summary.epurseLoads} balance top-ups · ${summary.passLoads} pass purchases`,
@@ -210,7 +251,7 @@ export function initPrestoImporter({ user }) {
                 `${summary.first || 'Unknown'} to ${summary.last || 'unknown'}`,
                 `Agencies: ${agencySummary || 'none'}`,
                 summary.invalidRows ? `${summary.invalidRows} rows need review and will not be imported.` : 'All rows passed basic validation.',
-                'Stop matching happens after import. Unclear locations will still be saved and can be matched later.',
+                locationLine,
             ].join('\n');
             show(preview, true);
             show(actions, summary.invalidRows === 0 && pendingRecords.length > 0);
