@@ -1,4 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// presto-importer.js imports firebase.js for db/serverTimestamp (used only by
+// initPrestoImporter, not by the pure functions this file tests), but
+// firebase.js initializes real Firebase Auth at module load. That throws in
+// CI, which has no Firebase env vars configured. Mock it so importing this
+// module for its parsing/summary functions doesn't require a real project.
+vi.mock('../js/firebase.js', () => ({ db: {}, serverTimestamp: () => null }));
+
 import { classifyType, parseAmountCents, parseCsv, parseDate, summarize, toRecord } from '../js/presto-importer.js';
 
 describe('parseCsv', () => {
