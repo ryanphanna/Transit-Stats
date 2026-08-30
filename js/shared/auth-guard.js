@@ -1,4 +1,4 @@
-import { auth, authPersistenceReady } from '../firebase.js';
+import { auth, authPersistenceReady, authPersistenceStatus, firestorePersistenceStatus } from '../firebase.js';
 import { Auth } from '../auth.js';
 
 // Mobile browsers can suspend a tab while Firebase is restoring IndexedDB,
@@ -23,9 +23,19 @@ const AUTH_BREADCRUMB_KEY = 'transitstats_auth_breadcrumb';
 // back later instead of requiring a live repro.
 async function recordAuthBreadcrumb(reason, extra = {}) {
     let sharedSessionStatus = 'unknown';
+    let sharedSessionError = null;
     try {
         const response = await fetch(Auth.sharedSessionUrl, { credentials: 'include' });
         sharedSessionStatus = response.status;
+        // The endpoint returns 401 for two different reasons (cookie never
+        // sent vs. cookie present but invalid) — without the body, both look
+        // identical here and point at different bugs.
+        try {
+            const body = await response.json();
+            sharedSessionError = body?.error || null;
+        } catch {
+            // No JSON body (e.g. a 204) — nothing to capture.
+        }
     } catch (error) {
         sharedSessionStatus = `fetch-failed: ${error.message}`;
     }
@@ -36,6 +46,9 @@ async function recordAuthBreadcrumb(reason, extra = {}) {
             path: window.location.pathname,
             hasCurrentUser: Boolean(auth.currentUser),
             sharedSessionStatus,
+            sharedSessionError,
+            authPersistence: authPersistenceStatus,
+            firestorePersistence: firestorePersistenceStatus,
             ...extra,
         }));
     } catch (error) {
