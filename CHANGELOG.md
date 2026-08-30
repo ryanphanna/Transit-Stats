@@ -10,6 +10,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Changed
 
+- **Added a private travel-corridor map**, connecting verified boarding and exit stops so repeated trips become visibly stronger without changing the dashboard.
 - **Removed the stalled Trip Paths beta**, leaving the working personal map as the foundation for future map improvements.
 - **The login page map now shows the real shape of the TTC network** (Lines 1, 2, 4, 5) for visitors detected in Toronto, instead of the generic abstract squiggle every other city still gets. Station dots are smaller and filled now, matching the signed-in map's trip dots instead of the old bold hollow-ring look, on both the abstract and real versions.
 - **The PRESTO import file picker now matches the app's styling** instead of showing the raw browser file-input control.

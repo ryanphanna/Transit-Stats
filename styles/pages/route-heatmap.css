@@ -1,0 +1,52 @@
+.route-heatmap-surface {
+    overflow: hidden;
+    background: var(--bg-app);
+}
+
+.route-heatmap-view {
+    position: fixed;
+    inset: 0;
+}
+
+.route-heatmap-map {
+    width: 100%;
+    height: 100%;
+    background: #eef1ee;
+}
+
+.route-heatmap-panel {
+    position: absolute;
+    z-index: 1000;
+    top: 84px;
+    left: 24px;
+    width: min(320px, calc(100vw - 48px));
+    padding: 20px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    background: var(--bg-card);
+    box-shadow: 0 12px 30px rgb(0 0 0 / 12%);
+}
+
+.route-heatmap-panel h1 {
+    margin: 4px 0 8px;
+}
+
+.route-heatmap-panel p {
+    margin: 0;
+    color: var(--text-secondary);
+}
+
+.route-heatmap-panel .eyebrow {
+    color: var(--accent-primary);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.route-heatmap-status {
+    margin-top: 16px !important;
+    color: var(--text-primary) !important;
+    font-size: 13px;
+    font-weight: 600;
+}
