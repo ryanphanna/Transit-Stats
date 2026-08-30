@@ -29,7 +29,7 @@ export function renderAtlasCard({ publicProfile = false, signedIn = false, loadi
     container.classList.toggle('is-loading', loading);
     container.setAttribute('aria-busy', loading ? 'true' : 'false');
 
-    const action = publicProfile
+    const action = publicProfile && !signedIn
         ? '<a class="atlas-card-cta" href="/">Make your own map <span aria-hidden="true">→</span></a>'
         : '<button id="atlas-share-map" class="atlas-card-cta" type="button">Share your map <span aria-hidden="true">→</span></button>';
     const initialName = loading ? '' : signedIn ? 'Your' : 'Traveler';

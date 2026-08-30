@@ -62,8 +62,13 @@ describe('shared Atlas card', () => {
 
     it('routes public-profile navigation based on auth state', () => {
         expect(publicJs).toContain("branding.href = signedIn ? '/dashboard' : '/';");
-        expect(publicJs).toContain("cardAction.href = signedIn ? '/dashboard' : '/';");
-        expect(publicJs).toContain("'Dashboard <span aria-hidden=\"true\">→</span>'");
+        // Signed in and viewing your own public profile keeps a real action on
+        // the card (Share, matching the dashboard's card) instead of going
+        // empty or pointing back at itself with a "Dashboard" link.
+        expect(publicJs).toContain("shareButton.addEventListener('click', shareCurrentPage);");
+        expect(publicJs).toContain('cardAction.replaceWith(shareButton);');
+        expect(publicJs).toContain("cardAction.href = '/';");
+        expect(publicJs).toContain("'Make your own map <span aria-hidden=\"true\">→</span>'");
     });
 
     it('shows both custom and emoji profile links when both exist', () => {

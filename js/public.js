@@ -19,42 +19,52 @@ let publicMapState = null;
 let publicMapRefitFrame = null;
 let publicHeaderRendered = false;
 
+async function shareCurrentPage() {
+    const url = window.location.href;
+    if (navigator.share) {
+        try {
+            await navigator.share({ title: document.title, url });
+            return;
+        } catch (error) {
+            if (error?.name === 'AbortError') return;
+        }
+    }
+    try {
+        if (!navigator.clipboard?.writeText) return;
+        await navigator.clipboard.writeText(url);
+    } catch {
+        // Sharing is optional; avoid surfacing a generic failure toast.
+    }
+}
+
 function updatePublicNavigation(user) {
     const signedIn = Boolean(user);
     const branding = document.querySelector('.public-branding');
     const cardAction = document.querySelector('.atlas-card-cta');
 
     if (branding) branding.href = signedIn ? '/dashboard' : '/';
+
+    // Viewing your own public profile while signed in: the card keeps a
+    // real action instead of going empty, matching the dashboard's card,
+    // which always keeps "Share your map" in place.
     if (signedIn && cardAction && cardAction.tagName === 'A') {
-        cardAction.remove();
+        const shareButton = document.createElement('button');
+        shareButton.id = 'atlas-share-map';
+        shareButton.className = 'atlas-card-cta';
+        shareButton.type = 'button';
+        shareButton.innerHTML = 'Share your map <span aria-hidden="true">→</span>';
+        shareButton.addEventListener('click', shareCurrentPage);
+        cardAction.replaceWith(shareButton);
     }
     if (signedIn && !publicHeaderRendered) {
         publicHeaderRendered = true;
         initHeader({ currentPage: 'dashboard', shareAction: true });
-        document.getElementById('btn-header-share')?.addEventListener('click', async () => {
-            const url = window.location.href;
-            if (navigator.share) {
-                try {
-                    await navigator.share({ title: document.title, url });
-                    return;
-                } catch (error) {
-                    if (error?.name === 'AbortError') return;
-                }
-            }
-            try {
-                if (!navigator.clipboard?.writeText) return;
-                await navigator.clipboard.writeText(url);
-            } catch {
-                // Sharing is optional; avoid surfacing a generic failure toast.
-            }
-        });
+        document.getElementById('btn-header-share')?.addEventListener('click', shareCurrentPage);
     }
-    if (!cardAction) return;
+    if (signedIn || !cardAction) return;
 
-    cardAction.href = signedIn ? '/dashboard' : '/';
-    cardAction.innerHTML = signedIn
-        ? 'Dashboard <span aria-hidden="true">→</span>'
-        : 'Make your own map <span aria-hidden="true">→</span>';
+    cardAction.href = '/';
+    cardAction.innerHTML = 'Make your own map <span aria-hidden="true">→</span>';
 }
 
 async function initializePublicNavigation() {
