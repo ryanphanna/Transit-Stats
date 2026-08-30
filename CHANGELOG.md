@@ -10,6 +10,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Changed
 
+- **Removed the stalled Trip Paths beta**, leaving the working personal map as the foundation for future map improvements.
 - **The login page map now shows the real shape of the TTC network** (Lines 1, 2, 4, 5) for visitors detected in Toronto, instead of the generic abstract squiggle every other city still gets. Station dots are smaller and filled now, matching the signed-in map's trip dots instead of the old bold hollow-ring look, on both the abstract and real versions.
 - **The PRESTO import file picker now matches the app's styling** instead of showing the raw browser file-input control.
 - **Phone-only accounts can now link an email in Settings.** Previously a phone account had no email at all, so signing in with an email anywhere (like the new Import page) created a separate, disconnected account with none of your trips. Linking uses the same Firebase provider as email sign-in, so afterward either one reaches the same account.
