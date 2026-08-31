@@ -34,7 +34,7 @@ For history of security audits and incident remediation reports, please see **[I
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in this project, please report it via the **[GitHub Private Vulnerability Reporting](https://github.com/ryanphanna/Transit-Stats/security/advisories/new)** tool. Private reports allow for a secure disclosure process before a formal patch is released.
+If you discover a security vulnerability in this project, please report it via the **[GitHub Private Vulnerability Reporting](https://github.com/ryanphanna/TransitStats/security/advisories/new)** tool. Private reports allow for a secure disclosure process before a formal patch is released.
 
 ### What to Include
 

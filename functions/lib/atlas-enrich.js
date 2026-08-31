@@ -6,7 +6,7 @@
  * Atlas commit 0276e20. When a stop doc is created here with a code but
  * missing facts, we fill the blanks from that file.
  *
- * Layering rules (Transit-Stats#152):
+ * Layering rules (TransitStats#152):
  *  - `name` is the user's label — NEVER set or changed by this module.
  *  - Official names land in `aliases` verbatim, for matching only.
  *  - Only missing fields are filled; curated values are never overwritten.

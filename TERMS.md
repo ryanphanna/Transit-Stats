@@ -51,4 +51,4 @@ These terms may change at any time. Continued use after a change means you accep
 
 ## Contact
 
-Report abuse, request data deletion, or ask questions via [GitHub Issues](https://github.com/ryanphanna/Transit-Stats/issues) or the contact method the operator has given you directly.
+Report abuse, request data deletion, or ask questions via [GitHub Issues](https://github.com/ryanphanna/TransitStats/issues) or the contact method the operator has given you directly.
