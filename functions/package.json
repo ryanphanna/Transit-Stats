@@ -1,6 +1,6 @@
 {
   "name": "transit-stats-functions",
-  "description": "Cloud Functions for Transit Stats SMS tracking",
+  "description": "Cloud Functions for TransitStats SMS tracking",
   "version": "1.47.13",
   "main": "index.js",
   "engines": {

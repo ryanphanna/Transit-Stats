@@ -17,7 +17,7 @@ const { FieldValue } = require('firebase-admin/firestore');
 
 const ATLAS_R2_BASE = process.env.ATLAS_R2_BASE || 'https://pub-85dc05d357954b6399c9a44018a3221e.r2.dev';
 
-// Transit Stats agency name -> Atlas slug. Extend as new agencies are ridden;
+// TransitStats agency name -> Atlas slug. Extend as new agencies are ridden;
 // slugs must match Atlas public/data/index.json.
 const AGENCY_SLUGS = {
   'TTC': 'ttc',

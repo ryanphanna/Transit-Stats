@@ -1,4 +1,4 @@
-# Transit Stats
+# TransitStats
 
 A transit trip tracker for enthusiasts to analyze and visualize personal ridership.
 

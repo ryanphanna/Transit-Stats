@@ -1,5 +1,5 @@
 /**
- * Firebase Cloud Functions for Transit Stats
+ * Firebase Cloud Functions for TransitStats
  * Entry point — exports all cloud functions.
  * SMS webhook for Twilio-based trip tracking.
  */

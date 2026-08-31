@@ -1,6 +1,6 @@
 # Tools
 
-Operational scripts and small utilities for Transit Stats.
+Operational scripts and small utilities for TransitStats.
 
 Keep reusable scripts here. Do not create a second top-level scripts folder unless the repo develops a clear split between product/admin utilities and build/dev automation.
 

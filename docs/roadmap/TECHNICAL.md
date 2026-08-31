@@ -58,7 +58,7 @@ quality and coverage improvements.
   existing stop documents and updating `lookupStop`/`findMatchingStops` to query with
   `array-contains`. Currently worked around by a cross-agency name fallback in `lookupStop`.
 - [x] **Scheduled GTFS refresh** — done via Atlas. Atlas re-processes and republishes
-  GTFS data on its own weekly schedule; Transit Stats reads the current snapshot from
+  GTFS data on its own weekly schedule; TransitStats reads the current snapshot from
   R2 instead of running its own staleness detection.
 - [ ] **Stop merge history** — when stops are merged via the Consolidation Panel,
   log the merge so it can be audited and reverted if needed.
@@ -69,7 +69,7 @@ quality and coverage improvements.
 
 ## Multi-Agency
 
-Transit Stats already handles more than one agency, but the normalization,
+TransitStats already handles more than one agency, but the normalization,
 analytics, and stop-layer assumptions are still uneven.
 
 - [x] **Configurable multi-agency route normalization** — replace TTC-biased ML route heuristics with an explicit per-agency normalization policy layer. Keep raw trip route text unchanged, but derive a separate normalized route label for training and analytics so TTC branch/shuttle variants can collapse appropriately without hardcoding Toronto-specific assumptions into the model pipeline.

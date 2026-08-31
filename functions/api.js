@@ -1,5 +1,5 @@
 /**
- * HTTP API for the Transit Stats companion app.
+ * HTTP API for the TransitStats companion app.
  * OTP login and authenticated command dispatch live in their own modules.
  */
 
