@@ -67,7 +67,7 @@ export async function reserveUsername(profile, username) {
         const usernameDocs = await Promise.all(
             [...new Set([username, legacyUsername])].map(candidate => db.collection('usernames').doc(candidate).get()),
         );
-        if (usernameDocs.some(existing => existing.exists)) {
+        if (usernameDocs.some(existing => existing.exists())) {
             UI.showNotification('That public identity is already in use. Choose another.');
             return;
         }
@@ -121,7 +121,7 @@ export async function reserveCustomUsername(profile, value) {
         const usernameDocs = await Promise.all(
             [...new Set([username, legacyUsername])].map(candidate => db.collection('usernames').doc(candidate).get()),
         );
-        const occupiedByOtherUser = usernameDocs.some(existing => existing.exists && existing.data()?.uid !== user.uid);
+        const occupiedByOtherUser = usernameDocs.some(existing => existing.exists() && existing.data()?.uid !== user.uid);
         if (occupiedByOtherUser) {
             UI.showNotification('That username is already in use. Choose another.');
             return;

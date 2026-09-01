@@ -49,6 +49,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Fixed
 
+- **Authentication and profile checks now handle missing Firestore documents correctly**, preventing phone sign-in crashes and false username/phone availability results.
 - **Settings no longer crashes for a brand-new account with no agency chosen yet**, a state every new signup starts in.
 - **Imported PRESTO activity now actually appears on the signed-in dashboard map**, not just the public profile — the dashboard was never wired up to read it.
 - **GO Transit's tap-in and tap-out are now combined into one trip**, fixing a double-counted trip and a duplicate map dot for every GO ride (GO is the only PRESTO agency that taps twice per trip).

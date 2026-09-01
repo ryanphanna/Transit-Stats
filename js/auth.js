@@ -41,7 +41,7 @@ export const Auth = {
         try {
             if (email) {
                 const doc = await db.collection('allowedUsers').doc(email.toLowerCase()).get();
-                if (!doc.exists) return { allowed: false, error: 'Access denied. This app is invite-only.' };
+                if (!doc.exists()) return { allowed: false, error: 'Access denied. This app is invite-only.' };
                 return { allowed: true, isAdmin: doc.data().isAdmin === true, pilot: doc.data().pilot || null };
             }
 
@@ -53,7 +53,7 @@ export const Auth = {
             const profile = await db.collection('profiles').doc(userId).get();
             return {
                 allowed: true,
-                isAdmin: profile.exists && profile.data().isAdmin === true,
+                isAdmin: profile.exists() && profile.data().isAdmin === true,
                 pilot: (profile.exists() && profile.data().pilot) || null,
             };
         } catch (err) {
@@ -63,7 +63,7 @@ export const Auth = {
             try {
                 if (email) {
                     const doc = await db.collection('allowedUsers').doc(email.toLowerCase()).get();
-                    if (!doc.exists) return { allowed: false, error: 'Access denied. This app is invite-only.' };
+                    if (!doc.exists()) return { allowed: false, error: 'Access denied. This app is invite-only.' };
                     return { allowed: true, isAdmin: doc.data().isAdmin === true, pilot: doc.data().pilot || null };
                 }
 
@@ -71,7 +71,7 @@ export const Auth = {
                 const profile = await db.collection('profiles').doc(userId).get();
                 return {
                     allowed: true,
-                    isAdmin: profile.exists && profile.data().isAdmin === true,
+                    isAdmin: profile.exists() && profile.data().isAdmin === true,
                     pilot: (profile.exists() && profile.data().pilot) || null,
                 };
             } catch (retryErr) {
