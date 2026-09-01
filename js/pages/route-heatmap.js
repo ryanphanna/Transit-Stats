@@ -51,6 +51,9 @@ function renderCorridors(trips) {
 
 async function init() {
     MapEngine.init([], null, { deferInitialView: true });
+    // This surface is a corridor heatmap, not a stop map. Keep the dashboard's
+    // stop markers intact while hiding them here so route colour stays legible.
+    MapEngine.layers.markers.remove();
     corridorLayer.addTo(MapEngine.map);
     const { user, isAdmin } = await requireAuth();
     initHeader({ isAdmin, currentPage: 'route-heatmap' });

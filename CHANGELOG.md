@@ -49,6 +49,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Fixed
 
+- **The corridor heatmap now shows route usage without stop dots**, keeping the map focused on repeated travel patterns.
 - **Travel corridor usage is now shown through colour intensity alone**, keeping every line equally readable instead of making busy routes physically thicker.
 - **Travel corridors now follow verified transit route geometry instead of drawing straight lines across the map**, and one unavailable agency no longer prevents other corridors from loading.
 - **Authentication and profile checks now handle missing Firestore documents correctly**, preventing phone sign-in crashes and false username/phone availability results.
