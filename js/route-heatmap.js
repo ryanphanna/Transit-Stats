@@ -43,6 +43,21 @@ export function getCorridorStyle(count, maxCount = count) {
     };
 }
 
+export function getDensestCorridorViewport(points = [], cellSize = 0.5) {
+    const cells = new Map();
+    points.forEach(point => {
+        const lat = Number(point?.lat);
+        const lng = Number(point?.lng ?? point?.lon);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+        const key = `${Math.floor(lat / cellSize)}:${Math.floor(lng / cellSize)}`;
+        const cell = cells.get(key) || { weight: 0, points: [] };
+        cell.weight += Math.max(1, Number(point.usage ?? point.count ?? 1));
+        cell.points.push({ lat, lng });
+        cells.set(key, cell);
+    });
+    return [...cells.values()].sort((first, second) => second.weight - first.weight)[0]?.points || [];
+}
+
 export function routeMatches(featureRoute, tripRoute) {
     const feature = String(featureRoute || '').trim().toLowerCase().replace(/^(route|line)\s*/i, '');
     const trip = String(tripRoute || '').trim().toLowerCase().replace(/^(route|line)\s*/i, '');

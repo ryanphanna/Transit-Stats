@@ -6,11 +6,13 @@ import { PredictionEngine } from '../predict.js';
 import { MapEngine } from '../map-engine.js';
 import { loadAtlasStops } from '../atlas-stops.js';
 import { loadAtlasRoutes } from '../atlas-routes.js';
-import { clipTripToRoute, getCorridorStyle, routeMatches } from '../route-heatmap.js';
+import { fitMapToDensePoints } from '../map-presentation.js';
+import { clipTripToRoute, getCorridorStyle, getDensestCorridorViewport, routeMatches } from '../route-heatmap.js';
 
 const status = document.getElementById('route-heatmap-status');
 const corridorLayer = L.layerGroup();
 let routeFeatures = [];
+let hasFitToCorridors = false;
 
 function setStatus(message) {
     if (status) status.textContent = message;
@@ -35,7 +37,7 @@ function renderCorridors(trips) {
                 const key = [routeFeatures.indexOf(feature), trip.startStopCode || '', trip.endStopCode || ''].join(':');
                 const existing = clipped.get(key);
                 if (existing) existing.count += 1;
-                else clipped.set(key, { line, count: 1 });
+                else clipped.set(key, { line, count: 1, start, end });
             });
     });
     const maxCount = Math.max(1, ...[...clipped.values()].map(item => item.count));
@@ -47,6 +49,18 @@ function renderCorridors(trips) {
     }).addTo(corridorLayer));
     const completeTrips = [...clipped.values()].reduce((total, corridor) => total + corridor.count, 0);
     setStatus(`${clipped.size} corridors · ${completeTrips} trips with verified route paths`);
+
+    if (!hasFitToCorridors && clipped.size > 0) {
+        const viewportPoints = [...clipped.values()].flatMap(({ start, end, count }) => [
+            { ...start, usage: count },
+            { ...end, usage: count },
+        ]);
+        hasFitToCorridors = fitMapToDensePoints(
+            MapEngine.map,
+            getDensestCorridorViewport(viewportPoints),
+            { maxZoom: 12 },
+        );
+    }
 }
 
 async function init() {

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { aggregateTripCorridors, clipRouteGeometry, getCorridorStyle, routeMatches } from '../js/route-heatmap.js';
+import {
+    aggregateTripCorridors,
+    clipRouteGeometry,
+    getCorridorStyle,
+    getDensestCorridorViewport,
+    routeMatches,
+} from '../js/route-heatmap.js';
 
 const endpoint = (agency, start, end) => ({
     trip: { agency, startStopName: 'Start', endStopName: 'End' },
@@ -43,4 +49,12 @@ it('matches route branches without drawing a straight line between stops', () =>
         [0, 10],
         [5, 10],
     ]);
+});
+
+it('selects the busiest half-degree area for the initial view', () => {
+    expect(getDensestCorridorViewport([
+        { lat: 43.65, lng: -79.38, usage: 10 },
+        { lat: 43.70, lng: -79.40, usage: 10 },
+        { lat: 45.42, lng: -75.70, usage: 30 },
+    ])).toEqual([{ lat: 45.42, lng: -75.70 }]);
 });
