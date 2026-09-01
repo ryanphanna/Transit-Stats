@@ -32,10 +32,14 @@ export function aggregateTripCorridors(endpointTrips = []) {
 
 export function getCorridorStyle(count, maxCount = count) {
     const ratio = Math.log1p(Math.max(0, count)) / Math.log1p(Math.max(1, maxCount));
+    const low = [166, 224, 202];
+    const high = [6, 107, 75];
+    const color = `#${low.map((value, index) => Math.round(value + ((high[index] - value) * ratio))
+        .toString(16).padStart(2, '0')).join('')}`;
     return {
-        color: '#066b4b',
-        weight: 2 + (7 * ratio),
-        opacity: 0.28 + (0.52 * ratio),
+        color,
+        weight: 4,
+        opacity: 0.72,
     };
 }
 

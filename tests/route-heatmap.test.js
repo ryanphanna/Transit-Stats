@@ -32,8 +32,8 @@ describe('aggregateTripCorridors', () => {
 it('makes busier corridors stronger', () => {
     const quiet = getCorridorStyle(1, 4);
     const busy = getCorridorStyle(4, 4);
-    expect(busy.weight).toBeGreaterThan(quiet.weight);
-    expect(busy.opacity).toBeGreaterThan(quiet.opacity);
+    expect(busy.weight).toBe(quiet.weight);
+    expect(busy.color).not.toBe(quiet.color);
 });
 
 it('matches route branches without drawing a straight line between stops', () => {
