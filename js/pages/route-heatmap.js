@@ -94,7 +94,9 @@ async function init() {
         await MapEngine.setStopSources({ firestoreStops: PredictionEngine.stopsLibrary || [] });
         setStatus('Using saved stop locations; some corridors may be incomplete.');
     }
-    await MapEngine.releaseInitialView();
+    // The stop layer is hidden on this surface, so do not release its
+    // dashboard-style auto-fit. The corridor layer performs the single
+    // initial fit once route geometry is ready.
     renderCorridors(TripController.allTrips);
 }
 

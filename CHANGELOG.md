@@ -49,6 +49,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Fixed
 
+- **The corridor map no longer zooms twice while loading**, so it settles directly on the busiest corridor area.
 - **The corridor heatmap now opens on the area with the most recorded corridor use**, instead of starting at a broad multi-city overview.
 - **The corridor heatmap now shows route usage without stop dots**, keeping the map focused on repeated travel patterns.
 - **Travel corridor usage is now shown through colour intensity alone**, keeping every line equally readable instead of making busy routes physically thicker.
