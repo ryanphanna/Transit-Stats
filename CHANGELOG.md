@@ -49,6 +49,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Fixed
 
+- **Travel corridors now follow verified transit route geometry instead of drawing straight lines across the map**, and one unavailable agency no longer prevents other corridors from loading.
 - **Authentication and profile checks now handle missing Firestore documents correctly**, preventing phone sign-in crashes and false username/phone availability results.
 - **Settings no longer crashes for a brand-new account with no agency chosen yet**, a state every new signup starts in.
 - **Imported PRESTO activity now actually appears on the signed-in dashboard map**, not just the public profile — the dashboard was never wired up to read it.

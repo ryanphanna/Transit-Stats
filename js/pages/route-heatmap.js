@@ -5,10 +5,12 @@ import { TripController } from '../trips/TripController.js';
 import { PredictionEngine } from '../predict.js';
 import { MapEngine } from '../map-engine.js';
 import { loadAtlasStops } from '../atlas-stops.js';
-import { aggregateTripCorridors, getCorridorStyle } from '../route-heatmap.js';
+import { loadAtlasRoutes } from '../atlas-routes.js';
+import { clipTripToRoute, getCorridorStyle, routeMatches } from '../route-heatmap.js';
 
 const status = document.getElementById('route-heatmap-status');
 const corridorLayer = L.layerGroup();
+let routeFeatures = [];
 
 function setStatus(message) {
     if (status) status.textContent = message;
@@ -16,17 +18,35 @@ function setStatus(message) {
 
 function renderCorridors(trips) {
     if (!MapEngine.map) return;
-    const corridors = aggregateTripCorridors(MapEngine.getTripEndpointLocations(trips));
+    const endpoints = MapEngine.getTripEndpointLocations(trips);
     corridorLayer.clearLayers();
-    const maxCount = corridors[0]?.count || 1;
-    corridors.forEach(corridor => {
-        L.polyline([[corridor.start.lat, corridor.start.lng], [corridor.end.lat, corridor.end.lng]], {
-            ...getCorridorStyle(corridor.count, maxCount),
-            interactive: false,
-        }).addTo(corridorLayer);
+    const clipped = new Map();
+    endpoints.forEach(({ trip, boarding, exiting }) => {
+        const start = boarding?.location;
+        const end = exiting?.location;
+        if (!start || !end) return;
+        routeFeatures
+            .filter(feature => feature.__agency === trip.agency)
+            .filter(feature => routeMatches(feature.properties?.routeShortName || feature.properties?.routeId, trip.route))
+            .map(feature => ({ feature, line: clipTripToRoute(feature, trip, start, end) }))
+            .filter(candidate => candidate.line)
+            .slice(0, 1)
+            .forEach(({ feature, line }) => {
+                const key = [routeFeatures.indexOf(feature), trip.startStopCode || '', trip.endStopCode || ''].join(':');
+                const existing = clipped.get(key);
+                if (existing) existing.count += 1;
+                else clipped.set(key, { line, count: 1 });
+            });
     });
-    const completeTrips = corridors.reduce((total, corridor) => total + corridor.count, 0);
-    setStatus(`${corridors.length} corridor${corridors.length === 1 ? '' : 's'} · ${completeTrips} trips with both stops`);
+    const maxCount = Math.max(1, ...[...clipped.values()].map(item => item.count));
+    clipped.forEach(({ line, count }) => L.polyline(line, {
+        ...getCorridorStyle(count, maxCount),
+        interactive: false,
+        lineCap: 'round',
+        lineJoin: 'round',
+    }).addTo(corridorLayer));
+    const completeTrips = [...clipped.values()].reduce((total, corridor) => total + corridor.count, 0);
+    setStatus(`${clipped.size} corridors · ${completeTrips} trips with verified route paths`);
 }
 
 async function init() {
@@ -38,6 +58,13 @@ async function init() {
     TripController.listen(user.uid, trips => {
         MapEngine.updateTrips(trips);
         renderCorridors(trips);
+        loadAtlasRoutes(trips).then(features => {
+            routeFeatures = features;
+            renderCorridors(trips);
+        }).catch(error => {
+            console.warn('Route geometry unavailable:', error);
+            setStatus('Route geometry unavailable; no corridors drawn.');
+        });
     });
 
     await Trips.loadStopsLibrary();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aggregateTripCorridors, getCorridorStyle } from '../js/route-heatmap.js';
+import { aggregateTripCorridors, clipRouteGeometry, getCorridorStyle, routeMatches } from '../js/route-heatmap.js';
 
 const endpoint = (agency, start, end) => ({
     trip: { agency, startStopName: 'Start', endStopName: 'End' },
@@ -34,4 +34,13 @@ it('makes busier corridors stronger', () => {
     const busy = getCorridorStyle(4, 4);
     expect(busy.weight).toBeGreaterThan(quiet.weight);
     expect(busy.opacity).toBeGreaterThan(quiet.opacity);
+});
+
+it('matches route branches without drawing a straight line between stops', () => {
+    expect(routeMatches('510A', '510')).toBe(true);
+    expect(clipRouteGeometry([[0, 0], [10, 0], [10, 10]], 0.25, 0.75)).toEqual([
+        [0, 5],
+        [0, 10],
+        [5, 10],
+    ]);
 });
