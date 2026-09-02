@@ -42,12 +42,24 @@ let turnstileToken = '';
 let turnstileWaiters = [];
 window.onTurnstileToken = (token) => {
     turnstileToken = token;
-    turnstileWaiters.forEach(resolve => resolve(token));
+    turnstileWaiters.forEach(waiter => waiter.resolve(token));
     turnstileWaiters = [];
 };
 function getTurnstileToken() {
     if (turnstileToken) return Promise.resolve(turnstileToken);
-    return new Promise(resolve => turnstileWaiters.push(resolve));
+    return new Promise((resolve, reject) => {
+        const waiter = {
+            resolve: token => {
+                window.clearTimeout(timeout);
+                resolve(token);
+            },
+        };
+        const timeout = window.setTimeout(() => {
+            turnstileWaiters = turnstileWaiters.filter(candidate => candidate !== waiter);
+            reject(new Error('Security check did not load. Please refresh and try again.'));
+        }, 8000);
+        turnstileWaiters.push(waiter);
+    });
 }
 function resetTurnstile() {
     turnstileToken = '';
