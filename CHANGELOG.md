@@ -10,6 +10,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Changed
 
+- **Added anonymous GA4 website-usage measurement** for the main app, dashboard, import flow, and marketing pages, so product usage can be understood without sending trip or location data.
+
 - **Login codes are now protected against bot/spam abuse.** Requesting a text code goes through an invisible bot check before the SMS is sent, so opening sign-up to the public won't risk someone racking up texting costs by spamming fake numbers.
 
 - **TransitStats is now named consistently across the app, legal pages, documentation, and operational tooling.**
