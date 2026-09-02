@@ -138,11 +138,22 @@ export const Auth = {
     },
 
     async requestPhoneCode(phoneNumber, turnstileToken) {
-        const response = await fetch(this.phoneApiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'request_otp', phoneNumber, turnstileToken })
-        });
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 15000);
+        let response;
+        try {
+            response = await fetch(this.phoneApiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'request_otp', phoneNumber, turnstileToken }),
+                signal: controller.signal,
+            });
+        } catch (error) {
+            if (error.name === 'AbortError') throw new Error('The request took too long. Please try again.');
+            throw new Error('Could not reach TransitStats. Please check your connection and try again.');
+        } finally {
+            window.clearTimeout(timeout);
+        }
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || 'Could not send a verification code.');
         return data;

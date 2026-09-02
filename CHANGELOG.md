@@ -10,6 +10,10 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Changed
 
+- **Fixed local phone login security checks**, which were rejected before producing a verification token because the widget used an invalid invisible-size setting.
+
+- **Login requests now fail clearly when the security check or API hangs**, instead of leaving the button stuck on “Sending…”.
+
 - **Added anonymous GA4 website-usage measurement** for the main app, dashboard, import flow, and marketing pages, so product usage can be understood without sending trip or location data.
 
 - **Login codes are now protected against bot/spam abuse.** Requesting a text code goes through an invisible bot check before the SMS is sent, so opening sign-up to the public won't risk someone racking up texting costs by spamming fake numbers.
