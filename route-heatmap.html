@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransitStats — Travel Corridors</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha256-tXCrvaljxgtN5LT/Syb5Mm9T+yzPFGH98JVcoJT7JTk=" crossorigin="anonymous">
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/pages/route-heatmap.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="route-heatmap-surface">
+    <main id="app-root">
+        <section class="route-heatmap-view" aria-labelledby="route-heatmap-title">
+            <div id="main-map" class="route-heatmap-map"></div>
+            <div class="route-heatmap-panel">
+                <p class="eyebrow">Your TransitStats</p>
+                <h1 id="route-heatmap-title">Travel corridors</h1>
+                <p>Lines connect stops you have boarded and exited at. Repeated trips appear stronger.</p>
+                <p id="route-heatmap-status" class="route-heatmap-status">Loading your trips…</p>
+            </div>
+        </section>
+    </main>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script type="module" src="js/pages/route-heatmap.js"></script>
+</body>
+</html>

@@ -12,7 +12,7 @@ function normalizePhoneNumber(phone) {
   return '+' + cleaned;
 }
 
-function createOtpHandlers({ db, adminAuth, sendSmsReply, logger }) {
+function createOtpHandlers({ db, adminAuth, sendSmsReply, verifyTurnstile, logger }) {
   async function isAdminPhone(phoneDoc) {
     const data = phoneDoc.data() || {};
     if (data.userId) {
@@ -33,6 +33,13 @@ function createOtpHandlers({ db, adminAuth, sendSmsReply, logger }) {
 
     if (phoneNumber.length < 8) {
       res.status(400).json({ error: 'Invalid phone number format.' });
+      return;
+    }
+
+    const verified = await verifyTurnstile(req.body.turnstileToken, req.ip).catch(() => false);
+    if (!verified) {
+      logger.warn('OTP Request denied: Turnstile verification failed', { phoneNumber, traceId }, traceId);
+      res.status(400).json({ error: 'Verification failed. Please try again.' });
       return;
     }
 

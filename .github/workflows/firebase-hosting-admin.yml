@@ -1,4 +1,4 @@
-name: Deploy Transit Stats admin
+name: Deploy TransitStats admin
 
 on:
   push:

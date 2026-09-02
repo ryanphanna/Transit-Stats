@@ -62,6 +62,6 @@ The same refactor also dropped the `agency`/`route` fields from `predictionStats
 3. **Backfilled**: all 131 affected trips were reprocessed in chronological order (required for correct journey linking); prediction stats were patched/corrected rather than reprocessed a second time where duplication would otherwise result.
 4. **Deployed and verified**: confirmed live via Cloud Function logs and a direct Firestore check before and after.
 
-**Status: Resolved.** See [Issue #153](https://github.com/ryanphanna/Transit-Stats/issues/153) and `CHANGELOG.md` for full technical detail.
+**Status: Resolved.** See [Issue #153](https://github.com/ryanphanna/TransitStats/issues/153) and `CHANGELOG.md` for full technical detail.
 
 **Prevention going forward:** the repo already has an emulator-dependent e2e test file that isn't run in normal workflow — running it would have caught the missing document ID immediately. No alerting exists today for "a Firestore collection stopped receiving writes," which is why this took 6 weeks to notice rather than a day.

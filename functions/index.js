@@ -1,5 +1,5 @@
 /**
- * Firebase Cloud Functions for Transit Stats
+ * Firebase Cloud Functions for TransitStats
  * Entry point — exports all cloud functions.
  * SMS webhook for Twilio-based trip tracking.
  */
@@ -43,7 +43,7 @@ exports.authSession = authSession;
 // verifying the caller against the admin whitelist.
 exports.adminMetrics = createAdminMetricsHandler();
 
-// Public Atlas proxies used by the isolated trip-paths and heatmap betas.
+// Public Atlas proxies used by the map and heatmap views.
 exports.atlasStops = atlasStops;
 exports.atlasStopsMeta = atlasStopsMeta;
 exports.atlasRoutes = atlasRoutes;

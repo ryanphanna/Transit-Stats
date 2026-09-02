@@ -56,7 +56,7 @@ export const Profile = {
 
             const profileDoc = await db.collection('profiles').doc(user.uid).get();
 
-            if (profileDoc.exists) {
+            if (profileDoc.exists()) {
                 this.data = profileDoc.data();
             } else {
                 // Auto-initialize profile if it doesn't exist
@@ -380,7 +380,7 @@ export const Profile = {
 
         try {
             const existing = await db.collection('usernames').doc(username).get();
-            if (existing.exists) {
+            if (existing.exists()) {
                 UI.showNotification('This emoji combination is already taken! Try another.');
                 return;
             }

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Preview a PRESTO Transit Usage Report without writing to Transit Stats.
+ * Preview a PRESTO Transit Usage Report without writing to TransitStats.
  *
  * This intentionally produces transaction records, not canonical trips:
  * the report does not consistently identify route, direction, or destination.

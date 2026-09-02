@@ -1,5 +1,5 @@
 /**
- * HTTP API for the Transit Stats companion app.
+ * HTTP API for the TransitStats companion app.
  * OTP login and authenticated command dispatch live in their own modules.
  */
 
@@ -10,6 +10,7 @@ const { getFirestore } = require('firebase-admin/firestore');
 const { dispatch } = require('./lib/dispatcher');
 const { apiContextStorage, sendSmsReply } = require('./lib/twilio');
 const { createOtpHandlers } = require('./lib/otp');
+const { verifyTurnstile, turnstileSecretKey } = require('./lib/turnstile');
 const { createCommandHandler } = require('./lib/api-command');
 const logger = require('./lib/logger');
 
@@ -35,6 +36,7 @@ const { handleRequestOtp, handleVerifyOtp } = createOtpHandlers({
   db,
   adminAuth,
   sendSmsReply,
+  verifyTurnstile,
   logger,
 });
 
@@ -108,7 +110,7 @@ const twilioAccountSid = defineSecret('TWILIO_ACCOUNT_SID');
 const twilioPhoneNumber = defineSecret('TWILIO_PHONE_NUMBER');
 
 exports.api = onRequest({
-  secrets: [geminiApiKey, twilioAuthToken, twilioAccountSid, twilioPhoneNumber],
+  secrets: [geminiApiKey, twilioAuthToken, twilioAccountSid, twilioPhoneNumber, turnstileSecretKey],
   concurrency: 80,
   maxInstances: 10,
 }, handleApiRequest);

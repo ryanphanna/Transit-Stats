@@ -284,7 +284,7 @@ const V2Home = {
         try {
             const phoneDoc = await db.collection('phoneNumbers').doc(e164).get();
 
-            if (phoneDoc.exists) {
+            if (phoneDoc.exists()) {
                 const data = phoneDoc.data();
                 const userId = data.userId;
                 

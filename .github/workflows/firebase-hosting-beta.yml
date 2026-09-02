@@ -1,4 +1,4 @@
-name: Deploy Transit Stats beta
+name: Deploy TransitStats beta
 
 on:
   push:

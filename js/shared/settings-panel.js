@@ -218,7 +218,7 @@ function injectPanel() {
     });
 }
 
-// Pages other than dashboard/routes/trip-paths don't call requireAuth() (the
+// Pages other than dashboard/routes don't call requireAuth() (the
 // public profile page only checks Firebase auth state directly), so window.currentUser
 // and window.isAdmin aren't guaranteed to be set. Reuse them when present;
 // otherwise resolve isAdmin the same way requireAuth() does.

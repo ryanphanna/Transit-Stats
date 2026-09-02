@@ -1,6 +1,6 @@
 # Product Vision
 
-Transit Stats aims to eliminate the friction of transit tracking by automating trip logging, modeling personal ridership habits, and surfacing intelligence that riders couldn't generate manually.
+TransitStats aims to eliminate the friction of transit tracking by automating trip logging, modeling personal ridership habits, and surfacing intelligence that riders couldn't generate manually.
 
 ## The North Star
 

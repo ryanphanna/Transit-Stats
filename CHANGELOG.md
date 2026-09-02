@@ -10,6 +10,13 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Changed
 
+- **Added anonymous GA4 website-usage measurement** for the main app, dashboard, import flow, and marketing pages, so product usage can be understood without sending trip or location data.
+
+- **Login codes are now protected against bot/spam abuse.** Requesting a text code goes through an invisible bot check before the SMS is sent, so opening sign-up to the public won't risk someone racking up texting costs by spamming fake numbers.
+
+- **TransitStats is now named consistently across the app, legal pages, documentation, and operational tooling.**
+- **Added a private travel-corridor map**, connecting verified boarding and exit stops so repeated trips become visibly stronger without changing the dashboard.
+- **Removed the stalled Trip Paths beta**, leaving the working personal map as the foundation for future map improvements.
 - **The login page map now shows the real shape of the TTC network** (Lines 1, 2, 4, 5) for visitors detected in Toronto, instead of the generic abstract squiggle every other city still gets. Station dots are smaller and filled now, matching the signed-in map's trip dots instead of the old bold hollow-ring look, on both the abstract and real versions.
 - **The PRESTO import file picker now matches the app's styling** instead of showing the raw browser file-input control.
 - **Phone-only accounts can now link an email in Settings.** Previously a phone account had no email at all, so signing in with an email anywhere (like the new Import page) created a separate, disconnected account with none of your trips. Linking uses the same Firebase provider as email sign-in, so afterward either one reaches the same account.
@@ -46,6 +53,12 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Fixed
 
+- **The corridor map no longer zooms twice while loading**, so it settles directly on the busiest corridor area.
+- **The corridor heatmap now opens on the area with the most recorded corridor use**, instead of starting at a broad multi-city overview.
+- **The corridor heatmap now shows route usage without stop dots**, keeping the map focused on repeated travel patterns.
+- **Travel corridor usage is now shown through colour intensity alone**, keeping every line equally readable instead of making busy routes physically thicker.
+- **Travel corridors now follow verified transit route geometry instead of drawing straight lines across the map**, and one unavailable agency no longer prevents other corridors from loading.
+- **Authentication and profile checks now handle missing Firestore documents correctly**, preventing phone sign-in crashes and false username/phone availability results.
 - **Settings no longer crashes for a brand-new account with no agency chosen yet**, a state every new signup starts in.
 - **Imported PRESTO activity now actually appears on the signed-in dashboard map**, not just the public profile — the dashboard was never wired up to read it.
 - **GO Transit's tap-in and tap-out are now combined into one trip**, fixing a double-counted trip and a duplicate map dot for every GO ride (GO is the only PRESTO agency that taps twice per trip).

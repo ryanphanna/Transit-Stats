@@ -329,6 +329,14 @@ export const MapEngine = {
         return { location, source: location ? 'firestore' : 'unresolved' };
     },
 
+    getTripEndpointLocations(trips = this.trips) {
+        return trips.map(trip => ({
+            trip,
+            boarding: this._resolveStop(trip, 'boarding'),
+            exiting: this._resolveStop(trip, 'exiting'),
+        }));
+    },
+
     _renderDiagnostics(stats, tripCount) {
         const container = document.getElementById('map-diagnostics');
         if (!container) return;

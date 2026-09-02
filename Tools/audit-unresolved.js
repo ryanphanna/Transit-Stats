@@ -1,7 +1,7 @@
 /**
  * Audit current Firestore trips against the normalized stop library.
  *
- * This is intentionally user-scoped: Transit Stats is a personal tracker,
+ * This is intentionally user-scoped: TransitStats is a personal tracker,
  * and the Admin inbox only shows the signed-in user's trips.
  *
  * Usage:

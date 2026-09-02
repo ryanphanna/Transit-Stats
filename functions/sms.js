@@ -1,5 +1,5 @@
 /**
- * SMS Webhook Handler for Transit Stats (2nd Generation)
+ * SMS Webhook Handler for TransitStats (2nd Generation)
  */
 
 const { onRequest } = require('firebase-functions/v2/https');

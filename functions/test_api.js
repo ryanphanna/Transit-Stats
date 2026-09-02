@@ -95,6 +95,9 @@ function createOtpHarness(seed, { isAdmin = false } = {}) {
       sentMessages.push({ phone, message });
       return true;
     },
+    async verifyTurnstile() {
+      return true;
+    },
     logger: createLogger(),
   });
   return { db, handlers, sentMessages, isAdmin };

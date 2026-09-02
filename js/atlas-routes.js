@@ -13,27 +13,25 @@ function routeValues(trips) {
     return [...routes];
 }
 
-export async function loadAtlasRoutes(trips) {
+export async function loadAtlasRoutes(trips = []) {
     const byAgency = new Map();
     trips.forEach(trip => {
-        const slug = trip.agency || 'TTC';
-        if (!slug) return;
-        if (!byAgency.has(slug)) byAgency.set(slug, []);
-        byAgency.get(slug).push(trip);
+        const agency = String(trip.agency || '').trim();
+        if (!agency) return;
+        if (!byAgency.has(agency)) byAgency.set(agency, []);
+        byAgency.get(agency).push(trip);
     });
 
-    const responses = await Promise.all([...byAgency.entries()].map(async ([slug, agencyTrips]) => {
+    const responses = await Promise.allSettled([...byAgency.entries()].map(async ([agency, agencyTrips]) => {
         const routes = routeValues(agencyTrips);
         if (routes.length === 0) return [];
-        const response = await fetch(`${ATLAS_ROUTES_PROXY}?agency=${encodeURIComponent(slug)}&routes=${encodeURIComponent(routes.join(','))}`);
-        if (!response.ok) throw new Error(`Atlas route data unavailable for ${slug}`);
+        const response = await fetch(`${ATLAS_ROUTES_PROXY}?agency=${encodeURIComponent(agency)}&routes=${encodeURIComponent(routes.join(','))}`);
+        if (!response.ok) throw new Error(`Atlas route data unavailable for ${agency}`);
         const data = await response.json();
-        return (data.features || []).map(feature => ({
-            ...feature,
-            __agencySlug: slug,
-            __agency: agencyTrips[0]?.agency || 'TTC',
-        }));
+        return (data.features || []).map(feature => ({ ...feature, __agency: agency }));
     }));
 
-    return responses.flat();
+    return responses
+        .filter(result => result.status === 'fulfilled')
+        .flatMap(result => result.value);
 }

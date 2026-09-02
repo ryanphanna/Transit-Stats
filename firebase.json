@@ -73,7 +73,7 @@
           ]
         },
         {
-          "source": "/{dashboard,trip-paths,public,rocket}",
+          "source": "/{dashboard,public,rocket}",
           "headers": [
             {
               "key": "Cache-Control",
@@ -163,10 +163,6 @@
             "functionId": "publicProfilePage",
             "region": "us-central1"
           }
-        },
-        {
-          "source": "/trip-paths",
-          "destination": "/trip-paths.html"
         },
         {
           "source": "/terms",

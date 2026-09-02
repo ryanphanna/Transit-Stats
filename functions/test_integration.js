@@ -1,5 +1,5 @@
 /**
- * Integration tests for Transit Stats SMS dispatch flow.
+ * Integration tests for TransitStats SMS dispatch flow.
  *
  * Tests the full pipeline: dispatch() → handlers → Firestore writes.
  * No real SMS is sent (TS_TEST_MODE intercepts Twilio).
