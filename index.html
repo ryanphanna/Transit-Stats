@@ -10,6 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles/main.css">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
     <main id="app-root">
@@ -39,6 +40,7 @@
                                 <i data-lucide="smartphone" aria-hidden="true"></i>
                                 <input type="tel" id="auth-phone" inputmode="tel" autocomplete="off" placeholder="Phone number">
                             </div>
+                            <div class="cf-turnstile" id="auth-turnstile" data-sitekey="0x4AAAAAAEk8ciKktVYaFU9J" data-size="invisible" data-action="turnstile-spin-v1" data-callback="onTurnstileToken"></div>
                             <button id="btn-auth-request-code" class="btn btn-primary full-width">Text me a code <i data-lucide="arrow-right" aria-hidden="true"></i></button>
                             <button id="btn-auth-email-mode" class="btn btn-link full-width hidden" type="button">Use email instead</button>
                         </div>

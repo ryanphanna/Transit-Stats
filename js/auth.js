@@ -137,11 +137,11 @@ export const Auth = {
         await auth.linkEmailPassword(email.toLowerCase(), password);
     },
 
-    async requestPhoneCode(phoneNumber) {
+    async requestPhoneCode(phoneNumber, turnstileToken) {
         const response = await fetch(this.phoneApiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'request_otp', phoneNumber })
+            body: JSON.stringify({ action: 'request_otp', phoneNumber, turnstileToken })
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || 'Could not send a verification code.');

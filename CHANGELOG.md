@@ -10,6 +10,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Changed
 
+- **Login codes are now protected against bot/spam abuse.** Requesting a text code goes through an invisible bot check before the SMS is sent, so opening sign-up to the public won't risk someone racking up texting costs by spamming fake numbers.
+
 - **TransitStats is now named consistently across the app, legal pages, documentation, and operational tooling.**
 - **Added a private travel-corridor map**, connecting verified boarding and exit stops so repeated trips become visibly stronger without changing the dashboard.
 - **Removed the stalled Trip Paths beta**, leaving the working personal map as the foundation for future map improvements.

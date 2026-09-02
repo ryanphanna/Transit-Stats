@@ -33,6 +33,27 @@ let resendTimer = null;
 let phoneCooldownTimer = null;
 const RESEND_COOLDOWN_SECONDS = 60;
 
+// Cloudflare Turnstile (invisible) blocks bots from hitting the OTP-send
+// endpoint directly. The widget auto-executes on load and re-executes after
+// each reset, so a fresh token is usually already waiting by the time the
+// user submits; getTurnstileToken() falls back to waiting for the callback
+// if it isn't ready yet.
+let turnstileToken = '';
+let turnstileWaiters = [];
+window.onTurnstileToken = (token) => {
+    turnstileToken = token;
+    turnstileWaiters.forEach(resolve => resolve(token));
+    turnstileWaiters = [];
+};
+function getTurnstileToken() {
+    if (turnstileToken) return Promise.resolve(turnstileToken);
+    return new Promise(resolve => turnstileWaiters.push(resolve));
+}
+function resetTurnstile() {
+    turnstileToken = '';
+    if (window.turnstile) window.turnstile.reset('#auth-turnstile');
+}
+
 // The real shape of the TTC subway/LRT network (Lines 1, 2, 4, 5), simplified
 // from Atlas route geometry and fitted to the same viewBox/paths the abstract
 // map uses, so Toronto visitors see their own network instead of a generic
@@ -295,7 +316,8 @@ async function requestCode() {
     setBusy(DOM.requestCode, true, 'Sending…', 'Text me a code');
 
     try {
-        const result = await Auth.requestPhoneCode(normalizedPhone);
+        const turnstileToken = await getTurnstileToken();
+        const result = await Auth.requestPhoneCode(normalizedPhone, turnstileToken);
         adminSession = result.isAdmin === true;
         if (adminSession) clearPhoneCooldown(normalizedPhone);
         else persistPhoneCooldown(normalizedPhone);
@@ -310,6 +332,7 @@ async function requestCode() {
     } catch (error) {
         setStatus(error.message);
     } finally {
+        resetTurnstile();
         requestBusy = false;
         setBusy(DOM.requestCode, false, 'Sending…', 'Text me a code');
         syncButtons();
