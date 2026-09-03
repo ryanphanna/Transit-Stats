@@ -71,6 +71,10 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Profile share links now include a site name and fuller description**, and declare the image's type and secure URL so LinkedIn renders the large card instead of falling back to a small one.
 - **The signed-in dashboard loads faster.** It was re-reading your entire trip history a second time just to build the agency list, blocking everything else until that finished; agencies are now built from the trip data the map and stats already fetch.
 
+### Security
+
+- **Updated the Functions query-string parser to the patched release**, closing two denial-of-service vulnerabilities in SMS webhook input handling.
+
 ## [1.49.4] — 2026-08-26
 
 ### Added

@@ -25,7 +25,7 @@
     "firebase-admin": "^14.3.0",
     "firebase-functions": "^7.3.2",
     "onnxruntime-node": "^1.27.0",
-    "qs": "^6.15.0",
+    "qs": "^6.16.0",
     "sharp": "0.35.3",
     "twilio": "^6.1.0"
   },
@@ -33,7 +33,7 @@
     "follow-redirects": "^1.16.0",
     "axios": "^1.13.5",
     "minimatch": "^3.1.5",
-    "qs": "^6.15.0",
+    "qs": "^6.16.0",
     "@tootallnate/once": "^3.0.1",
     "fast-xml-parser": "^5.10.1",
     "uuid": "^11.1.1",
