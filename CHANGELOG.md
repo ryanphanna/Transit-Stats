@@ -57,6 +57,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Fixed
 
+- **Phone login now keeps the bot check invisible and allows the code request to continue after verification.**
+
 - **The corridor map no longer zooms twice while loading**, so it settles directly on the busiest corridor area.
 - **The corridor heatmap now opens on the area with the most recorded corridor use**, instead of starting at a broad multi-city overview.
 - **The corridor heatmap now shows route usage without stop dots**, keeping the map focused on repeated travel patterns.
