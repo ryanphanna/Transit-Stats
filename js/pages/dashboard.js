@@ -37,16 +37,20 @@ const tripEdit = {
 
 let tripAgencyAutocomplete = null;
 
-function setupTripAgencyAutocomplete() {
+function buildTripAgencyOptions() {
     const profile = window.currentUserProfile || {};
     const defaultAgency = getConfiguredAgency(profile);
     const optionsByValue = new Map((Profile.agencyOptions || []).map(option => [option.value, option]));
     if (defaultAgency && !optionsByValue.has(defaultAgency)) {
         optionsByValue.set(defaultAgency, { value: defaultAgency, label: displayAgencyName(defaultAgency) });
     }
+    return [...optionsByValue.values()];
+}
+
+function setupTripAgencyAutocomplete() {
     tripAgencyAutocomplete = createAgencyAutocomplete({
         input: tripEdit.agency,
-        options: [...optionsByValue.values()],
+        options: buildTripAgencyOptions(),
     });
     window.TripAgencyAutocomplete = tripAgencyAutocomplete;
 }
@@ -193,7 +197,6 @@ async function init() {
     ModalManager.init();
 
     await Profile.load(user);
-    await Profile.loadAgencies(user);
     renderAtlasCard({ signedIn: true });
     const profileHref = Profile.data?.isPublic && Profile.data?.username
         ? `/user/${encodeURIComponent(Profile.data.username)}`
@@ -214,6 +217,8 @@ async function init() {
     Promise.all([Trips._readyPromise, tripsInitPromise]).then(() => {
         Stats.init();
         loadDashboardAtlasStops();
+        Profile.setAgenciesFromTrips(TripController.allTrips || []);
+        tripAgencyAutocomplete?.setOptions(buildTripAgencyOptions());
         refreshIcons();
     });
 

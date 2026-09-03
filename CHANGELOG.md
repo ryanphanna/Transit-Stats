@@ -10,11 +10,8 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 
 ### Changed
 
-- **Fixed local phone login security checks**, which were rejected before producing a verification token because the widget used an invalid invisible-size setting.
-- **Login requests now fail clearly when the security check or API hangs**, instead of leaving the button stuck on “Sending…”.
 - **Added anonymous GA4 website-usage measurement** for the main app, dashboard, import flow, and marketing pages, so product usage can be understood without sending trip or location data.
-- **Login codes are now protected against bot/spam abuse.** Requesting a text code goes through an invisible bot check before the SMS is sent, so opening sign-up to the public won't risk someone racking up texting costs by spamming fake numbers.
-
+- **Login codes are now protected against bot/spam abuse, and fail clearly instead of hanging.** Requesting a text code goes through an invisible bot check before the SMS is sent, so opening sign-up to the public won't risk someone racking up texting costs by spamming fake numbers; if the check or API hangs, the request now fails clearly instead of leaving the button stuck on “Sending…”.
 - **TransitStats is now named consistently across the app, legal pages, documentation, and operational tooling.**
 - **Added a private travel-corridor map**, connecting verified boarding and exit stops so repeated trips become visibly stronger without changing the dashboard.
 - **Removed the stalled Trip Paths beta**, leaving the working personal map as the foundation for future map improvements.
@@ -31,30 +28,26 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Settings panel polish**: stays a consistent size across tabs instead of resizing per tab, text-link buttons (Reset password, Change, Save, Share) now carry a small arrow so they read clearly as actions, and the Profile URL's Share button lines up with the other action buttons instead of sitting off to the side.
 - **Removed the Routes page and its route-completion tracker**, a leftover from an earlier design. The map is the app's main draw, not a separate route-checklist page.
 - **Admins can now import PRESTO activity from Settings**, previewing and importing PRESTO Transit Usage Reports without a separate pilot page.
-- **Imported PRESTO activity shows on the dashboard map and, for flagged pilot profiles, the public map, once its stop is uniquely known**, leaving ambiguous or unresolved locations for later matching instead of guessing.
+- **Imported PRESTO activity shows on the public map for flagged pilot profiles once its stop is uniquely known**, leaving ambiguous or unresolved locations for later matching instead of guessing.
 - **Imported PRESTO activity stays visible while stop matching is deferred**, so an unclear location doesn't block the rest of the import.
 - **PRESTO pilot uploads now preview multiple reports and import activity in user-scoped batches.**
 - **PRESTO trials can sign in with email only**, so trying the pilot doesn't require a second phone number.
 - **PRESTO fare exports can now be previewed in an isolated report**, keeping imported fare transactions separate from canonical trip history until matched.
 - **Social preview images now focus on the full-width map**, leaving trip totals and other stats in the post text where they are easier to read.
-- **Profile preview images now use a versioned path**, so repaired X previews can be fetched instead of reusing a failed image URL.
-- **Profile preview image URLs now advance past cached responses**, so social platforms can fetch the corrected dot map.
+- **Profile preview image URLs now advance past cached responses**, so repaired previews and corrected dot maps can be fetched by X and other social platforms instead of reusing a failed or stale cached image.
 - **The dashboard no longer shows a live-trip indicator**, keeping the map card focused on trip history and totals.
 - **The browser admin area has been retired**, leaving operational maintenance in protected backend tools instead of an unfinished UI.
 - **Dashboard maps now load saved dots before the full trip history finishes**, making returning visits feel immediate while fresh data loads.
 - **Unauthenticated dashboard visits no longer show a fake empty dashboard while redirecting**, keeping sign-in visitors out of the signed-in shell.
 - **Dashboards now link to the owner’s public Profile when sharing is enabled**, making the shared map easy to open from the account home.
-- **Signed-in dashboards now identify the card as Your TransitStats**, making the account view distinct from a public profile.
-- **Signed-in dashboard titles no longer briefly switch back to the profile name**, keeping the account view consistently labeled Your TransitStats.
+- **Signed-in dashboards now consistently identify the card as Your TransitStats**, making the account view distinct from a public profile without briefly flickering back to the profile name.
 - **Signed-in public profiles now put Share in the top-right account controls**, matching the dashboard’s Profile placement.
 - **Admins now automatically get every premium perk over SMS**, including the STATS trend arrows that previously required a premium flag same as ASK did — one shared rule instead of a per-feature check.
-- **Signed-in dashboard trip counts, agencies, days ridden, and countries now include imported PRESTO activity**, not just text-logged trips.
 - **PRESTO's import preview now separates fares from card funding**, splitting "loaded" into reloadable-balance top-ups and pass purchases instead of one combined total that made it look like a large, nonexistent balance was unaccounted for.
 - **PRESTO imports now only store fare payments**, not card loads — nothing reads load rows back out of storage once imported, and the preview already summarizes them from the file before saving.
 
 ### Fixed
 
-- **Phone login now keeps the bot check invisible and allows the code request to continue after verification.**
 - **The corridor map no longer zooms twice while loading**, so it settles directly on the busiest corridor area.
 - **The corridor heatmap now opens on the area with the most recorded corridor use**, instead of starting at a broad multi-city overview.
 - **The corridor heatmap now shows route usage without stop dots**, keeping the map focused on repeated travel patterns.
@@ -62,7 +55,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Travel corridors now follow verified transit route geometry instead of drawing straight lines across the map**, and one unavailable agency no longer prevents other corridors from loading.
 - **Authentication and profile checks now handle missing Firestore documents correctly**, preventing phone sign-in crashes and false username/phone availability results.
 - **Settings no longer crashes for a brand-new account with no agency chosen yet**, a state every new signup starts in.
-- **Imported PRESTO activity now actually appears on the signed-in dashboard map**, not just the public profile — the dashboard was never wired up to read it.
+- **Imported PRESTO activity now actually appears on the signed-in dashboard — map, trip counts, agencies, days ridden, and countries**, not just the public profile — the dashboard was never wired up to read it.
 - **GO Transit's tap-in and tap-out are now combined into one trip**, fixing a double-counted trip and a duplicate map dot for every GO ride (GO is the only PRESTO agency that taps twice per trip).
 - **Two different riders can no longer collide on the same imported PRESTO record**, which previously could fail one rider's entire import batch if a coincidental match occurred.
 - **Dashboard refreshes now show a loading state while a signed-in session is restored**, instead of appearing blank during a slow auth startup.
@@ -74,6 +67,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **Social preview maps now ignore malformed coordinates**, keeping one bad stop from collapsing the entire dot map.
 - **Social preview images now render real street map tiles behind the ride dots**, replacing the decorative placeholder background that made cards look generic and unrecognizable. Tile fetching is capped at a 2-second budget so a slow map server falls back to the plain background instead of stalling the card.
 - **Profile share links now include a site name and fuller description**, and declare the image's type and secure URL so LinkedIn renders the large card instead of falling back to a small one.
+- **The signed-in dashboard loads faster.** It was re-reading your entire trip history a second time just to build the agency list, blocking everything else until that finished; agencies are now built from the trip data the map and stats already fetch.
 
 ## [1.49.4] — 2026-08-26
 

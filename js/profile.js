@@ -101,20 +101,29 @@ export const Profile = {
 
         try {
             const tripsSnap = await db.collection('trips').where('userId', '==', user.uid).get();
-            const optionsByValue = new Map(BUILT_IN_AGENCY_OPTIONS.map(option => [option.value, option]));
-            tripsSnap.docs.forEach(doc => {
-                const value = String(doc.data().agency || '').trim();
-                if (!value || optionsByValue.has(value)) return;
-                optionsByValue.set(value, { value, label: displayAgencyName(value) });
-            });
-            this.agencyOptions = [...optionsByValue.values()];
-            this.agencies = this.agencyOptions.map(option => option.label);
+            this.setAgenciesFromTrips(tripsSnap.docs.map(doc => doc.data()));
         } catch (error) {
             console.warn('Could not load agencies from trips:', error);
             this.agencies = [];
             this.agencyOptions = [];
+            this.syncAgencyOptions();
         }
+    },
 
+    /**
+     * Derive agency options from already-loaded trip data, avoiding a
+     * redundant full-collection Firestore read (the dashboard's live trips
+     * listener already has this data).
+     */
+    setAgenciesFromTrips(trips = []) {
+        const optionsByValue = new Map(BUILT_IN_AGENCY_OPTIONS.map(option => [option.value, option]));
+        trips.forEach(trip => {
+            const value = String(trip.agency || '').trim();
+            if (!value || optionsByValue.has(value)) return;
+            optionsByValue.set(value, { value, label: displayAgencyName(value) });
+        });
+        this.agencyOptions = [...optionsByValue.values()];
+        this.agencies = this.agencyOptions.map(option => option.label);
         this.syncAgencyOptions();
     },
 
