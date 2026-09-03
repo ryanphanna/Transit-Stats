@@ -195,8 +195,6 @@ export const Profile = {
         const phoneEl = document.getElementById('settings-phone');
         const betaEl = document.getElementById('settings-beta-predictions');
         const publicProfileEl = document.getElementById('settings-public-profile');
-        const sharingContentEl = document.getElementById('settings-sharing-content');
-        const sharingComingSoonEl = document.getElementById('settings-sharing-coming-soon');
         const publicLinkEl = document.getElementById('settings-public-link');
         const mapStopModeEl = document.getElementById('settings-map-stop-mode');
 
@@ -249,9 +247,6 @@ export const Profile = {
             customUsernameEditorEl?.classList.add('hidden');
             changeCustomUsernameButtonEl?.classList.remove('hidden');
         }
-
-        sharingContentEl?.classList.remove('hidden');
-        sharingComingSoonEl?.classList.add('hidden');
 
         // --- Identity UI ---
         const identityRow = document.querySelector('.settings-identity-row');
@@ -372,43 +367,6 @@ export const Profile = {
         } catch (err) {
             console.error('Save failed:', err);
             UI.showNotification('Failed to save: ' + err.message);
-        }
-    },
-
-    async reserveUsername(username) {
-        const user = auth.currentUser;
-        if (!user) return;
-
-        if (this.data?.username) {
-            UI.showNotification('Identity changes are not supported.');
-            return;
-        }
-
-        try {
-            const existing = await db.collection('usernames').doc(username).get();
-            if (existing.exists()) {
-                UI.showNotification('This emoji combination is already taken! Try another.');
-                return;
-            }
-
-            await db.collection('usernames').doc(username).set({
-                uid: user.uid,
-                createdAt: serverTimestamp(),
-            });
-
-            await db.collection('profiles').doc(user.uid).set({
-                username,
-                updatedAt: serverTimestamp(),
-            }, { merge: true });
-
-            if (!this.data) this.data = {};
-            this.data.username = username;
-            window.currentUserProfile = this.data;
-            this.syncUI(user.email);
-            UI.showNotification('Identity reserved!');
-        } catch (err) {
-            console.error('Username save failed:', err);
-            UI.showNotification('Failed to reserve identity: ' + err.message);
         }
     },
 };

@@ -139,9 +139,6 @@ function panelMarkup() {
                                     <button id="btn-save-custom-username" class="btn btn-link settings-text-action">Save</button>
                                 </div>
                             </div>
-                            <div id="settings-sharing-coming-soon" class="settings-coming-soon hidden">
-                                Public profiles are coming soon.
-                            </div>
                             <div id="settings-sharing-content">
                                 <div class="settings-row">
                                     <div class="settings-label-group">
