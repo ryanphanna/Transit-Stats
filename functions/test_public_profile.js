@@ -98,15 +98,14 @@ test('publicProfile returns 403 when profile is not public', async () => {
   assert.equal(res.statusCode, 403);
 });
 
-test('publicProfile marks other profiles as coming soon', async () => {
+test('publicProfile returns 200 for any public profile, not just the beta account', async () => {
   const handler = loadPublicProfile({
     docs: { usernames: { r: { exists: true, data: () => ({ uid: 'u1' }) } } },
     profile: { isPublic: true, username: 'r' },
   });
   const res = mockRes();
   await handler({ method: 'GET', query: { user: 'r' } }, res);
-  assert.equal(res.statusCode, 403);
-  assert.equal(res.body.code, 'COMING_SOON');
+  assert.equal(res.statusCode, 200);
 });
 
 test('publicProfile returns 200 with aggregated stats for a public profile', async () => {

@@ -36,8 +36,6 @@ export const AGENCY_DISPLAY_NAMES = {
 export const BUILT_IN_AGENCY_OPTIONS = Object.entries(AGENCY_DISPLAY_NAMES)
     .map(([value, label]) => ({ value, label }));
 
-export const PUBLIC_PROFILE_BETA_USERNAME = 'subway-subway-subway';
-
 export function normalizeUsername(username) {
     return String(username || '').trim().toLowerCase().replace(/_/g, '-');
 }
@@ -50,11 +48,6 @@ export function isEmojiUsername(username) {
 export function getEmojiUsername(profile = {}) {
     const candidates = [profile.emojiUsername, ...(profile.usernameAliases || []), profile.username];
     return candidates.find(isEmojiUsername) || '';
-}
-
-export function isPublicProfileBetaOwner(profile = {}) {
-    const candidates = [profile.username, profile.emojiUsername, ...(profile.usernameAliases || [])];
-    return candidates.some(username => normalizeUsername(username) === PUBLIC_PROFILE_BETA_USERNAME);
 }
 
 export function displayAgencyName(value) {

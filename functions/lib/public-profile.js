@@ -11,7 +11,7 @@
 const { onRequest } = require('firebase-functions/v2/https');
 const { db, getUserProfile, getStopsLibrary } = require('./db');
 const logger = require('./logger');
-const { isPublicProfileBetaOwner, getMapStopMode } = require('./profile-fields');
+const { getMapStopMode } = require('./profile-fields');
 const { resolveAtlasAgency } = require('../atlas-agency');
 const { buildHeatmapBands } = require('./public-profile-heatmap');
 
@@ -235,14 +235,6 @@ async function handlePublicProfile(req, res) {
       res.status(403).json({ error: 'This profile is private' });
       return;
     }
-    if (!isPublicProfileBetaOwner(profile)) {
-      res.status(403).json({
-        code: 'COMING_SOON',
-        error: 'Public profiles are coming soon.',
-      });
-      return;
-    }
-
     // The public profile switch is the permission boundary. Once the profile
     // is public, expose the same history as the signed-in map through the
     // aggregate-only response below. Individual trip documents remain private.

@@ -11,7 +11,6 @@ import {
     getEmojiUsername,
     getMapStopMode,
     isEmojiUsername,
-    isPublicProfileBetaOwner,
 } from './profile-fields.js';
 
 export { displayAgencyName, formatPhoneNumber } from './profile-fields.js';
@@ -251,10 +250,8 @@ export const Profile = {
             changeCustomUsernameButtonEl?.classList.remove('hidden');
         }
 
-        const publicProfileBetaOwner = isPublicProfileBetaOwner(this.data || {});
-        sharingContentEl?.classList.toggle('hidden', !publicProfileBetaOwner);
-        sharingComingSoonEl?.classList.toggle('hidden', publicProfileBetaOwner);
-        if (!publicProfileBetaOwner) return;
+        sharingContentEl?.classList.remove('hidden');
+        sharingComingSoonEl?.classList.add('hidden');
 
         // --- Identity UI ---
         const identityRow = document.querySelector('.settings-identity-row');
