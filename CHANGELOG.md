@@ -46,6 +46,7 @@ See [CHANGELOG_ARCHIVE.md](CHANGELOG_ARCHIVE.md) for earlier history.
 - **PRESTO's import preview now separates fares from card funding**, splitting "loaded" into reloadable-balance top-ups and pass purchases instead of one combined total that made it look like a large, nonexistent balance was unaccounted for.
 - **PRESTO imports now only store fare payments**, not card loads — nothing reads load rows back out of storage once imported, and the preview already summarizes them from the file before saving.
 - **Public profiles are now open to every account, not just one pilot username.** Settings' Sharing tab (identity reservation, the public toggle, share links) now works for any signed-in user, and the public profile page/API/share-image no longer reject everyone but a single hardcoded account.
+- **Added a ⚡ browser tab icon**, replacing the generic blank tab across every page.
 
 ### Fixed
 
